@@ -41,7 +41,7 @@ For the latest implementation checkpoint and exact next tasks, also read `docs/C
 | Mutations / API | One REST API `/api/v1` (route handlers, Zod-validated) used by the UI **and** by Postman | One code path, testable; no Server Actions for data mutations |
 | UI | Tailwind CSS + shadcn/ui (Radix), lucide icons (tree-shaken), dnd-kit (kanban), TanStack Table + **TanStack Virtual** (long lists), react-hook-form + Zod, date-fns | Small, accessible primitives; virtualization keeps 10k-row lists smooth |
 | Heavy UI | Rich text (Tiptap), PDF preview, charts — **lazy-loaded** (`next/dynamic`) | Keeps initial JS ≤ 180 KB gz |
-| Database | **PostgreSQL 16 on Supabase, region eu-central-1 (Frankfurt)** | Relational integrity, transactions, partial indexes, pg_trgm search |
+| Database | **PostgreSQL 17 on Supabase, region eu-central-1 (Frankfurt)** (owner approved 2026-10-31, Q-142) | Relational integrity, transactions, partial indexes, pg_trgm search |
 | DB access | **Drizzle ORM** + `postgres.js` via Supavisor pooler (transaction mode, `prepare: false`) | Thin SQL layer, no ORM overhead, explicit queries |
 | Hosting | **Vercel, function region fra1** (same city as DB) | Single-digit-ms app↔DB latency |
 | Auth | Supabase Auth (magic link + Google), invite-only; **JWT verified locally** (cached JWKS), no auth network call per request | Removes a round-trip from every request |
