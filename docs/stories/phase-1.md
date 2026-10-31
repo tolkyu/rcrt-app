@@ -2,7 +2,7 @@
 
 > Scope (PRD §15): repo, CI, envs, auth, users, invites, verticals, role assignments, authorization module + tests, audit log, design system shell, seed data, screenshots.
 > UI labels follow `docs/ux/glossary.md`; screens follow `docs/ux/screens.md` (S-01, S-02, S-14, S-16, S-18).
-> `(Dxx)` = owner-confirmed decision in PRD §14. **[assumes Q-xx]** = BA recommendation from `docs/OPEN_QUESTIONS.md` still awaiting the owner; if the answer differs, the story is revised before build.
+> `(Dxx)` = owner-confirmed decision in PRD §14. Phase 1 product questions were answered by the owner on 2026-10-31. Infrastructure discrepancy Q-142 (Supabase PostgreSQL version) was subsequently found during implementation; see `docs/OPEN_QUESTIONS.md`.
 > Enabler stories (no PRD ID) use the prefix `FND`. Updated with owner decisions of 2026-10-31.
 
 ## Conventions used in all stories
@@ -151,7 +151,7 @@ As an **Admin**, I want to invite a person by email with their roles, so that on
 - Given «Налаштування → Користувачі та ролі», When I click «Запросити», enter full name, email and at least one role@vertical, Then an invite email in Ukrainian is sent and the user appears with status «Запрошено» and expiry date (D33).
 - Given the invite, Then it expires exactly 72 h after sending (ROLE-05).
 - (negative) Given a non-Admin (any role, any vertical, including Head Recruiter), When they call the invite endpoint or open the page, Then 404 (D33).
-- (negative) Given an email of an active user or a pending invite, When I invite, Then «Користувач з таким email уже існує» / «Запрошення вже надіслано»; for a deactivated user the dialog offers «Активувати знову» instead [assumes Q-32, Q-35].
+- (negative) Given an email of an active user or a pending invite, When I invite, Then «Користувач з таким email уже існує» / «Запрошення вже надіслано»; for a deactivated user the dialog offers «Активувати знову» instead (D42, D44).
 
 **Data:** full name (required, 2–100 chars), email, roles[] (role + vertical or global).
 **Validation:** role rules from STORY-ROLE-01-1.
@@ -172,7 +172,7 @@ As an **invited person**, I want to open the link and get in, so that I can star
 **Edge cases:** invite opened at 71 h 59 min and completed at 72 h 01 min → expiry is checked at acceptance, refused; Admin revokes while the person is on the page → acceptance refused; roles removed after the invite was sent → acceptance uses current roles; if none remain, acceptance refused with «Запрошення недійсне».
 
 ### STORY-ROLE-05-3: Resend, revoke and track invites
-As an **Admin**, I want to resend or revoke invites, so that I control pending access [assumes Q-32].
+As an **Admin**, I want to resend or revoke invites, so that I control pending access (D42).
 
 **Acceptance criteria**
 - Given a pending or expired invite, When I click «Надіслати повторно», Then a new 72 h link is sent and the previous link stops working.
@@ -197,8 +197,9 @@ As an **Admin**, I want to deactivate a user who left, so that they can't sign i
 
 **Acceptance criteria**
 - Given an active user, When I click «Деактивувати» and confirm («Користувач не зможе увійти. Історія залишиться.»), Then status becomes «Деактивовано», sessions are revoked (STORY-SEC-AUTH-4), role assignments are kept but inactive.
-- Given a deactivated user, When I click «Активувати знову», Then status becomes «Активний» and previous roles are offered for restoration with confirmation [assumes Q-35].
-- (negative) An Admin cannot deactivate themselves; the last active Admin cannot be deactivated [assumes Q-36].
+- Given a deactivated user, When I click «Активувати знову», Then status becomes «Активний» and previous roles are offered for restoration with confirmation (D44).
+- (negative) An Admin cannot deactivate themselves; the last active Admin cannot be deactivated (D45).
+- (negative) There is no action to delete a user, in UI or API (D44).
 - (negative) Non-Admin → 404.
 - **Deferred (rule confirmed, D24):** the dialog section listing open work of any role (owned applications, Team Lead vacancies, assigned polygraphs, offers) with mandatory reassignment is added in Phase 2–3 as those objects ship (`STORY-ROLE-06-1`, to be written in Phase 2). In Phase 1 no such objects exist, so the dialog has no reassignment section.
 
@@ -210,7 +211,7 @@ As **any signed-in user** (including Finance), I want «Профіль» with my
 
 **Acceptance criteria**
 - Given «Профіль», Then I see name, email (read-only), roles as «Роль · Вертикаль», тема (Світла / Темна / Системна), 2FA, active sessions, my recent sign-ins (D25).
-- I can edit my display name; email changes only by Admin [assumes Q-35].
+- I can edit my display name; email changes only by Admin, audited (D44).
 - (negative) I cannot view another user's profile via URL → 404 (unless Admin via user details).
 
 **Events:** `user.profile_updated` (old→new name).
@@ -240,7 +241,7 @@ As an **Admin**, I want to give a user a role in one or more verticals, so that 
 
 **Acceptance criteria**
 - Given a user, When I add «Керівник рекрутингу · Гемблінг», Then it takes effect on the user's next request (no re-login).
-- Given ADMIN or FINANCE, Then the assignment is global only; all other roles require a vertical [assumes Q-22].
+- Given ADMIN or FINANCE, Then the assignment is global only; all other roles require a vertical (D40).
 - Any combination of roles is allowed, including Тімлід + Рекрутер in the same vertical (D35); self-approval of bonuses is blocked later in Phase 4 (§9.3).
 - (negative) Assigning a scoped role without vertical, a global role with vertical, or a duplicate (same role + vertical) → validation error.
 - (negative) Non-Admin → 404.
@@ -253,9 +254,9 @@ As an **Admin**, I want to remove a role, so that access shrinks when a job chan
 
 **Acceptance criteria**
 - Given a role assignment, When I remove it, Then access is lost on the next request.
-- (negative) Removing ADMIN from the last active Admin, or from myself → refused [assumes Q-36].
+- (negative) Removing ADMIN from the last active Admin, or from myself → refused (D45).
 - (negative) Non-Admin → 404.
-- **Deferred:** blocking removal while open work exists — Phase 2–3 [assumes Q-34].
+- **Deferred (rule confirmed, D43):** blocking removal while open work tied to that role exists — added in Phase 2–3 with STORY-ROLE-06-1.
 
 **Events:** `user.role_removed`.
 **Edge cases:** removing a user's last role → user stays active but sees «Профіль» only with «Вам ще не призначено ролей. Зверніться до адміністратора.»
@@ -266,7 +267,7 @@ As an **Admin**, I want to set each Team Lead's priority per vertical, so that r
 **Acceptance criteria**
 - Given «Пріоритети тімлідів», When I set Vasyl = 0 and Taras = 1 in Гемблінг, Then badges «П0», «П1» show with tooltip «Пріоритет 0 — найвищий».
 - Equal priorities are allowed (tie-break: oldest vacancy, D5).
-- A newly assigned Team Lead gets the lowest priority in the vertical with the marker «Пріоритет не задано» until Admin sets it [assumes Q-93].
+- A Team Lead without a priority is ranked after all prioritised Team Leads, with the marker «Пріоритет не задано», until Admin sets it (D47).
 - (negative) Priority for a user without TEAM_LEAD in that vertical, negative or non-integer → validation error. Non-Admin → 404.
 - Per-vacancy override is out of scope until Phase 2 (vacancies).
 
@@ -369,7 +370,7 @@ As **any user**, I want navigation that shows only sections I may use, so that t
 
 **Acceptance criteria**
 - Navigation matrix = `docs/ux/screens.md` §1; a section appears only once it is built (D28). In Phase 1: Admin sees «Налаштування» (Користувачі та ролі, Вертикалі, Пріоритети тімлідів, Журнал дій) and «Профіль»; all other roles, including Finance, see «Профіль» only.
-- Landing after sign-in: Admin → «Налаштування → Користувачі та ролі»; others → «Профіль» (Phase 1). From Phase 2: Dashboard; Finance → «Статистика» from Phase 4, without bell, search or calendar [assumes Q-25].
+- Landing after sign-in: Admin → «Налаштування → Користувачі та ролі»; others → «Профіль» (Phase 1). From Phase 2: Dashboard; Finance → «Статистика» from Phase 4, without bell, search or calendar (D41).
 - (negative) Finance opening any non-statistics route → redirect to their landing; object URLs → 404 (STAT-08). Non-Admin opening `/settings/*` → 404.
 - Multi-role user sees the union (STORY-ROLE-02-1).
 
@@ -399,7 +400,7 @@ As **any user**, I want clear states everywhere (UI-06).
 As **QA and the owner**, I want realistic Ukrainian seed data, so that demos and screenshots are meaningful (CLAUDE.md §8).
 
 **Acceptance criteria**
-- `pnpm db:seed` creates verticals Гемблінг and Крипто, and users: `admin@demo` (Адміністратор, global, TOTP pre-enrolled for local only), `head.recruiter.gambling@demo`, `recruiter1.gambling@demo`, `recruiter2.gambling@demo`, `recruiter.crypto@demo`, `head.hr@demo` and `hr@demo` (both verticals [assumes Q-43]), `vasyl.tl@demo` (Тімлід · Гемблінг, П0), `taras.tl@demo` (Тімлід · Гемблінг, П1), `tl.crypto@demo` (Тімлід · Крипто, П0), `finance@demo` (global, TOTP pre-enrolled for local only), with Ukrainian full names; plus one expired invite and one deactivated user for screenshots.
+- `pnpm db:seed` creates verticals Гемблінг and Крипто, and users: `admin@demo` (Адміністратор, global, TOTP pre-enrolled for local only), `head.recruiter.gambling@demo`, `recruiter1.gambling@demo`, `recruiter2.gambling@demo`, `recruiter.crypto@demo`, `head.hr@demo` and `hr@demo` (both verticals, D46), `vasyl.tl@demo` (Тімлід · Гемблінг, П0), `taras.tl@demo` (Тімлід · Гемблінг, П1), `tl.crypto@demo` (Тімлід · Крипто, П0), `finance@demo` (global, TOTP pre-enrolled for local only), with Ukrainian full names; plus one expired invite and one deactivated user for screenshots.
 - Re-running is idempotent.
 - (negative) Seed refuses to run against production.
 - **Deferred:** position «Медіабаєр — Facebook», vacancies and ~30 candidates are seeded in Phase 2–3 with their tables (not stubbed now). Perf seed (PERF-01) starts in Phase 2.
@@ -458,8 +459,7 @@ As the **UX designer**, I want stable diffs between runs (SHOT-03).
 | CLAUDE.md §8 seed / dev login | SEED-1, DEV-1 | — |
 
 ## Ready for design
-- FND-1..5, DEV-1, SEC-AUTH-1, SEC-AUTH-2, SEC-AUTH-3, SEC-AUTH-4, ROLE-05-2, ROLE-05-4, ROLE-05-6 (except email-change rule, Q-35), ROLE-03-1, ROLE-04-1, ROLE-02-1, VIS-01-1, VIS-02-1, VIS-03-1, AUD-1..3, HIST-03-1, UI-05-1, UI-06-1, SHOT-01..03.
+- All Phase 1 stories.
 
-## Blocked by questions (recommendations assumed; confirm before build)
-- ROLE-05-1, ROLE-05-3 → Q-32 · ROLE-05-5 → Q-35, Q-36 · ROLE-01-1 → Q-22 · ROLE-01-2 → Q-34, Q-36
-- ROLE-01-3 → Q-93 · UI-04-1 (Finance menu from Phase 4) → Q-25 · SEED-1 → Q-43
+## Blocked by questions
+- None. Remaining open questions (`docs/OPEN_QUESTIONS.md`) affect Phase 2 and later.

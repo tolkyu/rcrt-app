@@ -1,0 +1,18 @@
+name: hris-recruiting-test
+
+services:
+  postgres:
+    image: postgres:16.13-alpine
+    environment:
+      POSTGRES_USER: recruiting_test
+      POSTGRES_PASSWORD: local_test_only
+      POSTGRES_DB: recruiting_test
+    ports:
+      - '127.0.0.1:55332:5432'
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U recruiting_test -d recruiting_test']
+      interval: 2s
+      timeout: 5s
+      retries: 30

@@ -1,28 +1,45 @@
-# HRIS — стартовий пакет для Claude Code
+# HRIS — Recruiting
 
-## Що всередині
-| Файл | Для чого |
-|---|---|
-| `CLAUDE.md` | Головна інструкція для Claude Code: команда, стек під швидкість, правила коду, процес по фазах, скріншоти, Definition of Done. Claude Code читає її автоматично. |
-| `docs/PRD.md` | Специфікація: ролі × вертикалі, матриця видимості, вакансії, кандидати, пайплайн, маршрутизація по пріоритетах тімлідів, поліграф/офер/випробувальний, бонуси, статистика, архіви, швидкодія, безпека, фази. |
-| `.claude/agents/*.md` | 10 субагентів: business-analyst, solution-architect, ux-ui-designer, database-engineer, senior-fullstack-engineer, performance-engineer, qa-engineer, security-engineer, devops-engineer, code-reviewer. |
-| `KICKOFF_PROMPT.md` | Перший промпт + промпти для наступних фаз. |
+Внутрішня система рекрутингу. Вимоги — `docs/PRD.md`, правила розробки — `CLAUDE.md`, стан робіт — `docs/PROGRESS.md`.
 
-## Як запустити
-1. Створи порожню папку проєкту (`git init` + репозиторій на GitHub).
-2. Скопіюй туди вміст архіву (разом із прихованою папкою `.claude`).
-3. Відкрий папку в терміналі → `claude`.
-4. Встав промпт з `KICKOFF_PROMPT.md`.
-5. Після Фази 0 відповідай на відкриті питання → `go phase 1` і далі по фазах.
+## Поточний стан
 
-## Де дивитись дизайн
-Після кожної фази: `screenshots/phase-N/index.html` — відкриваєш у браузері, там усі екрани по ролях, світла/темна тема, десктоп і мобільний. Останній набір завжди в `screenshots/latest/`.
+Фаза 1, фундамент: Next.js, перевірка середовища, next-intl, CSP/CSRF, CI, unit/E2E та скріншоти. Авторизація, бізнес-екрани, міграції й seed ще попереду. `/` повертає українську 404; `/api/health` перевіряє лише роботу HTTP-сервера.
 
-## Фази
-0 Дизайн і рішення → 1 Фундамент → 2 Вакансії й кандидати → 3 Пайплайн і маршрутизація → 4 Бонуси й статистика → 5 Архіви й сповіщення → 6 Telegram (спершу питання до тебе) → 7 Перевірки й запуск.
+Підсумок для наступної сесії Claude Code: [docs/CLAUDE_HANDOFF.md](docs/CLAUDE_HANDOFF.md).
 
-## Акаунти (безкоштовних тарифів достатньо для старту)
-GitHub · Vercel · Supabase (регіон Frankfurt) · Resend · Sentry. Telegram-бот — лише у Фазі 6.
+## Локальний запуск
 
-## Про базу даних
-Postman — інструмент для тестування API, а не база. Дані — у PostgreSQL (Supabase), Postman/Newman — автотести API.
+Потрібні Node.js **24.18.0**, pnpm **11.3.0**, Docker Desktop для баз даних.
+
+```sh
+corepack pnpm install --frozen-lockfile
+corepack pnpm env:init
+corepack pnpm dev
+```
+
+Відкрити `http://localhost:3000/api/health`. `env:init` створює `.env`, а при повторному запуску додає відсутні значення з `.env.example`, зберігаючи наявні. Секрети не комітити. Якщо Corepack недоступний, встановити pnpm 11.3.0 та виконувати команди через `pnpm`.
+
+`pnpm setup` поки завершується з поясненням відсутніх файлів T2 до запуску бази. Повний сценарій install → Supabase → migrate → seed запрацює після реалізації міграцій і seed.
+
+## Бази даних
+
+- `pnpm db:start` / `pnpm db:stop` — локальний Supabase; PostgreSQL 17, API `55321`, DB `55322`, Studio `55323`, пошта `55324`. CLI 2.122.0 відхиляє PostgreSQL 16 — розбіжність із PRD відкрита як Q-142.
+- `pnpm test:db:up` / `pnpm test:db:down` — окремий PostgreSQL 16.13, `127.0.0.1:55332`, лише тестові дані у `tmpfs`. Зупинка видаляє ці тимчасові дані.
+- Міграції й seed — T2. Застосунок працюватиме з PostgreSQL через Drizzle; Postman використовується для тестування API.
+
+## Перевірки
+
+```sh
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm perf:check
+pnpm exec playwright install chromium
+pnpm test:e2e
+pnpm test:screens
+```
+
+Браузерні перевірки потребують попередньої `pnpm build` (або `pnpm perf:check`). Галерея фундаменту: [screenshots/foundation/index.html](screenshots/foundation/index.html). Повна рольова галерея фази 1 з'явиться після T4–T7.
+
+CI виконує наявні перевірки, Gitleaks і публікує браузерні звіти та скріншоти. Інтеграційні тести, Newman і Lighthouse підключаються з відповідними можливостями фази 1; їхній поточний статус наведено в handoff.

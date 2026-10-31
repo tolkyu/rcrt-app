@@ -41,17 +41,17 @@ and recruiters earn configurable bonuses that are calculated automatically.
 | `HEAD_HR` | Head HR | Per vertical | Oversees polygraph; creates and sends offers (sets salary); oversees probation. |
 | `HR` | HR | Per vertical | Schedules polygraph (place + time), uploads polygraph PDF result, tracks probation. |
 | `TEAM_LEAD` | Team Lead | Per vertical | Requests vacancies, accepts/declines submitted candidates, interviews, reschedules, closes probation. |
-| `FINANCE` | Фінансист | Global, read-only | **Sees only the Statistics section** (incl. bonus statistics and payout reports, with export). In reports a candidate appears only as full name + application ID — no contacts, salary or links to cards (D21). No access to vacancies, candidate cards, files or settings. Cannot change anything. |
+| `FINANCE` | Фінансист | Global only (D40), read-only | **Sees only the Statistics section** (incl. bonus statistics and payout reports, with export); menu = «Статистика» + «Профіль», no notifications, search or calendar (D41). In reports a candidate appears only as full name + application ID — no contacts, salary or links to cards (D21). No access to vacancies, candidate cards, files or settings. Cannot change anything. |
 
 UI role names (Ukrainian, D27): Адміністратор, Керівник рекрутингу, Рекрутер, Керівник HR, HR-менеджер, Тімлід, Фінансист (`docs/ux/glossary.md`).
 
 ### 2.2 Role assignment model (ROLE-01..06)
-- **ROLE-01** A user can hold several roles, each scoped to one or more verticals: table `user_role(user_id, role, vertical_id | null)`. `null` vertical = global (only for ADMIN and FINANCE). Any role combination is allowed (e.g. Team Lead + Recruiter in one vertical); conflicts of interest are handled by separation of duties on bonuses (§9.3, D35).
+- **ROLE-01** A user can hold several roles, each scoped to one or more verticals: table `user_role(user_id, role, vertical_id | null)`. `null` vertical = global; ADMIN and FINANCE are always global and are the only global roles (D40). Any role combination is allowed (e.g. Team Lead + Recruiter in one vertical); conflicts of interest are handled by separation of duties on bonuses (§9.3, D35).
 - **ROLE-02** Example: Olena = `HEAD_RECRUITER@Gambling` + `RECRUITER@Crypto`.
 - **ROLE-03** Admin creates and renames verticals. Verticals are never deactivated or deleted (owner 2026-10-31, D34).
 - **ROLE-04** Permissions live in code as a `role → permission[]` map (not hard-coded `if role === …` checks scattered in UI). The architecture must allow adding custom roles later (Phase 2: admin-defined role = name + permission set) without schema rewrites.
-- **ROLE-05** No self-signup. Only Admin invites users by email and assigns their roles in the invite; invite link expires in 72h. Google sign-in works only when the Google account email equals the invited email; no domain restriction in v1 (D33). Deactivated users cannot log in, but their history stays.
-- **ROLE-06** Admin deactivates a user of any role through a dialog that lists all their open work (applications they own, Team Lead vacancies, assigned polygraphs, offers in progress) and requires each group to be reassigned before deactivation completes; Head Recruiter / Head HR of the vertical may reassign in advance (D24).
+- **ROLE-05** No self-signup. Only Admin invites users by email and assigns their roles in the invite; invite link expires in 72h. Google sign-in works only when the Google account email equals the invited email; no domain restriction in v1 (D33). Admin can resend an invite (the previous link stops working) or revoke it; inviting the email of a deactivated user offers «Активувати знову» instead (D42). Deactivated users cannot log in, but their history stays. Only Admin reactivates a user (previous roles offered for restoration) and changes a user's email (audited); users are never deleted, only deactivated (D44).
+- **ROLE-06** Admin deactivates a user of any role through a dialog that lists all their open work (applications they own, Team Lead vacancies, assigned polygraphs, offers in progress) and requires each group to be reassigned before deactivation completes; Head Recruiter / Head HR of the vertical may reassign in advance (D24). Removing a single role assignment follows the same rule for the open work tied to that role (D43). Admin cannot deactivate themselves, and the last active Admin can neither be deactivated nor lose the ADMIN role (D45).
 
 ### 2.3 Visibility matrix (VIS-xx)
 
@@ -59,13 +59,13 @@ Legend: ✅ full · 👁 read · ✏️ own/assigned only · — none. "In verti
 
 | Object / action | Admin | Head Recruiter | Recruiter | Head HR | HR | Team Lead | Finance |
 |---|---|---|---|---|---|---|---|
-| Vacancies (view) | ✅ all | ✅ in vertical | ✏️ assigned + unassigned open in vertical (D1) | 👁 in vertical | 👁 in vertical | ✏️ own vacancies | — |
+| Vacancies (view) | ✅ all | ✅ in vertical | ✏️ assigned + unassigned open in vertical (D1) + read-only any vacancy holding an application they own, e.g. after routing (D53) | 👁 in vertical | 👁 in vertical | ✏️ own vacancies | — |
 | Vacancy create | ✅ | ✅ | ✅ (as "Recruiter-initiated") | — | — | ✅ (request) | — |
 | Assign recruiters to vacancy | ✅ | ✅ in vertical | ✏️ self only, to an unassigned open vacancy (D1) | — | — | — | — |
-| Candidates (view) | ✅ | ✅ in vertical | ✏️ own (sourced or owned) | 👁 from Polygraph stage on, in vertical | 👁 from Polygraph stage on, in vertical | ✏️ submitted to them | — |
-| Candidate contacts (phone, email, Telegram) | ✅ | ✅ in vertical | ✏️ own | 👁 from Polygraph stage on (D20) | 👁 from Polygraph stage on (D20) | — (D20) | — |
+| Candidates (view) | ✅ | ✅ in vertical | ✏️ own (sourced or owned) | 👁 from Polygraph stage on, in vertical — only applications that reached Polygraph, also after they end (D52) | 👁 same as Head HR (D52) | ✏️ submitted to them — only applications on their own vacancies, also after they end (D52) | — |
+| Candidate contacts (phone, email, Telegram) | ✅ | ✅ in vertical | ✏️ own | 👁 from Polygraph stage on (D20) | 👁 from Polygraph stage on (D20) | — structured contact fields hidden; CV files shown as is; LinkedIn/portfolio URLs visible (D20, D48) | — |
 | Candidate create | ✅ | ✅ | ✅ | — | — | — | — |
-| Transfer candidate to another vertical (CAND-06) | ✅ | ✅ (vertical scope: OPEN_QUESTIONS Q-133) | — | ✅ (vertical scope: Q-133) | — | — | — |
+| Transfer candidate to another vertical (CAND-06) | ✅ any | ✅ from their vertical (D50) | — | ✅ from their vertical (D50) | — | — | — |
 | Move pipeline stage | ✅ | ✅ | ✏️ up to Polygraph | Polygraph/Offer/Probation | Polygraph/Probation | accept/decline, interview result, probation close | — |
 | Offer salary (view) | ✅ | ✅ | ✅ own candidates (owner decision) | ✅ | ✅ | ✅ own vacancy | — |
 | Bonuses (view) | ✅ | ✅ in vertical | ✏️ own | — | — | — | 📊 only inside Statistics |
@@ -109,12 +109,12 @@ Legend: ✅ full · 👁 read · ✏️ own/assigned only · — none. "In verti
 
 ## 5. Candidates (CAND-xx)
 
-- **CAND-01 Fields:** full name, email, phone, Telegram, LinkedIn/portfolio URLs, location, current company/role, expected salary + currency, description/summary (rich text), tags, source channel (LinkedIn, Djinni, Telegram, referral, other…), CV files (PDF/DOC/DOCX, ≤10 MB each, multiple versions kept; DOC/DOCX are download-only, never previewed, macro-enabled files such as `.docm` are rejected — D29), consent to data processing (checkbox + date), created by (= sourcer), vertical (exactly one; CAND-06).
-- **CAND-02 Deduplication:** on create/edit, match on normalized email, phone (E.164), Telegram handle, LinkedIn URL. On match show "Possible duplicate" with the existing card *only if the user may see it*; otherwise show "This candidate already exists in the system — contact your Head Recruiter" without revealing details. Admin/Head Recruiter can merge duplicates (history merged).
+- **CAND-01 Fields:** full name, email, phone, Telegram, LinkedIn/portfolio URLs, location, current company/role, expected salary + currency, description/summary (rich text), tags, source channel (LinkedIn, Djinni, Telegram, referral, other…), CV files (PDF/DOC/DOCX, ≤10 MB each, multiple versions kept; DOC/DOCX are download-only, never previewed, macro-enabled files such as `.docm` are rejected — D29), consent to data processing (checkbox + date), created by (= initial sourcer; the sourcer changes only via the 180-day window, BONUS-05 — D51), vertical (exactly one; CAND-06).
+- **CAND-02 Deduplication (company-wide):** on create/edit, match on normalized email, phone (E.164), Telegram handle, LinkedIn URL. An **exact match on any of these blocks creation** (D49): the user sees the existing card *only if they may see it*; otherwise "This candidate already exists in the system — contact your Head Recruiter" without revealing details. Partial matches are shown as "Possible duplicate"; Admin/Head Recruiter merge duplicates (history merged; the earlier-created record's sourcer is kept; merge is blocked while both have active applications in the same routing group).
 - **CAND-03 Candidate without vacancy:** Recruiters/Head Recruiters can add candidates without a vacancy ("Talent pool") and later **propose** them to a vacancy or directly to a Team Lead (creates an application).
-- **CAND-04 Candidate card:** profile, CV viewer (inline preview for PDF only), all applications (active and past) with their stage, full timeline, comments (@mentions), attachments, bonus info (visible per §2.3).
+- **CAND-04 Candidate card:** profile, CV viewer (inline preview for PDF only), all applications (active and past) the viewer may see, with their stage (TL and HR see only "their" applications — D52), full timeline, comments (@mentions), attachments, bonus info (visible per §2.3).
 - **CAND-05 Former employee flag:** if set, bonus rules in §9.7 apply.
-- **CAND-06 One vertical per candidate (owner 2026-10-31, D32):** a candidate belongs to exactly one vertical at a time, and all their applications live only in that vertical. Admin, Head Recruiter and Head HR can **transfer** a candidate to another vertical; the full history is kept and the transfer is a timeline event (old → new vertical, actor, reason). Deduplication stays company-wide (CAND-02). Open details (required role scope, active applications, sourcer/owner after transfer): OPEN_QUESTIONS Q-133…Q-135.
+- **CAND-06 One vertical per candidate (owner 2026-10-31, D32):** a candidate belongs to exactly one vertical at a time, and all their applications live only in that vertical. Admin, Head Recruiter and Head HR can **transfer** a candidate to another vertical; the full history is kept and the transfer is a timeline event (old → new vertical, actor, reason). Deduplication stays company-wide (CAND-02). Rules (D50): the user needs the role in the **source** vertical (Admin — any); only a candidate **without active applications** can be transferred (close or withdraw them first); the **sourcer does not change**, and the new owner — a recruiter of the target vertical — is chosen in the transfer dialog.
 
 ---
 
@@ -163,9 +163,9 @@ Legend: ✅ full · 👁 read · ✏️ own/assigned only · — none. "In verti
 
 Example: Vasyl (priority 0) and Taras (priority 1) both need "Media Buyer — Facebook" in Gambling.
 
-- **ROUTE-01** Admin sets each Team Lead's **priority per vertical** (integer, 0 = highest). Admin can override priority on a single vacancy.
+- **ROUTE-01** Admin sets each Team Lead's **priority per vertical** (integer, 0 = highest). Admin can override priority on a single vacancy. A Team Lead without a priority is ranked after all prioritised Team Leads and marked «Пріоритет не задано» (D47).
 - **ROUTE-02** When a recruiter submits a candidate to a **Position** (not a specific vacancy), the system creates the application on the open vacancy of that routing group with the **highest priority** (lowest number). Ties → earliest-created vacancy (D5).
-- **ROUTE-03** If that TL **declines** (at `SUBMITTED_TO_TL`) or **rejects after interview** (at `TL_INTERVIEW`), the system automatically creates a new application on the **next** vacancy in the group (next priority), keeps the full history linked ("Routed from Vasyl → Taras"), and notifies recruiter + next TL. Previous application closes as `REJECTED` (routed).
+- **ROUTE-03** If that TL **declines** (at `SUBMITTED_TO_TL`) or **rejects after interview** (at `TL_INTERVIEW`), the system automatically creates a new application on the **next** vacancy in the group (next priority), keeps the full history linked ("Routed from Vasyl → Taras"), and notifies recruiter + next TL. Previous application closes as `REJECTED` (routed). The owning recruiter gets read-only access to the new vacancy even if not assigned to it (D53).
 - **ROUTE-04** If no next vacancy exists → candidate goes to the **Rejected archive** with the last reason.
 - **ROUTE-05** Rejections at polygraph/offer/probation do **not** route (candidate-level reasons).
 - **ROUTE-06** A candidate is in at most **one active application per routing group** (sequential, never parallel).
@@ -225,7 +225,7 @@ Scheme fields: `name`, `base_type` (`FIXED` amount | `PERCENT_OF_MONTHLY_SALARY`
   - Details pending owner confirmation: OPEN_QUESTIONS Q-106…Q-113.
 
 ### 9.2 Attribution (who gets what)
-- **BONUS-04** Tranche 1 → **sourcer** (recruiter who created the candidate / first submitted them). Tranche 2 → **owner** at the moment probation is passed (the recruiter who carried the candidate). If the same person → they get 100%. A Head Recruiter may be sourcer or owner and receives bonuses like a recruiter (D35).
+- **BONUS-04** Tranche 1 → **sourcer** (recruiter who created the candidate, or who took them over after the 180-day ownership window, BONUS-05; stored on the candidate — D51). Tranche 2 → **owner** at the moment probation is passed (the recruiter who carried the candidate). If the same person → they get 100%. A Head Recruiter may be sourcer or owner and receives bonuses like a recruiter (D35). Admin does not receive bonuses (D51).
 - **BONUS-05 Anti-gaming (sourcing credit):**
   - Credit belongs to whoever created the candidate first; duplicates created later never get sourcing credit.
   - **Ownership window 180 days** (D8): if the candidate had no activity for 180 days, the next recruiter who re-engages them becomes the new sourcer. Activity = recruiter actions only: new application, stage change, scheduled meeting (comments and views do not count).
@@ -268,7 +268,7 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
   - Filters: vertical, recruiter, team lead, position, stage, priority, date range; saved filters per user.
 - **UI-02 Cards:** vacancy and candidate cards show stage chip, probation status ("Probation · 47 days left"), owner avatar, last activity.
 - **UI-03 Global search** (Cmd/Ctrl+K) over candidates/vacancies the user can see.
-- **UI-04 Navigation:** Dashboard · Vacancies · Candidates · Calendar (interviews & polygraphs) · Statistics · Archive · Settings (Admin). A section appears in navigation only once it is built; until then non-Admin users land on «Профіль» (D28).
+- **UI-04 Navigation:** Dashboard · Vacancies · Candidates · Calendar (interviews & polygraphs) · Statistics · Archive · Settings (Admin). A section appears in navigation only once it is built; until then non-Admin users land on «Профіль» (D28). Finance: «Статистика» + «Профіль» only (D41).
 - **UI-05** Responsive (works on phone for TLs), light/dark theme, accessible (WCAG 2.1 AA), keyboard-friendly. All copy in Ukrainian.
 - **UI-07 Speed is a feature:** every navigation feels instant — prefetch on hover/viewport, optimistic updates for stage moves and comments (with rollback), skeletons only for >150 ms, virtualized long lists, no full-page reloads. Budgets in §13.
 - **UI-06** Empty, loading and error states designed for every screen.
@@ -315,7 +315,7 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
 - Rate limiting on auth and API, CSRF protection, strict CSP, input validation with Zod on every endpoint. No CAPTCHA — sign-in is invite-only (D37).
 - PII minimization in logs (no emails/phones/salaries in logs or error trackers).
 - Backups: free nightly encrypted `pg_dump` (database and files) to separate storage, 30-day retention, tested restore (D17).
-- Paid services: none during development; Supabase Pro and Vercel Pro are bought before launch (Phase 7) (D17).
+- Paid services: none during development; Supabase Pro and Vercel Pro are bought before launch (Phase 7) (D17). Until then the app runs locally and the owner reviews the screenshot gallery; Vercel Pro is bought earlier only if the owner wants an online demo (D39).
 - Standard data processing agreements (DPA) with Vercel, Supabase, Resend, Sentry (EU region) and GitHub are signed by the owner/legal before launch (D31).
 
 ### Performance (PERF-xx) — hard budgets, checked in CI
@@ -383,6 +383,21 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
 | D35 | Role combinations, Head Recruiter bonuses | **Decided by owner 2026-10-31:** combinations allowed; nobody approves own bonus; Head Recruiter can be sourcer/owner and receive bonuses, approved by another Head Recruiter or Admin (ROLE-01, BONUS-04, §9.3; Q-21) |
 | D36 | Polygraph Head HR review | **Decided by owner 2026-10-31:** mandatory; «Підтвердити» / «Не підтверджено» → retake; OFFER only after confirmed Pass (POLY-05; Q-04) |
 | D37 | CAPTCHA on sign-in | **Decided by owner 2026-10-31:** none (invite-only); auth rate limiting stays (Q-132) |
+| D39 | Demo hosting before launch | **Confirmed 2026-10-31:** local + screenshot gallery; Vercel Pro only when an online demo is needed (Q-141) |
+| D40 | Finance scope | **Confirmed 2026-10-31:** global only; may be combined with other roles (ROLE-01; Q-22) |
+| D41 | Finance navigation | **Confirmed 2026-10-31:** «Статистика» + «Профіль» only; no notifications, search, calendar (UI-04; Q-25) |
+| D42 | Invite resend/revoke | **Confirmed 2026-10-31:** resend (old link invalid), revoke; deactivated email → «Активувати знову» (ROLE-05; Q-32) |
+| D43 | Removing a single role | **Confirmed 2026-10-31:** same reassignment rule as deactivation (ROLE-06; Q-34) |
+| D44 | Reactivation, email change, user deletion | **Confirmed 2026-10-31:** Admin only, previous roles offered; email change audited; no user deletion (ROLE-05; Q-35) |
+| D45 | Last-Admin protection | **Confirmed 2026-10-31:** no self-deactivation; last active Admin keeps ADMIN (ROLE-06; Q-36) |
+| D46 | Demo seed | **Confirmed 2026-10-31:** `head.hr@demo` and `hr@demo` in both verticals (Q-43) |
+| D47 | TL without priority | **Confirmed 2026-10-31:** ranked after all prioritised TLs (ROUTE-01; Q-93) |
+| D48 | CV and contacts for TL | **Confirmed 2026-10-31:** TL sees CV as is; only structured contact fields hidden; LinkedIn/portfolio visible (§2.3; Q-140) |
+| D49 | Duplicates | **Confirmed 2026-10-31:** exact match blocks creation; Admin/Head Recruiter merge partial matches (CAND-02; Q-46) |
+| D50 | Candidate transfer details | **Confirmed 2026-10-31:** role in source vertical (Admin any); only without active applications; sourcer unchanged, new owner chosen in dialog (CAND-06; Q-133…Q-135) |
+| D51 | Sourcer definition | **Confirmed 2026-10-31:** creator, or whoever takes over after 180 days; Admin gets no bonuses (CAND-01, BONUS-04; Q-44) |
+| D52 | Application-level visibility | **Confirmed 2026-10-31:** TL and HR see only "their" applications on the candidate card (§2.3, CAND-04; Q-14) |
+| D53 | Routed vacancy visibility | **Confirmed 2026-10-31:** owning recruiter sees it read-only (§2.3, ROUTE-03; Q-16) |
 | D38 | Self-referral flag | **Confirmed 2026-10-31:** bonus blocked unless Admin approves; flag set by recruiter or Head Recruiter (BONUS-05; Q-12) |
 
 ---

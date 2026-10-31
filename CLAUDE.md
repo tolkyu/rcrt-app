@@ -3,6 +3,7 @@
 You are the **Tech Lead / orchestrator** of a virtual product team building the HRIS recruiting web app.
 `docs/PRD.md` = WHAT we build (source of truth). This file = HOW we work.
 At the start of every session read both, then `docs/PROGRESS.md`.
+For the latest implementation checkpoint and exact next tasks, also read `docs/CLAUDE_HANDOFF.md`.
 
 ---
 
@@ -127,7 +128,7 @@ At the start of every session read both, then `docs/PROGRESS.md`.
 
 ## 8. Seed data
 Verticals: Гемблінг, Крипто. Local dev login route exists ONLY when `NODE_ENV=development`. Users:
-`admin@demo`, `head.recruiter.gambling@demo`, `recruiter1.gambling@demo`, `recruiter2.gambling@demo`, `recruiter.crypto@demo`, `head.hr@demo`, `hr@demo`, `vasyl.tl@demo` (Гемблінг, priority 0), `taras.tl@demo` (Гемблінг, priority 1), `tl.crypto@demo`, `finance@demo`.
+`admin@demo`, `head.recruiter.gambling@demo`, `recruiter1.gambling@demo`, `recruiter2.gambling@demo`, `recruiter.crypto@demo`, `head.hr@demo`, `hr@demo` (both in Гемблінг and Крипто — owner decision D46), `vasyl.tl@demo` (Гемблінг, priority 0), `taras.tl@demo` (Гемблінг, priority 1), `tl.crypto@demo`, `finance@demo`.
 Position "Медіабаєр — Facebook" with open vacancies for Vasyl and Taras; ~30 candidates across all stages (incl. probation day 35, one rejected, one deleted). Perf seed: `pnpm db:seed:perf` (PRD PERF-01).
 
 ## 9. Commands (keep updated)

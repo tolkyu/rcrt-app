@@ -1,0 +1,8 @@
+node_modules
+.next
+.cache
+pnpm-lock.yaml
+coverage
+playwright-report
+test-results
+screenshots

@@ -1,0 +1,7 @@
+allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': false
+  esbuild: true
+engineStrict: true
+minimumReleaseAge: 1440
+strictPeerDependencies: false
