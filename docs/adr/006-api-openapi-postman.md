@@ -21,7 +21,7 @@
 ### `defineRoute()` (in `server/http/`)
 Per route: `{ method, path, operationId, summary, tags, params?, query?, body?, responses, auth: 'user' | 'cron' | 'webhook' | 'public' }` + handler `(ctx, input) => Promise<output>`. The wrapper:
 1. assigns `requestId`, starts server timing;
-2. CSRF (DG-06): for cookie-authenticated non-GET requests, `Origin` must be **present** and equal the app origin (missing `Origin` → fall back to `Sec-Fetch-Site: same-origin`, otherwise reject 403); request bodies must be `application/json` (no form/text content types); no CORS headers are ever sent; SameSite=Lax cookies. **GET/HEAD never change state** (only audit rows); logout and invite acceptance are POST. Bearer-token requests skip the Origin check;
+2. CSRF (DG-06, decided in the Phase 1 review): every unsafe `/api/v1` request (POST/PUT/PATCH/DELETE), from the UI and Newman alike, must carry `Origin` equal to `APP_URL`, `Content-Type: application/json` and `X-CSRF-Protection: 1`; anything else → 403 `CSRF_FORBIDDEN`. No Bearer exemption and no `Sec-Fetch-Site` fallback. The check (`server/security/http.ts` `isTrustedMutation`) runs in `middleware.ts` and again in the wrapper; both answer with the same problem+json body (`server/http/problem.ts`). No CORS headers are ever sent; SameSite=Lax cookies. **GET/HEAD never change state** (only audit rows); logout and invite acceptance are POST;
 3. authenticates (cookie session or `Authorization: Bearer <Supabase access token>`) → `RequestContext` (ADR-002);
 4. parses params/query/body with Zod → 400 on failure;
 5. calls the service; validates output with the response schema in dev/test only;
@@ -30,7 +30,7 @@ Per route: `{ method, path, operationId, summary, tags, params?, query?, body?, 
 8. sets `Cache-Control: private, no-store` on every `/api/v1` response and on exports (DG-15).
 
 ### Security headers & redirects (DG-15)
-- CSP with per-request nonce + `strict-dynamic`; `object-src 'none'`; `base-uri 'none'`; `frame-ancestors 'none'`; `form-action 'self'` + Supabase/Google OAuth hosts; `connect-src 'self'` + project `https`/`wss` + Sentry ingest; `worker-src 'self' blob:`; no `frame-src` to storage (ADR-005).
+- CSP with per-request nonce + `strict-dynamic` for scripts; `style-src 'self' 'unsafe-inline'` (inline `style` attributes set by Radix/next-font; no script can run from it, accepted risk); `object-src 'none'`; `base-uri 'none'`; `frame-ancestors 'none'`; `form-action 'self'` + Supabase/Google OAuth hosts; `connect-src 'self'` + project `https`/`wss` + Sentry ingest; `worker-src 'self' blob:`; no `frame-src` to storage (ADR-005).
 - HSTS (preload), `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin` (`no-referrer` on auth/invite pages), COOP `same-origin`, `Permissions-Policy` minimal.
 - RSC responses containing PII: `private, no-store` (never CDN-cached).
 - Redirect targets (`next`, `redirectTo`) accept only same-origin relative paths (start with `/`, not `//`); Supabase redirect allowlist = exact URLs.

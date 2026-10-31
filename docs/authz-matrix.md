@@ -138,7 +138,7 @@ Finance rows (Q-23, owner): candidate-level rows in payout reports / who-brought
 
 ### 2.6 Settings, users, audit (Admin only — §2.3 last row)
 `settings.verticals.manage` (create/rename only — no deactivation, owner 2026-10-31) · `settings.vertical_flags.manage` (approval D2, auto-routing ROUTE-09) · `settings.users.manage` (invite, roles, deactivate) · `settings.priorities.manage` (ROUTE-01) · `settings.bonus_schemes.manage` · `settings.reference_data.manage` (rejection reasons, polygraph locations, offer templates) · `settings.retention.manage` · `settings.jobs.run` (manual job re-run, aal2, ADR-004 DG-04) · `audit.read` — **ADM `G` only**. ADMIN and FINANCE grants are active only with an aal2 session (MFA mandatory for both, owner 2026-10-31). Granting `ADMIN`/`FINANCE` and any self role change are refused (DG-10).
-`user.directory.read` (pickers, mentions): all roles except FIN, `V` (users holding a role in my verticals). Pickers return only users holding the **required** role in that vertical (e.g. split recipients = REC/HREC, `hrUserId` = HR/HHR) (DG-10).
+`user.directory.read` (pickers, mentions): all roles except FIN, `V` (users holding a role in my verticals). `vertical.read` (vertical lists, filters; STORY-VIS-02-1, added in T3): ADM `G`, every vertical role `V` (verticals where I hold a role), FIN — (404, FIN-03). Pickers return only users holding the **required** role in that vertical (e.g. split recipients = REC/HREC, `hrUserId` = HR/HHR) (DG-10).
 
 ## 3. Scope → SQL predicate (repository `WHERE`)
 
@@ -254,7 +254,7 @@ export interface Grant { readonly permission: PermissionCode; readonly scope: Sc
 
 export interface RoleAssignment { readonly role: RoleCode; readonly verticalId: VerticalId | null }
 
-/** One grant per producing role assignment — vertical lists are never unioned across roles (DG-10). */
+/** Implemented (T3) as one grant per (permission, scope) with the verticals of every assignment producing that same scope; different scopes are never merged (DG-10). */
 export interface ResolvedGrant {
   readonly scope: Scope; readonly verticalIds: readonly VerticalId[] | 'ALL';
   readonly fromRole: RoleCode;

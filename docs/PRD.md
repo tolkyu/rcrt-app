@@ -9,6 +9,7 @@
 ## 1. Product summary
 
 Internal recruiting system ("HRIS") for a company with several business **verticals** (Gambling, Crypto, …).
+**Product name in the UI: «Hiring»**, logo letter «H» (D54). The internal and code name HRIS is unchanged (repo, docs, identifiers).
 Team Leads request vacancies, recruiters source candidates, candidates move through a fixed pipeline
 (screening → Team Lead interview → polygraph → offer → probation), HR runs polygraph/offer/probation,
 and recruiters earn configurable bonuses that are calculated automatically.
@@ -109,12 +110,13 @@ Legend: ✅ full · 👁 read · ✏️ own/assigned only · — none. "In verti
 
 ## 5. Candidates (CAND-xx)
 
-- **CAND-01 Fields:** full name, email, phone, Telegram, LinkedIn/portfolio URLs, location, current company/role, expected salary + currency, description/summary (rich text), tags, source channel (LinkedIn, Djinni, Telegram, referral, other…), CV files (PDF/DOC/DOCX, ≤10 MB each, multiple versions kept; DOC/DOCX are download-only, never previewed, macro-enabled files such as `.docm` are rejected — D29), consent to data processing (checkbox + date), created by (= initial sourcer; the sourcer changes only via the 180-day window, BONUS-05 — D51), vertical (exactly one; CAND-06).
+- **CAND-01 Fields:** full name, photo (optional; JPEG/PNG/WebP ≤ 2 MB, private storage, shown via signed URL to users who can open the card; initials avatar when absent; removed by GDPR purge — D57, Phase 2), email, phone, Telegram, LinkedIn/portfolio URLs, location, current company/role, expected salary + currency, description/summary (rich text), tags, source channel (LinkedIn, Djinni, Telegram, referral, other…), CV files (PDF/DOC/DOCX, ≤10 MB each, multiple versions kept; DOC/DOCX are download-only, never previewed, macro-enabled files such as `.docm` are rejected — D29), consent to data processing (checkbox + date), created by (= initial sourcer; the sourcer changes only via the 180-day window, BONUS-05 — D51), vertical (exactly one; CAND-06).
 - **CAND-02 Deduplication (company-wide):** on create/edit, match on normalized email, phone (E.164), Telegram handle, LinkedIn URL. An **exact match on any of these blocks creation** (D49): the user sees the existing card *only if they may see it*; otherwise "This candidate already exists in the system — contact your Head Recruiter" without revealing details. Partial matches are shown as "Possible duplicate"; Admin/Head Recruiter merge duplicates (history merged; the earlier-created record's sourcer is kept; merge is blocked while both have active applications in the same routing group).
 - **CAND-03 Candidate without vacancy:** Recruiters/Head Recruiters can add candidates without a vacancy ("Talent pool") and later **propose** them to a vacancy or directly to a Team Lead (creates an application).
 - **CAND-04 Candidate card:** profile, CV viewer (inline preview for PDF only), all applications (active and past) the viewer may see, with their stage (TL and HR see only "their" applications — D52), full timeline, comments (@mentions), attachments, bonus info (visible per §2.3).
 - **CAND-05 Former employee flag:** if set, bonus rules in §9.7 apply.
 - **CAND-06 One vertical per candidate (owner 2026-10-31, D32):** a candidate belongs to exactly one vertical at a time, and all their applications live only in that vertical. Admin, Head Recruiter and Head HR can **transfer** a candidate to another vertical; the full history is kept and the transfer is a timeline event (old → new vertical, actor, reason). Deduplication stays company-wide (CAND-02). Rules (D50): the user needs the role in the **source** vertical (Admin — any); only a candidate **without active applications** can be transferred (close or withdraw them first); the **sourcer does not change**, and the new owner — a recruiter of the target vertical — is chosen in the transfer dialog.
+- **CAND-07 Private notes («Приватні нотатки», owner 2026-10-31, D56, Phase 3):** any user who can open a candidate card can keep private notes on it. A note is visible **only to its author** — never to anyone else, including Admin; it never appears in other users' timelines, search, exports or statistics, and audit records only the fact of a change (author, time), never the text. Notes are removed by GDPR purge (ARCH-04). Open detail: OPEN_QUESTIONS Q-151.
 
 ---
 
@@ -266,19 +268,23 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
   - **Vacancy cards** grid/kanban (by status) with mini-funnel and linked candidate count.
   - **Candidate board**: kanban by pipeline stage, drag & drop only where the state machine allows (drop opens the required-data dialog, e.g. Meet link).
   - Filters: vertical, recruiter, team lead, position, stage, priority, date range; saved filters per user.
+  - **KPI row** (D59): Кандидати · Відкриті вакансії · На співбесідах · Прийнято · Середній час найму — scoped to what the viewer can see (VIS-02) and served from aggregates (PERF-05). Counts ship in Phase 2; the time metric in Phase 4. Exact tile definitions: OPEN_QUESTIONS Q-152.
 - **UI-02 Cards:** vacancy and candidate cards show stage chip, probation status ("Probation · 47 days left"), owner avatar, last activity.
 - **UI-03 Global search** (Cmd/Ctrl+K) over candidates/vacancies the user can see.
 - **UI-04 Navigation:** Dashboard · Vacancies · Candidates · Calendar (interviews & polygraphs) · Statistics · Archive · Settings (Admin). A section appears in navigation only once it is built; until then non-Admin users land on «Профіль» (D28). Finance: «Статистика» + «Профіль» only (D41).
 - **UI-05** Responsive (works on phone for TLs), light/dark theme, accessible (WCAG 2.1 AA), keyboard-friendly. All copy in Ukrainian.
 - **UI-07 Speed is a feature:** every navigation feels instant — prefetch on hover/viewport, optimistic updates for stage moves and comments (with rollback), skeletons only for >150 ms, virtualized long lists, no full-page reloads. Budgets in §13.
 - **UI-06** Empty, loading and error states designed for every screen.
+- **UI-08 Manual personal tasks («Додати задачу», D55, Phase 5):** a user can add their own task: title (required), due date (optional), optional link to one vacancy or candidate the user can see. Tasks appear in «Мої задачі» next to system tasks, with tabs Усі / Сьогодні / Прострочені / Без дати (dates by Europe/Kyiv). A personal task is visible only to its author.
+- **UI-09 «Поділитися» (D58, Phase 2):** on vacancy and candidate cards, copies the card link to the clipboard. The link grants nothing by itself: users without access get 404 (VIS-01).
+- **Not adopted from designer mockups (D61):** user «Онлайн» status. «Підключити календар» (Google Calendar sync) is post-launch; PIPE-04's Phase 6 option stays as written.
 
 ---
 
 ## 11. Statistics (STAT-xx)
 
 - **STAT-01 Recruiter view:** candidates added (sourced), submitted to TL, TL-accepted, interviews, polygraph pass rate, offers, offers accepted, hires (probation started), probation passed, rejection reasons breakdown — for a period; table "who brought whom to which vacancy".
-- **STAT-02 Funnel & conversion** per vertical/position/recruiter/team lead.
+- **STAT-02 Funnel & conversion** per vertical/position/recruiter/team lead, using exactly the pipeline stages of §6.1 (not the mockup's «Технічна/Фінальна співбесіда» — D60).
 - **STAT-03 Time metrics:** time-to-submit, time-to-interview, time-in-stage, time-to-offer, time-to-fill (vacancy open → probation start).
 - **STAT-04 Source effectiveness:** hires per source channel.
 - **STAT-05 Team Lead metrics:** accept/decline rate, interview → offer rate, average response time, reschedules.
@@ -295,7 +301,7 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
   - **Deleted** — soft-deleted candidates and vacancies (`deleted_at`, `deleted_by`, `delete_reason` mandatory). Action: **Restore** (Admin/Head Recruiter), **Purge** (Admin only, irreversible).
 - **ARCH-02** Closed vacancies (`FILLED`/`CANCELLED`) live in a third tab "Closed vacancies" with their full pipeline, and can be **cloned** (VAC-05).
 - **ARCH-03** Deleting a vacancy with active applications requires choosing: move candidates to talent pool / to another vacancy / reject with reason.
-- **ARCH-04 GDPR / retention:** purge removes PII and files (including PII values stored with history and audit events, HIST-03) but keeps an anonymized stub for statistics and bonus integrity (`Candidate #1234 (purged)`). Retention policy configurable (e.g. auto-propose purge of rejected candidates after 24 months without consent renewal).
+- **ARCH-04 GDPR / retention:** purge removes PII and files (including the photo, private notes, and PII values stored with history and audit events, HIST-03) but keeps an anonymized stub for statistics and bonus integrity (`Candidate #1234 (purged)`). Retention policy configurable (e.g. auto-propose purge of rejected candidates after 24 months without consent renewal).
 - **ARCH-05** Nothing is hard-deleted by any role other than Admin purge.
 
 ---
@@ -361,7 +367,7 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
 | D13 | Recruiter can delete own candidate only before TL interview | **Confirmed 2026-10-31:** "own" = sourcer or owner of all active applications; "before" = no application reached TL_INTERVIEW; vacancies — only own recruiter-initiated ones with no application past NEW (Q-11) |
 | D14 | PERF-03 mobile thresholds | **Confirmed by owner 2026-10-30:** mobile 4G uses Core Web Vitals "good" (LCP < 2.5 s, INP < 200 ms, CLS < 0.1); desktop keeps LCP < 1.2 s, INP < 100 ms, CLS < 0.05 (OPEN_QUESTIONS Q-89) |
 | D16 | Vacancy-level recruiter reward (BONUS-16) | **Confirmed by owner 2026-10-30:** Admin-only, max one change per 2 months per vacancy, change logged in vacancy timeline, already-accepted offers keep their snapshot (BONUS-02) |
-| D15 | Paid infrastructure for perf runs | **Confirmed by owner 2026-10-30:** no paid services; perf runs on local PostgreSQL 16 (Docker) with the PERF-01 seed first (OPEN_QUESTIONS Q-92) |
+| D15 | Paid infrastructure for perf runs | **Confirmed by owner 2026-10-30:** no paid services; perf runs on local PostgreSQL 17 (Docker) with the PERF-01 seed first (OPEN_QUESTIONS Q-92; version per D62) |
 | D17 | Paid services, backups, email | **Confirmed 2026-10-31:** nothing paid now; Supabase Pro + Vercel Pro bought before launch (Phase 7); backups = free nightly encrypted `pg_dump`, 30 days; Resend free tier at start; staff reminders in-app by default (Q-114…Q-117) |
 | D18 | PII in history/audit vs purge | **Confirmed 2026-10-31:** PII stored separately; removed only by Admin purge (HIST-03, ARCH-04; Q-38) |
 | D19 | Vacancy mini-funnel counts | **Confirmed 2026-10-31:** only applications the viewer can open (VIS-02; Q-15) |
@@ -398,6 +404,15 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
 | D51 | Sourcer definition | **Confirmed 2026-10-31:** creator, or whoever takes over after 180 days; Admin gets no bonuses (CAND-01, BONUS-04; Q-44) |
 | D52 | Application-level visibility | **Confirmed 2026-10-31:** TL and HR see only "their" applications on the candidate card (§2.3, CAND-04; Q-14) |
 | D53 | Routed vacancy visibility | **Confirmed 2026-10-31:** owning recruiter sees it read-only (§2.3, ROUTE-03; Q-16) |
+| D54 | Product name | **Approved by owner 2026-10-31:** UI name «Hiring», logo «H»; internal/code name HRIS unchanged (§1; Q-143) |
+| D55 | Manual personal tasks | **Approved 2026-10-31:** «Додати задачу» in «Мої задачі», Phase 5 (UI-08; Q-144) |
+| D56 | Private notes on candidate | **Approved 2026-10-31:** author-only, incl. hidden from Admin; purged with candidate; Phase 3 (CAND-07; Q-145) |
+| D57 | Candidate photo | **Approved 2026-10-31:** optional, JPEG/PNG/WebP ≤ 2 MB, private, initials fallback, purged; Phase 2 (CAND-01; Q-146) |
+| D58 | «Поділитися» | **Approved 2026-10-31:** copies card link; no access → 404; Phase 2 (UI-09; Q-147) |
+| D59 | Dashboard KPI row | **Approved 2026-10-31:** 5 tiles, viewer-scoped, from aggregates; counts Phase 2, time metric Phase 4 (UI-01; Q-148) |
+| D60 | Statistics funnel stages | **Approved 2026-10-31:** our §6.1 stages only (STAT-02; Q-149) |
+| D61 | Not adopted from mockups | **Approved 2026-10-31:** no «Онлайн» status; Google Calendar connect post-launch (Q-150) |
+| D62 | Database version | **Approved 2026-10-31:** PostgreSQL 17 (Supabase local supports 15/17; new hosted projects use 17) (Q-142) |
 | D38 | Self-referral flag | **Confirmed 2026-10-31:** bonus blocked unless Admin approves; flag set by recruiter or Head Recruiter (BONUS-05; Q-12) |
 
 ---

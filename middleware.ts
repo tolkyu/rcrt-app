@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { problemResponse } from './server/http/problem';
 import {
   contentSecurityPolicy,
   isTrustedMutation,
@@ -15,16 +16,13 @@ export function middleware(request: NextRequest) {
   requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('Content-Security-Policy', csp);
 
-  let response: NextResponse;
+  let response: Response;
   const path = request.nextUrl.pathname;
   if (
     (path === '/api/v1' || path.startsWith('/api/v1/')) &&
     !isTrustedMutation(request, process.env.APP_URL!)
   ) {
-    response = NextResponse.json(
-      { error: { code: 'CSRF_FORBIDDEN' } },
-      { status: 403 },
-    );
+    response = problemResponse(403, 'CSRF_FORBIDDEN', crypto.randomUUID());
   } else {
     response = NextResponse.next({ request: { headers: requestHeaders } });
   }

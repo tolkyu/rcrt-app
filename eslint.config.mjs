@@ -50,4 +50,42 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    files: ['app/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '@/server/db',
+                '@/server/db/*',
+                '@/server/repositories/*',
+              ],
+              message:
+                'app/ reaches data only through server/services (CLAUDE.md §3).',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['app/api/v1/**/route.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ExportNamedDeclaration > FunctionDeclaration',
+          message: 'Build /api/v1 handlers with defineRoute() (ADR-006).',
+        },
+        {
+          selector:
+            "ExportNamedDeclaration VariableDeclarator[id.name=/^(GET|POST|PUT|PATCH|DELETE)$/]:not([init.callee.name='defineRoute'])",
+          message: 'Build /api/v1 handlers with defineRoute() (ADR-006).',
+        },
+      ],
+    },
+  },
 );

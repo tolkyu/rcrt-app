@@ -1,0 +1,516 @@
+{
+  "item": [
+    {
+      "id": "5060bbd2-5d96-4953-afec-b509d6f7929b",
+      "name": "Profile",
+      "description": {
+        "content": "",
+        "type": "text/plain"
+      },
+      "item": [
+        {
+          "id": "6ff32fe0-06fa-4cbe-9764-c1ff5d377c32",
+          "name": "Current user, role assignments and effective permissions",
+          "request": {
+            "name": "Current user, role assignments and effective permissions",
+            "description": {},
+            "url": {
+              "path": [
+                "me"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "auth": null
+          },
+          "response": [
+            {
+              "id": "1b9651f6-60a7-4cf9-86fd-04144c98cfcf",
+              "name": "Success",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "me"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{origin}}",
+                      "key": "origin"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: bearer",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"user\": {\n    \"id\": \"4182958f-6e64-54b0-9671-0f822f75012d\",\n    \"email\": \"string\",\n    \"fullName\": \"string\",\n    \"timezone\": \"string\"\n  },\n  \"roles\": [\n    {\n      \"role\": \"string\",\n      \"vertical\": {\n        \"id\": \"bfc22583-dd02-4f39-5143-89881496fcbd\",\n        \"name\": \"string\"\n      }\n    },\n    {\n      \"role\": \"string\",\n      \"vertical\": {\n        \"id\": \"4ab3624b-900e-cd66-1eab-6dee479e9397\",\n        \"name\": \"string\"\n      }\n    }\n  ],\n  \"mfaRequired\": false,\n  \"grants\": [\n    {\n      \"permission\": \"string\",\n      \"scope\": \"VERTICAL_FROM_STAGE\",\n      \"stage\": \"string\",\n      \"verticalIds\": [\n        \"2aeec422-d852-d79c-b139-3f258dcfcf97\",\n        \"794cfbfe-23ba-0b84-3ba7-14a2b16e11bc\"\n      ]\n    },\n    {\n      \"permission\": \"string\",\n      \"scope\": \"SUBMITTED_TO_ME\",\n      \"stage\": \"string\",\n      \"verticalIds\": [\n        \"e790d05c-399c-6d4d-a3ec-be1f6c90babc\",\n        \"45890c54-a0bc-a622-37db-a9b5ac5afd16\"\n      ]\n    }\n  ]\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "8a2c0b74-f467-413b-abe3-46cb132ad904",
+              "name": "Unauthenticated, session expired, user deactivated or MFA required",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "me"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{origin}}",
+                      "key": "origin"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: bearer",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/problem+json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 4290,\n  \"code\": \"string\",\n  \"requestId\": \"829ec5c3-f1f4-fea2-d2a1-a37508b21e6b\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "6c74a785-5d05-48f9-b659-9b41553ffb51",
+              "name": "Unexpected error",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "me"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{origin}}",
+                      "key": "origin"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: bearer",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/problem+json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 4290,\n  \"code\": \"string\",\n  \"requestId\": \"829ec5c3-f1f4-fea2-d2a1-a37508b21e6b\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            }
+          ],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        }
+      ],
+      "event": []
+    },
+    {
+      "id": "e0acef10-44f9-46b6-bad7-d7fa8a4702a5",
+      "name": "Verticals",
+      "description": {
+        "content": "",
+        "type": "text/plain"
+      },
+      "item": [
+        {
+          "id": "b614f098-5d08-45e8-8309-1af98162f3e0",
+          "name": "Verticals visible to the caller",
+          "request": {
+            "name": "Verticals visible to the caller",
+            "description": {},
+            "url": {
+              "path": [
+                "verticals"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [],
+              "variable": [
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "auth": null
+          },
+          "response": [
+            {
+              "id": "57579bcd-7e14-432a-9417-489027b18933",
+              "name": "Success",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "verticals"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{origin}}",
+                      "key": "origin"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: bearer",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"items\": [\n    {\n      \"id\": \"0b125116-c15b-dae8-1420-9c0d43c38c5c\",\n      \"name\": \"string\"\n    },\n    {\n      \"id\": \"4c6875f2-88c2-5a3d-de8b-8ae445867763\",\n      \"name\": \"string\"\n    }\n  ]\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "cb22447a-817a-4530-9f63-86eb7fbd138a",
+              "name": "Unauthenticated, session expired, user deactivated or MFA required",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "verticals"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{origin}}",
+                      "key": "origin"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: bearer",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/problem+json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 4290,\n  \"code\": \"string\",\n  \"requestId\": \"829ec5c3-f1f4-fea2-d2a1-a37508b21e6b\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "1a00e17d-f1d7-47c6-9739-e2feb8ae9783",
+              "name": "Not found or out of scope",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "verticals"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{origin}}",
+                      "key": "origin"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: bearer",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/problem+json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 4290,\n  \"code\": \"string\",\n  \"requestId\": \"829ec5c3-f1f4-fea2-d2a1-a37508b21e6b\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "9460859a-475b-4d6e-8861-71fff6c5d599",
+              "name": "Unexpected error",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "verticals"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{origin}}",
+                      "key": "origin"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: bearer",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/problem+json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 4290,\n  \"code\": \"string\",\n  \"requestId\": \"829ec5c3-f1f4-fea2-d2a1-a37508b21e6b\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            }
+          ],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        }
+      ],
+      "event": []
+    }
+  ],
+  "event": [],
+  "variable": [
+    {
+      "description": {
+        "content": "",
+        "type": "text/plain"
+      },
+      "type": "any",
+      "value": "http://localhost:3000",
+      "key": "origin"
+    },
+    {
+      "type": "string",
+      "value": "{{origin}}/api/v1",
+      "key": "baseUrl"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearerToken}}"
+      }
+    ]
+  },
+  "info": {
+    "_postman_id": "a9067114-8928-4b96-8ea2-94f847407827",
+    "name": "HRIS Recruiting API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": {
+      "content": "REST API used by the web UI and Postman. Unsafe methods require `Origin` equal to the app origin, `Content-Type: application/json` and `X-CSRF-Protection: 1`.",
+      "type": "text/plain"
+    }
+  }
+}

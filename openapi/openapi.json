@@ -1,0 +1,328 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "HRIS Recruiting API",
+    "version": "1.0.0",
+    "description": "REST API used by the web UI and Postman. Unsafe methods require `Origin` equal to the app origin, `Content-Type: application/json` and `X-CSRF-Protection: 1`."
+  },
+  "servers": [
+    {
+      "url": "{origin}/api/v1",
+      "variables": {
+        "origin": {
+          "default": "http://localhost:3000"
+        }
+      }
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Supabase access token of an invited user."
+      }
+    },
+    "schemas": {
+      "Me": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "email": {
+                "type": "string"
+              },
+              "fullName": {
+                "type": "string"
+              },
+              "timezone": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "email",
+              "fullName",
+              "timezone"
+            ]
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "role": {
+                  "type": "string"
+                },
+                "vertical": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ]
+                }
+              },
+              "required": [
+                "role",
+                "vertical"
+              ]
+            }
+          },
+          "mfaRequired": {
+            "type": "boolean",
+            "description": "ADMIN/FINANCE grants are withheld until the session is aal2."
+          },
+          "grants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EffectiveGrant"
+            }
+          }
+        },
+        "required": [
+          "user",
+          "roles",
+          "mfaRequired",
+          "grants"
+        ]
+      },
+      "EffectiveGrant": {
+        "type": "object",
+        "properties": {
+          "permission": {
+            "type": "string",
+            "description": "Permission code, e.g. `vacancy.read`."
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "GLOBAL",
+              "VERTICAL",
+              "VERTICAL_FROM_STAGE",
+              "OWN",
+              "OWN_EARLY",
+              "ASSIGNED",
+              "UNASSIGNED_OPEN",
+              "SUBMITTED_TO_ME"
+            ]
+          },
+          "stage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "verticalIds": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "`null` = all verticals (global grant)."
+          }
+        },
+        "required": [
+          "permission",
+          "scope",
+          "stage",
+          "verticalIds"
+        ]
+      },
+      "Problem": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer"
+          },
+          "code": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "code": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "code"
+              ]
+            }
+          }
+        },
+        "required": [
+          "type",
+          "status",
+          "code",
+          "requestId"
+        ],
+        "description": "RFC 9457 problem details; `code` is a stable error code."
+      },
+      "VerticalList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Vertical"
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
+      "Vertical": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      }
+    },
+    "parameters": {}
+  },
+  "paths": {
+    "/me": {
+      "get": {
+        "operationId": "getMe",
+        "summary": "Current user, role assignments and effective permissions",
+        "tags": [
+          "Profile"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/verticals": {
+      "get": {
+        "operationId": "listVerticals",
+        "summary": "Verticals visible to the caller",
+        "tags": [
+          "Verticals"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerticalList"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "webhooks": {}
+}

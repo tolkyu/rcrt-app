@@ -39,15 +39,15 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 
 | # | Task | Agent(s) | Status |
 |---|---|---|---|
-| T1 | Repo bootstrap, local Supabase stack, CI, security baseline (FND-1..5) | devops-engineer | 🔄 Baseline verified; integration/API/rate limiting/observability depend on T2–T4; DB version Q-142 |
-| T2 | Drizzle schema + migrations (phase-1 tables), grants/triggers, demo + perf seed | database-engineer | ⏳ |
-| T3 | Server core: request context, authz module + matrix tests, API wrapper/OpenAPI, audit + events | senior-fullstack-engineer | ⏳ |
+| T1 | Repo bootstrap, local Supabase stack, CI, security baseline (FND-1..5) | devops-engineer (done by Codex) | ✅ Committed `fd0463f`; code review running; DB version Q-142 open |
+| T2 | Drizzle schema + migrations (phase-1 tables), grants/triggers, demo + perf seed | database-engineer (done by Codex; review fixes by database-engineer) | ✅ 14 tables, grants, triggers, demo seed (`c34712a`); review fixes in migration `0003` (timeline/audit indexes, plain-DESC keys, file CHECKs, `app_setting` row, `auth` USAGE revoke), grant-matrix test, seed guard against non-demo data; 35 integration tests green on PostgreSQL 17.11. Perf seed → Phase 2 (SEED-1) |
+| T3 | Server core: request context, authz module + matrix tests, API wrapper/OpenAPI, audit + events | senior-fullstack-engineer | 🔄 authz map (91 codes × 7 roles, `can`/scoped SQL, aal2, self-benefit guard), one-query RequestContext with a T4 identity seam, `defineRoute` (CSRF, Zod, problem+json, OpenAPI 3.1), audit/event/change-feed writers, `GET /me` + `GET /verticals`; 1 333 new unit + 17 integration tests green; awaiting QA/review; DB rate limiter and JWT verification remain (T4) |
 | T4 | Auth: magic link, Google, invites, TOTP (Admin + Finance), sessions, dev-login | senior-fullstack-engineer + security-engineer | ⏳ |
-| T5 | Design system shell, navigation per role, profile, states | ux-ui-designer + senior-fullstack-engineer | ⏳ |
+| T5 | Design system shell, navigation per role, profile, states — **owner's designer mockups (docs/ux/reference) are the target look** | ux-ui-designer + senior-fullstack-engineer | 🔄 design system being rewritten from mockups |
 | T6 | Settings: users & invites, roles, verticals, TL priorities, audit viewer | senior-fullstack-engineer | ⏳ |
 | T7 | Tests (integration, E2E, Newman), screenshots + gallery | qa-engineer | ⏳ |
 | T8 | Perf seed + perf:check | performance-engineer | ⏳ |
-| T9 | Security review, code review, fixes, verify | security-engineer, code-reviewer | ⏳ |
+| T9 | Security review, code review, fixes, verify | security-engineer, code-reviewer | ⏳ Carry-over from foundation review: CI action SHA pins, `pnpm audit` gate, Drizzle drift check, `format:check`, `NEXT_PUBLIC_`/static secret grep; DG-03 storage policy test on local Supabase; AGENTS.md/.codex duplication (owner call) |
 
 ## Implementation checkpoint — 2026-10-31 (Codex)
 
@@ -61,9 +61,12 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 
 | Item | Reason | Unblocked by |
 |---|---|---|
-| Full `pnpm setup`, migration/seed/integration commands | T2 files not implemented; setup fails early with a specific message | T2 schema, migrations, local-only demo/perf seed |
-| PostgreSQL version alignment (Q-142) | PRD specifies 16; installed Supabase CLI rejects 16; existing local Supabase is 17 | Owner decision + ADR before changing the agreed stack; isolated test DB runs 16.13 |
 | Newman/OpenAPI, database rate limiter, auth, operational PII-safe logging, Lighthouse/k6 | Require the server core and actual authenticated screens | T2–T8; current CI only runs implemented gates |
+| Perf seed `pnpm db:seed:perf` (PERF-01) | Needs Phase 2 tables (candidates, vacancies, applications) | Phase 2 (SEED-1) |
+| FKs `audit_log.candidate_id`, `entity_event.vacancy_id` / `candidate_id` / `application_id` | Parent tables don't exist yet (`docs/erd.md` §10) | Phase 2 |
+| `vertical.default_bonus_scheme_id`, `app_setting.global_bonus_scheme_id` | Added together with `bonus_scheme` | Phase 4 |
+| `change_feed` → Realtime trigger (ADR-007) | No feature publishes live changes yet | First live board (Phase 2–3) |
+| `purge_log`, `app.purge_candidate`, `app.reapply_purges` (ARCH-04, DG-20) | Need the candidate PII tables | Phase 5 |
 | Telegram bot (VAC-06, Phase 6) | Scope not defined by owner | Owner answers to Telegram questions |
 | Perf test-token signer (perf env only key pair, `docs/perf/plan.md` §8.2) | Needs security-engineer review | Phase 1 security review |
 | Supabase pooler / region / cold start / Realtime / Cyrillic trigram checks | Perf CI runs on local PostgreSQL (owner: no paid tier) | Staging free tier before launch (`docs/perf/plan.md` §8.7) |
@@ -86,4 +89,6 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 | 2026-10-31 | Block A (D1–D9, D11, D13) confirmed; + Head Recruiter assigns recruiters; **D4 changed: Head HR polygraph review mandatory** (confirm / not confirmed → retake or reject) | Q-01..12, POLY-05 |
 | 2026-10-31 | 2FA mandatory for Admin + Finance; no CAPTCHA (invite-only); DOC/DOCX download-only until AV; DPAs before launch; Kyiv timezone for all | Q-128, Q-132, Q-129, Q-131, Q-40 |
 | 2026-10-31 | "Go phase 1"; repo https://github.com/tolkyu/rcrt-app; all remaining Top-10 / phase-1 questions per recommendations (Q-14, Q-16, Q-22, Q-25, Q-32, Q-34..36, Q-43, Q-44, Q-46, Q-93, Q-133..135, Q-140, Q-141 = local only) | OPEN_QUESTIONS |
+| 2026-10-31 | Designer mockups = target look for the whole app (docs/ux/reference). Approved: brand «Hiring» in UI; manual personal tasks (Ph5); private notes author-only (Ph3); optional candidate photo (Ph2); «Поділитися» link (Ph2); dashboard KPI row; stats funnel on our stages; no «Онлайн»; Google Calendar post-launch; primary colour contrast tweak | design-adoption |
+| 2026-10-31 | PostgreSQL 17 instead of 16 (Supabase CLI supports 15/17 only) | Q-142, CLAUDE.md §2 |
 | 2026-10-30 | Phase 6 input (not designed yet): vacancy is entered fully via Telegram bot, then appears in the app (`source = TELEGRAM_BOT`) | VAC-06 |

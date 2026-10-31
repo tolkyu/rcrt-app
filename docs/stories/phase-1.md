@@ -55,7 +55,7 @@ As the **Tech Lead**, I want local, preview and production environments in Frank
 - Given scheduled jobs on the free hosting tier, Then they are triggered by a free external scheduler until Vercel Pro is bought (D17).
 - (negative) Given a preview environment, When someone tries to log in with the dev-login route, Then it does not exist (see STORY-DEV-1).
 
-**Owner decisions:** no paid services; perf runs on local PostgreSQL 16 in Docker with the PERF-01 seed (D15, D17). Nightly encrypted backups (30 days) are set up by Phase 7 (D17).
+**Owner decisions:** no paid services; perf runs on local PostgreSQL 17 in Docker (D62) with the PERF-01 seed (D15, D17). Nightly encrypted backups (30 days) are set up by Phase 7 (D17).
 
 ### STORY-FND-4: API contract and Postman collection
 As a **QA engineer**, I want every `/api/v1` endpoint described in OpenAPI and exercised by a generated Postman collection, so that the API is testable outside the UI (API-xx).

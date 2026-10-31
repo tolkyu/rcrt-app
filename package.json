@@ -32,10 +32,13 @@
     "db:migrate": "tsx --env-file-if-exists=.env server/db/migrate.ts",
     "db:provision:local": "tsx --env-file-if-exists=.env scripts/provision-local-db.ts",
     "db:seed": "tsx --env-file-if-exists=.env server/db/seed/index.ts",
+    "api:openapi": "tsx --conditions=react-server scripts/openapi.ts",
+    "api:postman": "pnpm api:openapi && tsx scripts/postman.ts",
     "perf:size": "node scripts/client-size-config.mjs && size-limit --config .cache/client-size-limit.json",
     "perf:check": "pnpm build && pnpm perf:size"
   },
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "9.1.0",
     "@date-fns/tz": "1.5.0",
     "@hookform/resolvers": "6.0.2",
     "@tanstack/react-query": "5.105.0",
@@ -70,6 +73,7 @@
     "eslint-plugin-jsx-a11y": "6.10.2",
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "7.1.1",
+    "openapi-to-postmanv2": "6.4.2",
     "prettier": "3.9.10",
     "prettier-plugin-tailwindcss": "0.8.1",
     "size-limit": "14.3.0",

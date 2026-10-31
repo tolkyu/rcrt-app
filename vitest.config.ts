@@ -11,7 +11,15 @@ const databaseTestEnv = Object.fromEntries(
 );
 
 export default defineConfig({
-  resolve: { alias: { '@': fileURLToPath(new URL('.', import.meta.url)) } },
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('.', import.meta.url)),
+      // Server modules are exercised directly in Node; this is the package's own react-server entry.
+      'server-only': fileURLToPath(
+        new URL('./node_modules/server-only/empty.js', import.meta.url),
+      ),
+    },
+  },
   test: {
     projects: [
       {

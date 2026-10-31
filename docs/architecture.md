@@ -56,7 +56,7 @@ messages/uk.json
 Client useMutation (optimistic patch)          Postman/Newman (Bearer token)
         └──────── POST /api/v1/applications/{id}/transitions ────────┘
 defineRoute
-  1 requestId, timing · 2 Origin check (cookie auth) · 3 auth → RequestContext (JWT local verify, 1 SQL)
+  1 requestId, timing · 2 CSRF/transport check (Origin, JSON, X-CSRF-Protection) · 3 auth → RequestContext (JWT local verify, 1 SQL)
   4 Zod parse → 400
 service pipeline.transition(ctx, cmd)  — db.transaction:
   5 repo.findForUpdate(id, scopeWhere(ctx,'application','application.read')) → null ⇒ 404
@@ -98,7 +98,7 @@ export declare const getRequestContext: () => Promise<RequestContext>; // React.
 ```
 - Loaded once per request: RSC via `React.cache`; route handlers via `defineRoute` (React.cache is not request-scoped there) and passed explicitly.
 - Services always take `ctx` first; never read cookies/headers themselves.
-- Context query (one round-trip, < 2 ms): `SELECT u.id, u.is_active, u.timezone, r.role, r.vertical_id, s.aal, s.id AS session_ok FROM app_user u LEFT JOIN auth.sessions s ON s.id = $2 AND s.user_id = u.auth_user_id AND (s.not_after IS NULL OR s.not_after > now()) LEFT JOIN user_role r … WHERE u.auth_user_id = $1`. `$2` = JWT `session_id`. No session row ⇒ 401 `SESSION_EXPIRED` (DG-05; logout/revocation are immediate). Access-token TTL ≤ 15 min. JWT checks per ADR-002 (DG-02). `app_rw` gets `SELECT` on `auth.sessions` only (id, user_id, not_after).
+- Context query (`server/repositories/principal.ts`, one round-trip, < 2 ms): `app_user u` by `auth_user_id = $1` + `EXISTS (SELECT 1 FROM app.auth_session_status s WHERE s.id = $2 AND s.user_id = u.auth_user_id AND (s.not_after IS NULL OR s.not_after > now))` + `json_agg` of `user_role` rows. `$1`/`$2` = JWT `sub`/`session_id`; `aal` comes from the verified JWT claims (ADR-002 §4), not from the database. No live session ⇒ 401 `SESSION_EXPIRED`; inactive user ⇒ 401 `USER_DEACTIVATED` (DG-05; logout/revocation are immediate). Access-token TTL ≤ 15 min. JWT checks per ADR-002 (DG-02). `app_rw` reads sessions only through the `app.auth_session_status` view (id, user_id, not_after); it has no grant on `auth.sessions`.
 - Authorization never relies on `middleware.ts` (DG-17); it only refreshes the session cookie.
 
 ## 4. Transactions & concurrency
@@ -116,7 +116,7 @@ Typed domain errors (`server/http/errors.ts`) → RFC 9457 `application/problem+
 |---|---|---|---|
 | `ValidationError` | 400 | `VALIDATION_FAILED` (+ field paths, e.g. Meet link regex), `FILE_TYPE_NOT_ALLOWED`, `FILE_TOO_LARGE`, `FILE_CONTENT_MISMATCH` | Zod / file checks |
 | `UnauthenticatedError` | 401 | `UNAUTHENTICATED`, `SESSION_EXPIRED`, `USER_DEACTIVATED`, `MFA_REQUIRED` | no/invalid JWT, inactive user, Admin or Finance without aal2 (MFA mandatory, owner 2026-10-31) |
-| `ForbiddenError` | 403 | `FORBIDDEN`, `SELF_BENEFIT_FORBIDDEN` (DG-19, owner-confirmed), `ORIGIN_REJECTED` (DG-06) | object **visible** but action not permitted |
+| `ForbiddenError` | 403 | `FORBIDDEN`, `SELF_BENEFIT_FORBIDDEN` (DG-19, owner-confirmed), `CSRF_FORBIDDEN` (DG-06; missing/foreign `Origin`, non-JSON body or no `X-CSRF-Protection: 1`) | object **visible** but action not permitted |
 | `NotFoundError` | 404 | `NOT_FOUND` | missing, soft-deleted (outside archive), **out of scope**, or whole route without any grant (Finance outside Statistics) |
 | `InvalidTransitionError` | 409 | `INVALID_TRANSITION` + guard codes (`TL_NOT_ACCEPTED`, `POLYGRAPH_PDF_REQUIRED`, `POLYGRAPH_MANDATORY`, `PROBATION_MIN_30_DAYS`, …) | state machine rejects |
 | `ConflictError` | 409 | `STALE_STATE`, `ACTIVE_APPLICATION_IN_GROUP`, `CANDIDATE_VERTICAL_MISMATCH`, `CANDIDATE_HAS_ACTIVE_APPLICATIONS` (CAND-06), `PROBATION_EXTENSION_FORBIDDEN`, `INVITE_EXPIRED`, `TRANCHE_PERCENTS_NOT_100`, `VACANCY_BONUS_CHANGE_TOO_SOON` (BONUS-16) | concurrency / business invariants |
