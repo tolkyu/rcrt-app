@@ -1,5 +1,7 @@
 # Wireframe — Картка вакансії [VAC-01..05, PROB-07, ARCH-03]
 
+> Visual style = `reference/03-vacancies.webp` preview panel, full width. Blocks reuse the panel components (`vacancies-list.md`): team block (TL with role · vertical, not job title, A-15), «Винагорода рекрутеру» card with gift tile (A-32), FunnelMini `bars`, «Деталі вакансії» key/value list, Історія feed in the candidate-card style. Status chip = VAC-02 status; «Термінова» (not «Високий», A-31) and «З бота» are badges. Cards radius 16, shadow sm; tokens per `design-system.md`.
+
 ## Desktop 1440 — Head Recruiter
 
 ```

@@ -1,141 +1,284 @@
-# Design system (Phase 0 spec)
+# Design system (v1.0 — follows the owner's designer mockups)
 
-> Tailwind + shadcn/ui (Radix) + lucide. Tokens are CSS variables consumed by `tailwind.config` (shadcn convention). Dense-but-calm: borders over shadows, 14 px body, one accent colour. Contrast values checked against WCAG 2.1 AA (text ≥ 4.5:1, large text / UI boundaries ≥ 3:1).
+> **Target look = the reference images** in `docs/ux/reference/`. This file turns them into tokens and rules engineers build exactly. Where a mockup value fails WCAG 2.1 AA (PRD UI-05), the fix is the smallest visual tweak (§1.4). Scope and behaviour changes the mockups imply are tracked in `design-adoption.md`, not here.
+> Stack: Tailwind v4 (`@theme` CSS variables) + shadcn/ui (Radix) + lucide. Theme switch: `class="dark"` on `<html>`, no flash (theme script before paint).
 
-## 1. Colour tokens
+## 0. Reference images
 
-### 1.1 Base (semantic)
+| File | Content |
+|---|---|
+| `reference/00-foundations.webp` | Colours (light/dark), type scale, 11 candidate statuses, radii, spacing, borders, shadows, grid, sample components |
+| `reference/01-components.webp` | Buttons, form controls, navigation (sidebar, top bar, filters), cards, chips, bonus badge, mini funnel, event timeline, toasts/empty/error/skeleton, mobile bottom nav + bottom sheet |
+| `reference/02-dashboard.webp` | Головна: filters, saved filters, KPI row, Мої задачі, Вакансії cards, candidate kanban; dark + mobile |
+| `reference/03-vacancies.webp` | Vacancy table + right preview panel; dark + mobile |
+| `reference/04-candidate-card.webp` | Header, info strip, stepper, tabs, history feed, right column «Наступна подія» + «Приватні нотатки»; dark + mobile + interview-result sheet |
+| `reference/05-candidates-kanban.webp` | Candidates kanban (Канбан/Таблиця), filter bar, side drawer; dark + mobile |
+| `reference/06-calendar.webp` | Week view + event details panel; dark + mobile day list |
+| `reference/07-statistics.webp` | Statistics tabs, KPI row, funnel, hiring dynamics, avg time, top recruiters, bonuses card; dark + mobile |
+
+Brand in UI: logo tile «H» + wordmark **«Hiring»** (approved 2026-10-31). Product/repo name stays HRIS in docs.
+
+## 1. Colour
+
+### 1.1 Base tokens (exactly as `00-foundations.webp`)
+
+| Token (CSS var) | Light | Dark | Use |
+|---|---|---|---|
+| `--brand` | `#6366F1` | `#818CF8` | Primary/Індиго accent: logo tile, icons, focus ring, selected indicators, progress, chart series 1 |
+| `--cyan` | `#06B6D4` | `#22D3EE` | Accent: KPI icon tiles, chart series 2 (decorative, never text) |
+| `--magenta` | `#EC4899` | `#F472B6` | Accent: KPI icon tiles, chart series (decorative) |
+| `--yellow` | `#F59E0B` | `#FBBF24` | Accent: KPI icon tiles, bonus gift icon (decorative) |
+| `--background` | `#F8FAFC` | `#0B1220` | App background (Фон) |
+| `--surface` (`--card`, `--popover`) | `#FFFFFF` | `#111827` | Cards, panels, sidebar, top bar, dialogs (Поверхня) |
+| `--surface-muted` (`--muted`) | `#F1F5F9` | `#1F2937` | Hover rows, segmented controls, skeleton base, kbd hint (Поверхня приглушена) |
+| `--foreground` | `#0F172A` | `#F8FAFC` | Main text (Основний текст) |
+| `--muted-foreground` | `#64748B` | `#94A3B8` | Secondary text (Другорядний текст), **only on surface/background** — see §1.4 |
+| `--muted-foreground-strong` | `#475569` | `#94A3B8` | Secondary text on `--surface-muted` and tinted backgrounds |
+| `--border` | `#E2E8F0` | `#334155` | Card borders, dividers (decorative, Межа) |
+| `--success` | `#22C55E` | `#34D399` | Icons, dots, bars, positive fills (Успіх) |
+| `--warning` | `#F59E0B` | `#FBBF24` | Icons, dots (Попередження) |
+| `--error` | `#EF4444` | `#F87171` | Icons, dots, error borders (Помилка) |
+
+Image note: the light secondary-text label reads «#6474BB» because the image is blurry; the swatch is slate. We use **`#64748B`** (Tailwind slate-500, the obvious intent).
+
+### 1.2 Derived tokens (needed for AA; not separate swatches in the image)
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
-| `--background` | `#FFFFFF` | `#0B0F17` | page |
-| `--surface` (card) | `#FFFFFF` | `#111722` | cards, popovers, dialogs |
-| `--surface-subtle` | `#F8FAFC` | `#151C29` | kanban column bg, table header, sidebar |
-| `--foreground` | `#0F172A` | `#E6EAF2` | primary text (16.7:1 / 15.1:1) |
-| `--muted` | `#F1F5F9` | `#1A2130` | hover rows, skeleton base |
-| `--muted-foreground` | `#475569` | `#9AA4B5` | secondary text (7.6:1 / 7.6:1); never lighter for text |
-| `--border` | `#E2E8F0` | `#253043` | dividers, card borders (decorative) |
-| `--input` | `#7B8698` | `#5B6880` | input/checkbox borders (≥ 3:1 vs bg) |
-| `--primary` | `#4F46E5` | `#818CF8` | primary buttons, links, selected nav |
-| `--primary-foreground` | `#FFFFFF` | `#0B0F17` | text on primary (6.3:1 / 6.4:1) |
-| `--ring` | `#4F46E5` | `#A5B4FC` | focus ring |
-| `--destructive` | `#DC2626` | `#DC2626` | destructive buttons (white text 4.8:1) |
-| `--destructive-text` | `#B91C1C` | `#FCA5A5` | error text, inline validation |
-| `--success-text` | `#15803D` | `#86EFAC` | positive deltas, «Пройдено» |
-| `--warning-text` | `#B45309` | `#FCD34D` | warnings, «Очікує перенесення» |
-| `--info-bg` | `#EEF2FF` | `#1E2240` | info banners |
-| `--skeleton` | `#E9EEF4` | `#1C2433` | skeleton blocks (no shimmer in screenshots) |
+| `--primary` (shadcn) | **`#5558EF`** | **`#5558EF`** | Filled primary button bg, checked checkbox/radio/switch, active pagination page |
+| `--primary-hover` / `--primary-active` | `#4F46E5` / `#4338CA` | same | Hover / pressed filled button |
+| `--primary-foreground` | `#FFFFFF` | `#FFFFFF` | Text on `--primary` |
+| `--link` (primary text) | **`#5558EF`** | `#818CF8` | Text links, active nav label + icon, active tab, outline/ghost primary button text, «Переглянути всіх →» |
+| `--primary-subtle` | `#EEF2FF` | `#232B48` | Active nav item bg, selected chip/segment bg, secondary button bg («Зберегти» soft) |
+| `--ring` | `#6366F1` | `#818CF8` | Focus outline |
+| `--input` | `#7B8698` | `#64748B` | Borders of inputs, selects, checkboxes, radios (≥ 3:1, WCAG 1.4.11) |
+| `--success-text` | `#15803D` | `#34D399` | Positive deltas, «Пройдено», success text |
+| `--warning-text` | `#B45309` | `#FBBF24` | Warning text, «Очікує перенесення» |
+| `--error-text` | `#B91C1C` | `#F87171` | Errors, validation, soft destructive button text |
+| `--destructive` | `#DC2626` | `#DC2626` | Filled destructive (confirm buttons in AlertDialog) |
+| `--destructive-subtle` | `#FEF2F2` | `#3A1D24` | Soft destructive button bg («Видалити» in the library) |
+| `--now-line` | `#EF4444` | `#F87171` | Calendar current-time line + time pill (white text on pill: use `#DC2626`, 4.83:1) |
 
-Theme: `class="dark"` on `<html>`, chosen in Профіль (Світла / Темна / Системна); default Системна; no flash (theme script before paint).
+### 1.3 Contrast check (WCAG 2.1 relative luminance; text needs ≥ 4.5:1, UI boundaries/icons ≥ 3:1)
 
-### 1.2 Stage colours (StageChip, stepper, kanban column accent)
+| Pair | Ratio | Result |
+|---|---|---|
+| White on `#6366F1` (mockup primary button) | **4.47:1** | ✖ fails AA for normal text |
+| White on **`#5558EF`** (new `--primary`) | **5.21:1** | ✔ |
+| White on `#4F46E5` (hover) / `#4338CA` (pressed) | 6.29 / 7.90 | ✔ |
+| `#5558EF` text on `#FFFFFF` / `#F8FAFC` / `#F1F5F9` / `#EEF2FF` | 5.21 / 4.98 / 4.76 / 4.66 | ✔ all light surfaces |
+| `#6366F1` on white (focus ring, icons, non-text) | 4.47 | ✔ (needs 3:1) |
+| White on `#818CF8` (dark primary as button) | 2.98 | ✖ → dark filled buttons also use `#5558EF` |
+| `#818CF8` text on `#0B1220` / `#111827` / `#1F2937` / `#232B48` | 6.28 / 5.95 / 4.92 / 4.68 | ✔ |
+| `#0F172A` on `#FFFFFF` / `#F8FAFC` / `#F1F5F9` | 17.9 / 17.1 / 16.3 | ✔ |
+| `#64748B` on `#FFFFFF` / `#F8FAFC` | 4.76 / 4.55 | ✔ (thin on bg) |
+| `#64748B` on `#F1F5F9` | 4.34 | ✖ → use `#475569` (6.92) on muted/tints |
+| `#F8FAFC` on `#0B1220` / `#111827` / `#1F2937` | 17.9 / 17.0 / 14.0 | ✔ |
+| `#94A3B8` on `#0B1220` / `#111827` / `#1F2937` | 7.30 / 6.92 / 5.73 | ✔ |
+| `#22C55E` / `#F59E0B` / `#EF4444` as text on white | 2.28 / 2.15 / 3.76 | ✖ → icons/dots only; text uses `*-text` tokens |
+| `#15803D` / `#B45309` / `#B91C1C` on white | 5.02 / 5.02 / 6.47 | ✔ |
+| `#B91C1C` on `#FEF2F2` (soft destructive) | 5.91 | ✔ |
+| White on `#DC2626` (filled destructive) | 4.83 | ✔ |
+| `#34D399` / `#FBBF24` / `#F87171` on `#111827` | 9.2 / 10.6 / 6.41 | ✔ |
+| `#7B8698` input border on white / `#F8FAFC` | 3.68 / 3.52 | ✔ (≥ 3:1) |
+| `#64748B` dark input border on `#111827` | 3.73 | ✔ |
+| `#E2E8F0` / `#334155` card border | 1.2 / 1.7 | decorative only, never the only boundary of a control |
+| Cyan `#06B6D4` / magenta `#EC4899` on white | 2.43 / 3.53 | decorative only, always paired with a label |
 
-Chip = tinted bg + dark text + 6 px dot + icon. **Colour is never the only cue** (text + icon always present). Dark chip bg = dot colour at 16 % alpha over `--surface`.
+### 1.4 Accessibility decision (primary)
+- **Keep `#6366F1`** as brand/accent: logo tile (large bold glyph, 3:1 suffices), icons, focus ring, chart bars, selected indicators, progress.
+- **Add `#5558EF`** (same hue 239°, lightness 67 % → 63 %; barely visible change) for **filled buttons in both themes and all primary-coloured text in light theme**. Dark-theme primary text stays `#818CF8`.
+- Secondary text `#64748B` only on white/background; on muted surfaces and tints use `#475569`.
+- Mockup brights (success/warning/error) are not text colours; text uses `--success-text` / `--warning-text` / `--error-text`. KPI deltas therefore look slightly darker than in the mockup.
+- **Delta colour follows meaning, not sign:** «Середній час найму ↓ −25 %» is good, so it shows success-green (the mockup shows it red). Arrow and sign are always present, so colour is never the only cue.
 
-| Stage | Icon (lucide) | Light bg | Light text | Dot / accent | Dark text |
-|---|---|---|---|---|---|
-| `NEW` Новий | `circle-dashed` | `#F1F5F9` | `#334155` | `#64748B` | `#CBD5E1` |
-| `IN_WORK` В роботі | `phone` | `#E0F2FE` | `#075985` | `#0284C7` | `#7DD3FC` |
-| `SUBMITTED_TO_TL` У тімліда | `send` | `#EDE9FE` | `#5B21B6` | `#7C3AED` | `#C4B5FD` |
-| `TL_INTERVIEW` Співбесіда | `video` | `#DBEAFE` | `#1E40AF` | `#2563EB` | `#93C5FD` |
-| `POLYGRAPH` Поліграф | `activity` | `#FEF3C7` | `#92400E` | `#D97706` | `#FCD34D` |
-| `OFFER` Офер | `file-signature` | `#FCE7F3` | `#9D174D` | `#DB2777` | `#F9A8D4` |
-| `PROBATION` Випробування | `hourglass` | `#CCFBF1` | `#115E59` | `#0D9488` | `#5EEAD4` |
-| `PROBATION_PASSED` Найнято | `badge-check` | `#DCFCE7` | `#166534` | `#16A34A` | `#86EFAC` |
-| `REJECTED` Відмова | `circle-x` | `#FEE2E2` | `#991B1B` | `#DC2626` | `#FCA5A5` |
-| `WITHDRAWN` Самовідвід | `undo-2` | `#F4F4F5` | `#3F3F46` | `#71717A` | `#D4D4D8` |
-| `PROBATION_FAILED` Не пройшов ВТ | `circle-slash` | `#FFE4E6` | `#9F1239` | `#E11D48` | `#FDA4AF` |
+### 1.5 Stage colours (StageChip, stepper, kanban column, calendar event) — 11 statuses from `00-foundations.webp`
 
-Light text/bg pairs ≈ 7:1 or better; dark text on 16 % tint over `#111722` must stay ≥ 4.5:1 (target 7:1) — verify with axe in the Phase 1 screenshot review.
+Chip = pill, tinted bg + stage text + lucide icon + label. **Colour is never the only cue.** Dark: bg = accent at 16 % alpha over `--surface`, text = 300 shade (spot-checked ≥ 7:1; worst case violet 8.1:1).
 
-### 1.3 Other status palettes
+| Enum | Chip | Icon (lucide) | Accent | Light bg | Light text (ratio) | Dark text |
+|---|---|---|---|---|---|---|
+| `NEW` | Новий | `circle-dot` | `#10B981` | `#ECFDF5` | `#065F46` (7.3) | `#6EE7B7` |
+| `IN_WORK` | В роботі | `circle-play` | `#3B82F6` | `#EFF6FF` | `#1D4ED8` (6.2) | `#93C5FD` |
+| `SUBMITTED_TO_TL` | У тімліда | `users` | `#8B5CF6` | `#F5F3FF` | `#6D28D9` (6.5) | `#C4B5FD` |
+| `TL_INTERVIEW` | Співбесіда | `video` | `#6366F1` | `#EEF2FF` | `#4338CA` (7.1) | `#A5B4FC` |
+| `POLYGRAPH` | Поліграф | `clipboard-list` | `#F59E0B` | `#FFFBEB` | `#92400E` (6.8) | `#FCD34D` |
+| `OFFER` | Офер | `file-text` | `#EC4899` | `#FDF2F8` | `#BE185D` (5.5) | `#F9A8D4` |
+| `PROBATION` | Випробування | `chart-column-increasing` | `#14B8A6` | `#F0FDFA` | `#115E59` (7.3) | `#5EEAD4` |
+| `PROBATION_PASSED` | Найнято | `circle-check` | `#22C55E` | `#F0FDF4` | `#166534` (6.8) | `#86EFAC` |
+| `REJECTED` | Відмова | `circle-x` | `#EF4444` | `#FEF2F2` | `#B91C1C` (5.9) | `#FCA5A5` |
+| `WITHDRAWN` | Самовідвід | `circle-minus` | `#64748B` | `#F1F5F9` | `#334155` (9.5) | `#CBD5E1` |
+| `PROBATION_FAILED` | Не пройшов ВТ | `triangle-alert` | `#F97316` | `#FFF7ED` | `#9A3412` (6.9) | `#FDBA74` |
+| `REJECTED` (routed) | Передано далі | `forward` | `#64748B` | `#F1F5F9` | `#334155` | `#CBD5E1` |
 
-| Kind | Value → palette (same structure as stages) |
+- The mockup paints Новий, Випробування and Найнято all green. We split them into emerald, teal and green, and the icons differ, so they stay distinguishable.
+- Kanban column: header bg = stage light bg, icon + label in stage text, count pill on `--surface`; column body = stage bg; cards = `--surface`.
+- Stepper: done = accent circle + white check; current = accent filled circle + white stage icon + ring `--primary-subtle`; upcoming = `--surface-muted` circle + muted icon; failed = `--error` circle + `x`.
+- Calendar events take the colour of their stage: Скринінг → `IN_WORK`, Співбесіда → `TL_INTERVIEW`, Поліграф → `POLYGRAPH`. Block = stage bg + 3 px left border in accent + title in stage text. This replaces the mockup's own palette, see adoption A-24.
+
+### 1.6 Other status palettes (same structure)
+
+| Kind | Value → palette |
 |---|---|
-| Vacancy status | Чернетка slate (dashed border) · Відкрита green · Призупинена amber · Заповнена indigo · Скасована zinc |
-| Bonus status | Заплановано slate · Нараховано sky · Затверджено indigo · Виплачено green · Скасовано zinc · Призупинено amber · Очікує повернення orange (`#9A3412` / `#FFEDD5`) · Повернено rose |
-| Urgency | Термінова: red text `#B91C1C`, bg `#FEF2F2`, icon `flame` |
-| Bot source | «З бота»: sky outline badge, icon `bot` |
+| Vacancy status | Чернетка slate (dashed border) · Відкрита green · Призупинена amber · Заповнена blue · Скасована slate |
+| Bonus status | Заплановано slate · Нараховано blue · Затверджено indigo · Виплачено green · Скасовано slate · Призупинено amber · Очікує повернення orange · Повернено pink |
+| Urgency badge | «Термінова»: red palette, icon `flame` (separate badge, not a status) |
+| Bot badge | «З бота»: blue outline, icon `bot` (separate badge, not a status) |
+| Source label | LinkedIn / Djinni / Telegram / Рекомендація / Інше: neutral text + small icon (not a coloured badge) |
+| Event pending | «Очікує перенесення»: red-soft pill (`#FEF2F2` / `#B91C1C`) as in `06-calendar.webp` |
 
 ## 2. Typography
 
-Font: **Inter** via `next/font` (subsets `latin`, `cyrillic`, `display: swap`, size-adjusted fallback → no CLS). Numbers: `font-variant-numeric: tabular-nums` in tables, KPIs, money, dates.
+**Font: Inter for everything** (Google Fonts, OFL, full Cyrillic incl. ґ є і ї). Loaded via `next/font/google` as a variable font, `subsets: ['latin','cyrillic']`, `display: 'swap'`, with a size-adjusted fallback so there is no CLS.
+- The mockup's «Zakon-style» heading face is a bold grotesque. Inter 700 with tight tracking matches the mockups, and one variable file keeps the JS/CSS budget and avoids a second font request. No paid fonts.
+- If the owner wants more heading character later, **Manrope** is the fallback option (free, Cyrillic). It is not adopted.
+- Numbers: `tabular-nums` in tables, KPIs, money, dates, times.
 
-| Token | Size / line | Weight | Use |
-|---|---|---|---|
-| `text-xs` | 12 / 16 | 500 | chips, captions, timestamps |
-| `text-sm` | 13 / 18 | 400 | dense tables, kanban card secondary |
-| `text-base` | 14 / 20 | 400 | body (desktop) |
-| `text-md` | 16 / 24 | 400 | body + **all inputs on mobile** (prevents iOS zoom) |
-| `text-lg` | 18 / 26 | 600 | section titles |
-| `text-xl` | 20 / 28 | 600 | card titles (candidate/vacancy name) |
-| `text-2xl` | 24 / 32 | 600 | page titles |
-| `text-3xl` | 30 / 36 | 600 | KPI numbers |
+| Token | Size / line | Weight | Tracking | Use |
+|---|---|---|---|---|
+| `display-3xl` | 48 / 56 | 700 | −0.02em | Login brand screen only |
+| `display-2xl` | 32 / 40 | 700 | −0.02em | Candidate name in card header (desktop) |
+| `display-xl` | 24 / 32 | 700 | −0.01em | Page titles («Головна», «Вакансії»), KPI values, candidate name (mobile) |
+| `heading-lg` | 20 / 28 | 600 | −0.01em | Section/card titles («Мої задачі», «Історія взаємодій», «Наступна подія»), dialog/sheet titles, mobile page titles |
+| `text-base` | 16 / 24 | 400 / 500 | 0 | Long text (comments, notes, descriptions), mobile body, **all inputs on mobile** (no iOS zoom) |
+| `text-sm` | 14 / 20 | 400 / 500 / 600 | 0 | Default desktop UI: tables, cards, nav, buttons, inputs, filters, tabs |
+| `text-xs` | 12 / 16 | 400 / 500 | 0 | Chips, captions, timestamps, filter labels, table headers, KPI footnotes |
 
-Ukrainian text rules: labels ~25–35 % longer than English — size containers for Ukrainian, not English. Chips/tabs/nav: `whitespace-nowrap` + `max-w` + ellipsis + `title`/tooltip. Long tokens (emails, URLs, Telegram) `overflow-wrap:anywhere`. `lang="uk"` on `<html>`; paragraphs `hyphens:auto`. Screenshot review checks: «Випробувальний термін», «Співбесіда з тімлідом», «Невідповідність зарплатних очікувань» at 390 px.
+Ukrainian text rules: labels run ~25–35 % longer than English. Chips, tabs and nav use `whitespace-nowrap` + `max-w` + ellipsis + tooltip. Emails and URLs use `overflow-wrap:anywhere`. Set `lang="uk"` and `hyphens:auto` on paragraphs. No uppercase labels. Apostrophe is `ʼ`. Test strings at 390 px: «Випробувальний термін», «Співбесіда з тімлідом», «Невідповідність зарплатних очікувань».
 
-## 3. Spacing, sizing, radius, elevation, motion
+## 3. Space, radius, border, shadow, grid, size
 
 | Token | Values |
 |---|---|
-| Spacing (4 px grid) | 0.5=2 · 1=4 · 1.5=6 · 2=8 · 3=12 · 4=16 · 5=20 · 6=24 · 8=32 · 10=40 · 12=48 |
-| Layout | sidebar 232 (collapsed 56) · topbar 52 · page padding 24 desktop / 16 mobile · section gap 24 · card padding 12–16 |
-| Density | table row 36 (desktop) / 48 (mobile) · kanban card min-h 88, w 220–260, gap 8 · column w 272 |
-| Hit targets | ≥ 32 desktop, ≥ 44 touch; mobile sticky action bar buttons 48 |
-| Radius | `sm` 4 chips · `md` 6 buttons/inputs · `lg` 8 cards/dialogs · `xl` 12 bottom-sheet top · `full` avatars/dots |
-| Elevation | `0` borders only (default) · `1` popover/dropdown `0 4px 12px rgb(15 23 42 / .08)` · `2` dialog `0 12px 32px rgb(15 23 42 / .16)`; dark mode: no shadows, use `--surface` step + border |
-| Z-index | sticky 10 · header 20 · dropdown 30 · sheet/dialog 40 · toast 50 · command 60 |
-| Motion | 120 ms (hover/press) · 160 ms (popover, card move) · 200 ms (sheet); `ease-out`; `prefers-reduced-motion` → 0; disabled in screenshot mode |
+| Spacing (4 px scale) | 4 · 8 · 12 · 16 · 20 · 24 · 32 · 40 · 48 (`1,2,3,4,5,6,8,10,12`); 2 px allowed only for hairline offsets |
+| Radius | `xs` 2 · `sm` 4 · `md` 8 · `lg` 12 · `xl` 16 · `2xl` 24 · `full` |
+| Border | 1 px default (`--border`) · 2 px emphasis (selected card, drop target, current step ring) · 1 px dashed (Чернетка, empty drop zone, «+ Додати тег», «+ Додати фільтр») |
+| Shadow `sm` | `0 1px 2px 0 rgb(0 0 0 / .05)` — cards, KPI cards, table container, kanban cards |
+| Shadow `md` | `0 4px 12px 0 rgb(0 0 0 / .08)` — dropdowns, popovers, tooltips, hovered kanban card |
+| Shadow `lg` | `0 10px 32px 0 rgb(0 0 0 / .12)` — dialogs, drawers, bottom sheets, dragged card, toasts |
+| Dark shadows | same offsets with `rgb(0 0 0 / .30 / .40 / .50)` + 1 px `--border` on every surface |
+| Grid | 12 columns, 24 px gutter, fluid; content padding 24 desktop / 16 mobile |
 | Breakpoints | sm 640 · md 768 · lg 1024 · xl 1280 · 2xl 1440 |
-| Focus | `outline: 2px solid var(--ring); outline-offset: 2px` on `:focus-visible` — never removed |
+| Z-index | sticky 10 · header 20 · dropdown 30 · drawer/dialog 40 · toast 50 · command 60 |
+| Motion | 120 ms hover/press · 160 ms popover/card move · 200 ms drawer/sheet; ease-out; `prefers-reduced-motion` → 0; off in screenshot mode |
+| Focus | `outline: 2px solid var(--ring); outline-offset: 2px` on `:focus-visible`, never removed |
 
-## 4. shadcn/ui components used
+**Radius by component**
 
-| Component | Used for |
+| Radius | Components |
 |---|---|
-| Button, Badge, Avatar, Separator, Skeleton | everywhere |
-| Input, Textarea, Label, Form (react-hook-form + Zod), Checkbox, RadioGroup, Switch, Select, ToggleGroup | forms, filters, result toggles |
-| Command + Popover (Combobox) | searchable selects (vacancy, TL, position), Ctrl K global search |
-| Dialog, AlertDialog | required-data dialogs; **AlertDialog for every destructive action** |
-| Drawer (vaul) / Sheet | mobile bottom sheets; side panel quick view |
-| DropdownMenu, ContextMenu | `⋯` menus, «Перемістити до…» |
-| Tooltip, HoverCard | disabled-reason tooltips, user hover cards |
-| Tabs | card tabs, statistics, archive |
-| Table (+ TanStack Table / Virtual) | lists, reports |
-| Calendar + Popover (DatePicker), time select | scheduling (uk locale, week starts Monday) |
-| Progress | upload progress (ProbationProgress is custom) |
-| Breadcrumb, ScrollArea, Collapsible, Accordion | navigation, kanban columns, settings |
-| Sonner (Toast) | optimistic feedback, rollback errors |
-| Alert | banners (read-only vertical, routed, delivery failed) |
+| 2 | Progress bars, ProbationProgress track, now-line pill inner |
+| 4 | Checkbox, kbd hint «Ctrl + K», FunnelMini bars |
+| 8 | Small buttons (h 32), icon buttons, tooltips, dropdown items, segmented-toggle items, calendar event blocks, pagination buttons |
+| 12 | Buttons (h 40/48), inputs, selects, search, textarea, dropdown/popover panels, toasts, nav items, kanban cards, task rows, info-strip cells |
+| 16 | Cards, KPI cards, panels, table container, kanban columns, drawers, dialogs, preview panels |
+| 24 | Bottom sheet top corners, mobile full-width cards |
+| full | Stage/status chips, badges, filter chips, avatars, switches, count pills, FAB, status dots |
+
+**Layout sizes**
+
+| Element | Size |
+|---|---|
+| Sidebar | 240 expanded / 72 icon rail (toggled by ☰ in top bar, remembered per user); logo row 64; nav item h 40, gap 4; «Налаштування» pinned bottom |
+| Top bar | h 64, `--surface`, bottom border |
+| Right panels | Vacancy preview 360 · candidate drawer 400 · calendar details 360 · candidate-card right column 320 |
+| Buttons | sm 32 · md 40 · lg 48 (mobile sticky / sheets) |
+| Inputs | 40 desktop · 44 mobile |
+| Table row | 56 (two-line: name + level, avatars) · compact 40 |
+| Kanban | column 272, card min-h 112, gap 8 |
+| KPI card | min-h 120, padding 20, icon tile 40 (radius 12, accent at 12 % bg) |
+| Hit targets | ≥ 32 desktop, ≥ 44 touch |
+| Mobile | bottom nav 64 + safe area; top bar 56 |
+
+## 4. Components (from `01-components.webp`) → shadcn/ui primitives
+
+| Library element | Variants in mockup | shadcn / implementation |
+|---|---|---|
+| Buttons | Primary (filled `--primary`, icon left) · Secondary (soft `--primary-subtle` bg + `--link` text) · Outline (surface + `--border`, foreground text) · Destructive (soft: `--destructive-subtle` + `--error-text`; filled `--destructive` in confirm dialogs) · Disabled (`--surface-muted` bg, `#94A3B8` text, exempt from contrast, wrapped in DisabledReason) · Icon button (32/40 square, radius 8) | `Button` with variants `default/secondary/outline/destructive/destructive-soft/ghost/icon` |
+| Text field | label above, placeholder `--muted-foreground` | `Input` + `Label` + `Form` |
+| Search | leading `search` icon, trailing kbd «Ctrl + K» (`--surface-muted`, radius 4); opens command palette | `Command` in `Dialog` (S-17) |
+| Select | «Оберіть опцію ▾» | `Select`; searchable → `Popover` + `Command` |
+| Textarea with counter | «0/500» bottom-right, turns `--error-text` over the limit | `Textarea` + counter (`aria-describedby`) |
+| Checkbox / Radio / Switch | checked = `--primary` | `Checkbox`, `RadioGroup`, `Switch` |
+| Tabs | segmented pill (active = surface + `--link` text + border) for in-card tabs; underline tabs for page-level tabs (candidate card, statistics) | `Tabs` (two styles) |
+| Pagination | ‹ 1 2 3 … 12 › (active = `--primary-subtle` + 2 px `--brand` border) | custom on `Button`; see A-21 for cursor adaptation |
+| Tooltip | dark `#0F172A` bg, white text, radius 8 | `Tooltip` |
+| Dropdown menu | trigger «Дії ▾»; items with icons; destructive item red, separated | `DropdownMenu` |
+| Avatars | photo · initials (on `--primary-subtle`, `--link` text) · «+» add · stacked «+2» | `Avatar` + `CandidateAvatar` / `UserAvatar` |
+| Badges | stage chips, «Рекомендація» (source), counts | `Badge` + StageChip |
+| Toasts | success / info / warning / error: icon in tinted circle, title + one line, close × | `Sonner` |
+| Empty state | icon in tinted circle, title, one line, primary action | `EmptyState` |
+| Error state | `circle-x` in red-soft circle, title «Не вдалося завантажити дані», hint, «Спробувати ще раз» (secondary) | `SectionError` |
+| Skeleton | avatar circle + 2 lines rows, same boxes as final, no shimmer | `Skeleton` |
+| Sidebar (light/dark) | logo, items with icons, active = `--primary-subtle` + `--link`; «Налаштування» bottom | `AppSidebar` (custom on `ScrollArea`) |
+| Top bar (light/dark) | ☰ · vertical selector · search · bell with red dot · theme toggle · avatar | `TopBar` |
+| Filters row | labelled selects + date range + «⚙» more filters | `FilterBar` |
+| Filter chips | «Гемблінг ×», dashed «+ Додати фільтр» | `FilterChip` (Badge + button) |
+| Stage chips | §1.5 | `StageChip` |
+| Candidate card | avatar, name, role, ⋯, contacts/location, date-time, StageChip | `CandidateKanbanCard` / `CandidateSummaryCard` |
+| Vacancy card | icon tile, title, ⋯, vertical · format, «N кандидатів», status chip | `VacancyCard` |
+| KPI card | label, value `display-xl`, delta (arrow + %, semantic colour), footnote, icon tile or mini bars | `KpiCard` |
+| Table row | checkbox, avatar + name + subtitle, StageChip, date, ⋯ | TanStack Table row |
+| Bonus badge | gift icon tile + amount + caption | `BonusBadge` (`summary` variant) |
+| Mini funnel | vertical bars in stage colours + count + label | `FunnelMini` (`bars` variant) |
+| Event timeline | dot + line, title, date-time | `Timeline` (`compact` variant) |
+| Mobile bottom nav (light/dark) | icon + label, active = `--link` | `BottomNav` |
+| Bottom sheet | handle, avatar + name, title, hint, two big buttons (Прийняти / Відхилити) | `Drawer` (vaul) → `RequiredDataDialog` on mobile |
+
+Also used (no mockup frame, unchanged): `Dialog`, `AlertDialog` (every destructive action), `Sheet` (right drawers), `Calendar`+`Popover` (date picker, uk locale, Monday first), `Breadcrumb`, `ScrollArea`, `Collapsible`, `Accordion`, `Progress`, `Alert` (banners), `HoverCard`, `ToggleGroup`.
 
 ## 5. Custom components
 
-| Component | Props (key) | Behaviour / a11y |
+| Component | Key props | Behaviour / a11y |
 |---|---|---|
-| **StageChip** | `stage`, `size: sm\|md`, `detail?` (e.g. «47 дн.»), `routed?` | Tinted chip + icon + label (§1.2). `routed` → label «Передано далі». Tooltip with full stage name when abbreviated. `aria-label="Етап: Співбесіда з тімлідом"`. |
-| **ProbationProgress** | `startDate`, `endDate`, `today` (server), `earlyCloseFrom`, `variant: compact\|full` | Bar + «День 35 з 90 · залишилось 55 дн.»; tick mark at day 30 labelled «30 дн.»; ≤ 14 days left → warning colour; overdue → destructive «Прострочено на 3 дн.». `role="progressbar"` with `aria-valuenow/max`, `aria-valuetext` in Ukrainian. Days computed server-side (Europe/Kyiv). |
-| **Timeline** (Stepper + EventFeed) | `steps[]` (state, date, actor, facts), `events` (cursor), `filters` | Stepper: `<ol>` with `aria-current="step"`; steps are buttons that filter feed. Horizontal ≥ lg, vertical on mobile (collapsed to current ±1). Feed: grouped by month, virtualized, field changes «старе → нове», actor avatar, «Система» for automatic events, filter chips (Етапи, Поля, Файли, Коментарі, Перенесення, Бонуси) + author filter. Append-only: no edit/delete affordances on events. |
-| **FunnelMini** | `counts` per stage, `onSegmentClick?` | Compact bar (h 6) or sparkline-like stacked segments in stage colours + total; each segment a button with `aria-label="Поліграф: 2"`; non-interactive for Finance. Text fallback list on hover/focus. |
-| **BonusBadge** | `status`, `amount`, `currency`, `expectedDate?`, `snapshotInfo?` | Status chip + money (tabular). Tooltip: snapshot date, scheme, rate, multiplier. Expected date moved earlier → old date struck-through. |
-| **MeetLinkInput** | `value`, `onChange`, `required` | `inputmode="url"`, paste-normalises whitespace (query handling ⚠ OPEN-F5); live validation against `^https://meet\.google\.com/[a-z]{3}-[a-z]{4}-[a-z]{3}$`; error «Вставте посилання у форматі https://meet.google.com/abc-defg-hij»; valid → check icon + «Відкрити ↗» button (test link). Shared Zod schema with API. |
-| **PriorityBadge** | `kind: tl\|urgency`, `value` | `tl`: neutral outline «П0» with tooltip «Пріоритет тімліда: 0 (найвищий)»; override → «П0*» tooltip «Пріоритет для цієї вакансії». `urgency`: «Термінова» red with `flame` icon; Normal renders nothing. |
-| **BotBadge** «З бота» | — | Shown when `source = TELEGRAM_BOT` on vacancy (and candidate if applicable); sky outline + `bot` icon; tooltip «Створено через Telegram-бота». |
-| **VacancyStatusChip** | `status`, `editable` | Static chip or dropdown (only allowed transitions). |
-| **DisabledReason** | `reason`, children | Wraps a disabled control: tooltip on desktop (trigger on focusable wrapper since disabled buttons don't fire events), visible helper text under control on touch / `pointer: coarse`. `aria-describedby` links reason. |
-| **MoveToMenu** | `allowedTransitions` | Keyboard DnD alternative; lists allowed targets + disabled ones with reason; opens required-data dialog. Shortcut `m`. |
-| **KanbanBoard / Column / Card** | `columns`, `cards`, `onMove` | dnd-kit with keyboard sensor + Ukrainian screen-reader announcements; virtualized columns; optimistic placement + rollback animation. |
-| **RequiredDataDialog** | `transition` | Generic shell mapping transition → form schema (Meet, polygraph, offer…); Dialog on desktop, Drawer on mobile. |
-| **SlotPicker** | `min=1`, `max=3` | Reschedule slots: date + time rows, add/remove, validates future & distinct. |
-| **FileDropzone** | `accept`, `maxSize` | Direct signed-URL upload with progress; errors «Потрібен PDF-файл до 15 МБ». |
-| **MoneyAmount / DateTime / RelativeTime** | — | uk-UA formatting, Europe/Kyiv; `<time datetime>`. |
-| **EmptyState / SectionError** | `icon`, `title`, `action?` / `onRetry` | Standard empty and per-section error blocks. |
-| **FilterBar + SavedFilters** | URL-synced | Chips for active filters; «Скинути»; saved filters as pills. |
+| **AppSidebar** | `items` (role-filtered), `collapsed` | Brand row «H Hiring»; items Головна · Вакансії · Кандидати · Календар · Статистика · Архів; «Налаштування» (Admin) pinned bottom; collapsed = icons + tooltips; `nav aria-label="Основна навігація"`, `aria-current="page"` |
+| **TopBar** | — | ☰ (`aria-expanded`), VerticalSwitcher, search trigger, bell, ThemeToggle, UserMenu. Finance: only ThemeToggle + UserMenu |
+| **VerticalSwitcher** | `verticals` | «Усі мої вертикалі ▾» + each vertical; hidden when user has one vertical |
+| **ThemeToggle** | — | Світла / Темна / Системна (same setting as Профіль) |
+| **UserMenu** | — | Avatar + name + **role · vertical** (not job title); Профіль, Вийти |
+| **KpiCard** | `label`, `value`, `delta`, `deltaMeaning: good\|bad\|neutral`, `footnote`, `icon`, `href?` | Delta = arrow + signed % + colour by meaning; `href` → drill-down (not for Finance) |
+| **TaskList** | `tasks`, `tab` | Tabs Усі / Сьогодні / Прострочені / Без дати (manual tasks Phase 5). System task = stage-coloured icon, resolves when the action is done (no checkbox). Manual task = checkbox. Overdue time in `--error-text` |
+| **VacancyCard** | `vacancy` | Icon tile, title, vertical chip, format, «N кандидатів», «N на співбесіді», VacancyStatusChip, urgency/bot badges, «N дн.» |
+| **VacancyPreviewPanel** | `vacancyId` | Right panel 360 on the Vacancies list: header + status, tags, tabs Огляд / Кандидати / Історія, team, recruiter reward (BONUS-16 visibility), FunnelMini bars, details, recent activity |
+| **CandidateAvatar** | `photoUrl?`, `name`, `size` | Optional photo (signed URL) with initials fallback (`--primary-subtle` + `--link`); `alt` = name |
+| **CandidateKanbanCard** | `application` | Avatar, name, current role, ⋯; source label; StageChip-detail or probation days; owner avatar; last activity |
+| **CandidateDrawer** | `candidateId` | Right Sheet 400 from kanban/table: header, tabs Інформація / Історія / Файли; contacts (role-gated), current vacancy, «Етап у воронці» = MoveToMenu trigger, owner, TL, next event, tags; footer «Перейти до профілю» / «Редагувати» |
+| **CandidateHeader** | `candidate` | Photo 96, name `display-2xl`, current role, person status (Активний / Резерв), contacts row (role-gated); actions ⋯, «Поділитися», «Перемістити до… ▾» |
+| **InfoStrip** | cells | Bordered row of cells: Вакансія · Джерело · Відповідальний · Зарплатні очікування · Теги |
+| **NextEventCard** | `event` | «Наступна подія» + status chip, type, date, time, Meet link «Приєднатися», participants, «Додати в календар» (.ics, A-19) |
+| **PrivateNotes** | `candidateId` | Author-only notes (Phase 3): yellow-soft note (`#FEF9C3` / `#713F12`, 7.6:1), author + date; caption «Бачите лише ви» |
+| **ShareLinkButton** | `url` | «Поділитися» → copies card URL; toast «Посилання скопійовано»; no-access users get 404 |
+| **StageChip** | `stage`, `size: sm\|md`, `detail?`, `routed?` | §1.5; `aria-label="Етап: Співбесіда з тімлідом"` |
+| **ProbationProgress** | `startDate`, `endDate`, `today`, `variant` | «День 35 з 90 · залишилось 55 дн.»; tick at day 30; ≤ 14 days → warning; overdue → error; `role="progressbar"` + Ukrainian `aria-valuetext` |
+| **Timeline** (Stepper + EventFeed) | `steps`, `events` | Stepper per §1.5 with date + actor per step; feed «Історія взаємодій»: left date column, icon tile per event type, title, body, actor, row ⋯ (copy link only — append-only, no edit/delete) |
+| **FunnelMini** | `counts`, `variant: bar\|bars` | `bar` (table cell): stacked segments; `bars` (panels): vertical bars + count + label; each segment a button with `aria-label="Поліграф: 2"`; static for Finance |
+| **FunnelChart** | `rows` | Statistics funnel: horizontal bars in stage colours, count, % of first row |
+| **BonusBadge** | `status`, `amount`, `currency` / `variant: summary` | Status chip + money; summary = gift tile + amount + caption |
+| **MeetLinkInput** | `value`, `required` | Validates `^https://meet\.google\.com/[a-z]{3}-[a-z]{4}-[a-z]{3}$`; valid → check + «Відкрити ↗» |
+| **PriorityBadge** | `kind: tl\|urgency` | «П0», «П0*»; «Термінова» + `flame` |
+| **BotBadge** «З бота» | — | Blue outline + `bot`; tooltip «Створено через Telegram-бота» |
+| **VacancyStatusChip** | `status`, `editable` | 5 statuses; dropdown only with allowed transitions |
+| **DisabledReason** | `reason` | Tooltip on desktop; visible helper text on touch |
+| **MoveToMenu** | `allowedTransitions` | «Перемістити до…» (button, drawer select, key `m`); disabled targets show the reason; opens RequiredDataDialog |
+| **KanbanBoard / Column / Card** | `columns`, `cards`, `onMove` | dnd-kit + keyboard sensor + Ukrainian announcements; virtualized columns; optimistic + rollback |
+| **CalendarWeek / EventBlock / EventDetailsPanel** | `range`, `events` | Hours 08–20, 5-day default + «Показати вихідні»; now-line; block per §1.5; details panel 360 with «Перенести» / «Внести результат» per role |
+| **BottomNav** | `items` | 5 items: Головна · Вакансії · Кандидати · Календар · Ще; active = `--link`; hidden for Finance |
+| **RequiredDataDialog** | `transition` | Dialog on desktop, bottom sheet on mobile |
+| **SlotPicker**, **FileDropzone**, **MoneyAmount / DateTime / RelativeTime**, **EmptyState / SectionError**, **FilterBar + SavedFilters** | — | Unchanged from Phase 0 spec (uk-UA formats, Europe/Kyiv) |
 
 ## 6. States & speed patterns
-- Skeletons: same box sizes as final content, no shimmer animation (stable screenshots), delay 150 ms.
-- Optimistic: card moves instantly, shows subtle «Зберігаємо…» dot until server ack; on failure card animates back + toast.
-- Button press feedback: pressed state on `pointerdown` (< 16 ms); spinner only after 150 ms.
-- Prefetch on hover/viewport for cards and nav links.
+- Skeletons copy the final boxes (KPI row, table rows, kanban cards) without shimmer and appear after 150 ms.
+- Optimistic moves: the card moves instantly with a subtle «Зберігаємо…» dot. On failure it animates back and a toast shows «Зміну не збережено — повернули як було.»
+- Button press feedback on `pointerdown` in under 16 ms; a spinner only after 150 ms.
+- Prefetch nav links and cards on hover/viewport.
 
 ## 7. Accessibility checklist (component DoD)
-Labels on every input (no placeholder-only) · errors linked via `aria-describedby` · focus trap + return focus in dialogs · `Esc` closes · visible focus · AA contrast in both themes · keyboard alternative for DnD · `prefers-reduced-motion` · touch targets ≥ 44 · Ukrainian `aria-label`s from `messages/uk.json`.
+- Every input has a label; never placeholder-only.
+- Errors linked via `aria-describedby`.
+- Dialogs: focus trap, return focus on close, `Esc` closes.
+- Focus is always visible.
+- AA contrast per §1.3 in both themes.
+- Keyboard alternative for every drag and drop.
+- `prefers-reduced-motion` respected.
+- Touch targets ≥ 44.
+- `aria-label`s in Ukrainian, from `messages/uk.json`.

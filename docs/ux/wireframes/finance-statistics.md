@@ -1,12 +1,12 @@
 # Wireframe — Статистика для фінансиста (finance@demo) [STAT-01..08, BONUS-13, D12]
 
-Finance sees **only** Статистика: single nav item, no search, no bell ⚠ OPEN-S2, no dashboard. Every number is plain text (no drill-down links into candidates/vacancies). All other routes → redirect `/statistics`; object URLs → 404.
+Visual style and Огляд layout = `statistics.md` (`reference/07-statistics.webp`); shell per `app-shell.md` with brand «Hiring». Finance sees **only** Статистика: single nav item, no search, no bell (D41), no dashboard. Every number is plain text (no drill-down links into candidates/vacancies). All other routes → redirect `/statistics`; object URLs → 404.
 
 ## Desktop 1440 — Огляд
 
 ```
 ┌──────────────┬────────────────────────────────────────────────────────────────────────────────────┐
-│ HRIS         │ Статистика  [Лише перегляд]                                           (ФН ▾)      │
+│ [H] Hiring   │ Статистика  [Лише перегляд]                                           (ФН ▾)      │
 │ ▣ Статистика │ [Огляд] [Воронка] [Час] [Джерела] [Тімліди] [Рекрутери] [Бонуси] [Виплати]         │
 │              │ Період [Жовтень 2026 ▾]  Вертикаль [Усі ▾]  Посада [▾]  Рекрутер [▾]  Тімлід [▾]    │
 │              │                                              Оновлено сьогодні о 06:00 · [Експорт ▾] │

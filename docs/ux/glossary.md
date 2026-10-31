@@ -71,6 +71,8 @@ Role@vertical rendering: «Керівник рекрутингу · Гемблі
 | `WITHDRAWN` | Самовідвід | Кандидат відкликав кандидатуру | — |
 | `PROBATION_FAILED` | Не пройшов ВТ | Випробувальний термін не пройдено | Only place «ВТ» abbreviation allowed (chip width); tooltip gives full text. |
 
+Stepper labels: the mockup stepper uses the **chip labels** (Новий · В роботі · У тімліда · Співбесіда · Поліграф · Офер · Випробування · Найнято), 8 steps. That is ⏳ A-18. If the owner keeps HIST-02 literally, use 7 steps with «Створено» first and «Пройдено» last as in the column above.
+
 Stage-action verbs: «Взяти в роботу», «Передати тімліду», «Призначити співбесіду», «Перемістити до…», «Повернути на попередній етап», «Примусово перемістити» (Admin, PIPE-02).
 
 ## 4. Vacancy statuses & priority
@@ -226,6 +228,35 @@ Stage-action verbs: «Взяти в роботу», «Передати тімл�
 | Percent | 30 % (NBSP) | — |
 | Decimal | comma | ×1,25 |
 | Plurals | ICU `{count, plural, one {# день} few {# дні} many {# днів} other {# дня}}` | — |
+
+## 11. Terms from the designer mockups (`design-adoption.md`)
+
+| Term | UI (uk) | Note |
+|---|---|---|
+| Brand | Hiring | Logo «H» + wordmark; never «HRIS» in UI (A-01) |
+| Screening (short, calendar/chips) | Скринінг | Full form stays «Скринінг-дзвінок» |
+| Join Meet | Приєднатися | Button on interview events (A-44) |
+| Scheduler of an event | Організатор | Participant badge |
+| Next event | Наступна подія | Candidate card right column |
+| Interaction history (feed title) | Історія взаємодій | Tab name stays «Історія» |
+| Private notes | Приватні нотатки | Caption «Бачите лише ви»; button «+ Нотатка» (A-03) |
+| Share link | Поділитися | Toast «Посилання скопійовано» (A-05) |
+| Candidate photo | Фото | Optional; fallback initials (A-04) |
+| Person status | Активний / Резерв | «Активний» = ≥ 1 active application (A-36) |
+| Candidate actions sheet (mobile) | Дії з кандидатом | A-45 |
+| Stage in drawer | Етап у воронці | Trigger of «Перемістити до…» |
+| Add task (manual, Phase 5) | Додати задачу | Tabs «Усі · Сьогодні · Прострочені · Без дати» (A-02) |
+| Saved filters | Збережені фільтри | Button «Зберегти» |
+| View toggle | Канбан / Таблиця · Картки / Канбан | — |
+| KPI: hires (probation started) | Вийшли на роботу | ⏳ A-38; «Найнято» = probation passed only |
+| KPI: time-to-fill | Середній час найму | STAT-03 |
+| KPI: conversion | Конверсія | «+3 в.п.» for percentage points |
+| Recruiter reward | Винагорода рекрутеру | Admin action «Змінити винагороду» (BONUS-16) |
+| Data freshness | Оновлено о 06:00 | — |
+| Reset filters | Скинути фільтри | — |
+| Show weekends | Показати вихідні | Calendar |
+
+**Mockup wording that loses to the glossary:** «Відхилити» (interview result) → «Не пройдено» · «Пройти далі» → «Пройдено» · «Перевести на етап» → «Перемістити до…» · «Активна» (vacancy) → «Відкрита» · «Нові», «У роботі» → «Новий», «В роботі» · «Інтерв'ю» → «Співбесіда» · «Технічна співбесіда» → «Співбесіда з тімлідом» · «Дублювати» → «Клонувати» · «Архівувати» → no such action · «Пріоритет: Високий» → «Термінова» · «Оцінка тімліда» → «Рішення тімліда» · «Фідбек» → «Відгук» · «Усі позиції» → «Усі посади» · «Remote» / «Відділено» → «Віддалено» · «$ 2 000» → «2 000 $». Full table: `design-adoption.md` §3.
 
 ## ⚠ OPEN
 - G-1 Offline behaviour of optimistic moves (queue vs. fail fast) not specified; design assumes fail fast + rollback toast.

@@ -1,6 +1,7 @@
-# Screen inventory (Phase 0)
+# Screen inventory
 
 > PRD refs in brackets. Terms per `docs/ux/glossary.md`. Wireframes in `docs/ux/wireframes/`. Flows in `docs/ux/flows.md`.
+> **Target look:** owner's designer mockups `docs/ux/reference/0X-*.webp` → tokens in `design-system.md`. Mockup elements beyond the PRD are numbered `A-xx` in `design-adoption.md`; ✅ = approved 2026-10-31, ⏳ = pending owner (build the PRD behaviour until approved). Role/permission rules below are unchanged.
 
 ## 0. Global UX rules
 
@@ -13,7 +14,7 @@
 | Empty | Icon + one-line explanation + primary action (if the role has one). |
 | Error | Inline block per section (not whole page) with «Спробувати ще раз». 404 for out-of-scope objects: «Сторінку не знайдено або доступ обмежено.» — identical text for missing and forbidden (no existence leak) [VIS-02]. |
 | Keyboard | Ctrl/Cmd K search; `g d/v/c/k/s/a` go-to; `j/k` list nav; `Enter` open; `m` «Перемістити до…» on focused card; `?` shortcuts help. Every DnD has a menu alternative. |
-| Mobile (390 px) | Bottom tab bar; dialogs become bottom sheets; kanban becomes stage-segmented list; tap targets ≥ 44 px. TL flows are first-class on mobile [UI-05]. |
+| Mobile (390 px) | Top bar (logo «Hiring», search icon, bell, avatar); bottom nav Головна · Вакансії · Кандидати · Календар · Ще; dialogs become bottom sheets; kanban becomes a stage list with counts; card actions via sticky «Дії з кандидатом» sheet; tap targets ≥ 44 px. TL flows are first-class on mobile [UI-05]. |
 | Realtime | Board/card receives change feed → silent refresh; if the open dialog's object changed stage → banner «Картку оновлено іншим користувачем». |
 | Read-only vertical | Deactivated vertical: banner «Вертикаль деактивована — лише перегляд»; all mutating actions hidden [ROLE-03]. |
 
@@ -30,9 +31,19 @@
 | Налаштування | ✓ | — | — | — | — | — | — |
 | Bell (Сповіщення), Search, Profile | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | Profile only (no search — nothing searchable) ⚠ OPEN-S2 |
 
-- Mobile bottom bar: Головна · Кандидати · Календар · Ще (Вакансії, Статистика, Архів, Налаштування). Finance: no bottom bar.
+- Mobile bottom nav (5 items, A-46): Головна · Вакансії · Кандидати · Календар · Ще (Статистика, Архів, Налаштування, Профіль). «Ще» shows active when the current section lives in it. Items the role lacks are dropped. Finance: no bottom nav.
 - Finance opening any non-statistics route → redirect to `/statistics` (section-level), object URLs → 404.
 - Multi-role user (ROLE-02): one merged UI; nav = union; each object's actions = union of the user's roles **in that object's vertical**. Header vertical filter defaults to «Усі мої вертикалі».
+
+### 1.1 App shell (all mockups; wireframe `wireframes/app-shell.md`)
+
+| Zone | Content |
+|---|---|
+| Sidebar (240 / rail 72) | Logo tile «H» + «Hiring» (A-01) · Головна · Вакансії · Кандидати · Календар · Статистика · Архів · spacer · **Налаштування pinned bottom** (Admin). Active item = indigo-soft bg + primary text/icon. Unbuilt sections hidden (D28) |
+| Top bar (64) | ☰ sidebar toggle · vertical selector «Усі мої вертикалі ▾» (hidden with one vertical) · search «Пошук кандидатів і вакансій… Ctrl + K» · bell with unread dot · theme toggle (A-34) · avatar + name + **role · vertical** (A-15) ▾ |
+| Page header | Title (`display-xl`) + one-line subtitle (muted) left; primary action (and ⋯) right |
+| Finance | Sidebar: Статистика only; top bar: theme toggle + avatar only (no vertical selector, search, bell — D41) |
+| Mobile | Top bar 56: logo + page title below; search icon, bell, avatar; bottom nav (§1) |
 
 ## 2. Screen list
 
@@ -44,7 +55,7 @@
 | S-04 | Вакансії — список | `/vacancies` | Admin, HRec, Rec, HHR, HR, TL | 2 |
 | S-05 | Вакансія — створення/редагування | `/vacancies/new`, `/vacancies/[id]/edit` | Admin, HRec, Rec, TL | 2 |
 | S-06 | Картка вакансії | `/vacancies/[id]` | as S-04 | 2 |
-| S-07 | Кандидати — список | `/candidates` | Admin, HRec, Rec, HHR, HR, TL | 2 |
+| S-07 | Кандидати — канбан / таблиця | `/candidates?view=board\|table` | Admin, HRec, Rec, HHR, HR, TL | 2 |
 | S-08 | Кандидат — створення/редагування | `/candidates/new` | Admin, HRec, Rec | 2 |
 | S-09 | Картка кандидата | `/candidates/[id]` (`?app=` selects application) | as S-07 | 2–3 |
 | S-10 | Календар | `/calendar` | all except Finance | 3 |
@@ -66,7 +77,10 @@
 
 ### S-03 Головна [UI-01, UI-02, PROB-07]
 - **Purpose:** what needs me now + the state of my vacancies/candidates.
-- **Layout:** Мої задачі (left column / top on mobile) · Вакансії (cards grid or kanban by status, toggle) · Кандидати (kanban by stage). Tabs on mobile: «Задачі · Вакансії · Кандидати». See `wireframes/dashboard.md`.
+- **Layout (`02-dashboard.webp`):** header «Головна» + subtitle, saved-filter chips + «Зберегти» top-right → filter bar of labelled selects → **KPI row** (5 cards, ✅ A-06, Phase 4) → two cards side by side: **Мої задачі** (left, ~5/12) and **Вакансії** (right, ~7/12, 2×2 VacancyCards, toggle «Картки / Канбан» A-29, «Створити вакансію») → full-width **Кандидати** kanban card («Переглянути всіх» → /candidates). See `wireframes/dashboard.md`.
+- **Mobile:** title, KPI tiles in a horizontal scroll row (4 visible), Мої задачі with «+» (Phase 5) and tabs, then Вакансії and Кандидати sections stacked.
+- **KPI row (scoped to viewer):** Кандидати · Відкриті вакансії · На співбесідах · Вийшли на роботу / Найнято (⏳ A-38) · Середній час найму; each with delta + footnote; click → filtered list (not Finance).
+- **Мої задачі:** system tasks (stage icon, title, candidate · vacancy · vertical, due time, avatar), resolving when the action is done. Phase 5 adds manual tasks with checkbox, «Додати задачу» and tabs Усі / Сьогодні / Прострочені / Без дати (✅ A-02).
 - **Filters (shared bar):** вертикаль, рекрутер, тімлід, посада, етап, пріоритет (Звичайна/Термінова), період; «Зберегти фільтр»; saved filters as chips. URL-synced.
 - **My tasks per role:**
 
@@ -83,7 +97,8 @@
 - **States:** empty tasks «Усе зроблено. Нових задач немає.»; empty board per role (Rec: «Додайте першого кандидата» + button; TL: «Поки що немає кандидатів на ваші вакансії»); skeleton = 3 task rows + 6 vacancy cards + 7 columns×3 cards; section-level errors.
 
 ### S-04 Вакансії — список [VAC-01..04, D1]
-- **Data (table, virtualized):** назва, посада, вертикаль, тімлід (+PriorityBadge), статус, Термінова, «З бота», рекрутери (avatars), FunnelMini, найнято N з M, відкрита N дн., остання активність.
+- **Layout (`03-vacancies.webp`, wireframe `wireframes/vacancies-list.md`):** header + «Створити вакансію» → filter bar (Вертикаль, Статус, Тімлід, Рекрутер, Період, Пріоритет) → status chips with counts (Усі · Відкриті · Чернетки · Призупинені · Заповнені · Скасовані, A-14) → **table (8/12) + right preview panel (360)** for the selected row (Огляд / Кандидати / Історія, A-30). Footer: «Показано 1–25 з N» + ‹ › cursor + page size (A-21). Row click selects the row and fills the panel; Enter / double-click / title link opens S-06. Mobile: card list + sticky «Створити вакансію»; no panel.
+- **Data (table):** checkbox (bulk, Admin/HRec), назва + рівень, вертикаль chip, тімлід (avatar + PriorityBadge tooltip), рекрутери (avatars +N), статус (VAC-02 only) + «Термінова» / «З бота» badges after the title, FunnelMini bar, найнято N з M, відкрита N дн., остання активність, ⋯.
 - **Actions:** «Нова вакансія» (Admin/HRec/Rec/TL); row menu: Відкрити, Клонувати (Admin/HRec), Призупинити/Відновити (⚠ OPEN-S7 who changes status), Видалити (Admin/HRec; Rec — not in matrix for vacancies ⚠ OPEN-S8).
 - **Filters:** статус (default Відкрита + Призупинена), вертикаль, тімлід, посада, рекрутер, «Без рекрутера», пріоритет, джерело.
 - **Role diff:** Rec sees assigned + unassigned open in vertical, unassigned rows show «Взяти в роботу» ⚠ OPEN-S9 (self-assign not explicit); TL sees own only, column «Тімлід» hidden; HHR/HR read-only, no create.
@@ -95,12 +110,13 @@
 - **Validation:** probation 1–90; salary min ≤ max; inline errors in Ukrainian.
 
 ### S-06 Картка вакансії [VAC-04, VAC-05, PROB-07, ARCH-03]
-- See `wireframes/vacancy-card.md`. Header, recruiters, FunnelMini, candidates (mini-board/list), Історія.
+- See `wireframes/vacancy-card.md`. Same building blocks as the S-04 preview panel, full width: header, team (TL + recruiters), «Винагорода рекрутеру» (A-32), FunnelMini bars, candidates (mini-board/list), details, Історія.
 - **Actions:** Редагувати, Призупинити/Відкрити, Скасувати вакансію, Відкрити знову (HRec, FILLED), Клонувати, Видалити (dialog ARCH-03), «Додати кандидата», «Запропонувати з резерву».
 - **Role diff:** HHR/HR read-only, candidate list filtered to Polygraph+; TL — no edit of recruiters/bonus; salary per matrix.
 
-### S-07 Кандидати — список [CAND-01, CAND-03]
-- **Data (virtualized):** ПІБ, поточна посада/компанія, активні кандидатури (StageChip + vacancy), відповідальний, джерело, теги, остання активність, «Резерв» badge if no active application.
+### S-07 Кандидати — канбан / таблиця [CAND-01, CAND-03, UI-01]
+- **Layout (`05-candidates-kanban.webp`, wireframe `wireframes/candidates-kanban.md`):** header + «Додати кандидата» + ⋯ → view toggle **Канбан | Таблиця** (remembered) → filter bar (Етап, Вакансія, Посада, Вертикаль, Відповідальний, Джерело, Теги, switch «Резерв») → board: 8 columns Новий…Найнято in one scrollable row (A-27), role-scoped like S-03; card click opens the **side drawer** (400, CandidateDrawer); «Перейти до профілю» opens S-09. Mobile: stage list with counts → tap = cards of that stage.
+- **Table data (virtualized):** ПІБ, поточна посада/компанія, активні кандидатури (StageChip + vacancy), відповідальний, джерело, теги, остання активність, «Резерв» badge if no active application.
 - **Filters:** етап, вакансія, посада, вертикаль, відповідальний, джерело, теги, «Лише резерв», період.
 - **Actions:** «Новий кандидат» (Admin/HRec/Rec), bulk (HRec): Перепризначити.
 - **Role diff:** HHR/HR list limited to Polygraph+; TL — submitted to them; contact fields (phone/email) visibility ⚠ OPEN-S10.
@@ -112,16 +128,19 @@
 - **After save:** «Додати до вакансії / Подати на посаду / Залишити в резерві».
 
 ### S-09 Картка кандидата [CAND-04, HIST-01..03, PIPE, BONUS-14]
-- See `wireframes/candidate-card.md`. Header + application switcher, Timeline stepper, stage action panel, tabs: Історія · Профіль · Резюме · Файли · Коментарі · Бонус.
+- **Layout (`04-candidate-card.webp`, wireframe `wireframes/candidate-card.md`):** breadcrumb → header (photo/initials ✅ A-04, name, current role, person status A-36, contacts row role-gated A-37; actions ⋯ · «Поділитися» ✅ A-05 · «Перемістити до… ▾» primary) → **info strip** (Вакансія · Джерело · Відповідальний · Зарплатні очікування · Теги) → application switcher (if > 1) → **stepper** (8 steps ⏳ A-18) → stage action panel → tabs Історія · Профіль · Резюме · Файли · Коментарі · Бонус (8/12) + **right column** (4/12): «Наступна подія» card, «Приватні нотатки» (author-only, ✅ A-03, Phase 3). Mobile: header with contact icon buttons, tabs Інфо · Історія · Резюме · Коментарі, compact stepper, sticky «Дії з кандидатом» (A-45).
 - **Role diff:** Bonus tab — Admin, HRec (vertical), Rec (own) only; polygraph PDF — Admin/HHR/HR only (others see outcome) [POLY-04]; salary per matrix; TL sees only application(s) on their vacancies ⚠ OPEN-S12 (other applications / routing history visibility).
 - **States:** skeleton = header + stepper + 6 feed rows; purged candidate «Кандидат #1234 (видалено)» read-only stub.
 
 ### S-10 Календар [PIPE-05, POLY-02, RESCH]
-- Week (default) / day / list (mobile default). Event types: Скринінг, Співбесіда, Поліграф; badge «Очікує перенесення».
+- **Layout (`06-calendar.webp`, wireframe `wireframes/calendar.md`):** header → toolbar «Сьогодні» ‹ › «3 – 9 листопада 2026» + segmented Тиждень | День | Список → filters (Тип події, Вертикаль, Учасник) → week grid Пн–Пт 08–20 with now-line («Показати вихідні», A-42) + **right details panel** (360) for the selected event. No «Підключити календар» in v1 (✅ A-09). Mobile: week strip + day list; no FAB (A-25).
+- Week (default) / day / list (mobile default). Event types: Скринінг, Співбесіда, Поліграф (stage colours, A-24); badge «Очікує перенесення».
+- **Details panel:** status chip, type icon + title, time, date, Meet link + copy («Приєднатися»), Кандидат («Відкрити →»), Вакансія, Учасники («Організатор»), «Підсумок для тімліда» (A-26), footer actions by role (TL: «Перенести», «Внести результат»).
 - **Role diff:** Rec — own screenings/interviews; TL — own interviews (actions: «Перенести», «Внести результат»); HR/HHR — polygraphs in vertical; HRec/Admin — all in scope.
 - **Filters:** тип, вертикаль, учасник. **Empty:** «На цей тиждень подій немає».
 
 ### S-11 Статистика [STAT-01..08]
+- **Layout (`07-statistics.webp`, wireframe `wireframes/statistics.md`):** header + «Оновлено о 06:00» + «Експорт ▾» (A-39) → underline tabs → filter row (період, вертикаль, посада, рекрутер, тімлід, «Скинути фільтри») → KPI row (5) → Огляд grid: «Воронка конверсії» (our stages, ✅ A-07) | «Динаміка найму»; «Середній час найму» | «Топ рекрутерів» | «Бонуси та виплати» (A-48, role-scoped). Mobile: tabs scroll, KPI 2×2, widgets stacked.
 - Tabs: Огляд · Воронка · Час · Джерела · Тімліди · Рекрутери · Бонуси · Виплати. Charts lazy-loaded; numbers rendered first (table), charts after.
 - **Filters:** період (presets: цей місяць, минулий, квартал, рік, власний), вертикаль, посада, рекрутер, тімлід. Export CSV/XLSX per tab.
 - **Role diff (scope of data):** Admin all; HRec vertical; Rec own (tabs Огляд, Воронка, Час, Джерела, Бонуси=Мої бонуси); HHR — HR stages in vertical (Огляд, Воронка from Polygraph, Час); HR own; TL own vacancies (Огляд, Воронка, Час, Тімліди=self); Finance all, read-only, every tab. Hidden tabs, not disabled.
