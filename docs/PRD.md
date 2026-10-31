@@ -1,0 +1,401 @@
+# HRIS — Recruiting Web Application · Product Requirements (v1.1)
+
+> Source of truth for WHAT we build. `CLAUDE.md` says HOW the team works.
+> Every item has an ID (e.g. `PIPE-04`) so agents can reference it in commits, tests and ADRs.
+> §14 is the log of product decisions. All former **[DEFAULT]** items were confirmed or changed by the owner on 2026-10-31; remaining open points live in `docs/OPEN_QUESTIONS.md`.
+
+---
+
+## 1. Product summary
+
+Internal recruiting system ("HRIS") for a company with several business **verticals** (Gambling, Crypto, …).
+Team Leads request vacancies, recruiters source candidates, candidates move through a fixed pipeline
+(screening → Team Lead interview → polygraph → offer → probation), HR runs polygraph/offer/probation,
+and recruiters earn configurable bonuses that are calculated automatically.
+
+**Interface language: Ukrainian** (all UI text, emails, PDFs, notifications). Code, DB, API identifiers and enums stay in English. Use next-intl with `uk` as the only locale in v1 (structure allows adding `en` later); dates/numbers formatted for `uk-UA`, timezone Europe/Kyiv.
+
+### Goals
+1. One place for every vacancy and candidate, with a full, immutable history on each card.
+2. Strict visibility by **role × vertical** — nobody sees what they should not.
+3. Automatic routing of candidates between Team Leads by priority.
+4. Transparent, automatic recruiter bonus calculation and payout tracking.
+5. Nothing is ever really lost: separate archives for **Rejected** and **Deleted**.
+
+### Non-goals (v1)
+- Public careers site / candidate self-apply portal.
+- Payroll integration (bonus payouts are tracked and exported, not paid by the app).
+- Full HR system after hire (employee records end at "Probation passed").
+
+---
+
+## 2. Roles & scope
+
+### 2.1 Built-in roles
+
+| Code | Name | Scope | Purpose |
+|---|---|---|---|
+| `ADMIN` | Admin | Global | Everything: users, verticals, priorities, bonus schemes, restore/purge, overrides. |
+| `HEAD_RECRUITER` | Head Recruiter | Per vertical | Sees all vacancies/candidates of all recruiters in their verticals; assigns recruiters to vacancies; assigns/reassigns applications; approves bonuses (never their own, §9.3). Can also carry candidates as sourcer or owner and receive bonuses (D35). |
+| `RECRUITER` | Recruiter | Per vertical | Sources candidates, runs them through the pipeline, schedules interviews. |
+| `HEAD_HR` | Head HR | Per vertical | Oversees polygraph; creates and sends offers (sets salary); oversees probation. |
+| `HR` | HR | Per vertical | Schedules polygraph (place + time), uploads polygraph PDF result, tracks probation. |
+| `TEAM_LEAD` | Team Lead | Per vertical | Requests vacancies, accepts/declines submitted candidates, interviews, reschedules, closes probation. |
+| `FINANCE` | Фінансист | Global, read-only | **Sees only the Statistics section** (incl. bonus statistics and payout reports, with export). In reports a candidate appears only as full name + application ID — no contacts, salary or links to cards (D21). No access to vacancies, candidate cards, files or settings. Cannot change anything. |
+
+UI role names (Ukrainian, D27): Адміністратор, Керівник рекрутингу, Рекрутер, Керівник HR, HR-менеджер, Тімлід, Фінансист (`docs/ux/glossary.md`).
+
+### 2.2 Role assignment model (ROLE-01..06)
+- **ROLE-01** A user can hold several roles, each scoped to one or more verticals: table `user_role(user_id, role, vertical_id | null)`. `null` vertical = global (only for ADMIN and FINANCE). Any role combination is allowed (e.g. Team Lead + Recruiter in one vertical); conflicts of interest are handled by separation of duties on bonuses (§9.3, D35).
+- **ROLE-02** Example: Olena = `HEAD_RECRUITER@Gambling` + `RECRUITER@Crypto`.
+- **ROLE-03** Admin creates and renames verticals. Verticals are never deactivated or deleted (owner 2026-10-31, D34).
+- **ROLE-04** Permissions live in code as a `role → permission[]` map (not hard-coded `if role === …` checks scattered in UI). The architecture must allow adding custom roles later (Phase 2: admin-defined role = name + permission set) without schema rewrites.
+- **ROLE-05** No self-signup. Only Admin invites users by email and assigns their roles in the invite; invite link expires in 72h. Google sign-in works only when the Google account email equals the invited email; no domain restriction in v1 (D33). Deactivated users cannot log in, but their history stays.
+- **ROLE-06** Admin deactivates a user of any role through a dialog that lists all their open work (applications they own, Team Lead vacancies, assigned polygraphs, offers in progress) and requires each group to be reassigned before deactivation completes; Head Recruiter / Head HR of the vertical may reassign in advance (D24).
+
+### 2.3 Visibility matrix (VIS-xx)
+
+Legend: ✅ full · 👁 read · ✏️ own/assigned only · — none. "In vertical" = verticals where the user holds that role.
+
+| Object / action | Admin | Head Recruiter | Recruiter | Head HR | HR | Team Lead | Finance |
+|---|---|---|---|---|---|---|---|
+| Vacancies (view) | ✅ all | ✅ in vertical | ✏️ assigned + unassigned open in vertical (D1) | 👁 in vertical | 👁 in vertical | ✏️ own vacancies | — |
+| Vacancy create | ✅ | ✅ | ✅ (as "Recruiter-initiated") | — | — | ✅ (request) | — |
+| Assign recruiters to vacancy | ✅ | ✅ in vertical | ✏️ self only, to an unassigned open vacancy (D1) | — | — | — | — |
+| Candidates (view) | ✅ | ✅ in vertical | ✏️ own (sourced or owned) | 👁 from Polygraph stage on, in vertical | 👁 from Polygraph stage on, in vertical | ✏️ submitted to them | — |
+| Candidate contacts (phone, email, Telegram) | ✅ | ✅ in vertical | ✏️ own | 👁 from Polygraph stage on (D20) | 👁 from Polygraph stage on (D20) | — (D20) | — |
+| Candidate create | ✅ | ✅ | ✅ | — | — | — | — |
+| Transfer candidate to another vertical (CAND-06) | ✅ | ✅ (vertical scope: OPEN_QUESTIONS Q-133) | — | ✅ (vertical scope: Q-133) | — | — | — |
+| Move pipeline stage | ✅ | ✅ | ✏️ up to Polygraph | Polygraph/Offer/Probation | Polygraph/Probation | accept/decline, interview result, probation close | — |
+| Offer salary (view) | ✅ | ✅ | ✅ own candidates (owner decision) | ✅ | ✅ | ✅ own vacancy | — |
+| Bonuses (view) | ✅ | ✅ in vertical | ✏️ own | — | — | — | 📊 only inside Statistics |
+| Statistics | ✅ | ✅ in vertical | ✏️ own | 👁 HR stages in vertical | ✏️ own | ✏️ own vacancies | ✅ all, read-only + export |
+| Delete vacancy/candidate | ✅ | ✅ in vertical | ✏️ own, only before Interview stage | — | — | — | — |
+| Restore from Deleted archive | ✅ | ✅ in vertical | — | — | — | — | — |
+| Hard purge (GDPR) | ✅ | — | — | — | — | — | — |
+| Settings (verticals, priorities, bonus schemes, users) | ✅ | — | — | — | — | — | — |
+
+- **VIS-01** Visibility is enforced **server-side** in one authorization module. The UI only hides what the server already refuses.
+- **VIS-02** A list endpoint must never return an object the user cannot open (no "leaky" counts, search results or autocomplete). Vacancy mini-funnel / stage counts include only applications the viewer can open (D19).
+- **VIS-03** Every authorization rule above has an automated test (allowed AND denied case).
+
+---
+
+## 3. Domain glossary
+
+| Term | Meaning |
+|---|---|
+| **Vertical** | Business line (Gambling, Crypto…). Every vacancy, candidate, application and role assignment belongs to exactly one. |
+| **Position (role catalog item)** | Reusable job title inside a vertical, e.g. "Media Buyer — Facebook". Used to group vacancies for routing. |
+| **Vacancy** | A concrete request for N hires for one Team Lead (or recruiter-initiated). References a Position. |
+| **Candidate** | A person. Exists once in the company (deduplicated company-wide), belongs to exactly one vertical at a time, and can have many applications over time — all in that vertical (CAND-06). |
+| **Application** | Candidate × Vacancy. Has the pipeline stage, history, interviews, polygraph, offer, probation, bonus. |
+| **Routing group** | All open vacancies of the same Position in the same vertical, ordered by Team Lead priority. |
+| **Sourcer** | Recruiter who first brought the candidate in (credited for bonus tranche 1). |
+| **Owner** | Recruiter currently responsible for the application (credited for tranche 2). |
+
+---
+
+## 4. Vacancies (VAC-xx)
+
+- **VAC-01 Fields:** title, position (from catalog), vertical, team lead, headcount (default 1), seniority, location/format (remote/office/hybrid), employment type, salary range (min/max/currency), description (rich text), requirements, priority flag (Normal/Urgent), probation length (days, default and max 90), bonus scheme (inherits vertical default, overridable by Admin), recruiter reward amount + currency (optional, Admin only, overrides the scheme base — BONUS-16), assigned recruiters (0..n; assigned by Head Recruiter or Admin, or a recruiter self-assigns to an unassigned open vacancy — D1), source (`APP` | `TELEGRAM_BOT` → badge "З бота"), created by, created at.
+- **VAC-02 Statuses:** `DRAFT` → `OPEN` ⇄ `ON_HOLD` → `FILLED` | `CANCELLED`. `FILLED` happens automatically when hires (applications that reached Probation) = headcount; Head Recruiter can reopen.
+- **VAC-03 Who creates:** Team Lead requests (status `OPEN` directly, or `DRAFT` if Admin enables "Vacancy approval" per vertical — off by default; when on, Head Recruiter of the vertical or Admin approves — D2). Recruiter/Head Recruiter can create "Recruiter-initiated" vacancies (no Team Lead yet) to propose candidates proactively.
+- **VAC-04 Vacancy card** shows: header (title, vertical, team lead, priority, status, days open), assigned recruiters, mini-funnel (count per stage, only applications the viewer can open — VIS-02), linked candidate cards, and a **timeline** (§6.3).
+- **VAC-05 Clone vacancy:** creates a new vacancy with same fields; optionally re-imports rejected-but-good candidates from the old one as "suggestions" (pipeline reuse).
+- **VAC-06 Telegram bot** — scope NOT defined yet. The owner will specify it. Claude Code must **stop and ask the owner** before the Telegram phase starts (see §15). v1 only keeps `source` field (`APP` | `TELEGRAM_BOT`) and the "З бота" badge ready. *Known owner input (2026-10-30, not yet designed):* the bot will let users enter all vacancy information; the vacancy then appears in the app with `source = TELEGRAM_BOT` and the "З бота" badge.
+
+---
+
+## 5. Candidates (CAND-xx)
+
+- **CAND-01 Fields:** full name, email, phone, Telegram, LinkedIn/portfolio URLs, location, current company/role, expected salary + currency, description/summary (rich text), tags, source channel (LinkedIn, Djinni, Telegram, referral, other…), CV files (PDF/DOC/DOCX, ≤10 MB each, multiple versions kept; DOC/DOCX are download-only, never previewed, macro-enabled files such as `.docm` are rejected — D29), consent to data processing (checkbox + date), created by (= sourcer), vertical (exactly one; CAND-06).
+- **CAND-02 Deduplication:** on create/edit, match on normalized email, phone (E.164), Telegram handle, LinkedIn URL. On match show "Possible duplicate" with the existing card *only if the user may see it*; otherwise show "This candidate already exists in the system — contact your Head Recruiter" without revealing details. Admin/Head Recruiter can merge duplicates (history merged).
+- **CAND-03 Candidate without vacancy:** Recruiters/Head Recruiters can add candidates without a vacancy ("Talent pool") and later **propose** them to a vacancy or directly to a Team Lead (creates an application).
+- **CAND-04 Candidate card:** profile, CV viewer (inline preview for PDF only), all applications (active and past) with their stage, full timeline, comments (@mentions), attachments, bonus info (visible per §2.3).
+- **CAND-05 Former employee flag:** if set, bonus rules in §9.7 apply.
+- **CAND-06 One vertical per candidate (owner 2026-10-31, D32):** a candidate belongs to exactly one vertical at a time, and all their applications live only in that vertical. Admin, Head Recruiter and Head HR can **transfer** a candidate to another vertical; the full history is kept and the transfer is a timeline event (old → new vertical, actor, reason). Deduplication stays company-wide (CAND-02). Open details (required role scope, active applications, sourcer/owner after transfer): OPEN_QUESTIONS Q-133…Q-135.
+
+---
+
+## 6. Pipeline (PIPE-xx)
+
+### 6.1 Stages (per application)
+
+| # | Stage | Entered by | Mandatory data to enter / leave |
+|---|---|---|---|
+| 1 | `NEW` | Recruiter adds candidate to vacancy | — |
+| 2 | `IN_WORK` (Recruiter screening) | Recruiter | Screening call scheduled with **Google Meet link** (mandatory) + date/time; screening notes on exit |
+| 3 | `SUBMITTED_TO_TL` | Recruiter | Short summary for TL. TL must **Accept** or **Decline** (with reason) |
+| 4 | `TL_INTERVIEW` | Recruiter after TL accepts | **Google Meet link mandatory**, date/time, TL; result Pass/Reject + feedback on exit |
+| 5 | `POLYGRAPH` | System after TL Pass | HR assigns **place + date/time** (both mandatory); after it HR uploads **PDF result** (mandatory) + outcome Pass/Fail; **Head HR review is mandatory** (POLY-05) — confirm or send to retake |
+| 6 | `OFFER` | System after Head HR confirms polygraph Pass (POLY-05) | **Head HR** creates offer: salary (amount, currency, gross/net, period), start date, offer letter (generated PDF from template, editable), sends to candidate by **email**; outcome Accepted/Declined |
+| 7 | `PROBATION` | System after offer Accepted + start date reached (or HR confirms first day) | start date, end date = start + probation days (max 90, can be set shorter) |
+| 8 | `PROBATION_PASSED` (Hired) | TL (early ≥30 days) / Head HR / auto-prompt at end date | — terminal success |
+| ✖ | `REJECTED` | anyone allowed at that stage | reason code (§6.4) + comment — terminal, goes to Rejected archive (unless routed, §7) |
+| ✖ | `WITHDRAWN` | Recruiter | candidate withdrew — terminal |
+| ✖ | `PROBATION_FAILED` | TL / Head HR | allowed from day 1; reason — terminal |
+
+- **PIPE-01** Transitions are defined in ONE state-machine module (allowed transitions × roles × required data). UI buttons are generated from it. Invalid transitions return 409.
+- **PIPE-02** Stages cannot be skipped except by Admin "force move" (requires comment, flagged in timeline).
+- **PIPE-03** **Polygraph is mandatory for every candidate.**
+- **PIPE-04** Meet link validation: must match `https://meet.google.com/xxx-xxxx-xxx` (Phase 6 option: create the event via Google Calendar API instead).
+- **PIPE-05** Interview reminders 24h and 1h before: to recruiter and TL (in-app by default; email per user preference — NOTIF) and to the candidate by email, together with an invitation email containing the Meet link when the interview is scheduled — candidate emails only if the candidate has an email and consent to data processing; every email is recorded in the timeline (D7).
+- **PIPE-06** Moving back one stage (e.g. offer declined → renegotiate) is allowed for Head Recruiter/Head HR with comment.
+
+### 6.2 Interview rescheduling (RESCH-xx)
+- **RESCH-01** Team Lead can **request reschedule** from their interface: proposes 1–3 alternative slots + comment.
+- **RESCH-02** Responsible recruiter **confirms** one slot (may update Meet link) or **counter-proposes**. Until confirmed the interview shows "Reschedule pending".
+- **RESCH-03** TL declining the same candidate's interview request a **second time** auto-notifies the Head Recruiter (approved earlier).
+- **RESCH-04** No-show: recruiter marks "Candidate no-show" or "TL no-show"; counts in statistics.
+
+### 6.3 Timeline (history) on every card (HIST-xx)
+- **HIST-01** Every change writes an immutable event: `who`, `when`, `what` (stage change, field change with old→new, file upload, comment, reschedule, bonus event).
+- **HIST-02** Card shows a visual stepper: *Created → In work → Interview (Meet link) → Polygraph (place/time, PDF) → Offer (salary) → Probation (start/end, days left) → Passed*, each with date and actor; below it the full event feed with filters.
+- **HIST-03** Events are append-only (no UPDATE/DELETE on the event table; enforced by DB permissions/trigger). PII values inside events (and audit before/after) are stored separately; the only operation that removes them is Admin purge (ARCH-04), which itself writes an event (D18).
+
+### 6.4 Rejection reasons (configurable list by Admin)
+`TL_DECLINED_PROFILE`, `TL_INTERVIEW_FAILED`, `POLYGRAPH_FAILED`, `OFFER_DECLINED_BY_CANDIDATE`, `SALARY_MISMATCH`, `CANDIDATE_UNRESPONSIVE`, `DUPLICATE`, `OTHER` (comment required).
+
+---
+
+## 7. Team Lead priority routing (ROUTE-xx)
+
+Example: Vasyl (priority 0) and Taras (priority 1) both need "Media Buyer — Facebook" in Gambling.
+
+- **ROUTE-01** Admin sets each Team Lead's **priority per vertical** (integer, 0 = highest). Admin can override priority on a single vacancy.
+- **ROUTE-02** When a recruiter submits a candidate to a **Position** (not a specific vacancy), the system creates the application on the open vacancy of that routing group with the **highest priority** (lowest number). Ties → earliest-created vacancy (D5).
+- **ROUTE-03** If that TL **declines** (at `SUBMITTED_TO_TL`) or **rejects after interview** (at `TL_INTERVIEW`), the system automatically creates a new application on the **next** vacancy in the group (next priority), keeps the full history linked ("Routed from Vasyl → Taras"), and notifies recruiter + next TL. Previous application closes as `REJECTED` (routed).
+- **ROUTE-04** If no next vacancy exists → candidate goes to the **Rejected archive** with the last reason.
+- **ROUTE-05** Rejections at polygraph/offer/probation do **not** route (candidate-level reasons).
+- **ROUTE-06** A candidate is in at most **one active application per routing group** (sequential, never parallel).
+- **ROUTE-07** Skips: vacancies `ON_HOLD`, `FILLED`, `CANCELLED`, and TLs who already rejected this candidate within the last 180 days — counted from the rejection date, per Team Lead person across all their vacancies in the group (D6).
+- **ROUTE-08** Recruiter can also submit directly to a specific vacancy (bypasses routing; if rejected, the system *offers* — not forces — routing to the rest of the group).
+- **ROUTE-09** Auto-routing can be turned off per vertical (then the recruiter picks the next TL manually).
+- **ROUTE-10** Routing logic is a pure function with exhaustive unit tests (ties, all closed, all rejected, on-hold, mid-flow priority change).
+
+---
+
+## 8. Polygraph, Offer, Probation details
+
+### Polygraph (POLY-xx)
+- **POLY-01** Head HR assigns an HR to the application (or HR self-assigns within vertical).
+- **POLY-02** HR sets location (address or room from a list managed by Admin) + date/time. Candidate gets email with details; recruiter is notified.
+- **POLY-03** After the session HR uploads the **PDF** (only PDF, ≤15 MB, stored privately) and sets Pass/Fail + comment. Without the PDF the outcome cannot be saved. The outcome then goes to Head HR review (POLY-05).
+- **POLY-04** Polygraph PDF visible only to Admin, Head HR, HR (in vertical). Recruiter, Head Recruiter and TL see only the outcome (D3).
+- **POLY-05 Mandatory Head HR review (owner 2026-10-31, D4/D36):** always on, in every vertical, no toggle. After HR saves the PDF and outcome, Head HR clicks «Підтвердити» or «Не підтверджено». «Не підтверджено» offers a **retake**: polygraph scheduling starts again (HR sets place and date/time), and the previous attempt with its PDF stays in history. The application moves to `OFFER` only after Head HR confirms a Pass. Open details (retake limit, rejection option, confirmed Fail, notifications): OPEN_QUESTIONS Q-136…Q-139.
+
+### Offer (OFFER-xx)
+- **OFFER-01** Head HR creates the offer: salary amount, currency, gross/net, pay period, start date, probation length (prefilled), additional terms. HR may **draft** an offer; only Head HR can **send** it.
+- **OFFER-02** Offer letter PDF generated from an Admin-managed template (merge fields), previewed, then emailed to the candidate (from a company sender address). Email delivery status stored.
+- **OFFER-03** Outcome recorded by Head HR/HR: Accepted (with confirmed start date) / Declined (reason) / Expired (default validity 5 calendar days, configurable; set automatically at 23:59 Europe/Kyiv on the last day — D11).
+- **OFFER-04** Revised offer = new version; all versions kept in history.
+
+### Probation (PROB-xx)
+- **PROB-01** Starts on the confirmed start date (HR confirms "First day happened"; if not confirmed within 3 days, reminder).
+- **PROB-02** Length: default and **maximum 90 days**. Admin/Head HR may set a shorter length per vacancy or per offer (before probation starts). Card shows progress bar + days left.
+- **PROB-03** **Early pass:** Team Lead can close as Passed only when ≥30 days have elapsed. Before that the button is disabled with a tooltip. Head HR/Admin can override with comment.
+- **PROB-04** **Fail:** TL or Head HR can set Probation Failed from **day 1** (reason required).
+- **PROB-05** **No extension — ever.** Once started, the end date can only move **earlier** (early pass, PROB-03) or the probation ends with Fail (PROB-04). The API rejects any change that moves the end date later.
+- **PROB-06** Reminders (in-app; email per user preference — NOTIF; Telegram added in the Telegram phase): 14, 7 and 1 day before end to recruiter and TL; after end date if not closed — **daily** reminders to both until closed.
+- **PROB-07** "Probation" status and days left are visible on vacancy and candidate cards and on the dashboard.
+
+---
+
+## 9. Bonuses (BONUS-xx)
+
+### 9.1 Bonus schemes (Admin settings)
+A scheme = base + tranches + rules. Shipped presets:
+
+| Preset | Tranche 1 | Tranche 2 |
+|---|---|---|
+| **Standard 30/70** | 30% when candidate **starts probation** | 70% when **probation passed** |
+| **Full after probation** | — | 100% when probation passed |
+
+Scheme fields: `name`, `base_type` (`FIXED` amount | `PERCENT_OF_MONTHLY_SALARY` | `PERCENT_OF_ANNUAL_SALARY`), `base_value`, `currency`, `tranches[] {trigger: PROBATION_STARTED | PROBATION_PASSED | DAYS_AFTER_START(n), percent}`, `clawback_policy`, `min_days_for_tranche1` (optional), `urgent_multiplier` (e.g. ×1.25 for Urgent vacancies), active flag. Tranche percents must sum to 100.
+
+- **BONUS-01 Precedence:** scheme = vacancy override → vertical default → global default. Base amount = vacancy-level reward amount (BONUS-16) if set, otherwise the effective scheme's base.
+- **BONUS-02 Snapshot:** at **offer acceptance** the effective scheme and the computed amount are frozen on the application. Later scheme edits never change existing bonuses.
+- **BONUS-03** Base for percentage schemes = offer salary converted to the scheme currency at the snapshot date (store rate used).
+- **BONUS-16 Vacancy reward amount (owner, 2026-10-30):** Admin sets the recruiter reward for a specific vacancy (amount + currency), overriding the scheme base, and can change it (e.g. 1,000 USD → 500 USD).
+  - At most **one change per 2 months per vacancy**.
+  - Every change records old → new value, actor, reason (mandatory) and timestamp in the vacancy timeline.
+  - Bonuses already snapshotted at offer acceptance never change (BONUS-02); the new amount applies only to offers accepted after the change.
+  - Only Admin can set or change it.
+  - Details pending owner confirmation: OPEN_QUESTIONS Q-106…Q-113.
+
+### 9.2 Attribution (who gets what)
+- **BONUS-04** Tranche 1 → **sourcer** (recruiter who created the candidate / first submitted them). Tranche 2 → **owner** at the moment probation is passed (the recruiter who carried the candidate). If the same person → they get 100%. A Head Recruiter may be sourcer or owner and receives bonuses like a recruiter (D35).
+- **BONUS-05 Anti-gaming (sourcing credit):**
+  - Credit belongs to whoever created the candidate first; duplicates created later never get sourcing credit.
+  - **Ownership window 180 days** (D8): if the candidate had no activity for 180 days, the next recruiter who re-engages them becomes the new sourcer. Activity = recruiter actions only: new application, stage change, scheduled meeting (comments and views do not count).
+  - Reassignment by Head Recruiter requires a reason and is in history; it changes the *owner*, never the *sourcer*.
+  - Head Recruiter may set a manual split (e.g. 50/50) with reason; Admin-visible in audit.
+  - A recruiter cannot be credited for a candidate they are related to as a referrer (self-referral flag) — blocked unless Admin approves; the flag is set by the recruiter or Head Recruiter (D38).
+
+### 9.3 Lifecycle of a bonus tranche
+`PLANNED` (offer accepted) → `ELIGIBLE` (trigger reached) → `APPROVED` (Head Recruiter in vertical or Admin) → `PAID` (Admin only, with payout period e.g. "2026-11") 
+Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tranche 2), `ON_HOLD` (dispute), `CLAWBACK_PENDING` → `CLAWED_BACK`.
+
+**Separation of duties (owner 2026-10-31, D30/D35):** nobody approves, marks as paid, adjusts, puts on hold / releases their **own** bonus, sets a manual split in their own favour, or reassigns an application to themselves. A Head Recruiter's own bonus is approved by another Head Recruiter of the vertical or by Admin; Admin's own actions of this kind are done by another Admin.
+
+### 9.4 Early probation close
+- **BONUS-06** If TL closes probation early (≥30 days), tranche 2 becomes `ELIGIBLE` on that date (bonus "arrives sooner").
+
+### 9.5 Probation failed / employee leaves
+- **BONUS-07** Tranche 2 → `CANCELLED`.
+- **BONUS-08 Clawback policy** for tranche 1 (per scheme): `NONE` (default for new schemes, D9) | `FULL_IF_LEFT_WITHIN_N_DAYS` | `PRORATED` (refund proportional to unworked part of probation). Clawback is only recorded and deducted from the next payout report — the app doesn't move money.
+- **BONUS-09** If tranche 1 is not yet paid and candidate leaves within `min_days_for_tranche1` (optional, e.g. 14 days) → tranche 1 cancelled.
+
+### 9.6 Dates never move later
+- **BONUS-10** Probation cannot be extended (PROB-05), so the tranche 2 expected date can only move earlier (early pass). Shorter probation set before start = earlier tranche 2 date.
+
+### 9.7 Other rules (common in ATS/HR systems)
+- **BONUS-11** Rehire: no bonus if the candidate was an employee within the last 12 months (former-employee flag).
+- **BONUS-12** Manual adjustment (Admin): +/− amount with mandatory reason; shown as separate line.
+- **BONUS-13** Payout report: per period, per recruiter, per vertical; CSV/XLSX export; "mark as paid" in bulk (Admin). Finance sees the same report read-only in Statistics, with candidates shown only as full name + application ID (D21).
+- **BONUS-14** Recruiter sees in "My bonuses": planned, eligible, approved, paid, expected dates, and why (link to application).
+- **BONUS-15** Bonus engine = pure, deterministic functions (`computeBonus`, `nextBonusEvents`) with 100% branch test coverage; a daily job evaluates triggers idempotently.
+
+---
+
+## 10. Dashboard & navigation (UI-xx)
+
+- **UI-01 Dashboard (role-aware):**
+  - **My tasks** inbox: things waiting for *this* user (TL: candidates to accept/decline, reschedule answers; Recruiter: reschedule requests, missing Meet links; HR: polygraphs to schedule / PDFs to upload; Head HR: offers to create/send; everyone: probation endings).
+  - **Vacancy cards** grid/kanban (by status) with mini-funnel and linked candidate count.
+  - **Candidate board**: kanban by pipeline stage, drag & drop only where the state machine allows (drop opens the required-data dialog, e.g. Meet link).
+  - Filters: vertical, recruiter, team lead, position, stage, priority, date range; saved filters per user.
+- **UI-02 Cards:** vacancy and candidate cards show stage chip, probation status ("Probation · 47 days left"), owner avatar, last activity.
+- **UI-03 Global search** (Cmd/Ctrl+K) over candidates/vacancies the user can see.
+- **UI-04 Navigation:** Dashboard · Vacancies · Candidates · Calendar (interviews & polygraphs) · Statistics · Archive · Settings (Admin). A section appears in navigation only once it is built; until then non-Admin users land on «Профіль» (D28).
+- **UI-05** Responsive (works on phone for TLs), light/dark theme, accessible (WCAG 2.1 AA), keyboard-friendly. All copy in Ukrainian.
+- **UI-07 Speed is a feature:** every navigation feels instant — prefetch on hover/viewport, optimistic updates for stage moves and comments (with rollback), skeletons only for >150 ms, virtualized long lists, no full-page reloads. Budgets in §13.
+- **UI-06** Empty, loading and error states designed for every screen.
+
+---
+
+## 11. Statistics (STAT-xx)
+
+- **STAT-01 Recruiter view:** candidates added (sourced), submitted to TL, TL-accepted, interviews, polygraph pass rate, offers, offers accepted, hires (probation started), probation passed, rejection reasons breakdown — for a period; table "who brought whom to which vacancy".
+- **STAT-02 Funnel & conversion** per vertical/position/recruiter/team lead.
+- **STAT-03 Time metrics:** time-to-submit, time-to-interview, time-in-stage, time-to-offer, time-to-fill (vacancy open → probation start).
+- **STAT-04 Source effectiveness:** hires per source channel.
+- **STAT-05 Team Lead metrics:** accept/decline rate, interview → offer rate, average response time, reschedules.
+- **STAT-06 Bonuses tab:** per recruiter: planned / eligible / approved / paid / clawed back; upcoming payouts calendar.
+- **STAT-07** All stats respect visibility (§2.3). Export CSV/XLSX.
+- **STAT-08** Finance role sees the whole Statistics section (all verticals) read-only, and nothing else in the app.
+
+---
+
+## 12. Archive & deletion (ARCH-xx)
+
+- **ARCH-01 Two separate archives:**
+  - **Rejected** — candidates/applications that ended `REJECTED`, `WITHDRAWN`, `PROBATION_FAILED`; shows reason, stage, by whom, when. Action: **Reactivate** (new application, history kept) → acts as a talent pool.
+  - **Deleted** — soft-deleted candidates and vacancies (`deleted_at`, `deleted_by`, `delete_reason` mandatory). Action: **Restore** (Admin/Head Recruiter), **Purge** (Admin only, irreversible).
+- **ARCH-02** Closed vacancies (`FILLED`/`CANCELLED`) live in a third tab "Closed vacancies" with their full pipeline, and can be **cloned** (VAC-05).
+- **ARCH-03** Deleting a vacancy with active applications requires choosing: move candidates to talent pool / to another vacancy / reject with reason.
+- **ARCH-04 GDPR / retention:** purge removes PII and files (including PII values stored with history and audit events, HIST-03) but keeps an anonymized stub for statistics and bonus integrity (`Candidate #1234 (purged)`). Retention policy configurable (e.g. auto-propose purge of rejected candidates after 24 months without consent renewal).
+- **ARCH-05** Nothing is hard-deleted by any role other than Admin purge.
+
+---
+
+## 13. Cross-cutting requirements
+
+### Notifications (NOTIF-xx)
+- In-app (bell + inbox) and email (Resend, free tier at start) in v1. User chooses channels per event type; for staff, reminders are in-app by default and email is opt-in (D17). **Telegram** channel is added in the Telegram phase after the owner defines it (design notification layer with pluggable channels).
+- Events: assignment, stage change on my items, TL accept/decline, reschedule request/answer, polygraph scheduled, offer sent/accepted/declined, probation reminders (14/7/1, then daily), bonus became eligible/approved/paid, mentions.
+
+### Audit (AUD-xx)
+- All writes logged (actor, IP, user agent, before/after). Also logged: CV and polygraph PDF downloads, views of offer salary, exports. Admin-only audit viewer with filters. Login history (each user sees their own sign-ins and active sessions in «Профіль»). Retention 3 years (D25).
+
+### Security & privacy (SEC-xx)
+- Auth: email magic link (valid 15 min, single use) + Google SSO (Google email must equal invited email; no domain restriction in v1). Sessions: 12h idle timeout, 7-day absolute limit; deactivation revokes all sessions immediately (D23). 2FA (TOTP) mandatory for Admin and Finance (also with Google sign-in), optional for other roles; 10 recovery codes; reset only by another Admin (D22).
+- Files in private storage, access only via short-lived signed URLs after an authorization check; MIME sniffing + extension + size validation; DOC/DOCX download-only until antivirus (D29); (Phase 7) antivirus scan.
+- Rate limiting on auth and API, CSRF protection, strict CSP, input validation with Zod on every endpoint. No CAPTCHA — sign-in is invite-only (D37).
+- PII minimization in logs (no emails/phones/salaries in logs or error trackers).
+- Backups: free nightly encrypted `pg_dump` (database and files) to separate storage, 30-day retention, tested restore (D17).
+- Paid services: none during development; Supabase Pro and Vercel Pro are bought before launch (Phase 7) (D17).
+- Standard data processing agreements (DPA) with Vercel, Supabase, Resend, Sentry (EU region) and GitHub are signed by the owner/legal before launch (D31).
+
+### Performance (PERF-xx) — hard budgets, checked in CI
+- **PERF-01** Seed for perf tests: 50k candidates, 2k vacancies, 200k events, 10 verticals.
+- **PERF-02** API/service P95: list/kanban < 150 ms, card detail < 100 ms, mutations < 120 ms (server time, same region as DB).
+- **PERF-03** Web vitals (production build). **Desktop** (mid-range laptop): LCP < 1.2 s, INP < 100 ms, CLS < 0.05; route transitions < 200 ms perceived. **Mobile** (4G-throttled check): standard Core Web Vitals "good" thresholds — LCP < 2.5 s, INP < 200 ms, CLS < 0.1. The app is used mainly from desktop. *(Mobile thresholds confirmed by owner 2026-10-30, D14.)*
+- **PERF-04** JS budget: initial dashboard route ≤ 180 KB gzipped; heavy parts (rich-text editor, PDF viewer, charts) lazy-loaded.
+- **PERF-05** No N+1 queries; every list = one query (+1 count only when needed); all filters backed by indexes; statistics from pre-aggregated tables, not ad-hoc scans.
+- **PERF-06** App servers and DB in the same EU region (Frankfurt) — closest to Ukraine.
+- List endpoints paginated (cursor).
+- Time stored in UTC, displayed in Europe/Kyiv for all users in v1 (D26).
+- Money stored as integer minor units + ISO currency.
+
+### API (API-xx)
+- REST under `/api/v1`, documented as OpenAPI 3.1 generated from Zod schemas; **Postman collection generated from the OpenAPI spec** and run with Newman in CI.
+- Same service layer used by the UI (server actions/route handlers) and the API — no duplicated business logic.
+
+### UI screenshots for owner review (SHOT-xx)
+- **SHOT-01** Every E2E run produces full-page screenshots of every screen and key dialog, per role, in light and dark theme, desktop (1440×900) and mobile (390×844).
+- **SHOT-02** Saved to `screenshots/<phase>/<NN>-<role>-<screen>-<state>-<viewport>-<theme>.png` (e.g. `phase-3/04-recruiter-candidate-card-polygraph-desktop-light.png`), committed to the repo, plus `screenshots/<phase>/index.html` gallery (grouped by screen, opens locally without a server).
+- **SHOT-03** Screenshots use seeded, realistic Ukrainian data (no lorem ipsum), fixed clock and disabled animations so diffs are stable; the latest set is also copied to `screenshots/latest/`.
+
+---
+
+## 14. Product decisions log (owner-confirmed)
+
+> D1–D13 were defaults; the owner confirmed them on 2026-10-31 (D4 changed). Q-IDs refer to `docs/OPEN_QUESTIONS.md`.
+
+| # | Decision | Status |
+|---|---|---|
+| D1 | Recruiters see unassigned open vacancies in their vertical and can self-assign; Head Recruiter (and Admin) also assign recruiters to vacancies | **Confirmed by owner 2026-10-31** (Q-01) |
+| D2 | Team Lead vacancy request needs approval | **Confirmed 2026-10-31:** off by default; when enabled per vertical, Head Recruiter of the vertical or Admin approves (Q-02) |
+| D3 | Polygraph PDF hidden from Recruiter, Head Recruiter and TL (they see Pass/Fail only) | **Confirmed 2026-10-31** (Q-03) |
+| D4 | Head HR review of polygraph result | **Changed by owner 2026-10-31: mandatory, always on** — see D36 (Q-04) |
+| D5 | Routing tie-break for equal priority | **Confirmed 2026-10-31:** oldest vacancy first (Q-05) |
+| D6 | Skip TLs who rejected this candidate in last N days | **Confirmed 2026-10-31:** 180 days from rejection date, per TL person (Q-06) |
+| D7 | Candidate gets interview invitation + reminder emails | **Confirmed 2026-10-31:** yes, only with email and consent (Q-07) |
+| D8 | Sourcing ownership window | **Confirmed 2026-10-31:** 180 days without recruiter activity (new application, stage change, scheduled meeting) (Q-08) |
+| D9 | Clawback default | **Confirmed 2026-10-31:** None (Q-09) |
+| D10 | Probation extension | **Confirmed by owner: not allowed; only shorter** |
+| D11 | Offer validity | **Confirmed 2026-10-31:** 5 calendar days, auto-expires at 23:59 Kyiv (Q-10) |
+| D12 | Finance role | **Confirmed by owner: included, sees Statistics only** |
+| D13 | Recruiter can delete own candidate only before TL interview | **Confirmed 2026-10-31:** "own" = sourcer or owner of all active applications; "before" = no application reached TL_INTERVIEW; vacancies — only own recruiter-initiated ones with no application past NEW (Q-11) |
+| D14 | PERF-03 mobile thresholds | **Confirmed by owner 2026-10-30:** mobile 4G uses Core Web Vitals "good" (LCP < 2.5 s, INP < 200 ms, CLS < 0.1); desktop keeps LCP < 1.2 s, INP < 100 ms, CLS < 0.05 (OPEN_QUESTIONS Q-89) |
+| D16 | Vacancy-level recruiter reward (BONUS-16) | **Confirmed by owner 2026-10-30:** Admin-only, max one change per 2 months per vacancy, change logged in vacancy timeline, already-accepted offers keep their snapshot (BONUS-02) |
+| D15 | Paid infrastructure for perf runs | **Confirmed by owner 2026-10-30:** no paid services; perf runs on local PostgreSQL 16 (Docker) with the PERF-01 seed first (OPEN_QUESTIONS Q-92) |
+| D17 | Paid services, backups, email | **Confirmed 2026-10-31:** nothing paid now; Supabase Pro + Vercel Pro bought before launch (Phase 7); backups = free nightly encrypted `pg_dump`, 30 days; Resend free tier at start; staff reminders in-app by default (Q-114…Q-117) |
+| D18 | PII in history/audit vs purge | **Confirmed 2026-10-31:** PII stored separately; removed only by Admin purge (HIST-03, ARCH-04; Q-38) |
+| D19 | Vacancy mini-funnel counts | **Confirmed 2026-10-31:** only applications the viewer can open (VIS-02; Q-15) |
+| D20 | Candidate contacts | **Confirmed 2026-10-31:** Head HR/HR see contacts (from Polygraph on); TL does not (§2.3; Q-17) |
+| D21 | Candidate data in Finance reports | **Confirmed 2026-10-31:** full name + application ID only (Q-23) |
+| D22 | 2FA | **Confirmed 2026-10-31:** mandatory for Admin and Finance, optional for others; recovery codes; reset by another Admin (Q-30, Q-128) |
+| D23 | Sessions and magic link | **Confirmed 2026-10-31:** 12h idle, 7-day absolute, link 15 min single-use, deactivation revokes sessions (Q-31) |
+| D24 | Deactivation of any role | **Confirmed 2026-10-31:** Admin deactivates via dialog requiring reassignment of all open work (ROLE-06; Q-33) |
+| D25 | Audit scope and retention | **Confirmed 2026-10-31:** 3 years; Admin-only viewer; file downloads, salary views, exports logged; own logins in profile (Q-39) |
+| D26 | Timezone | **Confirmed 2026-10-31:** Europe/Kyiv for everyone (Q-40) |
+| D27 | Ukrainian role names | **Confirmed 2026-10-31:** per `docs/ux/glossary.md` (Q-41) |
+| D28 | Navigation before sections ship | **Confirmed 2026-10-31:** unbuilt sections hidden; non-Admins land on «Профіль» (UI-04; Q-42) |
+| D29 | DOC/DOCX before antivirus | **Confirmed 2026-10-31:** download-only, `.docm` rejected, PDF-only preview (CAND-01; Q-129) |
+| D30 | Bonus separation of duties | **Confirmed 2026-10-31:** no actions on one's own bonus (§9.3; Q-130) |
+| D31 | Data processing agreements | **Confirmed 2026-10-31:** owner/legal signs standard DPAs before launch (Q-131) |
+| D32 | Candidate ↔ vertical | **Decided by owner 2026-10-31:** one vertical per candidate; transfer by Admin/Head Recruiter/Head HR; dedupe company-wide (CAND-06; Q-13) |
+| D33 | Google sign-in and invites | **Decided by owner 2026-10-31:** Google email must match invite email; no domain restriction in v1; only Admin invites and assigns roles in the invite (ROLE-05; Q-29) |
+| D34 | Vertical deactivation | **Decided by owner 2026-10-31:** none; Admin only creates and renames (ROLE-03; Q-37) |
+| D35 | Role combinations, Head Recruiter bonuses | **Decided by owner 2026-10-31:** combinations allowed; nobody approves own bonus; Head Recruiter can be sourcer/owner and receive bonuses, approved by another Head Recruiter or Admin (ROLE-01, BONUS-04, §9.3; Q-21) |
+| D36 | Polygraph Head HR review | **Decided by owner 2026-10-31:** mandatory; «Підтвердити» / «Не підтверджено» → retake; OFFER only after confirmed Pass (POLY-05; Q-04) |
+| D37 | CAPTCHA on sign-in | **Decided by owner 2026-10-31:** none (invite-only); auth rate limiting stays (Q-132) |
+| D38 | Self-referral flag | **Confirmed 2026-10-31:** bonus blocked unless Admin approves; flag set by recruiter or Head Recruiter (BONUS-05; Q-12) |
+
+---
+
+## 15. Delivery phases (each ends with a demo + Definition of Done)
+
+| Phase | Scope |
+|---|---|
+| **0. Discovery & design** | Open questions resolved, ADRs, ERD, state machine diagram, permission matrix as code spec, UI wireframes (screen list). No feature code. |
+| **1. Foundation** | Repo, CI, envs, auth, users, invites, verticals, role assignments, authorization module + tests, audit log, design system shell, seed data. |
+| **2. Vacancies & candidates** | CRUD, positions catalog, files (CV), dedupe, talent pool, cards, dashboard v1, search. |
+| **3. Pipeline** | State machine, screening/TL interview with Meet link, accept/decline, reschedule flow, polygraph, offer (PDF + email), probation, timeline, **routing**. |
+| **4. Bonuses & statistics** | Bonus schemes, snapshot, attribution, lifecycle, daily job, payouts, exports, statistics pages. |
+| **5. Archive & notifications** | Rejected/Deleted/Closed archives, restore/purge, in-app + email notifications, probation reminders. |
+| **6. Telegram** | **Starts with Claude Code asking the owner questions** (bot purpose, who uses it, commands, which notifications, vacancy creation flow, account linking). Nothing is built before the owner answers. |
+| **7. Hardening & launch** | Security review fixes, performance budgets verified on 50k seed, accessibility audit, full E2E + Postman/Newman suite green, final screenshot set, backups, monitoring, production deploy, admin guide (Ukrainian). |

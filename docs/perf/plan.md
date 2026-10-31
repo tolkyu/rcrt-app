@@ -1,0 +1,520 @@
+# Performance plan (Phase 0)
+
+Owner: `performance-engineer` · PRD refs: UI-07, §11 STAT-xx, §13 PERF-01..06 · Inputs for: `database-engineer` (§6 index table → `docs/erd.md`), `solution-architect` (ADR-007 data loading, ADR-008 aggregates), `devops-engineer` (§8 CI), `ux-ui-designer` (§7 bundle, skeleton rules).
+
+Principle: the server does one indexed query per screen region, the client renders from the TanStack Query cache, and every mutation updates the cache before the server answers.
+
+---
+
+## 1. Budgets and CI gates
+
+### 1.1 PERF-02 — API / service P95 (server time; gated on Docker PG16, verified in fra1 ↔ eu-central-1 before launch)
+
+| Class | Endpoints (examples) | P95 budget | Internal target | Measured by | Gate |
+|---|---|---|---|---|---|
+| List / kanban | `GET /api/v1/{vacancies,candidates,applications/board,archive/*,search,stats/*}` | < 150 ms | ≤ 80 ms | k6 custom trend `server_time` parsed from the `Server-Timing: total;dur=` header (not client RTT) | k6 threshold `p(95)<150` → non-zero exit → `perf:check` fails |
+| Card detail | `GET /api/v1/{candidates,vacancies}/:id`, `/timeline`, `/comments` | < 100 ms | ≤ 50 ms | same | `p(95)<100` |
+| Mutation | `POST /api/v1/applications/:id/transitions`, `/comments`, `/assignments` | < 120 ms | ≤ 70 ms | same | `p(95)<120` |
+| Per-query plan | every registered list/card query | exec < 40 ms on 50k seed, no Seq Scan on large tables | — | `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)` harness | assertion failure |
+| Queries per request | every route handler | list ≤ 3 (roles + list + optional count), card ≤ 5, mutation ≤ 15 statements | — | integration-test query counter (postgres.js `debug` hook) | Vitest failure |
+| Production | all routes | same as above | — | Sentry Performance P95 per transaction + pino logs | alert (not build) when P95 > budget for 1 h |
+
+**Perf environment (owner decision: no paid Supabase tier).** Every gated perf run (k6, EXPLAIN, 50k seed) uses a local **PostgreSQL 16 in Docker**, both locally and as a CI service container. CI gates therefore prove query plans and app-side cost, not fra1 ↔ Supabase latency. Absolute numbers on Supabase + the Supavisor pooler will differ: they add network RTT (~1–2 ms in-region per statement), pooler hop and shared CPU. Pooler- and region-specific checks are verified on the **staging free tier before launch** (§8.7), not gated.
+
+### 1.2 PERF-03 — Web vitals
+
+Owner decision (Q2): desktop keeps PRD PERF-03; mobile on throttled 4G uses the Core Web Vitals "good" thresholds.
+
+| Metric | Desktop (mid-range laptop) | Mobile (throttled 4G) | Lab measurement | Field measurement | Gate |
+|---|---|---|---|---|---|
+| LCP | < 1.2 s | < 2.5 s | LHCI production build: desktop preset; mobile preset with simulated 4G (Lighthouse default mobile throttling). Median of 3 (PR) / 5 (nightly) | Vercel Speed Insights P75, split by device | LHCI `assert` error |
+| INP | < 100 ms | < 200 ms | (a) TBT proxy in LHCI: desktop ≤ 150 ms, mobile ≤ 300 ms; (b) Lighthouse user-flow timespans (open candidate card from board, drop card on next stage, type in Cmd+K) per device profile | Speed Insights INP P75 | LHCI + user-flow assert |
+| CLS | < 0.05 | < 0.1 | LHCI `cumulative-layout-shift` | Speed Insights | LHCI assert |
+| Route transition | < 200 ms perceived | Playwright `perf:nav`: click `Link` → target region visible, warm cache, 10 runs, P95 | — | Playwright assertion |
+| Skeleton rule | skeleton only if data > 150 ms | Playwright: no skeleton visible on warm navigations | — | Playwright assertion |
+
+### 1.3 PERF-04 — JavaScript
+
+| Budget | Limit (gzip) | Measured by | Gate |
+|---|---|---|---|
+| Initial JS, dashboard route | ≤ 180 KB | `size-limit` with config generated from `.next/app-build-manifest.json` (shared + route chunks) | size-limit exit code |
+| Initial JS, every other route | ≤ 180 KB (same ceiling) | same | same |
+| Lazy chunks | see §7.2 | same | same |
+| Transfer size cross-check | script ≤ 180 KB | LHCI `resource-summary:script:size` | LHCI assert |
+
+---
+
+## 2. Shared patterns (apply to every hot path)
+
+### 2.1 Request anatomy (server cost budget for a list call)
+
+| Step | Cost | Rule |
+|---|---|---|
+| JWT verify | < 1 ms | `jose` local verify with alg allowlist + `iss`/`aud`/`exp`/`nbf`. **Only `kid`s from the Supabase JWKS are trusted** (DG-01): a snapshot is fetched from the Supabase project URL at build time, so cold starts make no network call, and it refreshes at runtime (with cooldown) on an unknown `kid`. Keys are never accepted from an env-supplied JWK in production. Access-token TTL ≤ 15 min (DG-05). Never `supabase.auth.getUser()` on hot paths |
+| Context (session + user + roles × verticals) | 1–2 ms | **one** statement per request (DG-05): `auth.sessions` row by `session_id` (PK, belongs to `sub`, not expired/revoked) + `app_user.is_active` + `user_role` rows, joined by primary keys. Memoised with `React.cache` (RSC) / request context (route handlers). The session check adds a PK lookup inside the same round trip (~0.1–0.3 ms), so **P95 estimates are unchanged** |
+| Perf token override | 0 in prod | compiled in only when the build-time flag `PERF_BUILD=1` is set (dead-code-eliminated otherwise); boot throws if the override is present and `VERCEL_ENV=production`. Details in §8.2 |
+| Data query | 5–60 ms | one SQL statement per list, scope predicate inside SQL |
+| Optional count | 1–10 ms | only from aggregate tables or narrow scopes, run in `Promise.all` with the data query |
+| Serialize | < 5 ms | DTO = selected columns only; no full rows, no rich-text bodies in lists |
+
+### 2.2 Data loading (ADR-007 input)
+
+- **Query options are shared.** `lib/queries/*.ts` exports `xxxQuery(params)` = `queryOptions({ queryKey, queryFn })`; the client `queryFn` calls `/api/v1`. The RSC page uses the same key and the same Zod response schema, but its `queryFn` calls the service directly (no HTTP to self).
+- **Page shape:** `page.tsx` → `getQueryClient()` (`React.cache`) → start all prefetches in one `Promise.all` (never sequential awaits) → `<HydrationBoundary state={dehydrate(qc)}>`.
+- **Above the fold is awaited, below the fold is streamed.** Below-the-fold regions sit inside `<Suspense>`; their prefetches are not awaited and are dehydrated as pending (`shouldDehydrateQuery: q => defaultShouldDehydrateQuery(q) || q.state.status === 'pending'`), so HTML streams immediately.
+- **No fetch-on-mount waterfalls:** a client component never fires a query whose input depends on another client query on first render; anything needed for first paint is prefetched in RSC.
+- **Prefetch:** `next/link` default prefetch for nav; card links call `queryClient.prefetchQuery(cardQuery(id))` on `pointerenter`/`focus` after an 80 ms intent delay; statistics tabs are prefetched on hover.
+- **Cache times:**
+
+| Query family | `staleTime` | `gcTime` | Refetch on focus |
+|---|---|---|---|
+| tasks, board, lists | 30 s | 5 min | yes |
+| card header, timeline, comments | 60 s | 10 min | yes |
+| search | 30 s | 2 min | no |
+| stats | 5 min | 15 min | no |
+| reference data (verticals, positions, users, rejection reasons) | 10 min | 1 h | no |
+
+### 2.3 Query key factory (`lib/query-keys.ts`)
+
+| Key | Invalidated by |
+|---|---|
+| `['tasks','mine']` | any transition, reschedule, polygraph/offer/probation write, assignment |
+| `['board', filters]` | transition, assignment, application create/delete/restore |
+| `['vacancies','list', filters]` | vacancy create/update/status/delete; transition (mini-funnel) |
+| `['candidates','list', filters]` | candidate create/update/delete/restore; transition (last activity) |
+| `['archive', tab, filters]` | terminal transition, delete, restore, reactivate, purge |
+| `['candidate', id]` / `['candidate', id, 'timeline']` / `['candidate', id, 'comments']` | writes on that candidate or its applications |
+| `['vacancy', id]` / `['vacancy', id, 'applications', stage?]` / `['vacancy', id, 'timeline']` | writes on that vacancy or its applications |
+| `['search', q]` | none (short staleTime) |
+| `['stats', tab, filters]` | none (aggregates; staleTime only) |
+
+Invalidation is targeted: mutations invalidate only keys for the affected `candidate_id`, `vacancy_id` and the board/list prefixes; never `queryClient.invalidateQueries()` without a key. Realtime `change_feed` events carry IDs only (`entity_type, entity_id, candidate_id, vacancy_id, vertical_id, mutation_id`) and map to the same invalidations, debounced 300 ms; events whose `mutation_id` matches a local mutation are ignored.
+
+### 2.4 Optimistic mutation template
+
+`onMutate`: `cancelQueries(affected keys)` → snapshot → `setQueryData` (synchronous, inside `startTransition` for non-urgent UI) → return snapshot. `onError`: restore snapshot + toast (Ukrainian copy from `messages/uk.json`, mapped from typed error codes 409/404/400). `onSettled`: invalidate affected keys only. The client sends `mutation_id` (uuid) so Realtime echoes are skipped.
+
+### 2.5 Pagination
+
+- Cursor = opaque base64url of `(sort_value, id)`; SQL uses row comparison `(sort_col, id) < ($v, $id)` with `ORDER BY sort_col DESC, id DESC LIMIT n+1` (the extra row tells whether there is a next page).
+- Page size 50 (lists), 50 per kanban column (architecture §perf), 30 (timeline/comments), 8 + 5 (search).
+- Sort options are limited to indexed keys (`last_activity_at`, `created_at`, `updated_at`, `stage_entered_at`, `closed_at`, `deleted_at`). No OFFSET anywhere.
+- No total counts on infinite lists; counts shown only where they come from aggregates (kanban columns, mini-funnel) or narrow scopes.
+
+### 2.6 Multi-vertical ordered list (index-friendly `ANY`)
+
+PG16 can't return `vertical_id = ANY($1) ORDER BY ts` straight from the index; it sorts every row in scope. When a user has several verticals, the repository uses a LATERAL per vertical instead, so each branch is a bounded index range scan:
+
+```sql
+SELECT x.* FROM unnest($verticals::uuid[]) v(id)
+CROSS JOIN LATERAL (
+  SELECT c.id, c.full_name, c.vertical_id, c.last_activity_at, c.source_channel
+  FROM candidate c
+  WHERE c.vertical_id = v.id AND c.deleted_at IS NULL
+    AND (c.last_activity_at, c.id) < ($cur_ts, $cur_id)
+  ORDER BY c.last_activity_at DESC, c.id DESC LIMIT $n1) x
+ORDER BY x.last_activity_at DESC, x.id DESC LIMIT $n1;
+```
+
+The same pattern applies to vacancies, archive, board columns and statistics. Admin and Finance get the list of all active verticals, so there is one code path.
+
+---
+
+## 3. Authz scoping cost
+
+Rule: `server/authz` turns the user's roles × verticals into a small list of **scope branches**. Each branch is a sargable predicate that one partial index can serve. The repository builds them into SQL as `UNION ALL` / LATERAL branches and deduplicates by `id` when branches can overlap. JS never post-filters, and there is no `OR` across different tables.
+
+Names and predicates follow `docs/erd.md` (final for Phase 0; architect names win, erd §6.1). Named predicates are used verbatim so the planner matches the partial indexes:
+
+| Name | SQL |
+|---|---|
+| **ACTIVE** (application) | `deleted_at IS NULL AND stage IN ('NEW','IN_WORK','SUBMITTED_TO_TL','TL_INTERVIEW','POLYGRAPH','OFFER','PROBATION')`. Active is defined by the stage list, not `closed_at` (erd C3; `closed_at` is kept for archive ordering with a CHECK equivalence) |
+| **LIVE** | `deleted_at IS NULL` |
+| `ARCHIVE_STAGES` | `('REJECTED','WITHDRAWN','PROBATION_FAILED')` |
+
+Denormalised columns (maintained in the same transaction; erd §4):
+
+| Column | Why |
+|---|---|
+| `application.vertical_id`, `team_lead_id`, `position_id` | vertical/TL scope and routing group without a join |
+| `application.max_stage_reached smallint` | highest stage ever reached (`app.stage_rank`: NEW=1 … PROBATION_PASSED=8). "From Polygraph on" (≥5) and "submitted to TL" (≥3) stay true after rejection |
+| `application.stage_entered_at`, `closed_at`, `last_activity_at` | board ordering, archive ordering |
+| `candidate.last_activity_at`, `candidate.search_text` (generated) | list ordering, trigram search |
+| `entity_event.candidate_id`, `vacancy_id`, `application_id`, `sensitivity` | one-index timelines; redaction in SQL |
+
+The candidate has exactly one vertical (owner 2026-10-31), so candidate V scope = `c.vertical_id = v` (IDX-14).
+
+| Role | Vacancy branch | Application / board branch (ACTIVE) | Candidate branch | Index |
+|---|---|---|---|---|
+| ADMIN | all verticals (LATERAL §2.6) | `vertical_id = v` | `vertical_id = v` | IDX-01, 14, 23 |
+| HEAD_RECRUITER@v | `vertical_id = v` | `vertical_id = v` | `vertical_id = v` | IDX-01, 14, 23 |
+| RECRUITER@v (`own` = owner **or** sourcer, erd C16) | `id IN vacancy_recruiter(user_id=u)` ∪ `created_by = u` ∪ `vertical_id=v AND status='OPEN' AND NOT EXISTS(vacancy_recruiter)` | `owner_id = u` ∪ `sourcer_id = u` (both `AND vertical_id = v`), deduplicated by id | `c.sourcer_id = u` ∪ `id IN application(owner_id=u)` ∪ `id IN application(sourcer_id=u)` | IDX-02, **P-01**, 06, 12, 15, 23, 29, N02 |
+| HEAD_HR@v / HR@v | `vertical_id = v` (read) | `vertical_id = v AND max_stage_reached >= 5` | `id IN application(vertical_id=v, max_stage_reached>=5)` | IDX-01, 08 |
+| TEAM_LEAD@v | `team_lead_id = u` ∪ `created_by = u` | `team_lead_id = u AND max_stage_reached >= 3` | `id IN application(team_lead_id=u, max_stage_reached>=3)` | IDX-03, 07, 24, N02 |
+| FINANCE | — (404) | — | — | stats tables only |
+
+**Recruiter `own` = owner OR sourcer: does the index plan still hold?**
+- Candidate scope: yes. The sourcer branch is served by IDX-12 `(sourcer_id, created_at, id) INCLUDE (candidate_id)` as an index-only scan, alongside IDX-06 (owner) and IDX-15 (`candidate.sourcer_id`, which can differ from the application sourcer after the D8 window).
+- Board / tasks / board counts: **not without a new index.** IDX-12 is ordered by `created_at` and doesn't cover ACTIVE + stage, so the sourcer branch of the LATERAL-per-stage board would fall back to bitmap + sort, repeated 7 times. That is too slow for the power recruiter (3k applications). Proposed **P-01** `application (sourcer_id, stage, stage_entered_at DESC, id DESC) WHERE ACTIVE` (16th index on `application`, small: active rows only). Each stage column = `IDX-02 branch UNION P-01 branch`, each `LIMIT 51`, merged with `DISTINCT ON (id)`.
+- Rejected archive: owner branch IDX-10. The sourcer branch uses IDX-12 + `stage IN ARCHIVE_STAGES` filter + sort on `closed_at` (≤ ~2k rows for the power recruiter, < 5 ms). If the EXPLAIN gate fails, add P-02 `(sourcer_id, closed_at DESC, id DESC) WHERE LIVE AND stage IN ARCHIVE_STAGES`.
+
+- Mixed roles (e.g. `HEAD_RECRUITER@Gambling + RECRUITER@Crypto`) = union of branches; there are at most about 2 × verticals branches, each with its own `LIMIT n+1`, merged by the outer `ORDER BY … LIMIT`.
+- Narrow scopes (recruiter owner ∪ sourcer, TL: about 10²–10³ rows) first resolve the scope as a `MATERIALIZED` CTE of ids, then filter/sort. Broad scopes (vertical) lead with the vertical index.
+- Card endpoints put scope into the fetch (`WHERE c.id = $1 AND <scope>`); 0 rows → 404. There is no separate `can()` round trip for reads.
+- Mutations load the target row `FOR UPDATE` with the scope predicate, then call the pure `can()` / state-machine check in memory.
+- If RLS is adopted as defence-in-depth (ADR-002), its policies must reuse the same predicates and the request must run inside a transaction with `set_config(..., true)`. That costs +2 round trips (~2–3 ms) and is accepted only if the architect chooses it.
+- EXPLAIN harness (§8.4) runs every list query once per role fixture: admin, head recruiter with 3 verticals, power recruiter (3k owned applications and ~2k sourced, partly overlapping), TL with 400 submissions, HR, mixed-role user.
+
+---
+
+## 4. Hot paths
+
+Expected P95 = server time on the PERF-01 seed on local Docker PostgreSQL 16 with warm caches; it's an estimate to verify in Phase 1–4 runs. On Supabase + Supavisor, expect roughly +1–2 ms per statement (more on the free tier's shared CPU). Budgets in §1.1 leave headroom for this.
+
+### 4.1 Dashboard — My tasks (UI-01)
+
+| Aspect | Spec |
+|---|---|
+| Loading | RSC awaits `tasksQuery` (LCP region) in the same `Promise.all` as the vacancy grid; board streams below (Suspense) |
+| SQL | one statement: `UNION ALL` of role-specific branches, each `LIMIT 20`, each backed by a small partial index: TL `application(team_lead_id, stage='SUBMITTED_TO_TL')` + `reschedule_request WHERE status='PENDING_TL'` on own applications; recruiter `reschedule_request WHERE status='PENDING_RECRUITER'` on own (owner ∪ sourcer) applications + `stage='TL_INTERVIEW'` without an open interview (N08); HR `polygraph WHERE status IN OPEN_POLYGRAPH` (to schedule / PDF missing / review) in scope; Head HR `application(vertical_id, stage='OFFER')` without a DRAFT/SENT/ACCEPTED offer (N10/N11); all roles `probation WHERE status='ACTIVE' AND planned_end_date <= today+14` (Kyiv date). "TL sees an answered reschedule" isn't modelled (erd C6), so there is no task for it. Columns: task type, application id, candidate name, vacancy title, due date |
+| Indexes | IDX-01, 02, P-01, 03, 35, 36, N08, 37, N10/N11, 39 |
+| Keys | `['tasks','mine']`; invalidated by every mutation that changes a task source |
+| Pagination | none (cap 20 per type + "more" link to the filtered list) |
+| Expected P95 | 25–40 ms |
+
+### 4.2 Dashboard — Vacancy grid (by status, mini-funnel)
+
+| Aspect | Spec |
+|---|---|
+| Loading | RSC prefetch in parallel with tasks; grid cards have fixed height |
+| SQL | vacancies in scope (LATERAL per vertical, §2.6) `JOIN position, app_user(team_lead)` + `LEFT JOIN LATERAL (SELECT jsonb_object_agg(stage, count) FROM vacancy_stage_count WHERE vacancy_id = v.id)`. Columns: id, title, status, priority_flag, vertical, TL name/avatar, opened_at, funnel json, updated_at. No description/requirements |
+| Aggregates | `vacancy_stage_count` (same-transaction counters, §5.1); linked-candidate count = sum of the funnel |
+| Indexes | IDX-23, 24, 29, 30 |
+| Keys | `['vacancies','list', {view:'grid', ...filters}]` |
+| Pagination | per status column cursor `(updated_at, id)`, 24 per column |
+| Expected P95 | 15–30 ms (2k vacancies total) |
+
+### 4.3 Dashboard — Candidate kanban (drag & drop)
+
+| Aspect | Spec |
+|---|---|
+| Loading | streamed below the fold (pending query dehydrated); column counts and cards fetched with `Promise.all` (2 queries) |
+| Sort (erd C13, **decided by architect**, architecture §perf) | `ORDER BY stage_entered_at DESC, id DESC` per stage column, keyset cursor `(stage_entered_at, id)`; index order = ORDER BY (IDX-01/02/03/P-01). It matches the perf preference: stable order and cursors while scrolling, and field edits/comments don't touch board-index columns (no extra non-HOT churn) |
+| SQL (cards) | `unnest($stages) s(stage) CROSS JOIN LATERAL (SELECT a.id, a.candidate_id, a.vacancy_id, a.stage, a.stage_entered_at, a.last_activity_at, a.owner_id, c.full_name, v.title, p.planned_end_date FROM application a JOIN candidate c … JOIN vacancy v … LEFT JOIN probation p ON p.application_id = a.id AND p.status = 'ACTIVE' WHERE <ACTIVE> AND a.stage = s.stage AND <scope branch> AND <filters> ORDER BY a.stage_entered_at DESC, a.id DESC LIMIT 51)`. With several branches (e.g. recruiter owner ∪ sourcer, mixed roles): stage × branch LATERAL, then `DISTINCT ON (id)` merge |
+| SQL (counts) | full-vertical / own-vacancy scopes: `SUM(count)` from `vacancy_stage_count` joined to in-scope vacancies; recruiter-own scope: `count(DISTINCT id) GROUP BY stage` over IDX-02 ∪ P-01 (small); filtered boards: counts on the filtered index range |
+| Filters | vertical (scope list), recruiter → IDX-02 (owner) / P-01 (sourcer), TL → IDX-03, position / priority → `vacancy_id = ANY(in-scope vacancy ids)` → IDX-04, stage → column subset, date range → range on `stage_entered_at` (last index column) |
+| Keys | `['board', filters]`; per-column `useInfiniteQuery` `['board', filters, stage]` for "load more" |
+| Optimistic | see §4.8 |
+| Render | columns virtualised (TanStack Virtual) once a column exceeds 100 loaded cards; cards keyed by application id; each column subscribes via `select` to its own slice; dnd-kit loaded lazily (§7) |
+| Expected P95 | 50–90 ms (vertical scope, 7 active columns × 50) |
+
+### 4.4 Vacancy card (VAC-04)
+
+| Aspect | Spec |
+|---|---|
+| Loading | RSC `Promise.all`: header, applications (first stage tab), timeline page 1. Hover prefetch from grid/list |
+| SQL header | `SELECT v.<header cols>, position, TL, recruiters (json_agg via LATERAL on vacancy_recruiter), funnel (vacancy_stage_count), days_open FROM vacancy v WHERE v.id=$1 AND v.deleted_at IS NULL AND <scope>`; 0 rows → 404 |
+| SQL applications | IDX-04 range `vacancy_id=$1 AND stage=$s ORDER BY stage_entered_at DESC, id DESC LIMIT 31` + candidate name/owner join; scope branch applied (HR ≥5, TL ≥3) |
+| SQL timeline | IDX-32 `entity_event WHERE vacancy_id=$1 ORDER BY occurred_at DESC, id DESC LIMIT 31` |
+| Keys | `['vacancy',id]`, `['vacancy',id,'applications',stage]`, `['vacancy',id,'timeline']` |
+| Expected P95 | 25–50 ms (parallel; slowest query dominates) |
+
+### 4.5 Candidate card + timeline (CAND-04, HIST-01..02)
+
+| Aspect | Spec |
+|---|---|
+| Loading | RSC `Promise.all`: header+applications, timeline page 1, comments page 1. Hover prefetch of header only. Timeline/comments results are discarded if the header returns 404 |
+| SQL header | `candidate` row (profile cols, no CV bodies) + `LATERAL json_agg` of applications (IDX-05) with vacancy title, stage, owner, stage timestamps for the stepper, probation end/days left, offer summary (salary only if `can` per §2.3), bonus summary (per §2.3) + `LATERAL json_agg` of latest file metadata (IDX-49). Scope in WHERE |
+| SQL timeline | IDX-31 `entity_event WHERE candidate_id=$1 [AND type = ANY($filters)] ORDER BY occurred_at DESC, id DESC LIMIT 31`; sensitive event payloads (polygraph PDF refs, salary) are filtered in SQL by the `sensitivity` column, not in JS. Per-application history (routing chains) uses N03 `(application_id, occurred_at DESC, id DESC)` |
+| CV preview | the signed URL is requested only on click (`/api/v1/files/:id/url`), because Storage signing is a network call and must stay out of the card path. Native `<iframe>` PDF viewer → no pdf.js chunk (Q3) |
+| Keys | `['candidate',id]`, `['candidate',id,'timeline',filters]` (infinite), `['candidate',id,'comments']` (infinite) |
+| Expected P95 | 30–60 ms |
+
+### 4.6 Global search Cmd/Ctrl+K (UI-03)
+
+| Aspect | Spec |
+|---|---|
+| Loading | palette component lazy-loaded on first shortcut press or hover of the search button; 120 ms debounce; `AbortSignal` cancels stale requests; `placeholderData: keepPreviousData` |
+| Normalisation | `candidate.search_text` = generated stored column: `lower(full_name ‖ email_normalized ‖ phone digits ‖ telegram)` with apostrophes `'ʼ’` unified; the same normaliser is applied to `q` in the service |
+| SQL | `(SELECT 'candidate', id, full_name, vertical_id FROM candidate WHERE search_text ILIKE '%'‖$q‖'%' AND deleted_at IS NULL AND <scope> ORDER BY similarity(search_text,$q) DESC LIMIT 8) UNION ALL (SELECT 'vacancy', id, title … LIMIT 5)`. Broad scope: GIN trigram bitmap ∧ vertical predicate. Narrow scope: `MATERIALIZED` scope-id CTE first, then ILIKE on those rows. q < 3 chars: prefix match on `search_text text_pattern_ops` (IDX-16b) |
+| VIS-02 | scope is inside SQL, so there are no leaked results or counts; out-of-scope hits never leave the DB |
+| Indexes | IDX-16, 16b, 26 + scope indexes |
+| Keys | `['search', normalisedQ]` |
+| Expected P95 | 25–60 ms |
+
+### 4.7 Lists — vacancies / candidates / archive (virtualised)
+
+| List | SQL shape (selected columns only) | Scope / filter indexes | Expected P95 |
+|---|---|---|---|
+| Vacancies | §2.6 LATERAL on vacancy; cols: id, title, status, priority, TL, position, opened_at, funnel total | IDX-23, 24, 25, 29 | 10–25 ms |
+| Candidates | §2.6 LATERAL on candidate by `last_activity_at`; LATERAL "current application" (latest ACTIVE by IDX-05: stage, vacancy title); filters: source_channel, tags (IDX-22), text (IDX-16). Never selects `*_doc` (rich-text JSON) columns | IDX-14, 15, 06, 12, 07, 08 | 30–70 ms |
+| Archive · Rejected | application `LIVE AND stage IN ARCHIVE_STAGES` by `closed_at`; cols: candidate name, vacancy, reason code, stage reached, closed_by, closed_at | IDX-09, 10 + sourcer branch via IDX-12 (P-02 if needed) (+ TL/HR via IDX-07/08 CTE) | 20–50 ms |
+| Archive · Deleted | candidate / vacancy `deleted_at IS NOT NULL` by `deleted_at`; cols incl. `deleted_by`, `delete_reason` | IDX-17, 28 | 10–30 ms |
+| Archive · Closed vacancies | vacancy `status IN (FILLED, CANCELLED)` by `closed_at` | IDX-27 | 10–20 ms |
+
+Common rules: `useInfiniteQuery` with cursor (§2.5), page 50; TanStack Table (headless) + TanStack Virtual for > 100 rows. Fixed row height (56 px desktop, 72 px mobile card rows) so `estimateSize` is exact and CLS is 0; overscan 8. RSC prefetches page 1 (`prefetchInfiniteQuery`). Filter changes run in `startTransition` and keep the previous data visible.
+
+### 4.8 Stage move mutation (PIPE-01, ROUTE-03, VAC-02)
+
+| Aspect | Spec |
+|---|---|
+| Client | drag start → preload the required-data dialog chunk (Meet link / reason / polygraph form) so the drop doesn't wait on JS. On submit → optimistic: move the card between `['board',…]` columns, adjust column counts, update `['candidate',id]` stage chip and `['vacancy',vid]` funnel. Error → rollback + toast. Settled → invalidate `['board']`, `['tasks','mine']`, `['candidate',cid]` (+timeline), `['vacancy',vid]` (+applications), plus the new vacancy's keys when routing created an application |
+| Server txn | (1) `SELECT … FROM application WHERE id=$1 AND <scope> FOR UPDATE`; (2) pure state machine + `can()`; (3) `UPDATE application SET stage, stage_entered_at, max_stage_reached = GREATEST(...), last_activity_at, closed_at` (`closed_at` set iff the new stage is terminal); (4) child row (interview/polygraph/…) if required data; (5) `UPDATE vacancy_stage_count SET count = count ∓ 1` (rows locked in ascending stage order to avoid deadlocks); (6) `INSERT entity_event`; (7) upsert `stat_*_daily` counters for the Kyiv-local day; (8) `UPDATE candidate SET last_activity_at`; (9) routing (ROUTE-03): pure `nextVacancy()` over IDX-25 + IDX-11 + same steps for the new application; (10) VAC-02 FILLED check from `vacancy_stage_count`; (11) `INSERT change_feed`, `INSERT notification` rows. Email, Realtime broadcast and the Telegram channel run after commit via Next `after()`, outside the response time |
+| Round trips | 10–15 statements, ~1 ms each in-region |
+| Expected P95 | 35–70 ms (routing path ~+15 ms) |
+
+### 4.9 Comments (+ @mentions) and assignments
+
+| Aspect | Spec |
+|---|---|
+| Comment create | optimistic append to `['candidate',id,'comments']` (and timeline page 1) with temp id → replaced by the server DTO; rollback + toast. Server txn: insert comment, `entity_event`, mention `notification` rows, `change_feed`; email after commit. Expected P95 15–35 ms |
+| Comment list | IDX-34 `(candidate_id, created_at DESC, id DESC) WHERE LIVE` page 30. Rich text is stored as ProseMirror JSON (`body_doc jsonb`, Zod node/mark allowlist, erd C26 / DG-13). It is rendered in RSC by a small allowlisted node → React element renderer (no HTML, no `dangerouslySetInnerHTML`), so reading costs no client JS; Tiptap loads only for the editor. JSON payload per comment is about 1.5–2× the size of HTML, which is negligible at page size 30 |
+| Assignment (owner / recruiters) | optimistic avatar swap on card, board, list; invalidates `['candidate',id]`, `['vacancy',id]`, `['board']`, `['tasks','mine']`. Expected P95 20–40 ms |
+
+### 4.10 Statistics incl. Finance (STAT-01..08)
+
+| Aspect | Spec |
+|---|---|
+| Loading | RSC prefetch of the default tab (current month, user scope) → numbers/tables render from HTML; charts are `next/dynamic` (`ssr:false`) with fixed-size placeholders; other tabs prefetched on hover |
+| Sources (erd §2.6) | `stat_recruiter_daily` (STAT-01, 04, 05 per recruiter, incl. `time_to_interview_*`, erd C19), `stat_vacancy_daily` (STAT-02, 03, 05 per vacancy/TL/position, **incl. time-in-stage per stage**), `stat_hr_daily` (HR own stats), `stat_rejection_daily` (`reason_code`, `outcome`, position, recruiter, TL), `stat_bonus_monthly` (`(vertical_id, month, recruiter_id, currency)`; amount + count per status as columns). `stat_stage_time_daily` is dropped (erd C9), so **time-in-stage per recruiter is not available**. Flagged as Q8 in case STAT-03 needs it. All counters are additive (`count`, sums) → averages = Σsum/Σcount (medians: Q5) |
+| SQL | `SELECT dim, SUM(m1), SUM(m2)… FROM stat_x_daily WHERE vertical_id = v AND day BETWEEN $from AND $to [AND recruiter_id=u / team_lead_id=u] GROUP BY dim` via §2.6 LATERAL over verticals (Finance = all) + one join to `app_user`/`position` for labels |
+| Scope | Recruiter: `recruiter_id=u`; TL: `team_lead_id=u`; HR: `hr_user_id=u` (`stat_hr_daily`); Head HR: HR-stage metrics in vertical; Head Recruiter: in vertical; Admin/Finance: all. All are columns in the aggregate grain UQ (led by `(vertical_id, day)`) or a secondary `(subject, day)` index |
+| Row-level tables | "who brought whom" (STAT-01) and payout report (BONUS-13) are paginated lists: IDX-12/13 and IDX-41b `(payout_period_id, vertical_id, recipient_id)`, cursor by `created_at` / recipient |
+| Exports | streamed: `postgres.js` `cursor(500)` → `ReadableStream` CSV; XLSX via streaming writer, dynamically imported inside the export handler only. Budget: TTFB < 500 ms, 50k rows < 10 s, constant memory; formula-injection escaping (security) |
+| Keys | `['stats', tab, filters]`, staleTime 5 min |
+| Expected P95 | 20–60 ms (1-year range, Finance all verticals). If the 1-year range exceeds 80 ms in EXPLAIN → add monthly rollups and query them for ranges > 92 days |
+
+### 4.11 Calendar (UI-04)
+
+Interviews and polygraphs in a date window: two range scans on IDX-36b / IDX-37 joined to in-scope applications, `UNION ALL`, at most about 500 rows per month window. Key `['calendar', from, to]`. Expected P95 15–30 ms.
+
+---
+
+## 5. Aggregates and consistency (ADR-008 input)
+
+| Aggregate | Updated | Reconciled | Drift handling |
+|---|---|---|---|
+| `vacancy_stage_count(vacancy_id, stage, count)` + `vacancy.hires_count` | same txn as every transition / application create / delete / restore / reassign-vacancy | nightly `/api/cron/vacancy-counters-reconcile`: recompute from `application` grouped (IDX-04), replace differing rows, log drift count in `job_run` | drift > 0 → Sentry warning; integration test asserts counter = recount after each transition type |
+| `stat_*_daily` / `stat_bonus_monthly` | same txn: `INSERT … ON CONFLICT (grain) DO UPDATE SET count = count + EXCLUDED.count` (and sums) for the Europe/Kyiv day of the event | nightly `/api/cron/stats-reconcile`: rebuild the **last 7 Kyiv days + dirty days** (days touched by late/back-dated writes) from `entity_event` via N04 `(type, occurred_at)` (reconcile always filters by event type; the BRIN is dropped, erd C14) + `application` / `bonus_tranche`, swap in one txn; idempotent by `job_run(job_name, run_key=date)` | perf seed builds the stats tables by running the reconcile job itself (tests it at 200k events). EXPLAIN gate covers the 7-day replay query (target < 500 ms per stat table) |
+
+Contention: counter rows are keyed by vacancy or (day, vertical, recruiter), so concurrent writers rarely collide. All rows are locked in a deterministic order (table, then key ascending).
+
+---
+
+## 6. Index set used by the hot paths
+
+**Authoritative definitions: `docs/erd.md` §5** (reconciled; architect names win, erd §6.1). This table lists only the indexes the hot paths in §4 depend on, using erd IDs and definitions, plus the perf-side proposal **P-01** (and the conditional P-02) that the DB engineer still has to accept. ACTIVE / LIVE / `ARCHIVE_STAGES` as in §3.
+
+| ID | Table | Definition | Serves (§) |
+|---|---|---|---|
+| IDX-01 | application | `(vertical_id, stage, stage_entered_at DESC, id DESC) WHERE ACTIVE` | board V scope, HR/Head HR tasks (4.1, 4.3) |
+| IDX-02 | application | `(owner_id, stage, stage_entered_at DESC, id DESC) WHERE ACTIVE` | recruiter board/tasks, owner branch (4.1, 4.3) |
+| **P-01** (proposed) | application | `(sourcer_id, stage, stage_entered_at DESC, id DESC) WHERE ACTIVE` | recruiter `own` sourcer branch on board/tasks/counts (§3); 16th index on `application` |
+| IDX-03 | application | `(team_lead_id, stage, stage_entered_at DESC, id DESC) WHERE ACTIVE AND max_stage_reached >= 3` | TL board/tasks (4.1, 4.3) |
+| IDX-04 | application | `(vacancy_id, stage, stage_entered_at DESC, id DESC) WHERE LIVE` | vacancy card, position/priority filter, counter reconcile (4.4, 5) |
+| IDX-05 | application | `(candidate_id, created_at DESC) WHERE LIVE` | candidate card, current application, ROUTE-07 (4.5, 4.7) |
+| IDX-06 | application | `(owner_id, candidate_id) WHERE LIVE` | recruiter candidate scope, owner (3) |
+| IDX-07 | application | `(team_lead_id, candidate_id) WHERE LIVE AND max_stage_reached >= 3` | TL candidate scope (3) |
+| IDX-08 | application | `(vertical_id, max_stage_reached, candidate_id) WHERE LIVE` | HR candidate scope (`>= 5`) (3) |
+| IDX-09 / 10 | application | `(vertical_id \| owner_id, closed_at DESC, id DESC) WHERE LIVE AND stage IN ARCHIVE_STAGES` | Rejected archive (4.7) |
+| P-02 (only if EXPLAIN fails) | application | `(sourcer_id, closed_at DESC, id DESC) WHERE LIVE AND stage IN ARCHIVE_STAGES` | Rejected archive, sourcer branch |
+| IDX-11 | application | `application_active_in_group_uq (candidate_id, position_id) WHERE ACTIVE` (unique) | ROUTE-06, routing lookup (4.8) |
+| IDX-12 | application | `(sourcer_id, created_at DESC, id DESC) INCLUDE (candidate_id) WHERE LIVE` | recruiter candidate scope (sourcer), STAT-01 (3, 4.10) |
+| IDX-13 | application | `(vertical_id, created_at DESC, id DESC) WHERE LIVE` | STAT-01 vertical list (4.10) |
+| IDX-14 / 15 | candidate | `(vertical_id \| sourcer_id, last_activity_at DESC, id DESC) WHERE LIVE` | candidate list, scopes (4.7) |
+| IDX-16 / 16b | candidate | GIN `(search_text gin_trgm_ops)` / `(search_text text_pattern_ops)`, `WHERE LIVE` | Cmd+K (4.6) |
+| IDX-17 / 28 | candidate / vacancy | `(vertical_id, deleted_at DESC, id DESC) WHERE deleted_at IS NOT NULL` | Deleted archive (4.7) |
+| IDX-18..21 | candidate | **UNIQUE** `(email_normalized)`, `(phone_e164)`, `(telegram_normalized)`, `(linkedin_normalized)`, each `WHERE deleted_at IS NULL AND purged_at IS NULL AND col IS NOT NULL` | CAND-02 dedupe (single index probe per key). Unique pending the owner's block-vs-warn answer; if "warn", they revert to non-unique with the same lookup cost |
+| IDX-22 | candidate | GIN `(tags) WHERE LIVE` | tag filter (4.7) |
+| IDX-23 / 24 | vacancy | `(vertical_id, status, updated_at DESC, id DESC)` / `(team_lead_id, status, updated_at DESC)`, `WHERE LIVE` | grid, lists, TL own (4.2, 4.7) |
+| N02 | vacancy | `(created_by) WHERE LIVE` | vacancy `own` = TL or creator (3) |
+| IDX-25 / 26 / 27 | vacancy | routing group `(vertical_id, position_id, status)` · GIN title trigram · Closed tab | 4.6, 4.7, 4.8 |
+| IDX-29 | vacancy_recruiter | PK `(vacancy_id, user_id)` + `(user_id, vacancy_id)` | recruiter vacancy scope (3) |
+| IDX-30 | vacancy_stage_count | PK `(vacancy_id, stage)`, column `count` | funnel, board counts, FILLED (4.2, 4.3, 4.8) |
+| IDX-31 / 32 / N03 | entity_event | `(candidate_id \| vacancy_id \| application_id, occurred_at DESC, id DESC) WHERE <col> IS NOT NULL` | timelines (4.4, 4.5) |
+| N04 | entity_event | `(type, occurred_at)` (replaces BRIN IDX-33) | stats reconcile replay (5) |
+| IDX-34 | comment | `(candidate_id, created_at DESC, id DESC) WHERE LIVE` | comments (4.9) |
+| IDX-35 | reschedule_request | `(status, created_at) WHERE status IN ('PENDING_RECRUITER','PENDING_TL')` | tasks (4.1) |
+| IDX-36 / 36b / N08 | interview | `(application_id, scheduled_at DESC)` · `(scheduled_at) WHERE status IN ('SCHEDULED','RESCHEDULE_PENDING')` · partial UQ open | stepper, calendar, reminders, tasks (4.1, 4.11) |
+| IDX-37 | polygraph | `(scheduled_at NULLS FIRST, application_id) WHERE status IN OPEN_POLYGRAPH` | HR tasks, calendar (4.1, 4.11) |
+| IDX-38a/b, N10/N11 | offer | UQ `(application_id, version)` · `(valid_until) WHERE status='SENT'` · partial UQs | card, Head HR tasks, expiry cron |
+| IDX-39 | probation | `(planned_end_date, application_id) WHERE status='ACTIVE'` | tasks, reminders, chips (4.1) |
+| IDX-40 | notification | `(user_id, created_at DESC, id DESC)` + `(user_id) WHERE read_at IS NULL` | inbox, bell |
+| IDX-41 / N17 / 41b / 41c | bonus_tranche | `(recipient_id, status, due_date)` · `(vertical_id, status, due_date)` · `(payout_period_id, vertical_id, recipient_id) WHERE payout_period_id IS NOT NULL` · `(due_date) WHERE status IN ('PLANNED','ELIGIBLE')` | My bonuses, approval queue, payouts, trigger job (4.10) |
+| IDX-42/43/44, N20, N21 | stat_* | grain UQ led by `(vertical_id, day \| month)` + `(recruiter_id \| team_lead_id \| hr_user_id, day)` | statistics (4.10) |
+| IDX-45 | user_role | `user_role_uq` NULLS NOT DISTINCT | per-request context (2.1) |
+
+Notes: `application` ends with 15 indexes in erd (16 with P-01). A stage move is a non-HOT update (~1 ms); with the C13 choice of `stage_entered_at`, ordinary field edits stay HOT-eligible for the board indexes. Phase 7: drop anything with `idx_scan = 0` on the perf run; `ANALYZE` after the perf seed.
+
+---
+
+## 7. Bundle strategy (PERF-04)
+
+### 7.1 Rules
+
+- RSC by default; `'use client'` only on interactive leaves (board, filters, dialogs, palette). Static chrome (nav, headers, card bodies, tables' first page markup) ships no JS.
+- Baseline estimate: Next 15 + React 19 runtime about 100 KB, TanStack Query about 13 KB, next-intl client about 5 KB, Radix primitives on the first screen about 15 KB, lucide (named imports) about 3 KB. That leaves about 40 KB headroom for dashboard client code.
+- **Lazy (`next/dynamic` / `import()` on intent):** Tiptap editor (on focus of the comment/description editor; read-only rich text is ProseMirror JSON rendered in RSC by an allowlisted node → React renderer, no HTML); charts (Statistics only); dnd-kit (loaded on idle after hydration, or on first `pointerdown`; the board is fully usable for viewing without it); all dialogs incl. react-hook-form + Zod resolvers (preloaded on hover/drag start); Cmd+K palette; react-day-picker/date-range picker; XLSX/CSV writers (server only).
+- **Not shipped at all:** pdf.js (native `<iframe>` PDF preview via signed URL — Q3); `@react-pdf/renderer`, Resend, React Email, exceljs — server-only, dynamically imported inside their handlers.
+- Dates: `Intl.DateTimeFormat('uk-UA', { timeZone: 'Europe/Kyiv' })` and `Intl.RelativeTimeFormat('uk')`; date-fns per-function imports only, no locale bundles beyond `uk`, no moment/dayjs/luxon.
+- next-intl: messages split by namespace; the client provider receives only the namespaces its client components use.
+- Sentry browser SDK: errors only, no client tracing/replay. It's loaded after `requestIdleCallback` (lazy-loaded integration) so it isn't in the initial chunk. Speed Insights script is `afterInteractive`.
+- Fonts: `next/font` (one variable font, `latin` + `cyrillic` subsets, `display: swap`, `adjustFontFallback`), so the font swap causes no CLS.
+- CLS: fixed dimensions for avatars, card skeletons, chart placeholders, table rows; skeletons are delayed by 150 ms (UI-07) and match final layout boxes.
+- Re-render hygiene: board cards keyed by application id; per-column `select` subscriptions; drag state kept in dnd-kit (not React Query); `memo` only on board card and table row, and only after React Profiler shows benefit.
+- Production builds use `next build` (webpack) until Turbopack production builds are stable for `app-build-manifest.json`. Turbopack is for dev only.
+
+### 7.2 size-limit entries (gzip)
+
+| Entry | Limit |
+|---|---|
+| `/` dashboard initial (shared + route) | 180 KB |
+| `/vacancies`, `/vacancies/[id]` initial | 180 KB |
+| `/candidates`, `/candidates/[id]` initial | 180 KB |
+| `/statistics` initial (charts excluded) | 170 KB |
+| `/archive`, `/calendar`, `/settings/*` initial | 180 KB |
+| lazy: dnd-kit chunk | 25 KB |
+| lazy: Tiptap editor chunk | 110 KB |
+| lazy: charts chunk (Q4: light SVG chart lib) | 45 KB |
+| lazy: Cmd+K palette | 15 KB |
+| lazy: largest dialog (transition forms incl. RHF + Zod) | 35 KB |
+
+`.size-limit.cjs` reads `.next/app-build-manifest.json`, maps each route to its chunk list and emits `{ name, path, limit, gzip: true }`; lazy chunks are matched by the `webpackChunkName` set in `next/dynamic` imports. `ANALYZE=true pnpm build` (`@next/bundle-analyzer`) is used when a limit fails.
+
+---
+
+## 8. Perf CI setup
+
+### 8.1 `pnpm db:seed:perf` (PERF-01)
+
+| Entity | Volume / distribution |
+|---|---|
+| verticals | 10 (2 "large" holding 30% of data each, so the plan is checked against skew) |
+| users | ~120: 40 recruiters (1 "power recruiter" owning 3k applications), 30 TLs (1 with 400 submissions), 10 head recruiters (1 with 3 verticals), HR/Head HR, Admin, Finance, 1 mixed-role user |
+| vacancies | 2,000 (60% OPEN, 10% ON_HOLD, 20% FILLED, 10% CANCELLED; 3% soft-deleted) |
+| candidates | 50,000 (5% soft-deleted, 1% purged stubs), realistic Ukrainian names, normalised contacts |
+| applications | ~65,000 across all stages incl. routed chains; ~20k active |
+| entity_event | 200,000 |
+| comments / interviews / polygraphs / offers / probations / bonus tranches | ~30k / 25k / 6k / 3k / 2k / 3k |
+| aggregates | built by running the reconcile jobs, not by direct inserts |
+| reserved | 5,000 NEW applications tagged for k6 stage-move iterations (each iteration consumes one, so no reset is needed) |
+
+Deterministic PRNG seed; bulk insert via `COPY`/`generate_series`; `ANALYZE` at the end; target < 90 s. CI caches a `pg_dump -Fc` keyed by `hash(migrations + seed-perf.ts)` and restores it in about 10 s.
+
+**Database for perf runs:** `postgres:16` Docker image (`docker-compose.perf.yml` locally, GitHub Actions `services:` container in CI), with `pg_trgm` and the Supabase-specific objects the migrations need (auth schema stub, roles) created by a bootstrap SQL. It is initialised with `LC_COLLATE`/`LC_CTYPE` matching Supabase (verify in Phase 1, R6), and `shared_buffers` / `work_mem` are set to Supabase free-tier values so plans resemble production. The app connects with the same driver settings as production (`prepare: false`, `max: 4`). An optional PgBouncer container in transaction mode approximates Supavisor, to catch session-state and prepared-statement bugs.
+
+### 8.2 Lighthouse CI (`lighthouserc.cjs`)
+
+| Item | Setting |
+|---|---|
+| Server | `next start -p 3100` on the production build, Docker PostgreSQL 16 with perf seed, `NODE_ENV=production` |
+| Auth (DG-01, T-A01) | NODE_ENV can't separate a perf build from prod (both are production builds), so isolation works as follows: (1) **build-time flag:** the perf token verifier is compiled in only when `PERF_BUILD=1` is set at `next build` (`process.env.PERF_BUILD` inlined → the code is eliminated from normal builds). The perf build is a separate artifact that is never deployed. (2) **boot guard:** the server throws at startup if the override is present and `VERCEL_ENV=production`. (3) **ephemeral keys:** each CI job (and each local `perf:check` run) generates a fresh ES256 key pair in a temp directory with a random `kid`. Neither key is committed, cached, uploaded as an artifact or stored as a secret, and both are deleted when the job ends. (4) **tokens:** TTL ≤ 15 min; each token carries a `session_id` that the signer also inserts into the Docker DB's `auth.sessions` table, so the DG-05 context check runs exactly as in prod (same cost in k6 numbers). `puppeteerScript` sets the session cookie; k6 uses Bearer and re-mints before expiry. There is no dev-login route |
+| Prod-bundle check | CI step after the normal production build: grep `.next/server`, `.next/static` and the Vercel output for the perf verifier module marker and the job's perf `kid`; any hit fails the build. A unit test also asserts that the prod verifier rejects a token signed with a non-Supabase `kid` |
+| Routes | `/` (dashboard as head recruiter), `/vacancies/[seeded id]`, `/candidates/[seeded id with 40 events]`, `/statistics` (as Finance, 1-year range) |
+| Config | two LHCI collections: `desktop` (preset `desktop`) and `mobile` (default mobile emulation + simulated 4G throttling) |
+
+| Assertion (error level) | Desktop | Mobile 4G |
+|---|---|---|
+| `largest-contentful-paint` | ≤ 1200 ms | ≤ 2500 ms |
+| `cumulative-layout-shift` | ≤ 0.05 | ≤ 0.1 |
+| `total-blocking-time` (INP proxy) | ≤ 150 ms | ≤ 300 ms |
+| user-flow INP (`tests/perf/flows/*.ts`) | ≤ 100 ms | ≤ 200 ms |
+| `resource-summary:script:size` | ≤ 184320 B | ≤ 184320 B |
+| `unused-javascript` | warn | warn |
+
+| Runs | PR | Nightly |
+|---|---|---|
+| desktop | 3 runs, median | 5 runs, median + user-flow INP |
+| mobile 4G | 3 runs, median (LCP, CLS, TBT) | 5 runs, median + user-flow INP |
+
+### 8.3 k6 (`tests/perf/k6/`)
+
+| Script | Scenario | VUs × duration (PR / nightly) | Thresholds (`server_time` trend from `Server-Timing`) |
+|---|---|---|---|
+| `list.js` | vacancies, candidates, archive lists with cursors and filters, mixed roles | 5×30 s / 20×2 min | p(95) < 150 |
+| `kanban.js` | board load + column "load more", roles incl. power recruiter | 5×30 s / 20×2 min | p(95) < 150 |
+| `card.js` | candidate + vacancy header, timeline, comments | 5×30 s / 20×2 min | p(95) < 100 |
+| `stage-move.js` | reserved NEW → IN_WORK (Meet link) and routing decline path | 3×30 s / 10×2 min | p(95) < 120; error rate < 0.5% |
+| `statistics.js` | each tab, month / quarter / year, recruiter / head / Finance | 3×30 s / 10×2 min | p(95) < 150 |
+| `search.js` | 1–12 char queries, Cyrillic + email + phone fragments | 5×30 s / 20×2 min | p(95) < 150 |
+
+All scripts also assert `http_req_failed < 1%` and a loose `http_req_duration p(95)` (network included) to catch proxy issues. Tokens come from the perf-only signing helper (§8.2, Bearer header). PR and nightly both run against the local `next start` + Docker PostgreSQL 16; nightly only raises VUs and duration.
+
+### 8.4 EXPLAIN checks (`pnpm perf:explain`)
+
+- `tests/perf/explain/registry.ts` lists every list/card/search/stats repository query with fixtures per role (§3). Repositories expose their Drizzle query, and the harness takes `.toSQL()` and runs `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)` on the perf DB.
+- Fails when: Seq Scan on `candidate`, `application`, `entity_event`, `comment`, `audit_log`; execution > 40 ms; `Sort Method: external merge`; rows removed by filter > 10× rows returned on the top node; shared buffers read > 5,000.
+- Output: `perf-results/explain/*.json` + `explain.md` posted as a PR comment (meets the "EXPLAIN attached to PR" rule for new list queries).
+- N+1 guard: integration tests wrap each route handler with a query counter and assert the limits in §1.1.
+
+### 8.5 Server timing and logs (no PII)
+
+- `withRoute(handler)` wrapper (route handlers) + `timed(name, fn)` helper at service/repository level. It uses AsyncLocalStorage to collect `auth`, `authz`, `db` (sum + count), `total`.
+- Response header: `Server-Timing: auth;dur=0.4, authz;dur=1.2, db;dur=14.8, total;dur=19.3` (durations only).
+- pino line per request: `{ route: '/api/v1/candidates/[id]' (template, never the raw URL or query string — `q` may hold names/phones), method, status, total_ms, db_ms, db_queries, cold_start, region }`. No user email/IDs, params or bodies.
+- P95 store: Sentry Performance (server transactions, 20% sample, `sendDefaultPii: false`, scrubbing) with alert rules per budget class; Vercel Speed Insights for field vitals.
+
+### 8.6 `pnpm perf:check` composition
+
+`tsx tests/perf/run.ts --profile=pr|nightly` runs the steps below and **always runs all**, then writes `perf-results/summary.{json,md}` and exits 1 if any gate failed:
+
+| # | Step | Script | PR | Nightly |
+|---|---|---|---|---|
+| 1 | Production build + size-limit | `perf:size` | ✅ | ✅ |
+| 2 | Restore/seed perf DB + EXPLAIN harness | `perf:db`, `perf:explain` | ✅ | ✅ |
+| 3 | Start prod server | `perf:serve` | ✅ | ✅ |
+| 4 | k6 | `perf:k6` | smoke profile vs Docker PG16 | full profile vs Docker PG16 |
+| 5 | Lighthouse CI | `perf:lhci` | desktop ×3 + mobile 4G ×3 | desktop + mobile 4G ×5, user-flow INP |
+| 6 | Route transitions | `perf:nav` (Playwright) | ✅ | ✅ |
+| 7 | Aggregate drift check | `perf:drift` (recount vs counters) | — | ✅ |
+
+PR job runs in parallel with E2E, about 12 min target, and is a required check. The nightly run (02:00 Europe/Kyiv, GitHub Actions with Docker PG16) opens a GitHub issue on regression. Per-phase results go into `docs/perf/report-phase-N.md`.
+
+### 8.7 Staging free-tier verification (not gated; Phase 7 and before launch)
+
+| Check | How | Pass criterion |
+|---|---|---|
+| Region (PERF-06) | response header `x-vercel-id` contains `fra1`; Supabase project in eu-central-1 | both true |
+| Supavisor transaction mode | k6 smoke (5 VUs × 30 s) against Vercel preview + Supabase free tier; watch for `prepared statement` / session errors | 0 errors |
+| Pooler capacity | k6 at expected peak concurrency; Supabase dashboard client connections | no `too many clients`, no queueing > 50 ms |
+| Real latency vs budgets | `server_time` P95 from the same k6 scripts | within PERF-02, or a list of deltas vs Docker numbers in `report-phase-7.md` |
+| Cold start | first request after deploy (Fluid compute on) | recorded; > 1 s → fix imports |
+| JWKS / auth | first request on a fresh instance makes no auth network call (Server-Timing `auth` < 2 ms); the context query including the `auth.sessions` check stays ≤ 3 ms | true |
+| Cyrillic trigram | `SELECT show_trgm('Олена')` on Supabase | Cyrillic trigrams returned |
+
+---
+
+## 9. Risks and mitigations
+
+| # | Risk | Impact | Mitigation |
+|---|---|---|---|
+| R1 | **Supavisor transaction mode + `prepare: false`**: every statement is re-planned; no session state; `Promise.all` needs several pooled connections; connection storms on scale-out. CI uses Docker PG16 without Supavisor, so these effects are not gated | +0.2–1 ms/query planning; serialised parallel loads; pooler saturation | Keep queries simple (no giant `IN` lists, arrays as params). postgres.js `max: 4`, `idle_timeout: 20`, `connect_timeout: 5` per instance, so card `Promise.all` (3–4) never queues. Session settings only via `SET LOCAL` inside txns; `pg_advisory_xact_lock` only. Optional PgBouncer transaction-mode container in CI. **Verify on staging free tier before launch** (§8.7) |
+| R1b | **Docker PG16 ≠ Supabase** (no network RTT, no pooler, different CPU/memory, possibly different locale) | CI green but production slower | Same driver settings and tuned `shared_buffers`/`work_mem`; budgets kept with headroom (targets ≈ half the budget); locale aligned; staging free-tier checks (§8.7) before launch |
+| R2 | **Authz scope as `OR` across tables / mixed roles** defeats indexes | Seq scans and P95 blow-ups for recruiters/TLs/mixed users | Scope branches (§3) + denormalised `vertical_id`/`team_lead_id`/`max_stage_reached` + partial indexes IDX-06..08, IDX-12 and P-01 (recruiter `own` = owner OR sourcer); EXPLAIN harness per role fixture is a CI gate |
+| R3 | **Auth network round trip per request** (`supabase.auth.getUser()` in middleware/RSC; JWKS fetch on cold start) | +30–100 ms on every request | Verify JWT locally with `jose`; build-time Supabase JWKS snapshot + module-scope cache with cooldown refresh, only Supabase `kid`s trusted (no env-pinned keys, DG-01); session validity checked in the single context query (DG-05, no extra round trip); middleware refreshes the session only when the ≤ 15 min token is near expiry; `getUser()` only on sensitive actions if security requires |
+| R3b | **Perf token signer reaching prod** (T-A01, top security risk) | Anyone could mint Admin tokens | `PERF_BUILD=1` compile-time inclusion only, prod boot guard on `VERCEL_ENV=production`, ephemeral per-job key pair, Supabase-only `kid`s in prod, CI bundle grep (§8.2) |
+| R4 | **Vercel cold starts in fra1** with heavy imports (Sentry OTel, react-pdf, exceljs, Resend, React Email) | 300–1500 ms first request per instance | Fluid compute on; heavy libs dynamically imported inside their own handlers only; hot route bundles audited (`.nft.json` size per function); Sentry server tracing at 20%; cold-start probe on staging free tier before launch (§8.7) |
+| R5 | **Realtime fan-out**: Postgres Changes runs an RLS check per subscriber per change, and the payload could leak fields | DB load grows with users × changes; data-leak risk | Server-side Broadcast after commit to private per-vertical channels (or `realtime.broadcast_changes` trigger on `change_feed`) with IDs only; client refetches through the API (authz applies); 300 ms debounce; `change_feed` retention via BRIN cleanup. Not exercised by Docker CI; verify on staging free tier |
+| R6 | **pg_trgm with Cyrillic**: if the DB `LC_CTYPE` is `C`, Cyrillic letters are not word chars, so the trigrams break | Search returns nothing / slow | Phase 1 check: `SELECT show_trgm('Олена')` on Supabase free tier and the Docker image (same locale); if broken, generate `search_text` with a Latin transliteration column in addition. Apostrophe variants normalised |
+| R7 | **JS budget 180 KB** squeezed by baseline + Sentry + dnd-kit + forms | Gate failures late in the project | Lazy rules (§7), per-route size-limit from Phase 1, Sentry errors-only lazy, dnd-kit on idle |
+| R8 | **Aggregate drift / lock contention** on counters | Wrong funnel/stats; deadlocks on concurrent moves | Same-txn updates in deterministic lock order; nightly reconcile + drift alert; integration tests assert counter = recount |
+| R9 | **CI noise** (shared runners) gives flaky gates | False failures | Server-time (not RTT) thresholds; LHCI medians; PR = smoke profile, nightly = full profile, both on Docker PG16; fixed seed and restored dump |
+| R10 | **Staging free tier** (shared CPU, low RAM, pausing on inactivity) is too small for 50k-seed load runs | Staging P95 not representative | Owner decision Q6: no paid tier. Gated runs on Docker PG16; staging free tier used only for the functional/latency checks in §8.7 with small load; staging numbers are reported, not gated |
+| R11 | **`entity_event` growth** beyond the seed (millions) | Timeline and reconcile slow down | Timeline is always an index range with LIMIT (IDX-31/32); reconcile uses `(type, occurred_at)` (N04) over a 7-day window; partitioning by month is revisited only if > 10M rows |
+| R12 | **Signed-URL generation** in card paths | +20–50 ms per file | URLs generated on click only, never in list/card queries |
+
+---
+
+## 10. Open questions (for `business-analyst` → `docs/OPEN_QUESTIONS.md`)
+
+| # | Question | Recommendation |
+|---|---|---|
+| Q1 | VIS-02 and the mini-funnel: may HR / Recruiter / TL see stage counts of a vacancy that include applications they cannot open? | Show full counts only to full-scope roles; others get scoped counts (computed, cheap per vacancy via IDX-04) |
+| Q2 | Does LCP < 1.2 s also apply to the mobile 4G check? | **Resolved (owner):** desktop keeps PERF-03 (LCP < 1.2 s, INP < 100 ms, CLS < 0.05); mobile throttled 4G = LCP < 2.5 s, INP < 200 ms, CLS < 0.1. Applied in §1.2 and §8.2 |
+| Q3 | CV preview: native browser PDF viewer (iframe) instead of an in-app pdf.js viewer? | Yes. It saves about 300 KB of lazy JS; DOC/DOCX are download-only |
+| Q4 | Chart library choice (ADR) | Lightweight SVG lib (≤ 45 KB gz lazy) instead of Recharts (~100 KB) |
+| Q5 | STAT-03 time metrics: averages enough, or medians/percentiles required? | Averages in v1 (additive aggregates); medians via histogram buckets later if needed |
+| Q6 | Paid Supabase compute for staging perf runs | **Resolved (owner):** no paid tier. All perf runs (k6, EXPLAIN gates, 50k seed) use local PostgreSQL 16 in Docker (local + CI service container); pooler/region checks are done on the staging free tier before launch (§8.7) |
+| Q7 | Can an application's vertical differ from its candidate's vertical? | **Resolved (owner 2026-10-31):** one vertical per candidate; candidate V scope = `c.vertical_id` (IDX-14) |
+| Q8 | STAT-03: is time-in-stage needed **per recruiter**? `stat_stage_time_daily` was dropped (erd C9); time-in-stage now exists per vacancy/TL/position only | If yes: add a `recruiter_id` dimension to the time-in-stage columns of `stat_vacancy_daily` (more rows, same query shape) rather than a new table |
+| Q9 | C13 board sort | **Resolved (architect):** `stage_entered_at DESC, id DESC` (§4.3) |
