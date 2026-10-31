@@ -71,7 +71,8 @@ Legend: ✅ full · 👁 read · ✏️ own/assigned only · — none. "In verti
 | Offer salary (view) | ✅ | ✅ | ✅ own candidates (owner decision) | ✅ | ✅ | ✅ own vacancy | — |
 | Bonuses (view) | ✅ | ✅ in vertical | ✏️ own | — | — | — | 📊 only inside Statistics |
 | Statistics | ✅ | ✅ in vertical | ✏️ own | 👁 HR stages in vertical | ✏️ own | ✏️ own vacancies | ✅ all, read-only + export |
-| Delete vacancy/candidate | ✅ | ✅ in vertical | ✏️ own, only before Interview stage | — | — | — | — |
+| Delete candidate | ✅ | ✅ in vertical | — (unsuitable candidates go to the Rejected archive; D65) | — | — | — | — |
+| Delete vacancy | ✅ | ✅ in vertical | ✏️ own recruiter-initiated, every application still NEW (D13) | — | — | — | — |
 | Restore from Deleted archive | ✅ | ✅ in vertical | — | — | — | — | — |
 | Hard purge (GDPR) | ✅ | — | — | — | — | — | — |
 | Settings (verticals, priorities, bonus schemes, users) | ✅ | — | — | — | — | — | — |
@@ -104,6 +105,7 @@ Legend: ✅ full · 👁 read · ✏️ own/assigned only · — none. "In verti
 - **VAC-03 Who creates:** Team Lead requests (status `OPEN` directly, or `DRAFT` if Admin enables "Vacancy approval" per vertical — off by default; when on, Head Recruiter of the vertical or Admin approves — D2). Recruiter/Head Recruiter can create "Recruiter-initiated" vacancies (no Team Lead yet) to propose candidates proactively.
 - **VAC-04 Vacancy card** shows: header (title, vertical, team lead, priority, status, days open), assigned recruiters, mini-funnel (count per stage, only applications the viewer can open — VIS-02), linked candidate cards, and a **timeline** (§6.3).
 - **VAC-05 Clone vacancy:** creates a new vacancy with same fields; optionally re-imports rejected-but-good candidates from the old one as "suggestions" (pipeline reuse).
+- **VAC-07 Vacancy number:** every vacancy gets a human-readable, unique, never-reused number shown on cards, lists, timeline, links and search (format `V-0001`, sequential company-wide; D67). The internal UUID stays the technical id.
 - **VAC-06 Telegram bot** — scope NOT defined yet. The owner will specify it. Claude Code must **stop and ask the owner** before the Telegram phase starts (see §15). v1 only keeps `source` field (`APP` | `TELEGRAM_BOT`) and the "З бота" badge ready. *Known owner input (2026-10-30, not yet designed):* the bot will let users enter all vacancy information; the vacancy then appears in the app with `source = TELEGRAM_BOT` and the "З бота" badge.
 
 ---
@@ -268,7 +270,7 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
   - **Vacancy cards** grid/kanban (by status) with mini-funnel and linked candidate count.
   - **Candidate board**: kanban by pipeline stage, drag & drop only where the state machine allows (drop opens the required-data dialog, e.g. Meet link).
   - Filters: vertical, recruiter, team lead, position, stage, priority, date range; saved filters per user.
-  - **KPI row** (D59): Кандидати · Відкриті вакансії · На співбесідах · Прийнято · Середній час найму — scoped to what the viewer can see (VIS-02) and served from aggregates (PERF-05). Counts ship in Phase 2; the time metric in Phase 4. Exact tile definitions: OPEN_QUESTIONS Q-152.
+  - **KPI row** (D59): Кандидати · Відкриті вакансії · На співбесідах · Вийшли на роботу (probation started; «Найнято» is reserved for probation passed — D64) · Середній час найму — scoped to what the viewer can see (VIS-02) and served from aggregates (PERF-05). Counts ship in Phase 2; the time metric in Phase 4. Exact tile definitions: OPEN_QUESTIONS Q-152.
 - **UI-02 Cards:** vacancy and candidate cards show stage chip, probation status ("Probation · 47 days left"), owner avatar, last activity.
 - **UI-03 Global search** (Cmd/Ctrl+K) over candidates/vacancies the user can see.
 - **UI-04 Navigation:** Dashboard · Vacancies · Candidates · Calendar (interviews & polygraphs) · Statistics · Archive · Settings (Admin). A section appears in navigation only once it is built; until then non-Admin users land on «Профіль» (D28). Finance: «Статистика» + «Профіль» only (D41).
@@ -316,7 +318,7 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
 - All writes logged (actor, IP, user agent, before/after). Also logged: CV and polygraph PDF downloads, views of offer salary, exports. Admin-only audit viewer with filters. Login history (each user sees their own sign-ins and active sessions in «Профіль»). Retention 3 years (D25).
 
 ### Security & privacy (SEC-xx)
-- Auth: email magic link (valid 15 min, single use) + Google SSO (Google email must equal invited email; no domain restriction in v1). Sessions: 12h idle timeout, 7-day absolute limit; deactivation revokes all sessions immediately (D23). 2FA (TOTP) mandatory for Admin and Finance (also with Google sign-in), optional for other roles; 10 recovery codes; reset only by another Admin (D22).
+- Auth: email magic link (valid 15 min, single use) + Google SSO (Google email must equal invited email; no domain restriction in v1). Sessions: 12h idle timeout, 7-day absolute limit; deactivation revokes all sessions immediately (D23). 2FA (TOTP) mandatory for Admin and Finance grants (also with Google sign-in), optional for other roles; recovery uses a second TOTP factor or reset by another Admin, without recovery codes (D22). A mixed-role user at `aal1` retains grants from their other, nonprivileged roles; Admin/Finance grants require `aal2` (D63).
 - Files in private storage, access only via short-lived signed URLs after an authorization check; MIME sniffing + extension + size validation; DOC/DOCX download-only until antivirus (D29); (Phase 7) antivirus scan.
 - Rate limiting on auth and API, CSRF protection, strict CSP, input validation with Zod on every endpoint. No CAPTCHA — sign-in is invite-only (D37).
 - PII minimization in logs (no emails/phones/salaries in logs or error trackers).
@@ -373,7 +375,7 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
 | D19 | Vacancy mini-funnel counts | **Confirmed 2026-10-31:** only applications the viewer can open (VIS-02; Q-15) |
 | D20 | Candidate contacts | **Confirmed 2026-10-31:** Head HR/HR see contacts (from Polygraph on); TL does not (§2.3; Q-17) |
 | D21 | Candidate data in Finance reports | **Confirmed 2026-10-31:** full name + application ID only (Q-23) |
-| D22 | 2FA | **Confirmed 2026-10-31:** mandatory for Admin and Finance, optional for others; recovery codes; reset by another Admin (Q-30, Q-128) |
+| D22 | 2FA | **Updated by owner 2026-10-31:** mandatory for Admin/Finance grants, optional for others; recovery through a second TOTP factor or reset by another Admin; no recovery codes (Q-30, Q-128; ADR-002) |
 | D23 | Sessions and magic link | **Confirmed 2026-10-31:** 12h idle, 7-day absolute, link 15 min single-use, deactivation revokes sessions (Q-31) |
 | D24 | Deactivation of any role | **Confirmed 2026-10-31:** Admin deactivates via dialog requiring reassignment of all open work (ROLE-06; Q-33) |
 | D25 | Audit scope and retention | **Confirmed 2026-10-31:** 3 years; Admin-only viewer; file downloads, salary views, exports logged; own logins in profile (Q-39) |
@@ -413,6 +415,11 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
 | D60 | Statistics funnel stages | **Approved 2026-10-31:** our §6.1 stages only (STAT-02; Q-149) |
 | D61 | Not adopted from mockups | **Approved 2026-10-31:** no «Онлайн» status; Google Calendar connect post-launch (Q-150) |
 | D62 | Database version | **Approved 2026-10-31:** PostgreSQL 17 (Supabase local supports 15/17; new hosted projects use 17) (Q-142) |
+| D63 | Mixed roles before MFA | **Approved by owner 2026-10-31:** `aal1` keeps permissions from nonprivileged assignments; only ADMIN/FINANCE grants are withheld until `aal2` (e.g. Admin + Recruiter may still work as Recruiter) |
+| D64 | Design adoption from mockups (A-11…A-48) | **Approved by owner 2026-10-31:** all recommendations in `docs/ux/design-adoption.md` §2 accepted. KPI «Прийнято» renamed «Вийшли на роботу» (probation started); «Найнято» only for probation passed; vacancy status column shows VAC-02 status, «Термінова»/«З бота» as badges; only pipeline stages/events (one «Співбесіда з тімлідом»); interview result Пройдено/Не пройдено + required feedback; role · vertical instead of job titles; single expected-salary amount; no «Оцінки»/experience/«Відгуків»; contacts hidden per D-rules; «Додати в календар» = .ics (Ph3); cursor pagination; glossary wording wins. **Plus:** every candidate/application card (kanban, lists, dashboard, candidate card) shows a visible probation marker «Випробувальний · N дн. залишилось» while on probation (reinforces PROB-07/UI-02) |
+| D65 | Candidate deletion | **Decided by owner 2026-10-31:** Recruiters **cannot delete** candidates; unsuitable candidates are rejected → Rejected archive. Delete (soft) candidate = Head Recruiter (in vertical) and Admin only. Supersedes the candidate part of D13; the vacancy part of D13 stays |
+| D66 | Bonus-relevant candidate flags | **Decided by owner 2026-10-31:** Head Recruiter **cannot clear** any bonus-relevant flag (former employee, self-referral/referrer). Setting a flag is allowed to Recruiter (own) and Head Recruiter; **clearing is Admin-only**, with mandatory reason, audited (closes SEC-CORE-01) |
+| D67 | Vacancy ownership and number | **Decided by owner 2026-10-31:** a Team Lead manages only vacancies where they are the current `team_lead`; after reassignment the previous TL (even the creator) loses all management rights (closes SEC-CORE-03). Every vacancy has a visible number (VAC-07) |
 | D38 | Self-referral flag | **Confirmed 2026-10-31:** bonus blocked unless Admin approves; flag set by recruiter or Head Recruiter (BONUS-05; Q-12) |
 
 ---
