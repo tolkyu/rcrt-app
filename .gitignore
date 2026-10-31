@@ -28,3 +28,5 @@ supabase/.temp/
 Thumbs.db
 *.log
 .claude/settings.local.json
+
+/UI FROM DESIGNER/
