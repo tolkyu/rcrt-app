@@ -120,7 +120,6 @@ export const userRole = app.table(
     unique('user_role_uq')
       .on(t.userId, t.role, t.verticalId)
       .nullsNotDistinct(),
-    index('user_role_user_idx').on(t.userId),
     check(
       'user_role_scope_chk',
       sql`(${t.role} IN ('ADMIN','FINANCE') AND ${t.verticalId} IS NULL) OR (${t.role} IN ('HEAD_RECRUITER','RECRUITER','HEAD_HR','HR','TEAM_LEAD') AND ${t.verticalId} IS NOT NULL) OR ${t.role} ~ '^custom:[a-z0-9_]+$'`,
@@ -306,22 +305,35 @@ export const entityEvent = app.table(
       'entity_event_sensitivity_chk',
       sql`${t.sensitivity} IN ('GENERAL','SALARY','POLYGRAPH','BONUS')`,
     ),
-    index('entity_event_candidate_idx').on(
-      t.candidateId,
-      t.occurredAt.desc(),
-      t.id.desc(),
-    ),
-    index('entity_event_vacancy_idx').on(
-      t.vacancyId,
-      t.occurredAt.desc(),
-      t.id.desc(),
-    ),
-    index('entity_event_application_idx').on(
-      t.applicationId,
-      t.occurredAt.desc(),
-      t.id.desc(),
-    ),
+    /** Plain DESC (NULLS FIRST) so `ORDER BY occurred_at DESC, id DESC` reads the index without a sort. */
+    index('entity_event_candidate_idx')
+      .on(
+        t.candidateId,
+        t.occurredAt.desc().nullsFirst(),
+        t.id.desc().nullsFirst(),
+      )
+      .where(sql`${t.candidateId} IS NOT NULL`),
+    index('entity_event_vacancy_idx')
+      .on(
+        t.vacancyId,
+        t.occurredAt.desc().nullsFirst(),
+        t.id.desc().nullsFirst(),
+      )
+      .where(sql`${t.vacancyId} IS NOT NULL`),
+    index('entity_event_application_idx')
+      .on(
+        t.applicationId,
+        t.occurredAt.desc().nullsFirst(),
+        t.id.desc().nullsFirst(),
+      )
+      .where(sql`${t.applicationId} IS NOT NULL`),
     index('entity_event_type_idx').on(t.type, t.occurredAt),
+    index('entity_event_subject_idx').on(
+      t.subjectType,
+      t.subjectId,
+      t.occurredAt.desc().nullsFirst(),
+      t.id.desc().nullsFirst(),
+    ),
   ],
 );
 
@@ -370,13 +382,23 @@ export const auditLog = app.table(
       sql`${t.actorKind} IN ('USER','SYSTEM','ADMIN_FORCE') AND ((${t.actorKind} = 'SYSTEM') = (${t.actorId} IS NULL))`,
     ),
     check('audit_log_result_chk', sql`${t.result} IN ('SUCCESS','DENIED')`),
-    index('audit_log_occurred_idx').on(t.occurredAt.desc(), t.id.desc()),
+    index('audit_log_occurred_idx').on(
+      t.occurredAt.desc().nullsFirst(),
+      t.id.desc().nullsFirst(),
+    ),
     index('audit_log_actor_idx').on(
       t.actorId,
-      t.occurredAt.desc(),
-      t.id.desc(),
+      t.occurredAt.desc().nullsFirst(),
+      t.id.desc().nullsFirst(),
     ),
-    index('audit_log_candidate_idx').on(t.candidateId),
+    index('audit_log_entity_idx').on(
+      t.entityType,
+      t.entityId,
+      t.occurredAt.desc().nullsFirst(),
+    ),
+    index('audit_log_candidate_idx')
+      .on(t.candidateId)
+      .where(sql`${t.candidateId} IS NOT NULL`),
   ],
 );
 
@@ -405,7 +427,9 @@ export const fileObject = app.table(
     sizeBytes: bigint('size_bytes', { mode: 'bigint' }).notNull(),
     sha256: bytes('sha256'),
     etag: text('etag'),
-    scanStatus: text('scan_status').notNull().default('NOT_SCANNED'),
+    scanStatus: text('scan_status', { enum: ['NOT_SCANNED'] })
+      .notNull()
+      .default('NOT_SCANNED'),
     uploadedBy: uuid('uploaded_by').references(() => appUser.id, {
       onDelete: 'restrict',
     }),
@@ -416,6 +440,14 @@ export const fileObject = app.table(
     version: version(),
   },
   (t) => [
+    check(
+      'file_object_bucket_chk',
+      sql`${t.bucket} IN ('cv','polygraph','offer','attachment')`,
+    ),
+    check(
+      'file_object_scan_status_chk',
+      sql`${t.scanStatus} IN ('NOT_SCANNED')`,
+    ),
     check(
       'file_object_size_chk',
       sql`${t.sizeBytes} > 0 AND ${t.sizeBytes} <= CASE ${t.bucket} WHEN 'polygraph' THEN 15728640 WHEN 'offer' THEN 5242880 WHEN 'cv' THEN 10485760 WHEN 'attachment' THEN 10485760 ELSE 0 END`,
@@ -442,8 +474,10 @@ export const fileObject = app.table(
     ),
     check('file_object_version_chk', sql`${t.version} > 0`),
     index('file_object_cleanup_idx')
-      .on(t.createdAt)
-      .where(sql`${t.status} = 'PENDING'`),
+      .on(t.status, t.createdAt)
+      .where(
+        sql`${t.status} = 'PENDING' OR (${t.status} = 'PURGED' AND ${t.storageDeletedAt} IS NULL)`,
+      ),
   ],
 );
 

@@ -2,10 +2,15 @@ import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { parseLocalDatabaseTargets } from '../../../lib/env';
+import {
+  assertDisposableLocalData,
+  parseLocalDatabaseTargets,
+} from '../../../lib/env';
+import { fixedClockNow } from '../../../lib/fixed-clock';
 import * as schema from '../schema';
+import { toolErrorSummary } from '../tool-error';
 
-export const DEMO_CLOCK = new Date('2026-11-16T08:00:00.000Z');
+const DEMO_CLOCK = fixedClockNow();
 export function demoId(key: string): string {
   const hash = createHash('sha256').update(`hris:phase1:${key}`).digest('hex');
   return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-4${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
@@ -108,6 +113,7 @@ export async function seedDemo(
   });
   const db = drizzle(client, { schema });
   try {
+    await assertDisposableLocalData(client);
     await db.transaction(async (tx) => {
       await tx.execute('SELECT pg_advisory_xact_lock(742918604)');
       const record = async (
@@ -226,12 +232,6 @@ export async function seedDemo(
             verticalId,
           );
       }
-      const settings = await tx
-        .insert(schema.appSetting)
-        .values({ updatedAt: DEMO_CLOCK, updatedBy: adminId })
-        .onConflictDoNothing()
-        .returning({ id: schema.appSetting.id });
-      if (settings.length) await record('settings.updated', 'app_setting', '1');
       const sentAt = new Date('2020-01-10T08:00:00.000Z');
       const invites = await tx
         .insert(schema.userInvite)
@@ -286,9 +286,9 @@ if (
         'Local Phase 1 database fixture loaded; Supabase Auth provisioning is separate',
       ),
     )
-    .catch(() => {
+    .catch((error: unknown) => {
       console.error(
-        'Phase 1 seed refused or failed; verify local environment and migration privileges',
+        `Phase 1 seed refused or failed (${toolErrorSummary(error)}); verify local environment and migration privileges`,
       );
       process.exitCode = 1;
     });

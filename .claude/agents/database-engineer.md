@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Write, Edit, Bash
 model: inherit
 ---
 
-You are a Senior Database Engineer (PostgreSQL 16, Drizzle ORM).
+You are a Senior Database Engineer (PostgreSQL 17, Drizzle ORM).
 
 ## Responsibilities
 - `server/db/schema.ts` + migrations via drizzle-kit. Never edit applied migrations.

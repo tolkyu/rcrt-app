@@ -20,7 +20,7 @@
 ## Decision
 Option A, exactly as `CLAUDE.md` §2. Key points:
 - Next.js 15 App Router, React 19, Node runtime, TypeScript strict; REST `/api/v1` for all mutations (ADR-006); RSC prefetch + TanStack Query (ADR-007).
-- PostgreSQL 16 on Supabase eu-central-1; Drizzle + `postgres.js` via Supavisor transaction pooler (`prepare: false`).
+- PostgreSQL 17 on Supabase eu-central-1; Drizzle + `postgres.js` via Supavisor transaction pooler (`prepare: false`).
 - Supabase Auth (magic link + Google), JWT verified locally with `jose` against cached JWKS (asymmetric signing keys enabled on the project).
 - Supabase Storage private buckets, direct browser upload (ADR-005).
 - Vercel fra1, Vercel Cron (ADR-004), Resend + React Email, `@react-pdf/renderer`, next-intl `uk` (ADR-009).

@@ -26,7 +26,7 @@ jobs:
       NEXT_TELEMETRY_DISABLED: '1'
     services:
       postgres:
-        image: postgres:16.13-alpine
+        image: postgres:17.11-bookworm@sha256:839fbb5a4942a7758dd93e18b42ea5649807491a0545b5eeeb8f0b8bb11857a5
         env:
           POSTGRES_USER: recruiting_test
           POSTGRES_PASSWORD: local_test_only

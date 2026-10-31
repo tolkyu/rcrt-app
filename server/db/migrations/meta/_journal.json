@@ -22,6 +22,13 @@
       "when": 1793433660909,
       "tag": "0002_auth_session_status_view",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793448234776,
+      "tag": "0003_file_object_checks_event_indexes",
+      "breakpoints": true
     }
   ]
 }

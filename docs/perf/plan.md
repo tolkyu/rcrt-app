@@ -8,7 +8,7 @@ Principle: the server does one indexed query per screen region, the client rende
 
 ## 1. Budgets and CI gates
 
-### 1.1 PERF-02 — API / service P95 (server time; gated on Docker PG16, verified in fra1 ↔ eu-central-1 before launch)
+### 1.1 PERF-02 — API / service P95 (server time; gated on Docker PG17, verified in fra1 ↔ eu-central-1 before launch)
 
 | Class | Endpoints (examples) | P95 budget | Internal target | Measured by | Gate |
 |---|---|---|---|---|---|
@@ -19,7 +19,7 @@ Principle: the server does one indexed query per screen region, the client rende
 | Queries per request | every route handler | list ≤ 3 (roles + list + optional count), card ≤ 5, mutation ≤ 15 statements | — | integration-test query counter (postgres.js `debug` hook) | Vitest failure |
 | Production | all routes | same as above | — | Sentry Performance P95 per transaction + pino logs | alert (not build) when P95 > budget for 1 h |
 
-**Perf environment (owner decision: no paid Supabase tier).** Every gated perf run (k6, EXPLAIN, 50k seed) uses a local **PostgreSQL 16 in Docker**, both locally and as a CI service container. CI gates therefore prove query plans and app-side cost, not fra1 ↔ Supabase latency. Absolute numbers on Supabase + the Supavisor pooler will differ: they add network RTT (~1–2 ms in-region per statement), pooler hop and shared CPU. Pooler- and region-specific checks are verified on the **staging free tier before launch** (§8.7), not gated.
+**Perf environment (owner decision: no paid Supabase tier).** Every gated perf run (k6, EXPLAIN, 50k seed) uses a local **PostgreSQL 17 in Docker**, both locally and as a CI service container. CI gates therefore prove query plans and app-side cost, not fra1 ↔ Supabase latency. Absolute numbers on Supabase + the Supavisor pooler will differ: they add network RTT (~1–2 ms in-region per statement), pooler hop and shared CPU. Pooler- and region-specific checks are verified on the **staging free tier before launch** (§8.7), not gated.
 
 ### 1.2 PERF-03 — Web vitals
 
@@ -103,7 +103,7 @@ Invalidation is targeted: mutations invalidate only keys for the affected `candi
 
 ### 2.6 Multi-vertical ordered list (index-friendly `ANY`)
 
-PG16 can't return `vertical_id = ANY($1) ORDER BY ts` straight from the index; it sorts every row in scope. When a user has several verticals, the repository uses a LATERAL per vertical instead, so each branch is a bounded index range scan:
+PG17 can't return `vertical_id = ANY($1) ORDER BY ts` straight from the index; it sorts every row in scope. When a user has several verticals, the repository uses a LATERAL per vertical instead, so each branch is a bounded index range scan:
 
 ```sql
 SELECT x.* FROM unnest($verticals::uuid[]) v(id)
@@ -169,7 +169,7 @@ The candidate has exactly one vertical (owner 2026-10-31), so candidate V scope 
 
 ## 4. Hot paths
 
-Expected P95 = server time on the PERF-01 seed on local Docker PostgreSQL 16 with warm caches; it's an estimate to verify in Phase 1–4 runs. On Supabase + Supavisor, expect roughly +1–2 ms per statement (more on the free tier's shared CPU). Budgets in §1.1 leave headroom for this.
+Expected P95 = server time on the PERF-01 seed on local Docker PostgreSQL 17 with warm caches; it's an estimate to verify in Phase 1–4 runs. On Supabase + Supavisor, expect roughly +1–2 ms per statement (more on the free tier's shared CPU). Budgets in §1.1 leave headroom for this.
 
 ### 4.1 Dashboard — My tasks (UI-01)
 
@@ -401,13 +401,13 @@ Notes: `application` ends with 15 indexes in erd (16 with P-01). A stage move is
 
 Deterministic PRNG seed; bulk insert via `COPY`/`generate_series`; `ANALYZE` at the end; target < 90 s. CI caches a `pg_dump -Fc` keyed by `hash(migrations + seed-perf.ts)` and restores it in about 10 s.
 
-**Database for perf runs:** `postgres:16` Docker image (`docker-compose.perf.yml` locally, GitHub Actions `services:` container in CI), with `pg_trgm` and the Supabase-specific objects the migrations need (auth schema stub, roles) created by a bootstrap SQL. It is initialised with `LC_COLLATE`/`LC_CTYPE` matching Supabase (verify in Phase 1, R6), and `shared_buffers` / `work_mem` are set to Supabase free-tier values so plans resemble production. The app connects with the same driver settings as production (`prepare: false`, `max: 4`). An optional PgBouncer container in transaction mode approximates Supavisor, to catch session-state and prepared-statement bugs.
+**Database for perf runs:** `postgres:17` Docker image (`docker-compose.perf.yml` locally, GitHub Actions `services:` container in CI), with `pg_trgm` and the Supabase-specific objects the migrations need (auth schema stub, roles) created by a bootstrap SQL. It is initialised with `LC_COLLATE`/`LC_CTYPE` matching Supabase (verify in Phase 1, R6), and `shared_buffers` / `work_mem` are set to Supabase free-tier values so plans resemble production. The app connects with the same driver settings as production (`prepare: false`, `max: 4`). An optional PgBouncer container in transaction mode approximates Supavisor, to catch session-state and prepared-statement bugs.
 
 ### 8.2 Lighthouse CI (`lighthouserc.cjs`)
 
 | Item | Setting |
 |---|---|
-| Server | `next start -p 3100` on the production build, Docker PostgreSQL 16 with perf seed, `NODE_ENV=production` |
+| Server | `next start -p 3100` on the production build, Docker PostgreSQL 17 with perf seed, `NODE_ENV=production` |
 | Auth (DG-01, T-A01) | NODE_ENV can't separate a perf build from prod (both are production builds), so isolation works as follows: (1) **build-time flag:** the perf token verifier is compiled in only when `PERF_BUILD=1` is set at `next build` (`process.env.PERF_BUILD` inlined → the code is eliminated from normal builds). The perf build is a separate artifact that is never deployed. (2) **boot guard:** the server throws at startup if the override is present and `VERCEL_ENV=production`. (3) **ephemeral keys:** each CI job (and each local `perf:check` run) generates a fresh ES256 key pair in a temp directory with a random `kid`. Neither key is committed, cached, uploaded as an artifact or stored as a secret, and both are deleted when the job ends. (4) **tokens:** TTL ≤ 15 min; each token carries a `session_id` that the signer also inserts into the Docker DB's `auth.sessions` table, so the DG-05 context check runs exactly as in prod (same cost in k6 numbers). `puppeteerScript` sets the session cookie; k6 uses Bearer and re-mints before expiry. There is no dev-login route |
 | Prod-bundle check | CI step after the normal production build: grep `.next/server`, `.next/static` and the Vercel output for the perf verifier module marker and the job's perf `kid`; any hit fails the build. A unit test also asserts that the prod verifier rejects a token signed with a non-Supabase `kid` |
 | Routes | `/` (dashboard as head recruiter), `/vacancies/[seeded id]`, `/candidates/[seeded id with 40 events]`, `/statistics` (as Finance, 1-year range) |
@@ -438,7 +438,7 @@ Deterministic PRNG seed; bulk insert via `COPY`/`generate_series`; `ANALYZE` at 
 | `statistics.js` | each tab, month / quarter / year, recruiter / head / Finance | 3×30 s / 10×2 min | p(95) < 150 |
 | `search.js` | 1–12 char queries, Cyrillic + email + phone fragments | 5×30 s / 20×2 min | p(95) < 150 |
 
-All scripts also assert `http_req_failed < 1%` and a loose `http_req_duration p(95)` (network included) to catch proxy issues. Tokens come from the perf-only signing helper (§8.2, Bearer header). PR and nightly both run against the local `next start` + Docker PostgreSQL 16; nightly only raises VUs and duration.
+All scripts also assert `http_req_failed < 1%` and a loose `http_req_duration p(95)` (network included) to catch proxy issues. Tokens come from the perf-only signing helper (§8.2, Bearer header). PR and nightly both run against the local `next start` + Docker PostgreSQL 17; nightly only raises VUs and duration.
 
 ### 8.4 EXPLAIN checks (`pnpm perf:explain`)
 
@@ -463,12 +463,12 @@ All scripts also assert `http_req_failed < 1%` and a loose `http_req_duration p(
 | 1 | Production build + size-limit | `perf:size` | ✅ | ✅ |
 | 2 | Restore/seed perf DB + EXPLAIN harness | `perf:db`, `perf:explain` | ✅ | ✅ |
 | 3 | Start prod server | `perf:serve` | ✅ | ✅ |
-| 4 | k6 | `perf:k6` | smoke profile vs Docker PG16 | full profile vs Docker PG16 |
+| 4 | k6 | `perf:k6` | smoke profile vs Docker PG17 | full profile vs Docker PG17 |
 | 5 | Lighthouse CI | `perf:lhci` | desktop ×3 + mobile 4G ×3 | desktop + mobile 4G ×5, user-flow INP |
 | 6 | Route transitions | `perf:nav` (Playwright) | ✅ | ✅ |
 | 7 | Aggregate drift check | `perf:drift` (recount vs counters) | — | ✅ |
 
-PR job runs in parallel with E2E, about 12 min target, and is a required check. The nightly run (02:00 Europe/Kyiv, GitHub Actions with Docker PG16) opens a GitHub issue on regression. Per-phase results go into `docs/perf/report-phase-N.md`.
+PR job runs in parallel with E2E, about 12 min target, and is a required check. The nightly run (02:00 Europe/Kyiv, GitHub Actions with Docker PG17) opens a GitHub issue on regression. Per-phase results go into `docs/perf/report-phase-N.md`.
 
 ### 8.7 Staging free-tier verification (not gated; Phase 7 and before launch)
 
@@ -488,8 +488,8 @@ PR job runs in parallel with E2E, about 12 min target, and is a required check. 
 
 | # | Risk | Impact | Mitigation |
 |---|---|---|---|
-| R1 | **Supavisor transaction mode + `prepare: false`**: every statement is re-planned; no session state; `Promise.all` needs several pooled connections; connection storms on scale-out. CI uses Docker PG16 without Supavisor, so these effects are not gated | +0.2–1 ms/query planning; serialised parallel loads; pooler saturation | Keep queries simple (no giant `IN` lists, arrays as params). postgres.js `max: 4`, `idle_timeout: 20`, `connect_timeout: 5` per instance, so card `Promise.all` (3–4) never queues. Session settings only via `SET LOCAL` inside txns; `pg_advisory_xact_lock` only. Optional PgBouncer transaction-mode container in CI. **Verify on staging free tier before launch** (§8.7) |
-| R1b | **Docker PG16 ≠ Supabase** (no network RTT, no pooler, different CPU/memory, possibly different locale) | CI green but production slower | Same driver settings and tuned `shared_buffers`/`work_mem`; budgets kept with headroom (targets ≈ half the budget); locale aligned; staging free-tier checks (§8.7) before launch |
+| R1 | **Supavisor transaction mode + `prepare: false`**: every statement is re-planned; no session state; `Promise.all` needs several pooled connections; connection storms on scale-out. CI uses Docker PG17 without Supavisor, so these effects are not gated | +0.2–1 ms/query planning; serialised parallel loads; pooler saturation | Keep queries simple (no giant `IN` lists, arrays as params). postgres.js `max: 4`, `idle_timeout: 20`, `connect_timeout: 5` per instance, so card `Promise.all` (3–4) never queues. Session settings only via `SET LOCAL` inside txns; `pg_advisory_xact_lock` only. Optional PgBouncer transaction-mode container in CI. **Verify on staging free tier before launch** (§8.7) |
+| R1b | **Docker PG17 ≠ Supabase** (no network RTT, no pooler, different CPU/memory, possibly different locale) | CI green but production slower | Same driver settings and tuned `shared_buffers`/`work_mem`; budgets kept with headroom (targets ≈ half the budget); locale aligned; staging free-tier checks (§8.7) before launch |
 | R2 | **Authz scope as `OR` across tables / mixed roles** defeats indexes | Seq scans and P95 blow-ups for recruiters/TLs/mixed users | Scope branches (§3) + denormalised `vertical_id`/`team_lead_id`/`max_stage_reached` + partial indexes IDX-06..08, IDX-12 and P-01 (recruiter `own` = owner OR sourcer); EXPLAIN harness per role fixture is a CI gate |
 | R3 | **Auth network round trip per request** (`supabase.auth.getUser()` in middleware/RSC; JWKS fetch on cold start) | +30–100 ms on every request | Verify JWT locally with `jose`; build-time Supabase JWKS snapshot + module-scope cache with cooldown refresh, only Supabase `kid`s trusted (no env-pinned keys, DG-01); session validity checked in the single context query (DG-05, no extra round trip); middleware refreshes the session only when the ≤ 15 min token is near expiry; `getUser()` only on sensitive actions if security requires |
 | R3b | **Perf token signer reaching prod** (T-A01, top security risk) | Anyone could mint Admin tokens | `PERF_BUILD=1` compile-time inclusion only, prod boot guard on `VERCEL_ENV=production`, ephemeral per-job key pair, Supabase-only `kid`s in prod, CI bundle grep (§8.2) |
@@ -498,8 +498,8 @@ PR job runs in parallel with E2E, about 12 min target, and is a required check. 
 | R6 | **pg_trgm with Cyrillic**: if the DB `LC_CTYPE` is `C`, Cyrillic letters are not word chars, so the trigrams break | Search returns nothing / slow | Phase 1 check: `SELECT show_trgm('Олена')` on Supabase free tier and the Docker image (same locale); if broken, generate `search_text` with a Latin transliteration column in addition. Apostrophe variants normalised |
 | R7 | **JS budget 180 KB** squeezed by baseline + Sentry + dnd-kit + forms | Gate failures late in the project | Lazy rules (§7), per-route size-limit from Phase 1, Sentry errors-only lazy, dnd-kit on idle |
 | R8 | **Aggregate drift / lock contention** on counters | Wrong funnel/stats; deadlocks on concurrent moves | Same-txn updates in deterministic lock order; nightly reconcile + drift alert; integration tests assert counter = recount |
-| R9 | **CI noise** (shared runners) gives flaky gates | False failures | Server-time (not RTT) thresholds; LHCI medians; PR = smoke profile, nightly = full profile, both on Docker PG16; fixed seed and restored dump |
-| R10 | **Staging free tier** (shared CPU, low RAM, pausing on inactivity) is too small for 50k-seed load runs | Staging P95 not representative | Owner decision Q6: no paid tier. Gated runs on Docker PG16; staging free tier used only for the functional/latency checks in §8.7 with small load; staging numbers are reported, not gated |
+| R9 | **CI noise** (shared runners) gives flaky gates | False failures | Server-time (not RTT) thresholds; LHCI medians; PR = smoke profile, nightly = full profile, both on Docker PG17; fixed seed and restored dump |
+| R10 | **Staging free tier** (shared CPU, low RAM, pausing on inactivity) is too small for 50k-seed load runs | Staging P95 not representative | Owner decision Q6: no paid tier. Gated runs on Docker PG17; staging free tier used only for the functional/latency checks in §8.7 with small load; staging numbers are reported, not gated |
 | R11 | **`entity_event` growth** beyond the seed (millions) | Timeline and reconcile slow down | Timeline is always an index range with LIMIT (IDX-31/32); reconcile uses `(type, occurred_at)` (N04) over a 7-day window; partitioning by month is revisited only if > 10M rows |
 | R12 | **Signed-URL generation** in card paths | +20–50 ms per file | URLs generated on click only, never in list/card queries |
 
@@ -514,7 +514,7 @@ PR job runs in parallel with E2E, about 12 min target, and is a required check. 
 | Q3 | CV preview: native browser PDF viewer (iframe) instead of an in-app pdf.js viewer? | Yes. It saves about 300 KB of lazy JS; DOC/DOCX are download-only |
 | Q4 | Chart library choice (ADR) | Lightweight SVG lib (≤ 45 KB gz lazy) instead of Recharts (~100 KB) |
 | Q5 | STAT-03 time metrics: averages enough, or medians/percentiles required? | Averages in v1 (additive aggregates); medians via histogram buckets later if needed |
-| Q6 | Paid Supabase compute for staging perf runs | **Resolved (owner):** no paid tier. All perf runs (k6, EXPLAIN gates, 50k seed) use local PostgreSQL 16 in Docker (local + CI service container); pooler/region checks are done on the staging free tier before launch (§8.7) |
+| Q6 | Paid Supabase compute for staging perf runs | **Resolved (owner):** no paid tier. All perf runs (k6, EXPLAIN gates, 50k seed) use local PostgreSQL 17 in Docker (local + CI service container); pooler/region checks are done on the staging free tier before launch (§8.7) |
 | Q7 | Can an application's vertical differ from its candidate's vertical? | **Resolved (owner 2026-10-31):** one vertical per candidate; candidate V scope = `c.vertical_id` (IDX-14) |
 | Q8 | STAT-03: is time-in-stage needed **per recruiter**? `stat_stage_time_daily` was dropped (erd C9); time-in-stage now exists per vacancy/TL/position only | If yes: add a `recruiter_id` dimension to the time-in-stage columns of `stat_vacancy_daily` (more rows, same query shape) rather than a new table |
 | Q9 | C13 board sort | **Resolved (architect):** `stage_entered_at DESC, id DESC` (§4.3) |

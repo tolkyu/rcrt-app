@@ -1,7 +1,7 @@
-# ERD — PostgreSQL 16 schema design (Phase 0)
+# ERD — PostgreSQL 17 schema design (Phase 0)
 
 Owner: `database-engineer`. Sources: PRD v1.1 (incl. BONUS-16), owner decisions 2026-10-31, `architecture.md` §4/§9, `authz-matrix.md` §3, `pipeline-state-machine.md`, ADR-002/003/004/005/007/008, `perf/plan.md` §3/§6/§8.1, `security/threat-model.md` (DG-xx).
-Status: design only. Drizzle schema (`server/db/schema.ts`) and migrations are written in Phase 1+, table by table with their feature phase.
+Status: Phase 1 tables are built (`server/db/schema.ts`, migrations `0000`–`0003`); other tables arrive with their feature phase. Built-vs-deferred items: §10.
 Precedence: owner decisions → architect docs → perf plan. Every conflict is listed in §6. Security requirements are in §7. `⚠ OPEN` = PRD gap, waiting for the owner (§8).
 
 ---
@@ -11,7 +11,7 @@ Precedence: owner decisions → architect docs → perf plan. Every conflict is 
 | Topic | Rule |
 |---|---|
 | Schema / roles | All tables in schema `app`, not exposed via PostgREST. Roles (DG-17/22): `app_migrator` (owner, DDL, CI from `main` only), `app_rw` (runtime DML, `BYPASSRLS`, not owner, not a member of `app_purge`), `app_purge` (owner of `app.purge_candidate`, no login from the app). RLS enabled on every table, no policies for `anon`/`authenticated` (deny-all, ADR-002). Grants: §3.9 |
-| Supabase objects | `storage.objects`: **zero** policies for `anon`/`authenticated` (DG-03), access only via the service role after an app authz check. `realtime.messages`: one `SELECT` policy via a `SECURITY DEFINER` helper with fixed `search_path`, **no `INSERT` policy** for clients (DG-11). `app_rw` gets `SELECT` on `auth.sessions` for the per-request session check (DG-05) |
+| Supabase objects | `storage.objects`: **zero** policies for `anon`/`authenticated` (DG-03), access only via the service role after an app authz check. `realtime.messages`: one `SELECT` policy via a `SECURITY DEFINER` helper with fixed `search_path`, **no `INSERT` policy** for clients (DG-11). Session check (DG-05): view `app.auth_session_status (id, user_id, not_after)` (`security_barrier`, owned by the migration executor, migration `0002`); `app_rw` has `SELECT` on the view only and no `USAGE` on schema `auth` (`0003`), so it never sees refresh-token or IP columns |
 | Keys | Entity tables: `id uuid DEFAULT gen_random_uuid()`. High-volume append tables (`entity_event`, `audit_log`, `change_feed`, `job_run`, `stat_*`, `purge_log`): `id bigint GENERATED ALWAYS AS IDENTITY`. Join tables: composite PK |
 | FKs | `ON DELETE RESTRICT`, no cascades: nothing business is hard-deleted (ARCH-05). Composite FKs pin denormalised `vertical_id` columns (§3.6). FK columns are indexed only where a query needs one (§5), because parents are never deleted |
 | Time | `timestamptz` (UTC) for instants. `date` for Kyiv calendar dates (probation, offer start, `due_date`, stats `day`, FX date, consent, leave date). Kyiv dates are computed in the app from the injected clock (`@date-fns/tz`), never `now()::date` in SQL |
@@ -533,6 +533,7 @@ NN = NOT NULL. Defaults left blank = none.
 | retention_rejected_months | smallint | null | | ARCH-04 proposals; null = off (O-16) |
 | updated_at, updated_by | | | | |
 - A typed single row, not key/value, so it gets CHECKs and a real FK for the global scheme. Changes are audited and emit `entity_event` (`subject_type='app_setting'`).
+- The row is inserted by migration `0003` (`DEFAULT VALUES ON CONFLICT DO NOTHING`), so every environment has it without the seed.
 
 #### `saved_filter`
 | Column | Type | Null | Default | Notes |
@@ -668,12 +669,12 @@ NN = NOT NULL. Defaults left blank = none.
 | size_bytes | bigint | NN | | real size from Storage metadata at `complete` |
 | sha256 | bytea | null | | nulled on purge |
 | etag | text | null | | recorded at `complete`, re-checked on URL issue (DG-12); nulled on purge |
-| scan_status | text | NN | 'NOT_SCANNED' | Phase 7 antivirus |
+| scan_status | text | NN | 'NOT_SCANNED' | CHECK `file_object_scan_status_chk`: `NOT_SCANNED` only in v1; Phase 7 antivirus widens the list (ADR-005) |
 | uploaded_by | uuid | null | | FK; `complete` is accepted only from this user (DG-12). Null = server-generated offer letter |
 | created_at | timestamptz | NN | now() | |
 | completed_at | timestamptz | null | | |
 | purged_at / storage_deleted_at | timestamptz | null | | the storage object is removed after commit; the job retries until `storage_deleted_at` is set |
-- CHECK `file_object_size_chk`: `cv` ≤ 10 MiB, `polygraph` ≤ 15 MiB, `offer` ≤ 5 MiB, `attachment` ≤ 10 MiB. CHECK `file_object_mime_chk`: `polygraph`/`offer` ⇒ `application/pdf`; `cv` ⇒ pdf/msword/docx; `attachment` ⇒ also png/jpeg. CHECK `READY ⇒ completed_at`; `PURGED ⇒ original_filename, sha256, etag IS NULL AND purged_at IS NOT NULL`; `bucket <> 'offer' ⇒ uploaded_by IS NOT NULL`.
+- CHECK `file_object_bucket_chk`: `bucket IN ('cv','polygraph','offer','attachment')`. CHECK `file_object_size_chk`: `cv` ≤ 10 MiB, `polygraph` ≤ 15 MiB, `offer` ≤ 5 MiB, `attachment` ≤ 10 MiB. CHECK `file_object_mime_chk`: `polygraph`/`offer` ⇒ `application/pdf`; `cv` ⇒ pdf/msword/docx; `attachment` ⇒ also png/jpeg. CHECK `READY ⇒ completed_at`; `PURGED ⇒ original_filename, sha256, etag IS NULL AND purged_at IS NOT NULL`; `bucket <> 'offer' ⇒ uploaded_by IS NOT NULL`.
 
 #### `application`
 | Column | Type | Null | Default | Notes |
@@ -1226,9 +1227,10 @@ Exact column list. Every column holding candidate PII is tagged `pii` in the Dri
 | Role | Grants |
 |---|---|
 | `app_migrator` | owner of schema `app`; DDL; used only by CI migrations from `main` |
-| `app_rw` | `SELECT, INSERT, UPDATE, DELETE` on business tables, except: no `UPDATE/DELETE/TRUNCATE` on `entity_event`, `entity_event_pii`, `audit_log`, `candidate_vertical_transfer`, `purge_log`; `bonus_snapshot` only `INSERT` + `UPDATE (voided_at, voided_by)`; `purge_log` `SELECT` only; `EXECUTE` on `app.purge_candidate`, `app.reapply_purges`; `SELECT` on `auth.sessions` (DG-05). Not a member of `app_purge` |
+| `app_rw` | `SELECT, INSERT, UPDATE, DELETE` on business tables, except: no `UPDATE/DELETE/TRUNCATE` on `entity_event`, `entity_event_pii`, `audit_log`, `candidate_vertical_transfer`, `purge_log`; no `DELETE` on `vertical`, `app_user`, `app_setting`, `file_object`; `bonus_snapshot` only `INSERT` + `UPDATE (voided_at, voided_by)`; `purge_log` `SELECT` only; `EXECUTE` on `app.purge_candidate`, `app.reapply_purges`; `SELECT` on `app.auth_session_status` only, no access to schema `auth` (DG-05). Not a member of `app_purge` |
 | `app_purge` | owner of the purge functions; `DELETE` on `entity_event_pii`; `UPDATE (before, after)` on `audit_log`; `UPDATE` on the PII columns listed in §3.8; `INSERT` on `purge_log` |
-| `anon`, `authenticated` | nothing on `app`; zero `storage.objects` policies (DG-03); `realtime.messages`: `SELECT` policy only, no `INSERT` (DG-11) |
+| `anon`, `authenticated`, `PUBLIC` | nothing on `app`; zero `storage.objects` policies (DG-03); `realtime.messages`: `SELECT` policy only, no `INSERT` (DG-11) |
+- The integration grant-matrix test asserts the exact ACL of every `app` table, column, sequence, view, function and the schema, so any extra grant fails CI.
 
 ### 3.10 Other uniqueness and CHECK guarantees
 | Rule | Constraint |
@@ -1359,8 +1361,10 @@ ACTIVE / LIVE per §0. `N..` = added here. "Merge" = one index serves several pr
 | IDX-50 | job_run | UQ `(job_name, run_key)` | keep | ADR-004 |
 | N25 | reference/identity | UQ `vertical lower(name)`, `position (vertical_id, lower(name))`, `app_user(email)`, `app_user(auth_user_id)`, `user_invite(token_hash)`, partial UQ `user_invite(user_id)` pending, `bonus_scheme`/`offer_template`/`polygraph_location lower(name)`, `payout_period(period)`, `saved_filter(user_id, screen, lower(name))` | add | integrity |
 
+- Every `DESC` key is plain `DESC` (= `NULLS FIRST`): Drizzle's `.desc()` alone emits `DESC NULLS LAST`, which can't serve `ORDER BY … DESC` without a sort. Schema code uses `.desc().nullsFirst()`; migration `0003` rebuilt the `0000` indexes, and an integration test checks the plans.
+- Phase 1 built: IDX-31, IDX-32, N03 (partial), N04, N05, IDX-45, IDX-46 PK, IDX-47 as btree `(occurred_at DESC, id DESC)` + `(entity_type, entity_id, occurred_at DESC)` + `(actor_id, occurred_at DESC, id DESC)` (BRIN dropped: the btree also gives the id tiebreak), N22, N24, N25 (Phase-1 tables), N30, IDX-50; `change_feed (created_at)` btree stands in for IDX-48 until the volume justifies BRIN.
 - `application` ends with 16 indexes (incl. IDX-51) (perf estimate: 13). A stage move is a non-HOT update (~1 ms), accepted by perf plan §6. Phase 7: drop anything with `idx_scan = 0` on the perf run; `ANALYZE` after the perf seed.
-- `EXPLAIN ANALYZE` per role fixture (perf §8.4) gates Phases 2–4, on local Docker PostgreSQL 16 (owner D15 / 2026-10-31: no paid infrastructure).
+- `EXPLAIN ANALYZE` per role fixture (perf §8.4) gates Phases 2–4, on local Docker PostgreSQL 17 (owner D15 / 2026-10-31: no paid infrastructure).
 
 ---
 
@@ -1423,7 +1427,7 @@ From `docs/security/threat-model.md` §7, schema-relevant items only.
 | DG / threat | Requirement | Where in this ERD |
 |---|---|---|
 | DG-03 / T-F01 | `storage.objects`: zero policies for `anon`/`authenticated`; test with a user JWT | §0 Supabase objects, §3.9 |
-| DG-05 / T-A09 | context query validates `session_id` against `auth.sessions` | `app_rw` `SELECT` on `auth.sessions` (§3.9) |
+| DG-05 / T-A09 | context query validates `session_id` against `auth.sessions` | view `app.auth_session_status`, `app_rw` `SELECT` on the view only (§0, §3.9) |
 | DG-07 / T-A05 | invite: 256-bit token, SHA-256 at rest, atomic single-use consume, resend invalidates, revoke | `user_invite` (`token_hash` UQ, atomic `UPDATE … RETURNING`, rotation on resend) |
 | DG-09 / T-A12, T-E06 | Postgres fixed-window limiter | `rate_limit_bucket` (UNLOGGED, HMAC keys) |
 | DG-11 / T-Z08 | Realtime private-only; **no client INSERT on `realtime.messages`**; `SECURITY DEFINER` policy helper with fixed `search_path`; ids-only payload, no `actorId` | §0, §3.9; `change_feed` (opaque ids, `mutation_id`, no actor column) |
@@ -1484,7 +1488,7 @@ Resolved by the owner on 2026-10-31 and removed from this list: Q-13 (candidate 
 | user_role | 14 | head.hr and hr in both verticals (Q-43 default); 1 for the deactivated recruiter |
 | user_invite | 1 | expired |
 | team_lead_priority | 3 | Василь 0, Тарас 1 (Гемблінг), tl.crypto 0 |
-| app_setting | 1 | |
+| app_setting | 1 | inserted by migration `0003`, not the seed |
 | saved_filter | 2 | |
 | position | 2 | «Медіабаєр — Facebook» (Гемблінг) + 1 Crypto position (proposal, so tl.crypto has data) |
 | vacancy | 6 | Vasyl OPEN, Taras OPEN (same group), recruiter-initiated (no TL), Crypto OPEN, 1 FILLED (Closed tab), 1 with a BONUS-16 amount |
@@ -1508,7 +1512,7 @@ Resolved by the owner on 2026-10-31 and removed from this list: Q-13 (candidate 
 | vacancy_stage_count, stat_* | built by running the reconcile jobs | |
 | purge_log / rate_limit_bucket / change_feed / job_run / stat_dirty_day | 0 | |
 
-### 9.2 Perf seed `pnpm db:seed:perf` (PERF-01; perf plan §8.1; local Docker PG16; `≈` = derived here)
+### 9.2 Perf seed `pnpm db:seed:perf` (PERF-01; perf plan §8.1; local Docker PG17; `≈` = derived here)
 | Table | Rows |
 |---|---|
 | vertical | 10 (2 large, 30 % each) |
@@ -1533,3 +1537,20 @@ Resolved by the owner on 2026-10-31 and removed from this list: Q-13 (candidate 
 | stat_recruiter_daily / stat_vacancy_daily / stat_hr_daily / stat_rejection_daily / stat_bonus_monthly | built by the reconcile jobs (≈60k / ≈150k / ≈10k / ≈20k / ≈2k) |
 | rejection_reason / bonus_scheme / polygraph_location / offer_template | 8 / 4 / 10 / 3 |
 | rate_limit_bucket / change_feed / job_run | 0 |
+
+---
+
+## 10. Implementation status and deferred items
+
+| Item | Status | Phase |
+|---|---|---|
+| Phase-1 tables (`vertical`, `app_user`, `user_role`, `user_invite`, `team_lead_priority`, `app_setting`, `saved_filter`, `entity_event`, `entity_event_pii`, `audit_log`, `file_object`, `change_feed`, `job_run`, `rate_limit_bucket`), roles, grants, RLS, append-only triggers | ✅ `0000`–`0003` | 1 |
+| DG-05 session bridge `app.auth_session_status` | ✅ `0002`; `0003` removes `app_rw` `USAGE` on `auth` | 1 |
+| FK `audit_log.candidate_id` → `candidate` | deferred: `candidate` doesn't exist yet | 2 |
+| FKs `entity_event.vacancy_id` / `candidate_id` / `application_id` | deferred: parent tables arrive in Phase 2 (`application` with the pipeline) | 2 |
+| `vertical.default_bonus_scheme_id`, `app_setting.global_bonus_scheme_id` (+ FK `bonus_scheme`) | deferred: columns added with `bonus_scheme` | 4 |
+| `change_feed` `AFTER INSERT` trigger → `realtime.send` (ADR-007) | deferred: no feature publishes changes yet | with the first live board (2–3) |
+| `purge_log`, `app.purge_candidate`, `app.reapply_purges`, `app_purge` PII-column grants (§3.8) | deferred: need the candidate PII tables | 5 |
+| Perf seed `pnpm db:seed:perf` | deferred (SEED-1) | 2 |
+
+- Migration `0003` is reversible: recreate the old index definitions, drop `file_object_bucket_chk` / `file_object_scan_status_chk`, re-grant `USAGE ON SCHEMA auth` to `app_rw`; the `app_setting` row stays (the seed no longer creates it).

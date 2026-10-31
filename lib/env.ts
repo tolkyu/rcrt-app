@@ -1,3 +1,4 @@
+import type { Sql } from 'postgres';
 import { z } from 'zod';
 
 const connectionOptions = new Set([
@@ -135,4 +136,31 @@ export function parseLocalDatabaseTargets(
     );
   }
   return { runtimeUrl: env.DATABASE_URL, migrationUrl };
+}
+
+const disposableEmail = '@(demo|fixture[.]test)$';
+
+/** A tunnel makes a hosted database look like loopback; real identities prove it is not disposable. */
+export async function assertDisposableLocalData(sql: Sql): Promise<void> {
+  const [tables] = await sql<{ appUser: boolean; authUsers: boolean }[]>`
+    select to_regclass('app.app_user') is not null as "appUser",
+      to_regclass('auth.users') is not null as "authUsers"
+  `;
+  const checks: Promise<{ found: boolean }[]>[] = [];
+  if (tables?.appUser) {
+    checks.push(sql<{ found: boolean }[]>`select exists (
+      select from app.app_user where email !~* ${disposableEmail}
+    ) as found`);
+  }
+  if (tables?.authUsers) {
+    checks.push(sql<{ found: boolean }[]>`select exists (
+      select from auth.users where email is null or email !~* ${disposableEmail}
+    ) as found`);
+  }
+  const results = await Promise.all(checks);
+  if (results.some(([row]) => row?.found)) {
+    throw new Error(
+      'Local database tooling refuses a database that holds non-demo users',
+    );
+  }
 }

@@ -76,7 +76,7 @@ flowchart LR
   end
   subgraph SUP["Supabase eu-central-1"]
     AU["Auth - magic link, Google, TOTP"]
-    PG[("Postgres 16 - schema app, RLS deny-all")]
+    PG[("Postgres 17 - schema app, RLS deny-all")]
     ST[("Storage - private buckets")]
     RT["Realtime - private broadcast"]
   end

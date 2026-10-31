@@ -24,9 +24,9 @@ corepack pnpm dev
 
 ## Бази даних
 
-- `pnpm db:start` / `pnpm db:stop` — локальний Supabase; PostgreSQL 17, API `55321`, DB `55322`, Studio `55323`, пошта `55324`. CLI 2.122.0 відхиляє PostgreSQL 16 — розбіжність із PRD відкрита як Q-142.
-- `pnpm test:db:up` / `pnpm test:db:down` — окремий PostgreSQL 16.13, `127.0.0.1:55332`, лише тестові дані у `tmpfs`. Зупинка видаляє ці тимчасові дані.
-- Міграції й seed — T2. Застосунок працюватиме з PostgreSQL через Drizzle; Postman використовується для тестування API.
+- `pnpm db:start` / `pnpm db:stop` — локальний Supabase; PostgreSQL 17 (рішення власника, Q-142), API `55321`, DB `55322`, Studio `55323`, пошта `55324`.
+- `pnpm test:db:up` / `pnpm test:db:down` — окремий PostgreSQL 17.11 (Debian), `127.0.0.1:55332`, лише тестові дані у `tmpfs`. Зупинка видаляє ці тимчасові дані.
+- `pnpm db:migrate` застосовує міграції Drizzle; `pnpm db:seed` завантажує демо-дані лише в локальну базу без реальних користувачів. Postman використовується для тестування API.
 
 ## Перевірки
 

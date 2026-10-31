@@ -2,6 +2,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { readMigrationFiles } from 'drizzle-orm/migrator';
 import postgres from 'postgres';
 import { parseMigrationDatabaseUrl } from '../../lib/env';
+import { toolErrorSummary } from './tool-error';
 
 /** Migrations need a privileged direct connection, separate from the runtime pooler. */
 export async function migrateDatabase(databaseUrl: string): Promise<void> {
@@ -63,9 +64,9 @@ if (
   } else {
     migrateDatabase(databaseUrl)
       .then(() => console.info('Database migrations applied'))
-      .catch(() => {
+      .catch((error: unknown) => {
         console.error(
-          'Database migration failed; inspect the migration and database privileges',
+          `Database migration failed (${toolErrorSummary(error)}); inspect the migration and database privileges`,
         );
         process.exitCode = 1;
       });

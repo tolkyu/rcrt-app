@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { migrateDatabase } from '../../server/db/migrate';
 import { seedDemo } from '../../server/db/seed/index';
 import {
@@ -15,10 +15,34 @@ const verticalId = randomUUID();
 const otherVerticalId = randomUUID();
 const userId = randomUUID();
 const anotherUserId = randomUUID();
+const seedSource = {
+  APP_ENV: 'local',
+  APP_URL: 'http://localhost:3000',
+  NODE_ENV: 'test',
+  DATABASE_URL: urls.runtime,
+  DATABASE_MIGRATION_URL: urls.migration,
+};
+
+beforeAll(async () => {
+  await runtime`insert into app.vertical (id, name) values
+    (${verticalId}, ${`Перевірка QA ${verticalId}`}),
+    (${otherVerticalId}, ${`Інша вертикаль QA ${otherVerticalId}`})`;
+  await runtime`insert into app.app_user (id, email, full_name) values
+    (${userId}, 'qa.one@demo', 'Перевірка Один'),
+    (${anotherUserId}, 'qa.two@demo', 'Перевірка Два')`;
+});
 
 afterAll(async () => {
   await Promise.all([admin.end(), runtime.end()]);
 });
+
+async function insertSystemEvent(subjectId: string): Promise<string> {
+  const [row] = await runtime`insert into app.entity_event
+    (occurred_at, actor_kind, type, subject_type, subject_id, payload)
+    values (now(), 'SYSTEM', 'user.profile_updated', 'app_user', ${subjectId}, '{"v":1}')
+    returning id`;
+  return row!.id as string;
+}
 
 async function snapshot() {
   const rows = await Promise.all(
@@ -64,26 +88,44 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
     ).toThrow('same server');
   });
 
-  it('migrates an empty PostgreSQL 16 database and reruns without changing data', async () => {
+  it('migrates PostgreSQL 17 with the settings singleton and reruns without changing data', async () => {
+    const [server] =
+      await admin`select current_setting('server_version_num')::int as version`;
+    expect(Math.floor(server!.version / 10000)).toBe(17);
     const tables = await admin`
       select tablename from pg_tables where schemaname = 'app' order by tablename
     `;
     expect(tables.map((row) => row.tablename)).toEqual(phaseOneTables);
+    expect(
+      await runtime`select id, offer_validity_days, routing_rejection_cooldown_days,
+        sourcing_ownership_window_days, retention_rejected_months, updated_by, version
+        from app.app_setting`,
+    ).toEqual([
+      {
+        id: 1,
+        offer_validity_days: 5,
+        routing_rejection_cooldown_days: 180,
+        sourcing_ownership_window_days: 180,
+        retention_rejected_months: null,
+        updated_by: null,
+        version: 1,
+      },
+    ]);
     const before = await snapshot();
-    expect(Object.values(before).every((rows) => rows.length === 0)).toBe(true);
     await migrateDatabase(urls.migration);
     expect(await snapshot()).toEqual(before);
   });
 
   it('allows app_rw to create and edit ordinary records without owning them', async () => {
-    await runtime`insert into app.vertical (id, name) values
-      (${verticalId}, 'Перевірка QA'), (${otherVerticalId}, 'Інша вертикаль QA')`;
-    await runtime`insert into app.app_user (id, email, full_name) values
-      (${userId}, 'qa.one@demo', 'Перевірка Один'),
-      (${anotherUserId}, 'qa.two@demo', 'Перевірка Два')`;
+    const createdVertical = randomUUID();
+    const createdUser = randomUUID();
+    await runtime`insert into app.vertical (id, name)
+      values (${createdVertical}, ${`Створена QA ${createdVertical}`})`;
+    await runtime`insert into app.app_user (id, email, full_name)
+      values (${createdUser}, ${`qa.created.${createdUser}@demo`}, 'Створений Користувач')`;
     const changed =
       await runtime`update app.app_user set full_name = 'Оновлене ім’я'
-      where id = ${userId} returning full_name`;
+      where id = ${createdUser} returning full_name`;
     expect(changed[0]?.full_name).toBe('Оновлене ім’я');
     const roles = await admin`
       select rolname, rolsuper, rolcreatedb, rolcreaterole, rolreplication, rolbypassrls
@@ -257,6 +299,12 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       expect(tables.every((table) => table.tableowner === 'app_migrator')).toBe(
         true,
       );
+      for (const table of phaseOneTables) {
+        const [rows] = await owner.unsafe(
+          `select count(*)::int as count from app.${table}`,
+        );
+        expect(rows?.count, table).toBe(table === 'app_setting' ? 1 : 0);
+      }
       const switched = await admin`select m.set_option from pg_auth_members m
         join pg_roles member on member.oid = m.member join pg_roles granted on granted.oid = m.roleid
         where member.rolname = ${loginName} and granted.rolname = 'app_migrator'`;
@@ -407,16 +455,19 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
   });
 
   it('starts editable rows at version 1 and rejects invalid versions', async () => {
+    const versioned = randomUUID();
+    await runtime`insert into app.vertical (id, name)
+      values (${versioned}, ${`Версія QA ${versioned}`})`;
     const [initial] =
-      await runtime`select version from app.vertical where id = ${verticalId}`;
+      await runtime`select version from app.vertical where id = ${versioned}`;
     expect(initial?.version).toBe(1);
     const first =
-      await runtime`update app.vertical set name = 'Перевірка QA оновлена', version = version + 1
-      where id = ${verticalId} and version = 1 returning version`;
+      await runtime`update app.vertical set name = ${`Версія QA оновлена ${versioned}`}, version = version + 1
+      where id = ${versioned} and version = 1 returning version`;
     expect(first).toMatchObject([{ version: 2 }]);
     const stale =
-      await runtime`update app.vertical set name = 'Застаріла зміна', version = version + 1
-      where id = ${verticalId} and version = 1 returning version`;
+      await runtime`update app.vertical set name = ${`Застаріла зміна ${versioned}`}, version = version + 1
+      where id = ${versioned} and version = 1 returning version`;
     expect(stale).toHaveLength(0);
     for (const table of [
       'vertical',
@@ -443,7 +494,7 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       ).toBe(true);
     }
     await expect(
-      runtime`update app.vertical set version = 0 where id = ${verticalId}`,
+      runtime`update app.vertical set version = 0 where id = ${versioned}`,
     ).rejects.toMatchObject({ code: '23514' });
   });
 
@@ -500,8 +551,8 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
   );
 
   it('blocks runtime modification of purgeable event PII [HIST-03]', async () => {
-    const [event] = await runtime`select id from app.entity_event limit 1`;
-    await runtime`insert into app.entity_event_pii (event_id, data) values (${event!.id}, '{"fullName":"Перевірка"}')`;
+    const eventId = await insertSystemEvent(userId);
+    await runtime`insert into app.entity_event_pii (event_id, data) values (${eventId}, '{"fullName":"Перевірка"}')`;
     await expect(
       runtime`update app.entity_event_pii set data = '{}'`,
     ).rejects.toMatchObject({ code: '42501' });
@@ -514,11 +565,9 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
   });
 
   it('limits app_purge to deleting event PII and clearing audit diffs [HIST-03, DG-17]', async () => {
-    const [event] = await runtime`insert into app.entity_event
-      (occurred_at, actor_kind, type, subject_type, subject_id, payload)
-      values (now(), 'SYSTEM', 'user.profile_updated', 'app_user', ${userId}, '{"v":1}') returning id`;
+    const eventId = await insertSystemEvent(userId);
     await runtime`insert into app.entity_event_pii (event_id, data)
-      values (${event!.id}, '{"fullName":"Персональні дані"}')`;
+      values (${eventId}, '{"fullName":"Персональні дані"}')`;
     const [audit] = await runtime`insert into app.audit_log
       (occurred_at, actor_kind, action, before, after)
       values (now(), 'SYSTEM', 'user.profile_updated', '{"name":"До"}', '{"name":"Після"}') returning id`;
@@ -531,10 +580,10 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
     await admin.begin(async (tx) => {
       await tx`set local role app_purge`;
       const pii =
-        await tx`select data from app.entity_event_pii where event_id = ${event!.id}`;
+        await tx`select data from app.entity_event_pii where event_id = ${eventId}`;
       expect(pii).toEqual([{ data: { fullName: 'Персональні дані' } }]);
       const removed =
-        await tx`delete from app.entity_event_pii where event_id = ${event!.id} returning event_id`;
+        await tx`delete from app.entity_event_pii where event_id = ${eventId} returning event_id`;
       expect(removed).toHaveLength(1);
       const cleared =
         await tx`update app.audit_log set before = null, after = null
@@ -564,7 +613,7 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       ).rejects.toMatchObject({ code: 'P0001' });
     });
     const [remaining] =
-      await admin`select count(*)::int as count from app.entity_event_pii where event_id = ${event!.id}`;
+      await admin`select count(*)::int as count from app.entity_event_pii where event_id = ${eventId}`;
     expect(remaining?.count).toBe(0);
     const [cleared] =
       await admin`select before, after from app.audit_log where id = ${audit!.id}`;
@@ -602,17 +651,272 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
     expect(publicGrants).toHaveLength(0);
   });
 
-  it('seeds Ukrainian Phase 1 fixtures idempotently without Auth or future domain rows [STORY-SEED-1]', async () => {
-    const source = {
-      APP_ENV: 'local',
-      APP_URL: 'http://localhost:3000',
-      NODE_ENV: 'test',
-      DATABASE_URL: urls.runtime,
-      DATABASE_MIGRATION_URL: urls.migration,
+  it('grants each role exactly the designed privileges on app objects [DG-17, DG-22, VIS-01]', async () => {
+    const readWrite = ['DELETE', 'INSERT', 'SELECT', 'UPDATE'];
+    const appendOnly = ['INSERT', 'SELECT'];
+    const noDelete = ['INSERT', 'SELECT', 'UPDATE'];
+    const runtimeTable: Record<(typeof phaseOneTables)[number], string[]> = {
+      app_setting: noDelete,
+      app_user: noDelete,
+      audit_log: appendOnly,
+      change_feed: readWrite,
+      entity_event: appendOnly,
+      entity_event_pii: appendOnly,
+      file_object: noDelete,
+      job_run: readWrite,
+      rate_limit_bucket: readWrite,
+      saved_filter: readWrite,
+      team_lead_priority: readWrite,
+      user_invite: readWrite,
+      user_role: readWrite,
+      vertical: noDelete,
     };
-    await seedDemo(source);
+    const purgeTable: Partial<
+      Record<(typeof phaseOneTables)[number], string[]>
+    > = { audit_log: ['SELECT'], entity_event_pii: ['DELETE', 'SELECT'] };
+    const ownerTable = [
+      'DELETE',
+      'INSERT',
+      'MAINTAIN',
+      'REFERENCES',
+      'SELECT',
+      'TRIGGER',
+      'TRUNCATE',
+      'UPDATE',
+    ];
+    const expected = phaseOneTables.flatMap((table) => [
+      ...ownerTable.map((privilege) => `${table}|app_migrator|${privilege}`),
+      ...runtimeTable[table].map((privilege) => `${table}|app_rw|${privilege}`),
+      ...(purgeTable[table] ?? []).map(
+        (privilege) => `${table}|app_purge|${privilege}`,
+      ),
+    ]);
+    const tableAcl = await admin`
+      select c.relname || '|' || coalesce(r.rolname, 'PUBLIC') || '|' || acl.privilege_type as entry
+      from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      cross join lateral aclexplode(coalesce(c.relacl, acldefault('r', c.relowner))) acl
+      left join pg_roles r on r.oid = acl.grantee
+      where n.nspname = 'app' and c.relkind in ('r', 'p')`;
+    expect(tableAcl.map((row) => row.entry).sort()).toEqual(expected.sort());
+
+    const columnAcl = await admin`
+      select c.relname || '.' || a.attname || '|' || coalesce(r.rolname, 'PUBLIC') || '|' || acl.privilege_type as entry
+      from pg_attribute a join pg_class c on c.oid = a.attrelid
+      join pg_namespace n on n.oid = c.relnamespace
+      cross join lateral aclexplode(a.attacl) acl
+      left join pg_roles r on r.oid = acl.grantee
+      where n.nspname = 'app' and a.attacl is not null and not a.attisdropped`;
+    expect(columnAcl.map((row) => row.entry).sort()).toEqual([
+      'audit_log.after|app_purge|UPDATE',
+      'audit_log.before|app_purge|UPDATE',
+    ]);
+
+    const sequenceAcl = await admin`
+      select c.relname || '|' || coalesce(r.rolname, 'PUBLIC') || '|' || acl.privilege_type as entry
+      from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      cross join lateral aclexplode(coalesce(c.relacl, acldefault('s', c.relowner))) acl
+      left join pg_roles r on r.oid = acl.grantee
+      where n.nspname = 'app' and c.relkind = 'S'`;
+    expect(sequenceAcl.map((row) => row.entry).sort()).toEqual(
+      ['audit_log', 'change_feed', 'entity_event', 'job_run']
+        .flatMap((table) => [
+          `${table}_id_seq|app_migrator|SELECT`,
+          `${table}_id_seq|app_migrator|UPDATE`,
+          `${table}_id_seq|app_migrator|USAGE`,
+          `${table}_id_seq|app_rw|USAGE`,
+        ])
+        .sort(),
+    );
+
+    const viewAcl = await admin`
+      select coalesce(r.rolname, 'PUBLIC') || '|' || acl.privilege_type as entry
+      from pg_class c join pg_namespace n on n.oid = c.relnamespace
+      cross join lateral aclexplode(coalesce(c.relacl, acldefault('r', c.relowner))) acl
+      left join pg_roles r on r.oid = acl.grantee
+      where n.nspname = 'app' and c.relkind = 'v' and acl.grantee <> c.relowner`;
+    expect(viewAcl.map((row) => row.entry)).toEqual(['app_rw|SELECT']);
+
+    const routineAcl = await admin`
+      select p.proname || '|' || coalesce(r.rolname, 'PUBLIC') || '|' || acl.privilege_type as entry
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) acl
+      left join pg_roles r on r.oid = acl.grantee
+      where n.nspname = 'app'`;
+    expect(routineAcl.map((row) => row.entry)).toEqual([
+      'guard_append_only|app_migrator|EXECUTE',
+    ]);
+
+    const schemaAcl = await admin`
+      select coalesce(r.rolname, 'PUBLIC') || '|' || acl.privilege_type as entry
+      from pg_namespace n
+      cross join lateral aclexplode(coalesce(n.nspacl, acldefault('n', n.nspowner))) acl
+      left join pg_roles r on r.oid = acl.grantee
+      where n.nspname = 'app'`;
+    expect(schemaAcl.map((row) => row.entry).sort()).toEqual([
+      'app_migrator|CREATE',
+      'app_migrator|USAGE',
+      'app_purge|USAGE',
+      'app_rw|USAGE',
+    ]);
+  });
+
+  it('builds the 0003 timeline, audit and cleanup indexes with their predicates [ERD §5]', async () => {
+    const rows = await admin`select indexname, indexdef from pg_indexes
+      where schemaname = 'app' and tablename in ('entity_event', 'audit_log', 'file_object', 'user_role')`;
+    const definitions = Object.fromEntries(
+      rows.map((row) => [row.indexname as string, row.indexdef as string]),
+    );
+    for (const column of ['candidate_id', 'vacancy_id', 'application_id']) {
+      const name = `entity_event_${column.replace('_id', '')}_idx`;
+      expect(definitions[name], name).toContain(
+        `(${column}, occurred_at DESC, id DESC) WHERE (${column} IS NOT NULL)`,
+      );
+    }
+    expect(definitions.entity_event_subject_idx).toContain(
+      '(subject_type, subject_id, occurred_at DESC, id DESC)',
+    );
+    expect(definitions.entity_event_subject_idx).not.toContain('WHERE');
+    expect(definitions.audit_log_entity_idx).toContain(
+      '(entity_type, entity_id, occurred_at DESC)',
+    );
+    expect(definitions.audit_log_candidate_idx).toContain(
+      '(candidate_id) WHERE (candidate_id IS NOT NULL)',
+    );
+    expect(definitions.file_object_cleanup_idx).toContain(
+      "(status, created_at) WHERE ((status = 'PENDING'::text) OR ((status = 'PURGED'::text) AND (storage_deleted_at IS NULL)))",
+    );
+    for (const name of ['audit_log_occurred_idx', 'audit_log_actor_idx']) {
+      expect(definitions[name], name).toContain('occurred_at DESC, id DESC)');
+    }
+    for (const [name, definition] of Object.entries(definitions)) {
+      expect(definition, name).not.toContain('NULLS LAST');
+    }
+    expect(definitions.user_role_user_idx).toBeUndefined();
+    expect(definitions.user_role_uq).toContain('(user_id, role, vertical_id)');
+
+    const id = randomUUID();
+    const timelines: [string, string][] = [
+      ['entity_event_candidate_idx', `candidate_id = '${id}'`],
+      ['entity_event_vacancy_idx', `vacancy_id = '${id}'`],
+      ['entity_event_application_idx', `application_id = '${id}'`],
+      [
+        'entity_event_subject_idx',
+        `subject_type = 'app_user' and subject_id = '${id}'`,
+      ],
+    ];
+    await admin.begin(async (tx) => {
+      await tx`set local enable_seqscan = off`;
+      await tx`set local enable_bitmapscan = off`;
+      const plans = [
+        ...timelines.map(([index, where]) => [
+          index,
+          `select id from app.entity_event where ${where} order by occurred_at desc, id desc limit 31`,
+        ]),
+        [
+          'audit_log_entity_idx',
+          `select id from app.audit_log where entity_type = 'app_user' and entity_id = '${id}' order by occurred_at desc limit 31`,
+        ],
+        [
+          'audit_log_actor_idx',
+          `select id from app.audit_log where actor_id = '${id}' order by occurred_at desc, id desc limit 31`,
+        ],
+      ];
+      for (const [index, query] of plans) {
+        const plan = JSON.stringify(
+          await tx.unsafe(`explain (format json) ${query}`),
+        );
+        expect(plan, index).toContain(`"Index Name":"${index}"`);
+        expect(plan, index).not.toContain('"Node Type":"Sort"');
+      }
+    });
+  });
+
+  it('rejects unknown file buckets and scan states [ADR-005, DG-12]', async () => {
+    const insertFile = (bucket: string, scanStatus: string) => {
+      const id = randomUUID();
+      return runtime`insert into app.file_object
+        (id, bucket, storage_key, vertical_id, owner_type, owner_id, mime_type, size_bytes, uploaded_by, scan_status)
+        values (${id}, ${bucket}, ${`${verticalId}/${id}`}, ${verticalId}, 'candidate', ${randomUUID()},
+          'application/pdf', 1024, ${userId}, ${scanStatus})`;
+    };
+    await expect(insertFile('cv', 'CLEAN')).rejects.toMatchObject({
+      code: '23514',
+      constraint_name: 'file_object_scan_status_chk',
+    });
+    await expect(insertFile('video', 'NOT_SCANNED')).rejects.toMatchObject({
+      code: '23514',
+    });
+    const [bucketCheck] =
+      await admin`select pg_get_constraintdef(oid) as definition
+      from pg_constraint where conname = 'file_object_bucket_chk'`;
+    expect(bucketCheck?.definition).toMatch(
+      /bucket.*'cv'.*'polygraph'.*'offer'.*'attachment'/,
+    );
+    await insertFile('cv', 'NOT_SCANNED');
+  });
+
+  it('exposes managed sessions to app_rw only through the three-column view [DG-05]', async () => {
+    const [access] = await admin`select
+      has_schema_privilege('app_rw', 'auth', 'USAGE') as auth_usage,
+      has_table_privilege('app_rw', 'auth.sessions', 'SELECT') as table_select,
+      has_any_column_privilege('app_rw', 'auth.sessions', 'SELECT') as column_select,
+      has_table_privilege('app_rw', 'app.auth_session_status', 'SELECT') as view_select`;
+    expect(access).toEqual({
+      auth_usage: false,
+      table_select: false,
+      column_select: false,
+      view_select: true,
+    });
+    const sessionId = randomUUID();
+    try {
+      await admin`insert into auth.sessions (id, user_id) values (${sessionId}, ${userId})`;
+      expect(
+        await runtime`select id, user_id, not_after from app.auth_session_status where id = ${sessionId}`,
+      ).toEqual([{ id: sessionId, user_id: userId, not_after: null }]);
+      await expect(runtime`select id from auth.sessions`).rejects.toMatchObject(
+        { code: '42501' },
+      );
+    } finally {
+      await admin`delete from auth.sessions where id = ${sessionId}`;
+    }
+  });
+
+  it('refuses to seed a database holding non-demo app users [STORY-SEED-1]', async () => {
+    const realUser = randomUUID();
+    await admin`insert into app.app_user (id, email, full_name)
+      values (${realUser}, ${`person.${realUser}@example.com`}, 'Справжня Людина')`;
+    try {
+      const before = await snapshot();
+      await expect(seedDemo(seedSource)).rejects.toThrow(/non-demo users/);
+      expect(await snapshot()).toEqual(before);
+    } finally {
+      await admin`delete from app.app_user where id = ${realUser}`;
+    }
+  });
+
+  it('refuses to seed when Supabase Auth holds non-demo identities [STORY-SEED-1]', async () => {
+    await admin`create table auth.users (id uuid primary key, email text)`;
+    try {
+      await admin`insert into auth.users (id, email) values
+        (${randomUUID()}, 'admin@demo'), (${randomUUID()}, 'tl3.gambling@fixture.test')`;
+      await seedDemo(seedSource);
+      for (const email of ['someone@example.com', null]) {
+        const id = randomUUID();
+        await admin`insert into auth.users (id, email) values (${id}, ${email})`;
+        const before = await snapshot();
+        await expect(seedDemo(seedSource)).rejects.toThrow(/non-demo users/);
+        expect(await snapshot()).toEqual(before);
+        await admin`delete from auth.users where id = ${id}`;
+      }
+    } finally {
+      await admin`drop table auth.users`;
+    }
+  });
+
+  it('seeds Ukrainian Phase 1 fixtures idempotently without Auth or future domain rows [STORY-SEED-1]', async () => {
+    await seedDemo(seedSource);
     const before = await snapshot();
-    await seedDemo(source);
+    await seedDemo(seedSource);
     expect(await snapshot()).toEqual(before);
     const verticals =
       await runtime`select name from app.vertical where name in ('Гемблінг', 'Крипто') order by name`;
@@ -680,16 +984,9 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
     'refuses an unsafe seed target before writing [STORY-SEED-1]: %j',
     async (override) => {
       const before = await snapshot();
-      await expect(
-        seedDemo({
-          APP_ENV: 'local',
-          APP_URL: 'http://localhost:3000',
-          NODE_ENV: 'test',
-          DATABASE_URL: urls.runtime,
-          DATABASE_MIGRATION_URL: urls.migration,
-          ...override,
-        }),
-      ).rejects.toThrow(/local|loopback|production/i);
+      await expect(seedDemo({ ...seedSource, ...override })).rejects.toThrow(
+        /local|loopback|production/i,
+      );
       expect(await snapshot()).toEqual(before);
     },
   );

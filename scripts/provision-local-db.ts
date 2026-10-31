@@ -2,6 +2,7 @@ import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import postgres from 'postgres';
 import { parseLocalDatabaseTargets } from '../lib/env';
+import { toolErrorSummary } from '../server/db/tool-error';
 
 export async function provisionLocalRuntime(
   source: Record<string, string | undefined>,
@@ -33,9 +34,9 @@ if (
   try {
     await provisionLocalRuntime(process.env);
     console.log('Local app_rw login provisioned.');
-  } catch {
+  } catch (error) {
     console.error(
-      'Local database role provisioning failed. Check the local URLs and run migrations first.',
+      `Local database role provisioning failed (${toolErrorSummary(error)}). Check the local URLs and run migrations first.`,
     );
     process.exitCode = 1;
   }

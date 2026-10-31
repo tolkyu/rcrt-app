@@ -12,14 +12,15 @@ export default async function setup(project: TestProject) {
     `;
     if (
       database?.name !== 'recruiting_test' ||
-      Math.floor(database.version / 10000) !== 16
+      Math.floor(database.version / 10000) !== 17
     ) {
       throw new Error(
-        'Integration tests require disposable recruiting_test on PostgreSQL 16',
+        'Integration tests require disposable recruiting_test on PostgreSQL 17',
       );
     }
     await sql`drop schema if exists app cascade`;
     await sql`drop schema if exists drizzle cascade`;
+    await sql`drop schema if exists auth cascade`;
     await sql`
       do $$ begin
         if not exists (select from pg_roles where rolname = 'anon') then
@@ -29,6 +30,15 @@ export default async function setup(project: TestProject) {
           create role authenticated nologin;
         end if;
       end $$
+    `;
+    await sql`create schema auth`;
+    await sql`revoke all on schema auth from public`;
+    await sql`
+      create table auth.sessions (
+        id uuid primary key,
+        user_id uuid not null,
+        not_after timestamptz
+      )
     `;
     await migrateDatabase(urls.migration);
     await provisionLocalRuntime({
