@@ -86,6 +86,9 @@ describe('Domain errors → RFC 9457 problem+json [API, ADR-006]', () => {
     const visible = mapError(duplicate('vertical_name_uq'), requestId)!;
     expect(visible.status).toBe(409);
     expect((await visible.json()).code).toBe('VERTICAL_NAME_TAKEN');
+    const raced = mapError(duplicate('app_user_email_uq'), requestId)!;
+    expect(raced.status).toBe(409);
+    expect((await raced.json()).code).toBe('INVITE_PENDING');
     for (const constraint of ['candidate_email_norm_uq', '__proto__'])
       expect(mapError(duplicate(constraint), requestId)).toBeNull();
     expect(

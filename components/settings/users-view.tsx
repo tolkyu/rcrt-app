@@ -1,7 +1,15 @@
 'use client';
 
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Check, Lock, Search, UsersRound } from 'lucide-react';
+import {
+  AlertTriangle,
+  Check,
+  Lock,
+  Plus,
+  Search,
+  UsersRound,
+} from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -38,6 +46,14 @@ import {
   type UserSearch,
 } from '@/lib/user-filters';
 import { cn } from '@/lib/utils';
+
+const loadInviteDialog = () => import('./invite-user-dialog');
+const InviteUserDialog = dynamic(() =>
+  loadInviteDialog().then((module) => module.InviteUserDialog),
+);
+const preloadInviteDialog = () => {
+  loadInviteDialog().catch(() => undefined);
+};
 
 const selectClass =
   'border-input bg-surface text-foreground h-11 w-full rounded-lg border px-3 text-base md:h-10 md:text-sm';
@@ -233,6 +249,7 @@ export function UsersView({
   currentUserId: string;
   canListVerticals: boolean;
 }) {
+  const [inviting, setInviting] = useState(false);
   const t = useTranslations('settings.users');
   const tRole = useTranslations('common.roles');
   const lastLogin = useLastLogin();
@@ -285,6 +302,17 @@ export function UsersView({
   const filtered = Boolean(
     search.q || search.status || search.role || search.vertical,
   );
+  const showUser = (email: string) => {
+    clearTimeout(timer.current);
+    setInviting(false);
+    setText(email);
+    apply({
+      q: email,
+      status: undefined,
+      role: undefined,
+      vertical: undefined,
+    });
+  };
   const reset = () => {
     clearTimeout(timer.current);
     setText('');
@@ -406,7 +434,20 @@ export function UsersView({
 
   return (
     <>
-      <PageHeader title={t('title')} subtitle={t('subtitle')} />
+      <PageHeader
+        title={t('title')}
+        subtitle={t('subtitle')}
+        actions={
+          <Button
+            onClick={() => setInviting(true)}
+            onPointerEnter={preloadInviteDialog}
+            onFocus={preloadInviteDialog}
+          >
+            <Plus aria-hidden="true" />
+            {t('invite')}
+          </Button>
+        }
+      />
       <section
         aria-label={t('filtersLabel')}
         className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr]"
@@ -511,6 +552,22 @@ export function UsersView({
             </Button>
           )}
         </div>
+      )}
+      {inviting && (
+        <InviteUserDialog
+          verticals={verticals.data?.items ?? []}
+          verticalsState={
+            verticals.data
+              ? 'success'
+              : verticals.isError || !canListVerticals
+                ? 'error'
+                : 'pending'
+          }
+          onRetryVerticals={() => void verticals.refetch()}
+          canManageVerticals={canListVerticals}
+          onClose={() => setInviting(false)}
+          onShowUser={showUser}
+        />
       )}
     </>
   );

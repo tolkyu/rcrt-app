@@ -96,3 +96,9 @@
 - Files: `docs/ux/reference/statistics/01…07-statistics-tab.webp` (originals in the git-ignored `UI FROM DESIGNER/`).
 - Target look for **Phase 4** «Статистика»: tabs Огляд · Воронка · Час · Джерела · Тімліди · Рекрутери · Команди · Бонуси · Виплати; filter row (period, вертикаль, посада, рекрутер, тімлід); KPI row; funnel on our stages; light/dark; mobile.
 - Not adopted yet: the Phase 4 design step (ux-ui-designer + business-analyst) maps each tab to PRD STAT-*/BONUS-*, role visibility (Finance D12) and flags items without a PRD source (e.g. «Джерела», «Команди», CSV/XLSX export, «Ключові інсайти», «Порівняння сегментів») as owner questions.
+
+## «Запросити користувача» — owner's designer mockup (2026-11-01)
+
+- File: `docs/ux/reference/settings/01-invite-user-dialog.webp` (original in the git-ignored `UI FROM DESIGNER/`).
+- Adopted (T6 invite slice): wide dialog with header icon + subtitle; two columns — form + roles × verticals matrix on the left, «Підсумок доступу» card on the right (initials, name, email, «Очікує запрошення», roles grouped by vertical, 2FA note); matrix cells as check toggles with column headers per vertical; footer «Скасувати» / «Надіслати запрошення» with icons; single column + bottom sheet on mobile.
+- Not adopted — PRD conflict, owner question **Q-155**: «Посада», «Базова роль», roles «Наймаючий менеджер» / «Перегляд», Admin/Finance per vertical (D40: global only), «Додаткові налаштування» (bonus view, export — permissions come from roles, ROLE-04; copy to recruiter; temporary password — no passwords, invite-only magic link / Google).

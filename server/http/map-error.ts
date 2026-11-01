@@ -14,6 +14,8 @@ const VISIBLE_UNIQUE_CONSTRAINTS: Readonly<Record<string, string>> = {
   vertical_name_uq: 'VERTICAL_NAME_TAKEN',
   user_role_uq: 'ROLE_ALREADY_ASSIGNED',
   user_invite_pending_uq: 'INVITE_ALREADY_PENDING',
+  /** Two Admins inviting the same email at once: the loser sees the same answer as a sequential retry. */
+  app_user_email_uq: 'INVITE_PENDING',
 };
 
 /** Domain or database error → problem response; `null` means unexpected (500, reported by the caller). */

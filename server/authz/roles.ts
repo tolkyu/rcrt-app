@@ -1,5 +1,5 @@
 import { PERMISSION_CODES, type PermissionCode } from './permissions';
-import type { BuiltinRole, Scope } from './types';
+import { GLOBAL_ROLE_CODES, type BuiltinRole, type Scope } from './types';
 
 export interface Grant {
   readonly permission: PermissionCode;
@@ -239,8 +239,7 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRole, readonly Grant[]>> = {
   ),
 };
 
-/** The only roles that may be assigned without a vertical (D40); custom roles are always vertical-bound. */
-export const GLOBAL_ROLES: ReadonlySet<BuiltinRole> = new Set([
-  'ADMIN',
-  'FINANCE',
-]);
+/** D40 global roles as a set for lookups. */
+export const GLOBAL_ROLES: ReadonlySet<BuiltinRole> = new Set(
+  GLOBAL_ROLE_CODES,
+);

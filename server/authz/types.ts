@@ -11,6 +11,11 @@ export const BUILTIN_ROLE_CODES = [
   'FINANCE',
 ] as const;
 export type BuiltinRole = (typeof BUILTIN_ROLE_CODES)[number];
+/** The only roles that may be assigned without a vertical (D40); custom roles are always vertical-bound. */
+export const GLOBAL_ROLE_CODES = [
+  'ADMIN',
+  'FINANCE',
+] as const satisfies readonly BuiltinRole[];
 export type RoleCode = BuiltinRole | `custom:${string}`;
 
 /** Ordinal order of pipeline stages; `max_stage_reached` comparisons use these positions. */
