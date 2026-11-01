@@ -5,6 +5,10 @@
 
 ## State — 2026-11-01 (evening)
 
+- **Working mode (owner):** one small slice end-to-end → commit → report → wait for «далі».
+- **T6 slice 1 done** `b7520c6`: `/settings` frame + «Вертикалі» (list, create, rename), Admin lands on Налаштування. Verified: lint, typecheck, 1680 unit, 142 integration, build, 37 E2E.
+- Notes from slice 1: protected pages under `(app)` return a soft 404 (status 200 + «Сторінку не знайдено») because `(app)/loading.tsx` streams; APIs return real 404. Flaky under full-suite load: `tests/unit/auth/supabase-identity.test.ts` «bounds a hanging JWKS request» (passes alone) → T9.
+
 - Branch `phase-1` pushed to `origin`. T1–T5 done and reviewed; settings wireframes `docs/ux/wireframes/settings-admin.md`; owner decisions D69/D70 (Q-153/154).
 - Verified on `bb620e8`: lint, typecheck, 1674 unit, 132 integration, build (103 kB shared JS), 34 E2E (incl. signed-in shell specs on local Supabase).
 - Known leftovers:
@@ -17,7 +21,7 @@
 
 ## Next steps (in order)
 
-1. **T6** Settings per `docs/ux/wireframes/settings-admin.md` (users & invites incl. resend/revoke/re-invite D70, email change for invited users D69, roles × verticals, deactivation + SEC-AUTH-R04, verticals, TL priorities, audit viewer); re-add Налаштування nav + Admin landing rank. Team defaults for wireframe gaps U2/U3/U5/U6/L1–L3.
+1. **T6** (next slices: «Журнал дій» viewer → «Користувачі та ролі» list → invite dialog → user drawer actions → TL priorities). Settings per `docs/ux/wireframes/settings-admin.md` (users & invites incl. resend/revoke/re-invite D70, email change for invited users D69, roles × verticals, deactivation + SEC-AUTH-R04, verticals, TL priorities, audit viewer); re-add Налаштування nav + Admin landing rank. Team defaults for wireframe gaps U2/U3/U5/U6/L1–L3.
 2. **T7** QA: full phase-1 E2E, Newman, screenshots → `screenshots/phase-1/` + `index.html` + `screenshots/latest/`.
 3. **T8** perf gates for phase-1 screens.
 4. **T9** carry-overs: CI Supabase job, CI SHA pins, `pnpm audit`, Drizzle drift, `format:check`, secret grep, DG-03 storage test, hosted Supabase config drift (A04, B06, C06, D03, H04, I03, R03), SEC-CORE-13/14.
