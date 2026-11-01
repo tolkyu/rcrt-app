@@ -117,7 +117,10 @@
   "errors": {
     "BODY_TOO_LARGE": "Розмір запиту перевищує 1 МБ.",
     "notFoundTitle": "Сторінку не знайдено",
-    "notFoundDescription": "Сторінку не знайдено або доступ обмежено."
+    "notFoundDescription": "Сторінку не знайдено або доступ обмежено.",
+    "appErrorTitle": "Щось пішло не так",
+    "appErrorDescription": "Оновіть сторінку. Якщо помилка повториться, зверніться до адміністратора.",
+    "appErrorReload": "Оновити сторінку"
   },
   "auth": {
     "brand": "Hiring",

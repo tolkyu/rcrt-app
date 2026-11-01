@@ -10,15 +10,21 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  menuAutoFocus,
+  type MenuOpenedBy,
+} from '@/components/ui/deferred-menu';
 import { ALL_VERTICALS, type VerticalOption } from '@/lib/vertical-filter';
 
 export default function VerticalSwitcherMenu({
   trigger,
+  openedBy,
   verticals,
   value,
   onChange,
 }: {
   trigger: ReactElement;
+  openedBy: MenuOpenedBy;
   verticals: readonly VerticalOption[];
   value: string;
   onChange: (value: string) => void;
@@ -27,7 +33,7 @@ export default function VerticalSwitcherMenu({
   return (
     <DropdownMenu defaultOpen>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-      <DropdownMenuContent align="start">
+      <DropdownMenuContent align="start" {...menuAutoFocus(openedBy)}>
         <DropdownMenuLabel>{t('verticalFilterTitle')}</DropdownMenuLabel>
         <DropdownMenuRadioGroup value={value} onValueChange={onChange}>
           <DropdownMenuRadioItem value={ALL_VERTICALS}>

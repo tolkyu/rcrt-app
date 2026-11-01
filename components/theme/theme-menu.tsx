@@ -10,17 +10,31 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  menuAutoFocus,
+  type MenuOpenedBy,
+} from '@/components/ui/deferred-menu';
 import { parseTheme, THEMES } from '@/lib/theme';
 import { THEME_ICONS } from './theme-icon';
 import { useTheme } from './theme-provider';
 
-export default function ThemeMenu({ trigger }: { trigger: ReactElement }) {
+export default function ThemeMenu({
+  trigger,
+  openedBy,
+}: {
+  trigger: ReactElement;
+  openedBy: MenuOpenedBy;
+}) {
   const t = useTranslations('theme');
   const { theme, setTheme } = useTheme();
   return (
     <DropdownMenu defaultOpen>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-44">
+      <DropdownMenuContent
+        align="end"
+        className="min-w-44"
+        {...menuAutoFocus(openedBy)}
+      >
         <DropdownMenuLabel>{t('label')}</DropdownMenuLabel>
         <DropdownMenuRadioGroup
           value={theme}

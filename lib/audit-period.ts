@@ -5,14 +5,21 @@ const KYIV = 'Europe/Kyiv';
 export const AUDIT_PERIODS = ['today', '7d', '30d', '365d'] as const;
 export type AuditPeriod = (typeof AUDIT_PERIODS)[number];
 
-/** `en-CA` formats as YYYY-MM-DD; built-in Intl keeps date-fns out of the client bundle (PERF-04). */
-const kyivDayFormat = new Intl.DateTimeFormat('en-CA', {
+/** Built-in Intl keeps date-fns out of the client bundle (PERF-04); parts avoid relying on a locale's date pattern. */
+const kyivDayFormat = new Intl.DateTimeFormat('en-US', {
   timeZone: KYIV,
   year: 'numeric',
   month: '2-digit',
   day: '2-digit',
 });
 const DAY_MS = 86_400_000;
+
+function kyivDate(at: Date) {
+  const parts = Object.fromEntries(
+    kyivDayFormat.formatToParts(at).map((part) => [part.type, part.value]),
+  );
+  return `${parts.year}-${parts.month}-${parts.day}`;
+}
 
 const PERIOD_DAYS: Record<AuditPeriod, number> = {
   today: 0,
@@ -23,7 +30,7 @@ const PERIOD_DAYS: Record<AuditPeriod, number> = {
 
 /** Preset → inclusive Kyiv calendar dates; «Останні 7 днів» = today and the six days before. */
 export function auditPeriodRange(period: AuditPeriod, now: Date) {
-  const to = kyivDayFormat.format(now);
+  const to = kyivDate(now);
   const from = new Date(
     Date.parse(`${to}T00:00:00Z`) - PERIOD_DAYS[period] * DAY_MS,
   )

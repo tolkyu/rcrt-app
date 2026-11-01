@@ -1,9 +1,9 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { lazy, Suspense, type ComponentProps } from 'react';
+import { lazy, type ComponentProps } from 'react';
 import { Button } from '@/components/ui/button';
-import { useDeferredMenu } from '@/components/ui/deferred-menu';
+import { DeferredMenu, useDeferredMenu } from '@/components/ui/deferred-menu';
 import { THEME_ICONS } from './theme-icon';
 import { useTheme } from './theme-provider';
 
@@ -14,7 +14,7 @@ const ThemeMenu = lazy(loadMenu);
 export function ThemeToggle() {
   const t = useTranslations('theme');
   const { theme } = useTheme();
-  const { active, triggerProps } = useDeferredMenu(loadMenu);
+  const menu = useDeferredMenu(loadMenu);
   const Icon = THEME_ICONS[theme];
   const trigger = (props: ComponentProps<typeof Button>) => (
     <Button
@@ -26,10 +26,11 @@ export function ThemeToggle() {
       <Icon className="size-5" aria-hidden="true" />
     </Button>
   );
-  if (!active) return trigger(triggerProps);
   return (
-    <Suspense fallback={trigger(triggerProps)}>
-      <ThemeMenu trigger={trigger({})} />
-    </Suspense>
+    <DeferredMenu menu={menu} trigger={trigger}>
+      {(openedBy, menuTrigger) => (
+        <ThemeMenu trigger={menuTrigger} openedBy={openedBy} />
+      )}
+    </DeferredMenu>
   );
 }

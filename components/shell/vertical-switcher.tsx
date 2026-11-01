@@ -2,8 +2,8 @@
 
 import { ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { lazy, Suspense, useState, type ComponentProps } from 'react';
-import { useDeferredMenu } from '@/components/ui/deferred-menu';
+import { lazy, useState, type ComponentProps } from 'react';
+import { DeferredMenu, useDeferredMenu } from '@/components/ui/deferred-menu';
 import { PREFERENCE_COOKIES, writePreference } from '@/lib/preference-cookie';
 import type { VerticalOption } from '@/lib/vertical-filter';
 
@@ -20,7 +20,7 @@ export function VerticalSwitcher({
 }) {
   const t = useTranslations('shell');
   const [value, setValue] = useState(initialValue);
-  const { active, triggerProps } = useDeferredMenu(loadMenu);
+  const menu = useDeferredMenu(loadMenu);
   if (verticals.length < 2) return null;
   const selected = verticals.find((vertical) => vertical.id === value);
   const label = selected?.name ?? t('allVerticals');
@@ -38,18 +38,20 @@ export function VerticalSwitcher({
       />
     </button>
   );
-  if (!active) return trigger(triggerProps);
   return (
-    <Suspense fallback={trigger(triggerProps)}>
-      <VerticalSwitcherMenu
-        trigger={trigger({})}
-        verticals={verticals}
-        value={value}
-        onChange={(next) => {
-          setValue(next);
-          writePreference(PREFERENCE_COOKIES.vertical, next);
-        }}
-      />
-    </Suspense>
+    <DeferredMenu menu={menu} trigger={trigger}>
+      {(openedBy, menuTrigger) => (
+        <VerticalSwitcherMenu
+          trigger={menuTrigger}
+          openedBy={openedBy}
+          verticals={verticals}
+          value={value}
+          onChange={(next) => {
+            setValue(next);
+            writePreference(PREFERENCE_COOKIES.vertical, next);
+          }}
+        />
+      )}
+    </DeferredMenu>
   );
 }

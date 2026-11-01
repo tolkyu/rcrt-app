@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { isActivePath, type NavItem } from '@/lib/nav';
 import { cn } from '@/lib/utils';
 import { BrandMark } from './brand';
@@ -11,33 +11,44 @@ import { BrandMark } from './brand';
 const TOOLTIP_DELAY_MS = 300;
 
 /**
- * Icon-rail label without a tooltip runtime (PERF-04): shown on focus or after a hover delay, dismissed
- * with Escape and hoverable, as WCAG 1.4.13 requires; it sits beside the link so the link name stays single.
+ * Icon-rail label without a tooltip runtime (PERF-04), meeting WCAG 1.4.13: shown on focus or after a
+ * hover delay, hoverable, persistent while hovered or focused, and dismissed with Escape from anywhere.
  */
-function useRailTooltip() {
+function useRailTooltip(collapsed: boolean) {
   const id = useId();
-  const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const open = collapsed && (hovered || focused) && !dismissed;
   useEffect(() => () => clearTimeout(timer.current), []);
-  const hide = () => {
-    clearTimeout(timer.current);
-    setOpen(false);
-  };
+  useEffect(() => {
+    if (!open) return;
+    const dismiss = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDismissed(true);
+    };
+    document.addEventListener('keydown', dismiss);
+    return () => document.removeEventListener('keydown', dismiss);
+  }, [open]);
   return {
     id,
     open,
     wrapper: {
       onPointerEnter: () => {
         clearTimeout(timer.current);
-        timer.current = setTimeout(() => setOpen(true), TOOLTIP_DELAY_MS);
+        timer.current = setTimeout(() => setHovered(true), TOOLTIP_DELAY_MS);
       },
-      onPointerLeave: hide,
+      onPointerLeave: () => {
+        clearTimeout(timer.current);
+        setHovered(false);
+        if (!focused) setDismissed(false);
+      },
     },
     trigger: {
-      onFocus: () => setOpen(true),
-      onBlur: hide,
-      onKeyDown: (event: KeyboardEvent) => {
-        if (event.key === 'Escape') hide();
+      onFocus: () => setFocused(true),
+      onBlur: () => {
+        setFocused(false);
+        if (!hovered) setDismissed(false);
       },
       'aria-describedby': open ? id : undefined,
     },
@@ -55,7 +66,7 @@ function NavLink({
 }) {
   const t = useTranslations('nav');
   const pathname = usePathname();
-  const tooltip = useRailTooltip();
+  const tooltip = useRailTooltip(collapsed);
   const active = isActivePath(pathname, item.href);
   const Icon = item.icon;
   const link = (
@@ -87,12 +98,15 @@ function NavLink({
     <div className="relative" {...tooltip.wrapper}>
       {link}
       {tooltip.open && (
+        // The offset is padding inside the positioned box, so the hover area reaches the bubble without a gap.
         <span
           role="tooltip"
           id={tooltip.id}
-          className="border-border bg-tooltip text-tooltip-foreground animate-in fade-in-0 absolute top-1/2 left-full z-30 ml-2 -translate-y-1/2 rounded-md border px-2.5 py-1.5 text-xs whitespace-nowrap shadow-md"
+          className="absolute top-1/2 left-full z-30 -translate-y-1/2 pl-2"
         >
-          {t(item.id)}
+          <span className="border-border bg-tooltip text-tooltip-foreground animate-in fade-in-0 block rounded-md border px-2.5 py-1.5 text-xs whitespace-nowrap shadow-md">
+            {t(item.id)}
+          </span>
         </span>
       )}
     </div>

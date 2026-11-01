@@ -12,14 +12,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  menuAutoFocus,
+  type MenuOpenedBy,
+} from '@/components/ui/deferred-menu';
 import type { Me } from '@/lib/schemas/me';
 import { useLogout } from './use-logout';
 
 export default function UserMenuDropdown({
   trigger,
+  openedBy,
   user,
 }: {
   trigger: ReactElement;
+  openedBy: MenuOpenedBy;
   user: Me['user'];
 }) {
   const t = useTranslations('shell');
@@ -28,7 +34,11 @@ export default function UserMenuDropdown({
   return (
     <DropdownMenu defaultOpen>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
+      <DropdownMenuContent
+        align="end"
+        className="w-64"
+        {...menuAutoFocus(openedBy)}
+      >
         <DropdownMenuLabel className="flex flex-col gap-0.5">
           <span className="text-foreground truncate text-sm font-semibold">
             {user.fullName}

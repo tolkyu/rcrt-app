@@ -3,9 +3,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { lazy, Suspense, type ComponentProps } from 'react';
+import { lazy, type ComponentProps } from 'react';
 import { Avatar } from '@/components/ui/avatar';
-import { useDeferredMenu } from '@/components/ui/deferred-menu';
+import { DeferredMenu, useDeferredMenu } from '@/components/ui/deferred-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { meQuery } from '@/lib/queries/me';
 import { useRoleLabels } from './role-summary';
@@ -18,7 +18,7 @@ export function UserMenu() {
   const t = useTranslations('shell');
   const { data: me } = useQuery(meQuery());
   const { summary } = useRoleLabels();
-  const { active, triggerProps } = useDeferredMenu(loadMenu);
+  const menu = useDeferredMenu(loadMenu);
   if (!me) return <Skeleton className="skeleton-delayed size-9 rounded-full" />;
   const roleText = summary(me.roles);
   const trigger = (props: ComponentProps<'button'>) => (
@@ -45,10 +45,15 @@ export function UserMenu() {
       />
     </button>
   );
-  if (!active) return trigger(triggerProps);
   return (
-    <Suspense fallback={trigger(triggerProps)}>
-      <UserMenuDropdown trigger={trigger({})} user={me.user} />
-    </Suspense>
+    <DeferredMenu menu={menu} trigger={trigger}>
+      {(openedBy, menuTrigger) => (
+        <UserMenuDropdown
+          trigger={menuTrigger}
+          openedBy={openedBy}
+          user={me.user}
+        />
+      )}
+    </DeferredMenu>
   );
 }

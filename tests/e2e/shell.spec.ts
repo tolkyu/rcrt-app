@@ -1,6 +1,11 @@
 import { test as base, expect, type Page } from '@playwright/test';
 import messages from '../../messages/uk.json' with { type: 'json' };
-import { MUTATION_HEADERS, sessionFile, signIn } from '../support/e2e-session';
+import {
+  E2E_ORIGIN,
+  MUTATION_HEADERS,
+  sessionFile,
+  signIn,
+} from '../support/e2e-session';
 
 const t = {
   shell: messages.shell,
@@ -332,11 +337,9 @@ test('deferred shell menus open from the keyboard, take focus, and return it on 
   await expect(
     menu.getByRole('menuitemradio', { name: t.theme.dark, exact: true }),
   ).toBeVisible();
-  expect(
-    await page.evaluate(
-      () => document.activeElement?.closest('[role="menu"]') !== null,
-    ),
-  ).toBe(true);
+  await expect(
+    menu.getByRole('menuitemradio', { name: t.theme.light, exact: true }),
+  ).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(menu).toHaveCount(0);
   await expect(themeTrigger).toBeFocused();
@@ -348,7 +351,81 @@ test('deferred shell menus open from the keyboard, take focus, and return it on 
     page
       .getByRole('menu')
       .getByRole('menuitem', { name: t.nav.profile, exact: true }),
-  ).toBeVisible();
+  ).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(userTrigger).toBeFocused();
+});
+
+test('deferred theme menu works by pointer and applies the choice [UI-05, PERF-04]', async ({
+  page,
+}) => {
+  await page.goto('/profile');
+  await page
+    .getByRole('button', { name: new RegExp(`^${t.theme.label}:`) })
+    .click();
+  await page
+    .getByRole('menu')
+    .getByRole('menuitemradio', { name: t.theme.dark, exact: true })
+    .click();
+  await expect(page.locator('html')).toHaveClass('dark');
+  expect(await themeCookie(page)).toBe('dark');
+});
+
+test('vertical switcher stores the chosen vertical and shows it on the trigger [design-system §5, PERF-04]', async ({
+  browser,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'the switcher lives in the desktop top bar');
+  const context = await browser.newContext({
+    baseURL: E2E_ORIGIN,
+    storageState: sessionFile('head.hr@demo'),
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto('/profile');
+    await page
+      .getByRole('button', {
+        name: t.shell.verticalFilter.replace('{name}', t.shell.allVerticals),
+      })
+      .click();
+    await page
+      .getByRole('menu')
+      .getByRole('menuitemradio', { name: 'Крипто', exact: true })
+      .click();
+    await expect(
+      page.getByRole('button', {
+        name: t.shell.verticalFilter.replace('{name}', 'Крипто'),
+      }),
+    ).toBeVisible();
+    const vertical = (await context.cookies()).find(
+      (cookie) => cookie.name === 'vertical',
+    );
+    expect(vertical?.value).toMatch(/^[0-9a-f-]{36}$/);
+  } finally {
+    await context.close();
+  }
+});
+
+test('collapsed rail tooltip appears on hover, stays while hovered, and Escape dismisses it [WCAG 1.4.13, PERF-04]', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'the icon rail exists only on desktop');
+  await page
+    .context()
+    .addCookies([{ name: 'sidebar', value: 'collapsed', url: E2E_ORIGIN }]);
+  await page.goto('/profile');
+  const link = page
+    .getByRole('navigation', { name: t.shell.mainNav })
+    .getByRole('link', { name: t.nav.profile, exact: true });
+  await link.hover();
+  const tooltip = page.getByRole('tooltip', { name: t.nav.profile });
+  await expect(tooltip).toBeVisible();
+  const box = (await tooltip.boundingBox())!;
+  await page.mouse.move(box.x + box.width - 4, box.y + box.height / 2, {
+    steps: 8,
+  });
+  await expect(tooltip).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(tooltip).toHaveCount(0);
 });

@@ -3,6 +3,7 @@
 import { lazy, Suspense, useSyncExternalStore } from 'react';
 import type { ToasterProps } from 'sonner';
 import { subscribeToToasts, toastRequested } from '@/lib/toast';
+import { LoadBoundary } from './load-boundary';
 
 const ToastRuntime = lazy(() => import('./sonner-runtime'));
 
@@ -14,8 +15,10 @@ export function Toaster(props: ToasterProps) {
     () => false,
   );
   return requested ? (
-    <Suspense fallback={null}>
-      <ToastRuntime {...props} />
-    </Suspense>
+    <LoadBoundary fallback={null}>
+      <Suspense fallback={null}>
+        <ToastRuntime {...props} />
+      </Suspense>
+    </LoadBoundary>
   ) : null;
 }
