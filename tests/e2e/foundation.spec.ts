@@ -95,10 +95,13 @@ test('REST mutations reject cross-origin and missing CSRF headers before routing
       requestId: expect.stringMatching(/^[0-9a-f-]{36}$/),
     });
   }
-  // Passing the transport checks reaches routing: the verticals route has no POST handler.
   const allowed = await request.post('/api/v1/verticals', {
     headers: { origin: 'http://localhost:3100', 'x-csrf-protection': '1' },
     data: {},
   });
-  expect(allowed.status()).toBe(405);
+  expect(allowed.status()).toBe(401);
+  expect(await allowed.json()).toMatchObject({
+    code: 'UNAUTHENTICATED',
+    status: 401,
+  });
 });

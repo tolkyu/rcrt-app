@@ -43,6 +43,13 @@
       "when": 1793517723505,
       "tag": "0005_user_session_mfa_verified",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793525743888,
+      "tag": "0006_audit_viewer_indexes",
+      "breakpoints": true
     }
   ]
 }

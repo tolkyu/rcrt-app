@@ -393,10 +393,26 @@ export const auditLog = app.table(
       t.occurredAt.desc().nullsFirst(),
       t.id.desc().nullsFirst(),
     ),
+    index('audit_log_action_idx').on(
+      t.action,
+      t.occurredAt.desc().nullsFirst(),
+      t.id.desc().nullsFirst(),
+    ),
+    index('audit_log_result_idx').on(
+      t.result,
+      t.occurredAt.desc().nullsFirst(),
+      t.id.desc().nullsFirst(),
+    ),
+    index('audit_log_entity_type_idx').on(
+      t.entityType,
+      t.occurredAt.desc().nullsFirst(),
+      t.id.desc().nullsFirst(),
+    ),
     index('audit_log_entity_idx').on(
       t.entityType,
       t.entityId,
       t.occurredAt.desc().nullsFirst(),
+      t.id.desc().nullsFirst(),
     ),
     index('audit_log_candidate_idx')
       .on(t.candidateId)

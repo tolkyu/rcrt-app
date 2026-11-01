@@ -1,7 +1,9 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Info, Layers, Pencil, Plus } from 'lucide-react';
+import { History, Info, Layers, Pencil, Plus } from 'lucide-react';
+import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { PageHeader } from '@/components/shell/page-header';
@@ -12,17 +14,39 @@ import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { settingsVerticalsQuery } from '@/lib/queries/settings';
 import type { SettingsVertical } from '@/lib/schemas/vertical';
-import { VerticalNameDialog } from './vertical-name-dialog';
+const VerticalNameDialog = dynamic(() =>
+  import('./vertical-name-dialog').then((module) => module.VerticalNameDialog),
+);
 
 type DialogState = { target: SettingsVertical | null } | null;
 
-export function VerticalsView() {
+export function VerticalsView({ canReadAudit }: { canReadAudit: boolean }) {
   const t = useTranslations('settings.verticals');
   const { data, isError, isFetching, refetch } = useQuery(
     settingsVerticalsQuery(),
   );
   const [dialog, setDialog] = useState<DialogState>(null);
   const openCreate = () => setDialog({ target: null });
+  const actions = (vertical: SettingsVertical) => (
+    <div className="flex items-center justify-end gap-1">
+      <RenameButton
+        vertical={vertical}
+        label={t('rename')}
+        onClick={() => setDialog({ target: vertical })}
+      />
+      {canReadAudit && (
+        <Button asChild variant="ghost" size="sm" className="h-11 md:h-8">
+          <Link
+            href={`/settings/audit?entityType=vertical&entityId=${vertical.id}&period=365d`}
+            aria-label={`${t('history')}: ${vertical.name}`}
+          >
+            <History aria-hidden="true" />
+            <span className="hidden lg:inline">{t('history')}</span>
+          </Link>
+        </Button>
+      )}
+    </div>
+  );
   const items = data?.items ?? [];
 
   const createButton = (
@@ -90,13 +114,7 @@ export function VerticalsView() {
                 <td className="text-muted-foreground px-4 tabular-nums">
                   {t('createdOn', { at: new Date(vertical.createdAt) })}
                 </td>
-                <td className="px-4 text-right">
-                  <RenameButton
-                    vertical={vertical}
-                    label={t('rename')}
-                    onClick={() => setDialog({ target: vertical })}
-                  />
-                </td>
+                <td className="px-4 text-right">{actions(vertical)}</td>
               </tr>
             ))}
           </tbody>
@@ -118,11 +136,7 @@ export function VerticalsView() {
                   {t('createdOn', { at: new Date(vertical.createdAt) })}
                 </p>
               </div>
-              <RenameButton
-                vertical={vertical}
-                label={t('rename')}
-                onClick={() => setDialog({ target: vertical })}
-              />
+              {actions(vertical)}
             </li>
           ))}
         </ul>

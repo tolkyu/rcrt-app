@@ -1,0 +1,542 @@
+'use client';
+
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { Ban, ScrollText, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useSearchParams } from 'next/navigation';
+import { useId, useMemo, useState, type ReactNode } from 'react';
+import { PageHeader } from '@/components/shell/page-header';
+import { EmptyState } from '@/components/states/empty-state';
+import { SectionError } from '@/components/states/section-error';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  auditApiFilters,
+  auditSearchParams,
+  parseAuditSearch,
+  validAuditPeriod,
+  type AuditSearch,
+} from '@/lib/audit-filters';
+import { AUDIT_PERIODS } from '@/lib/audit-period';
+import { auditQuery, type AuditFilterValues } from '@/lib/queries/settings';
+import {
+  AUDIT_ACTION_GROUPS,
+  AUDIT_ENTITY_TYPES,
+  type AuditActionGroup,
+} from '@/lib/audit-constants';
+import type { AuditEntry } from '@/lib/schemas/audit';
+import { cn } from '@/lib/utils';
+import { useAuditLabels } from './audit-labels';
+import { AuditRecordSheet } from './audit-record-sheet';
+
+const selectClass =
+  'border-input bg-surface text-foreground h-11 w-full rounded-lg border px-3 text-base md:h-10 md:text-sm';
+
+const PERIOD_KEYS = {
+  today: 'periodToday',
+  '7d': 'period7d',
+  '30d': 'period30d',
+  '365d': 'period365d',
+  custom: 'periodCustom',
+} as const satisfies Record<AuditSearch['period'], string>;
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  children,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  children: ReactNode;
+}) {
+  const id = useId();
+  return (
+    <div className="flex min-w-0 flex-col gap-1">
+      <Label htmlFor={id} className="text-xs">
+        {label}
+      </Label>
+      <select
+        id={id}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={selectClass}
+      >
+        {children}
+      </select>
+    </div>
+  );
+}
+
+function ResultChip({ result }: { result: AuditEntry['result'] }) {
+  const t = useTranslations('settings.audit');
+  return result === 'DENIED' ? (
+    <span className="bg-destructive-subtle text-error-text inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
+      <Ban className="size-3.5" aria-hidden="true" />
+      {t('result.DENIED')}
+    </span>
+  ) : (
+    <span className="text-muted-foreground text-sm">{t('result.SUCCESS')}</span>
+  );
+}
+
+/** «Журнал дій»: filters in the URL, newest first, «Показати ще» by cursor, record in a side sheet. */
+export function AuditView({
+  initialSearch,
+  initialFilters,
+}: {
+  initialSearch: AuditSearch;
+  initialFilters: AuditFilterValues;
+}) {
+  const t = useTranslations('settings.audit');
+  const labels = useAuditLabels();
+  const params = useSearchParams();
+  const searchKey = params.toString();
+  const search = useMemo(
+    () => parseAuditSearch(Object.fromEntries(new URLSearchParams(searchKey))),
+    [searchKey],
+  );
+  const filters = useMemo(
+    () =>
+      auditSearchParams(search).toString() ===
+      auditSearchParams(initialSearch).toString()
+        ? initialFilters
+        : auditApiFilters(search, new Date()),
+    [search, initialSearch, initialFilters],
+  );
+  const [from, setFrom] = useState(
+    initialSearch.from ?? initialFilters.from ?? '',
+  );
+  const [to, setTo] = useState(initialSearch.to ?? initialFilters.to ?? '');
+  const [dateError, setDateError] = useState(false);
+  const query = useInfiniteQuery(auditQuery(filters));
+
+  const items = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const actors = [
+    ...new Map(
+      items.flatMap((entry) =>
+        entry.actor ? [[entry.actor.id, entry.actor] as const] : [],
+      ),
+    ).values(),
+  ];
+
+  const sync = (next: AuditSearch, mode: 'push' | 'replace' = 'replace') => {
+    const params = auditSearchParams(next).toString();
+    const url = params ? `?${params}` : window.location.pathname;
+    window.history[mode === 'push' ? 'pushState' : 'replaceState'](
+      null,
+      '',
+      url,
+    );
+  };
+  const applyFilters = (patch: Partial<AuditSearch>) => {
+    const next = { ...search, ...patch, record: undefined };
+    sync(next);
+  };
+  const openRecord = (record: string | undefined) => {
+    const next = { ...search, record };
+    sync(next, record ? 'push' : 'replace');
+  };
+  const filtered =
+    search.period !== '7d' ||
+    Boolean(
+      search.action || search.entityType || search.actorId || search.result,
+    );
+  const reset = () =>
+    applyFilters({
+      period: '7d',
+      action: undefined,
+      entityType: undefined,
+      entityId: undefined,
+      actorId: undefined,
+      result: undefined,
+      from: undefined,
+      to: undefined,
+    });
+
+  const entityChip =
+    search.entityType && search.entityId
+      ? (labels.entity(
+          items.find((item) => item.entity?.id === search.entityId)?.entity ?? {
+            type: search.entityType,
+            id: search.entityId,
+            label: null,
+          },
+        ) ?? '')
+      : null;
+  const actorEntry = search.actorId
+    ? items.find((item) => item.actor?.id === search.actorId)
+    : undefined;
+  const actorChip = search.actorId
+    ? actorEntry
+      ? labels.actor(actorEntry)
+      : labels.shortId(search.actorId)
+    : null;
+
+  let body: ReactNode;
+  if (!query.data) {
+    body = query.isError ? (
+      <SectionError
+        onRetry={() => void query.refetch()}
+        retrying={query.isFetching}
+      />
+    ) : (
+      <div className="skeleton-delayed flex flex-col gap-2 p-4">
+        {Array.from({ length: 10 }, (_, index) => (
+          <Skeleton key={index} className="h-10 w-full" />
+        ))}
+      </div>
+    );
+  } else if (items.length === 0) {
+    body = (
+      <EmptyState
+        icon={ScrollText}
+        title={t('empty.title')}
+        description={t('empty.description')}
+        action={
+          filtered ? (
+            <Button variant="outline" onClick={reset}>
+              {t('filters.reset')}
+            </Button>
+          ) : undefined
+        }
+      />
+    );
+  } else {
+    const time = (entry: AuditEntry) =>
+      t('time', { at: new Date(entry.occurredAt) });
+    const open = (entry: AuditEntry) =>
+      t('openRecord', {
+        action: labels.action(entry.action),
+        at: new Date(entry.occurredAt),
+      });
+    body = (
+      <>
+        <table className="hidden w-full text-sm md:table">
+          <thead>
+            <tr className="border-border text-muted-foreground border-b text-left text-xs">
+              {(
+                ['time', 'actor', 'action', 'entity', 'result', 'ip'] as const
+              ).map((column) => (
+                <th key={column} scope="col" className="px-4 py-3 font-medium">
+                  {t(`columns.${column}`)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((entry) => (
+              <tr
+                key={entry.id}
+                onClick={() => openRecord(entry.id)}
+                className={cn(
+                  'border-border hover:bg-surface-muted h-12 cursor-pointer border-b last:border-0',
+                  search.record === entry.id && 'bg-primary-subtle',
+                )}
+              >
+                <td className="text-muted-foreground px-4 whitespace-nowrap tabular-nums">
+                  {time(entry)}
+                </td>
+                <td className="text-foreground px-4">
+                  {entry.actor ? (
+                    <button
+                      type="button"
+                      className="text-left hover:underline"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        applyFilters({ actorId: entry.actor!.id });
+                      }}
+                    >
+                      {labels.actor(entry)}
+                    </button>
+                  ) : (
+                    labels.actor(entry)
+                  )}
+                </td>
+                <td className="px-4">
+                  <button
+                    type="button"
+                    aria-label={open(entry)}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openRecord(entry.id);
+                    }}
+                    className="text-foreground text-left font-medium hover:underline"
+                  >
+                    {labels.action(entry.action)}
+                  </button>
+                </td>
+                <td className="text-muted-foreground px-4">
+                  {labels.entity(entry.entity) ?? '—'}
+                </td>
+                <td className="px-4">
+                  <ResultChip result={entry.result} />
+                </td>
+                <td className="text-muted-foreground px-4 font-mono text-xs">
+                  {entry.ip ?? '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <ul className="divide-border divide-y md:hidden">
+          {items.map((entry) => (
+            <li key={entry.id}>
+              <button
+                type="button"
+                aria-label={open(entry)}
+                onClick={() => openRecord(entry.id)}
+                className="hover:bg-surface-muted flex w-full flex-col gap-1 p-4 text-left"
+              >
+                <span className="flex items-center justify-between gap-2">
+                  <span className="text-foreground font-semibold">
+                    {labels.action(entry.action)}
+                  </span>
+                  {entry.result === 'DENIED' && (
+                    <ResultChip result={entry.result} />
+                  )}
+                </span>
+                <span className="text-muted-foreground text-sm">
+                  {[labels.actor(entry), labels.entity(entry.entity)]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+                <span className="text-muted-foreground text-xs tabular-nums">
+                  {t('timeShort', { at: new Date(entry.occurredAt) })}
+                  {entry.ip ? ` · ${entry.ip}` : ''}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </>
+    );
+  }
+
+  const chips = [
+    entityChip && {
+      label: t('filters.entity', { label: entityChip }),
+      clear: () => applyFilters({ entityType: undefined, entityId: undefined }),
+    },
+    actorChip && {
+      label: t('filters.actor', { label: actorChip }),
+      clear: () => applyFilters({ actorId: undefined }),
+    },
+  ].filter((chip): chip is { label: string; clear: () => void } => !!chip);
+
+  return (
+    <>
+      <PageHeader title={t('title')} subtitle={t('subtitle')} />
+      <section
+        aria-label={t('filters.label')}
+        className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-5"
+      >
+        <FilterSelect
+          label={t('filters.period')}
+          value={search.period}
+          onChange={(value) => {
+            const period = value as AuditSearch['period'];
+            setDateError(false);
+            const customDates = validAuditPeriod(from, to)
+              ? { from, to }
+              : { from: filters.from, to: filters.to };
+            applyFilters({
+              period,
+              from: period === 'custom' ? customDates.from : undefined,
+              to: period === 'custom' ? customDates.to : undefined,
+            });
+          }}
+        >
+          {([...AUDIT_PERIODS, 'custom'] as const).map((period) => (
+            <option key={period} value={period}>
+              {t(`filters.${PERIOD_KEYS[period]}`)}
+            </option>
+          ))}
+        </FilterSelect>
+        <FilterSelect
+          label={t('columns.actor')}
+          value={search.actorId ?? ''}
+          onChange={(value) => applyFilters({ actorId: value || undefined })}
+        >
+          <option value="">{t('filters.all')}</option>
+          {search.actorId &&
+            !actors.some((actor) => actor.id === search.actorId) && (
+              <option value={search.actorId}>{actorChip}</option>
+            )}
+          {actors.map((actor) => (
+            <option key={actor.id} value={actor.id}>
+              {actor.fullName}
+            </option>
+          ))}
+        </FilterSelect>
+        <FilterSelect
+          label={t('filters.action')}
+          value={search.action ?? ''}
+          onChange={(value) => applyFilters({ action: value || undefined })}
+        >
+          <option value="">{t('filters.all')}</option>
+          {Object.entries(AUDIT_ACTION_GROUPS).map(([group, actions]) => (
+            <optgroup
+              key={group}
+              label={t(`actionGroups.${group as AuditActionGroup}`)}
+            >
+              {actions.map((code) => (
+                <option key={code} value={code}>
+                  {labels.action(code)}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </FilterSelect>
+        <FilterSelect
+          label={t('filters.entityType')}
+          value={search.entityType ?? ''}
+          onChange={(value) =>
+            applyFilters({
+              entityType:
+                AUDIT_ENTITY_TYPES.find((type) => type === value) ?? undefined,
+              entityId: undefined,
+            })
+          }
+        >
+          <option value="">{t('filters.all')}</option>
+          {AUDIT_ENTITY_TYPES.map((type) => (
+            <option key={type} value={type}>
+              {labels.entityType(type)}
+            </option>
+          ))}
+        </FilterSelect>
+        <FilterSelect
+          label={t('filters.result')}
+          value={search.result ?? ''}
+          onChange={(value) =>
+            applyFilters({
+              result:
+                value === 'SUCCESS' || value === 'DENIED' ? value : undefined,
+            })
+          }
+        >
+          <option value="">{t('filters.all')}</option>
+          <option value="SUCCESS">{t('result.SUCCESS')}</option>
+          <option value="DENIED">{t('result.DENIED')}</option>
+        </FilterSelect>
+      </section>
+      {search.period === 'custom' && (
+        <form
+          className="mb-4 flex flex-wrap items-end gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!validAuditPeriod(from, to)) {
+              setDateError(true);
+              return;
+            }
+            setDateError(false);
+            applyFilters({ from, to });
+          }}
+        >
+          <Label className="flex flex-col gap-1">
+            {t('filters.from')}
+            <Input
+              type="date"
+              required
+              value={from}
+              onChange={(event) => setFrom(event.target.value)}
+              aria-invalid={dateError}
+            />
+          </Label>
+          <Label className="flex flex-col gap-1">
+            {t('filters.to')}
+            <Input
+              type="date"
+              required
+              value={to}
+              onChange={(event) => setTo(event.target.value)}
+              aria-invalid={dateError}
+            />
+          </Label>
+          <Button type="submit" variant="outline">
+            {t('filters.apply')}
+          </Button>
+          {dateError && (
+            <p role="alert" className="text-error-text w-full text-sm">
+              {t('filters.invalidPeriod')}
+            </p>
+          )}
+        </form>
+      )}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {chips.map((chip) => (
+          <span
+            key={chip.label}
+            className="bg-primary-subtle text-link inline-flex items-center gap-1 rounded-full py-1 pr-1 pl-3 text-sm"
+          >
+            {chip.label}
+            <button
+              type="button"
+              aria-label={t('filters.removeFilter', { label: chip.label })}
+              onClick={chip.clear}
+              className="hover:bg-surface inline-flex size-7 items-center justify-center rounded-full"
+            >
+              <X className="size-4" aria-hidden="true" />
+            </button>
+          </span>
+        ))}
+        {filtered && (
+          <Button variant="ghost" size="sm" onClick={reset}>
+            {t('filters.reset')}
+          </Button>
+        )}
+        <span className="text-muted-foreground ml-auto text-xs">
+          {t('filters.periodHint')}
+        </span>
+      </div>
+      <Card className="overflow-hidden p-0">{body}</Card>
+      {query.isError && query.data && (
+        <SectionError
+          onRetry={() => void query.refetch()}
+          retrying={query.isFetching}
+        />
+      )}
+      {items.length > 0 && (
+        <div className="mt-4 flex items-center gap-3">
+          <span className="text-muted-foreground text-sm" aria-live="polite">
+            {t('shown', { shown: items.length })}
+          </span>
+          {query.hasNextPage && (
+            <Button
+              variant="outline"
+              onClick={() => void query.fetchNextPage()}
+              disabled={query.isFetchingNextPage}
+            >
+              {t('loadMore')}
+            </Button>
+          )}
+        </div>
+      )}
+      {search.record && (
+        <AuditRecordSheet
+          recordId={search.record}
+          onClose={() => openRecord(undefined)}
+          onShowEntityHistory={(entity) =>
+            applyFilters({
+              entityType: AUDIT_ENTITY_TYPES.find(
+                (type) => type === entity.type,
+              ),
+              entityId: entity.id,
+              period: '365d',
+              action: undefined,
+              actorId: undefined,
+              result: undefined,
+              from: undefined,
+              to: undefined,
+            })
+          }
+        />
+      )}
+    </>
+  );
+}

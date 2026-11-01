@@ -7,7 +7,7 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 | Phase | Scope (PRD §15) | Status | Gallery |
 |---|---|---|---|
 | 0 | Discovery & design | ✅ Done 2026-10-31 — owner approved Phase 1 | — |
-| 1 | Foundation | 🔄 In progress (branch `phase-1`) | `screenshots/foundation/index.html` (404 only; full phase gallery pending) |
+| 1 | Foundation | 🔄 In progress (branch `phase-1`) | `screenshots/phase-1/index.html` (auth + audit; full role gallery pending T7) |
 | 2 | Vacancies & candidates | ⏳ | |
 | 3 | Pipeline + routing | ⏳ | |
 | 4 | Bonuses & statistics | ⏳ | |
@@ -44,10 +44,18 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 | T3 | Server core: request context, authz module + matrix tests, API wrapper/OpenAPI, audit + events | senior-fullstack-engineer | ✅ `e6be251` + security fixes `da6733b`; code review approved 2026-11-01. Open Low/Info: SEC-CORE-13/14/16 (T9 / before routing) |
 | T4 | Auth: magic link, Google, invites, TOTP (Admin + Finance), sessions, dev-login | senior-fullstack-engineer + security-engineer (identity slice by Codex) | ✅ `10ca37b`, `18e0447` (R01), `bb620e8` (CR-P1 + R02/R03/R05). Security re-check: acceptable for Phase 1 (`docs/security/review-phase-1-auth-completion.md`). Remaining: invite resend/revoke, deactivation (+R04), D69/D70 → T6; hosted config drift → T9 |
 | T5 | Design system shell, navigation per role, profile, states — owner's designer mockups (docs/ux/reference) are the target look | senior-fullstack-engineer | ✅ `838e20f`, `024bdd9`, tests `a213c76` (96 unit, 15 integration, 12 E2E). Known: server field error not shown on name form (Minor, remount by `key`); axe not installed; screenshots → T7 |
-| T6 | Settings: users & invites, roles, verticals, TL priorities, audit viewer | senior-fullstack-engineer | 🔄 Slice 1 `b7520c6`: settings frame + Вертикалі (list/create/rename, 10 integration + 6 E2E). Next: audit viewer, users & invites, TL priorities |
+| T6 | Settings: users & invites, roles, verticals, TL priorities, audit viewer | senior-fullstack-engineer | 🔄 Slice 1 `b7520c6`: settings frame + Вертикалі. Slice 2: bounded audit list/detail + filters, Admin aal2 only, migration `0006`; review approved. Users & invites, TL priorities and audit polish remain |
 | T7 | Tests (integration, E2E, Newman), screenshots + gallery | qa-engineer | ⏳ |
 | T8 | Perf seed + perf:check | performance-engineer | ⏳ |
 | T9 | Security review, code review, fixes, verify | security-engineer, code-reviewer | ⏳ Carry-over from foundation review: CI action SHA pins, `pnpm audit` gate, Drizzle drift check, `format:check`, `NEXT_PUBLIC_`/static secret grep; DG-03 storage policy test on local Supabase; AGENTS.md/.codex duplication (owner call) |
+
+## Implementation checkpoint — 2026-11-01 (Codex, T6 audit slice)
+
+- Resumed Claude's unfinished audit viewer without discarding its working-tree changes. Added `/settings/audit`, GET `/audit` and `/audit/{recordId}`, URL filters (Kyiv presets/custom period, actor, action, entity and result), before/after sheet and vertical history links [STORY-AUD-2, VIS-01..03, AUD].
+- Fixed host-timezone/DST range arithmetic, stale state on same-route navigation, invalid custom drafts reaching the API, delayed 404 details and recursive JSON OpenAPI generation. Added indexed UUID label joins and migration `0006` for filtered keyset queries.
+- Read-only list is restricted to Admin with verified MFA; list payload excludes before/after JSON. Security review: `docs/security/review-phase-1-settings-audit.md`; code review approved the bounded slice.
+- Explicit scope limits: actor picker contains actors in retained rows (searchable all-user/system lookup remains T6); at most two 50-row pages are retained, and loading older pages displaces newer ones (backward window navigation/virtualization remain T6 polish); security preset/multi-action filter and date-draft synchronization on Back remain polish. No retention job is added here.
+- Verification: 1,860 unit/integration tests passed; lint and clean production build (incl. TypeScript) green. Full E2E after final import optimizations: 50 passed + 6 existing intentional mobile-vertical skips, including all 10 audit cases. Screenshot suite 24/24 passed; 8 audit PNGs, 28 images in each phase/latest gallery, visually reviewed desktop/mobile in both themes. Actual initial JS still exceeds the 180 kB gate (audit 206.06 kB, shell 188.02); carried explicitly into T8, with shared-shell optimization as the next small task. Query/bundle measurements: `docs/perf/report-phase-1-settings-audit.md`. OpenAPI/Postman generation passed; Newman runner and load/Web Vitals gates remain T7/T8. Phase 1 is not complete.
 
 ## Implementation checkpoint — 2026-10-31 (Codex)
 
@@ -61,7 +69,7 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 
 | Item | Reason | Unblocked by |
 |---|---|---|
-| T4 sign-in/session completion | Magic-link/Google/refresh/invite flows, TOTP enrolment/reset, local dev-login and 12 h idle/7 day absolute enforcement not implemented by the credential slice | T4, with real local Supabase/mailbox E2E and fixture provisioning |
+| Auth administrative follow-ups | T4 sign-in/session completion shipped; invite resend/revoke, deactivation (+R04), D69/D70 remain T6; hosted config drift remains T9 | T6/T9 |
 | Database rate limiter, Newman runner, Lighthouse/k6 | OpenAPI/Postman and error types exist; actual limiter consumption, API runner and broader perf gates are pending | T4/T7/T8; do not claim full authentication or Phase 1 complete |
 | Perf seed `pnpm db:seed:perf` (PERF-01) | Needs Phase 2 tables (candidates, vacancies, applications) | Phase 2 (SEED-1) |
 | FKs `audit_log.candidate_id`, `entity_event.vacancy_id` / `candidate_id` / `application_id` | Parent tables don't exist yet (`docs/erd.md` §10) | Phase 2 |

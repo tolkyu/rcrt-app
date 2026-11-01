@@ -5,6 +5,10 @@ export const queryKeys = {
   myMfa: () => ['me', 'mfa'] as const,
   myLoginHistory: () => ['me', 'login-history'] as const,
   settingsVerticals: () => ['settings', 'verticals'] as const,
+  settingsAudit: (filters: Readonly<Record<string, string | undefined>>) =>
+    ['settings', 'audit', filters] as const,
+  settingsAuditRecord: (id: string) =>
+    ['settings', 'audit-record', id] as const,
 };
 
 /** First page size of «Історія входів» on «Профіль». */

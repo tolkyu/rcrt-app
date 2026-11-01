@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const MAX_BIGINT_ID = 2n ** 63n - 1n;
+export const MAX_BIGINT_ID = 2n ** 63n - 1n;
 const CURSOR = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)_(\d{1,19})$/;
 
 /** Keyset position `(occurred_at, id)` for lists ordered newest first by a bigint id. */

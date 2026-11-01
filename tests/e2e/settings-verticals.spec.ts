@@ -104,6 +104,12 @@ test('a created vertical appears in alphabetical order with a toast (create resp
     });
   });
   await page.goto('/settings/verticals');
+  await expect(
+    verticalsTable(page).getByRole('rowheader').first(),
+  ).toBeVisible();
+  const namesBefore = await verticalsTable(page)
+    .getByRole('rowheader')
+    .allTextContents();
   await page.getByRole('button', { name: t.verticals.create }).click();
   await openDialog(page)
     .getByLabel(t.verticals.dialog.nameLabel)
@@ -115,11 +121,11 @@ test('a created vertical appears in alphabetical order with a toast (create resp
   await expect(
     page.getByText(t.verticals.toastCreated.replace('{name}', 'Дейтинг')),
   ).toBeVisible();
-  await expect(verticalsTable(page).getByRole('rowheader')).toHaveText([
-    'Гемблінг',
-    'Дейтинг',
-    'Крипто',
-  ]);
+  await expect(verticalsTable(page).getByRole('rowheader')).toHaveText(
+    [...namesBefore, 'Дейтинг'].sort((left, right) =>
+      left.localeCompare(right, 'uk'),
+    ),
+  );
 });
 
 test('rename updates the row at once, persists after reload, and blocks an unchanged name', async ({

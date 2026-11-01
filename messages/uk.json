@@ -292,7 +292,8 @@
     "nav": {
       "label": "Розділи налаштувань",
       "verticals": "Вертикалі",
-      "back": "Налаштування"
+      "back": "Налаштування",
+      "audit": "Журнал дій"
     },
     "common": {
       "cancel": "Скасувати",
@@ -340,7 +341,134 @@
         }
       },
       "toastCreated": "Вертикаль «{name}» створено",
-      "toastRenamed": "Вертикаль перейменовано: «{from}» → «{to}»"
+      "toastRenamed": "Вертикаль перейменовано: «{from}» → «{to}»",
+      "history": "Історія змін"
+    },
+    "audit": {
+      "metaTitle": "Журнал дій",
+      "title": "Журнал дій",
+      "subtitle": "Усі зміни та входи. Записи не можна змінити чи видалити, вони зберігаються 3 роки.",
+      "filters": {
+        "label": "Фільтри журналу",
+        "period": "Період",
+        "periodToday": "Сьогодні",
+        "period7d": "Останні 7 днів",
+        "period30d": "Останні 30 днів",
+        "periodHint": "Дати за київським часом",
+        "action": "Дія",
+        "entityType": "Обʼєкт",
+        "result": "Результат",
+        "all": "Усі",
+        "entity": "Обʼєкт: {label}",
+        "actor": "Хто: {label}",
+        "removeFilter": "Прибрати фільтр «{label}»",
+        "reset": "Скинути фільтри",
+        "period365d": "Останній рік",
+        "periodCustom": "Свій період",
+        "from": "Від",
+        "to": "До",
+        "apply": "Застосувати",
+        "invalidPeriod": "Оберіть коректний період не довший за рік."
+      },
+      "columns": {
+        "time": "Час",
+        "actor": "Хто",
+        "action": "Дія",
+        "entity": "Обʼєкт",
+        "result": "Результат",
+        "ip": "IP"
+      },
+      "time": "{at, date, ::dd.MM.yyyy HH:mm:ss}",
+      "timeShort": "{at, date, ::dd.MM HH:mm}",
+      "result": {
+        "SUCCESS": "Успішно",
+        "DENIED": "Відмовлено"
+      },
+      "system": "Система",
+      "actorUnknown": "Невідомий користувач",
+      "deactivatedSuffix": "(деактивовано)",
+      "entityLabel": "{type} · {label}",
+      "entityTypes": {
+        "user": "Користувач",
+        "user_invite": "Запрошення",
+        "vertical": "Вертикаль",
+        "settings": "Налаштування"
+      },
+      "actionGroups": {
+        "users": "Користувачі",
+        "security": "Входи та безпека",
+        "verticals": "Вертикалі"
+      },
+      "actions": {
+        "auth": {
+          "login_succeeded": "Успішний вхід",
+          "login_failed": "Невдала спроба входу",
+          "logged_out": "Вихід",
+          "session_revoked": "Сесію завершено",
+          "mfa_challenge_failed": "Невірний код 2FA",
+          "mfa_locked": "Вхід із кодом 2FA заблоковано"
+        },
+        "user": {
+          "mfa_enrolled": "2FA налаштовано",
+          "mfa_reset": "2FA скинуто",
+          "invited": "Запрошено користувача",
+          "invite_accepted": "Запрошення прийнято",
+          "profile_updated": "Змінено імʼя"
+        },
+        "vertical": {
+          "created": "Створено вертикаль",
+          "renamed": "Перейменовано вертикаль"
+        }
+      },
+      "actionUnknown": "Інша дія ({code})",
+      "reasons": {
+        "RATE_LIMITED": "Забагато спроб",
+        "CODE_INVALID": "Невірний код",
+        "INVITE_INVALID": "Недійсне запрошення",
+        "MFA_RESET_INCOMPLETE": "2FA скинуто не повністю",
+        "unknown": "Код причини: {code}"
+      },
+      "fields": {
+        "roles": "Ролі",
+        "fullName": "ПІБ",
+        "name": "Назва",
+        "reason": "Причина",
+        "removedFactors": "Видалено пристроїв 2FA",
+        "inviteId": "Запрошення",
+        "method": "Спосіб входу"
+      },
+      "loadMore": "Показати ще",
+      "shown": "Показано {shown} (до 100 останніх завантажених записів)",
+      "openRecord": "Відкрити запис: {action}, {at, date, ::dd.MM.yyyy HH:mm:ss}",
+      "detail": {
+        "title": "Запис журналу",
+        "close": "Закрити запис",
+        "time": "Час",
+        "timeKyiv": "{at, date, ::dd.MM.yyyy HH:mm:ss} (Київ)",
+        "timeUtc": "UTC: {at}",
+        "actor": "Хто",
+        "actionCode": "Код дії",
+        "reason": "Причина відмови",
+        "entity": "Обʼєкт",
+        "entityHistory": "Усі дії з цим обʼєктом",
+        "ip": "IP-адреса",
+        "userAgent": "User-Agent",
+        "requestId": "ID запиту",
+        "changes": "Зміни",
+        "field": "Поле",
+        "before": "Було",
+        "after": "Стало",
+        "emptyValue": "—",
+        "noChanges": "Запис без змін даних.",
+        "details": "Подробиці",
+        "showJson": "Показати JSON",
+        "hideJson": "Сховати JSON",
+        "notFound": "Запис не знайдено."
+      },
+      "empty": {
+        "title": "Записів не знайдено",
+        "description": "За цей період і фільтри дій немає."
+      }
     }
   }
 }

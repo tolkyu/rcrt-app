@@ -38,7 +38,7 @@ for (const screen of screens) {
         page.getByRole('button', { name: 'Увійти', exact: true }),
       ).toBeVisible();
     if (screen.id === '03-public-confirm-invalid')
-      await expect(page.getByRole('alert')).toBeVisible();
+      await expect(page.getByRole('main').getByRole('alert')).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
     expect(
       await page.evaluate(

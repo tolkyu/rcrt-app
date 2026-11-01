@@ -17,7 +17,7 @@ export interface NavItem {
   readonly landingRank?: number;
 }
 
-export type SettingsSectionId = 'verticals';
+export type SettingsSectionId = 'verticals' | 'audit';
 
 /** «Налаштування» sub-sections in display order; only built ones are listed (D28). */
 export const SETTINGS_SECTIONS: readonly {
@@ -30,6 +30,7 @@ export const SETTINGS_SECTIONS: readonly {
     href: '/settings/verticals',
     permission: 'settings.verticals.manage',
   },
+  { id: 'audit', href: '/settings/audit', permission: 'audit.read' },
 ];
 
 export function visibleSettingsSections(permissions: ReadonlySet<string>) {

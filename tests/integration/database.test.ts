@@ -353,7 +353,12 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
         await temporaryRuntime`select * from app.auth_session_status
         where id = ${sessionId} and user_id = ${sessionUserId} and (not_after is null or not_after > now())`;
       expect(visible).toEqual([
-        { id: sessionId, user_id: sessionUserId, not_after: null, created_at: null },
+        {
+          id: sessionId,
+          user_id: sessionUserId,
+          not_after: null,
+          created_at: null,
+        },
       ]);
       await expect(
         temporaryRuntime`select id, user_id, not_after from auth.sessions`,
@@ -765,7 +770,7 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
     ]);
   });
 
-  it('builds the 0003 timeline, audit and cleanup indexes with their predicates [ERD §5]', async () => {
+  it('builds timeline, audit viewer and cleanup indexes with their predicates [ERD §5, PERF-05]', async () => {
     const rows = await admin`select indexname, indexdef from pg_indexes
       where schemaname = 'app' and tablename in ('entity_event', 'audit_log', 'file_object', 'user_role')`;
     const definitions = Object.fromEntries(
@@ -782,8 +787,17 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
     );
     expect(definitions.entity_event_subject_idx).not.toContain('WHERE');
     expect(definitions.audit_log_entity_idx).toContain(
-      '(entity_type, entity_id, occurred_at DESC)',
+      '(entity_type, entity_id, occurred_at DESC, id DESC)',
     );
+    for (const [name, column] of [
+      ['audit_log_action_idx', 'action'],
+      ['audit_log_result_idx', 'result'],
+      ['audit_log_entity_type_idx', 'entity_type'],
+    ] as const) {
+      expect(definitions[name], name).toContain(
+        `(${column}, occurred_at DESC, id DESC)`,
+      );
+    }
     expect(definitions.audit_log_candidate_idx).toContain(
       '(candidate_id) WHERE (candidate_id IS NOT NULL)',
     );
@@ -819,11 +833,23 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
         ]),
         [
           'audit_log_entity_idx',
-          `select id from app.audit_log where entity_type = 'app_user' and entity_id = '${id}' order by occurred_at desc limit 31`,
+          `select id from app.audit_log where entity_type = 'app_user' and entity_id = '${id}' order by occurred_at desc, id desc limit 31`,
         ],
         [
           'audit_log_actor_idx',
           `select id from app.audit_log where actor_id = '${id}' order by occurred_at desc, id desc limit 31`,
+        ],
+        [
+          'audit_log_action_idx',
+          "select id from app.audit_log where action = 'vertical.renamed' order by occurred_at desc, id desc limit 51",
+        ],
+        [
+          'audit_log_result_idx',
+          "select id from app.audit_log where result = 'DENIED' order by occurred_at desc, id desc limit 51",
+        ],
+        [
+          'audit_log_entity_type_idx',
+          "select id from app.audit_log where entity_type = 'vertical' order by occurred_at desc, id desc limit 51",
         ],
       ];
       for (const [index, query] of plans) {

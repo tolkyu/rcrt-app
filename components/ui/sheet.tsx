@@ -10,6 +10,8 @@ export const SheetTrigger = SheetPrimitive.Trigger;
 export const SheetClose = SheetPrimitive.Close;
 
 const sideClass = {
+  right:
+    'inset-y-0 right-0 h-full w-full border-l sm:w-[30rem] data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right',
   left: 'inset-y-0 left-0 h-full w-[min(20rem,85vw)] border-r data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left',
   bottom:
     'inset-x-0 bottom-0 max-h-[85dvh] rounded-t-2xl border-t pb-[env(safe-area-inset-bottom)] data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom',
