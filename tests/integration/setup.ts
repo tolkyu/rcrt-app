@@ -41,6 +41,15 @@ export default async function setup(project: TestProject) {
         created_at timestamptz not null default now()
       )
     `;
+    await sql`
+      create table auth.mfa_factors (
+        id uuid primary key,
+        user_id uuid not null,
+        factor_type text not null,
+        status text not null,
+        secret text
+      )
+    `;
     await migrateDatabase(urls.migration);
     await provisionLocalRuntime({
       APP_ENV: 'local',

@@ -36,7 +36,7 @@ export const renameVerticalSchema = z
   .meta({ id: 'RenameVertical' });
 export type RenameVerticalInput = z.input<typeof renameVerticalSchema>;
 
-/** «Налаштування → Вертикалі» row: active users holding ≥ 1 role in the vertical (wireframe §2.1). */
+/** «Налаштування → Вертикалі» row: users with status «Активний» holding ≥ 1 role in the vertical (wireframe §2.1). */
 export const settingsVerticalSchema = z
   .object({
     id: z.uuid(),

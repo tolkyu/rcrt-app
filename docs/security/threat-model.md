@@ -19,6 +19,7 @@
 | AS-04 | Bonuses: snapshots, tranches, splits, adjustments, payouts, vacancy reward (BONUS-16) | `bonus_*`, `vacancy.bonus_amount_*` | **Restricted (money)** | Fraud target; payout reports go to Finance |
 | AS-05 | Candidate PII: name, email, phone, Telegram, URLs, location, notes, feedback, comments | `candidate`, `comment`, `interview`, `entity_event_pii` | **Restricted PII** | Data-subject rights, purge (ARCH-04) |
 | AS-06 | Staff identities and roles × verticals | `app_user`, `user_role`, `auth.users` | Confidential | Basis of every authz decision |
+| AS-06a | Verified-TOTP bridge view `app.auth_mfa_totp` (`id`, `user_id` only; owner rights over `auth.mfa_factors`, `security_barrier`, SELECT for `app_rw` only) | migration `0007` | Confidential | Admin users list shows 2FA state; secrets stay unreachable (exact ACL/visibility test in `database.test.ts`). Users-list search `q` is in page/API URLs by design (wireframe); the paging cursor is an id only. When Sentry lands, strip query strings from `/api/v1/users` and `/settings/users` breadcrumbs |
 | AS-07 | Audit log, login history (IP, UA, before/after diffs) | `audit_log` | **Restricted PII + integrity-critical** | Holds full row diffs (PII and salaries); evidence for disputes |
 | AS-08 | Timeline events | `entity_event` | Integrity-critical | Append-only (HIST-03); statistics are replayed from it |
 | AS-09 | Session material: Supabase access/refresh tokens, invite tokens, magic links, TOTP secrets | browser cookies, `user_invite`, Supabase Auth | **Secret** | Account takeover |

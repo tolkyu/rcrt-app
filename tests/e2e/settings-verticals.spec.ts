@@ -16,11 +16,10 @@ test.describe.configure({ mode: 'default' });
 const verticalsTable = (page: Page) => page.getByRole('table');
 const openDialog = (page: Page) => page.getByRole('dialog');
 
-test('Admin lands on «Налаштування → Вертикалі» and sees every vertical with user counts [UI-04-1, STORY-ROLE-03-1]', async ({
+test('Admin sees every vertical with user counts linked to the users list [STORY-ROLE-03-1]', async ({
   page,
 }) => {
-  await page.goto('/');
-  await expect(page).toHaveURL(/\/settings\/verticals$/);
+  await page.goto('/settings/verticals');
   await expect(
     page.getByRole('heading', { level: 1, name: t.verticals.title }),
   ).toBeVisible();
@@ -34,6 +33,14 @@ test('Admin lands on «Налаштування → Вертикалі» and see
     table.getByRole('rowheader', { name: 'Гемблінг' }),
   ).toBeVisible();
   await expect(table.getByRole('rowheader', { name: 'Крипто' })).toBeVisible();
+  await expect(
+    table
+      .getByRole('row', { name: /Гемблінг/ })
+      .locator('a[href^="/settings/users"]'),
+  ).toHaveAttribute(
+    'href',
+    /^\/settings\/users\?status=ACTIVE&vertical=[0-9a-f-]{36}$/,
+  );
   await expect(page.getByText(t.verticals.permanentNote)).toBeVisible();
   await expect(
     page.getByRole('button', { name: /деактив|видал/i }),

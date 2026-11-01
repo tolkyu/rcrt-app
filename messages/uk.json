@@ -294,6 +294,7 @@
     "title": "Налаштування",
     "nav": {
       "label": "Розділи налаштувань",
+      "users": "Користувачі та ролі",
       "verticals": "Вертикалі",
       "back": "Налаштування",
       "audit": "Журнал дій"
@@ -306,6 +307,62 @@
       "rowActions": "Дії: {name}",
       "conflict": "Дані щойно змінив інший адміністратор. Ми оновили сторінку — перевірте й повторіть.",
       "saveFailed": "Не вдалося зберегти. Спробуйте ще раз."
+    },
+    "users": {
+      "metaTitle": "Користувачі та ролі",
+      "title": "Користувачі та ролі",
+      "subtitle": "Хто має доступ до Hiring і з якими ролями",
+      "filtersLabel": "Фільтри користувачів",
+      "searchLabel": "Пошук користувачів",
+      "searchPlaceholder": "Пошук за ПІБ або email",
+      "searchHint": "Щонайменше 2 символи",
+      "filterStatus": "Статус",
+      "filterRole": "Роль",
+      "filterVertical": "Вертикаль",
+      "all": "Усі",
+      "globalVertical": "Без вертикалі (глобальні)",
+      "resetFilters": "Скинути фільтри",
+      "caption": "Користувачі",
+      "columns": {
+        "user": "Користувач",
+        "roles": "Ролі",
+        "status": "Статус",
+        "mfa": "2FA",
+        "lastLogin": "Останній вхід"
+      },
+      "status": {
+        "ACTIVE": "Активний",
+        "INVITED": "Запрошено",
+        "INVITE_EXPIRED": "Запрошення прострочене",
+        "REVOKED": "Відкликано",
+        "DEACTIVATED": "Деактивовано"
+      },
+      "you": "(ви)",
+      "deactivatedSuffix": "(деактивовано)",
+      "inviteUntil": "до {at, date, ::dd.MM HH:mm}",
+      "rolesMore": "+{count}",
+      "rolesMoreLabel": "Ще ролі: {roles}",
+      "rolesNone": "Без ролей",
+      "lastLogin": "{at, date, ::dd.MM HH:mm}",
+      "lastLoginOtherYear": "{at, date, ::dd.MM.yyyy}",
+      "lastLoginFull": "{at, date, ::dd.MM.yyyy HH:mm}",
+      "lastLoginNever": "Входів не було",
+      "lastLoginMobile": "Останній вхід: {at}",
+      "mfa": {
+        "enabled": "{count, plural, one {# пристрій} few {# пристрої} many {# пристроїв} other {# пристрою}}",
+        "off": "Не налаштовано",
+        "requiredMissing": "Обовʼязкова — не налаштована",
+        "locked": "Заблоковано до {at, date, ::HH:mm}",
+        "none": "—"
+      },
+      "empty": {
+        "title": "Нікого не знайдено",
+        "description": "Змініть пошук або фільтри."
+      },
+      "shownOf": "Показано {shown} з {total}",
+      "loadMore": "Показати ще",
+      "mfaLabel": "2FA:",
+      "unknownVertical": "Невідома вертикаль"
     },
     "verticals": {
       "metaTitle": "Вертикалі",

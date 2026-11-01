@@ -37,6 +37,7 @@ const screens = [
     'Навігація — Адміністратор',
     ['tablet-light', 'tablet-dark', 'mobile-light', 'mobile-dark'],
   ],
+  ['08-admin-users-list', 'Користувачі та ролі — Адміністратор'],
 ];
 mkdirSync('screenshots/latest', { recursive: true });
 const sections = screens.map(([id, title, screenVariants = variants]) => {

@@ -99,6 +99,12 @@ export const appUser = app.table(
     ),
     check('app_user_name_chk', sql`length(trim(${t.fullName})) > 0`),
     check('app_user_version_chk', sql`${t.version} > 0`),
+    /** «Користувачі та ролі» order and keyset: active first, then ПІБ in Ukrainian collation (ROLE-05-4). */
+    index('app_user_list_idx').on(
+      sql`(NOT ${t.isActive})`,
+      sql`${t.fullName} COLLATE "uk-UA-x-icu"`,
+      t.id,
+    ),
   ],
 );
 
@@ -617,5 +623,13 @@ export const authSessionStatus = app
     userId: uuid('user_id').notNull(),
     notAfter: instant('not_after'),
     createdAt: instant('created_at'),
+  })
+  .existing();
+
+/** Verified TOTP factors only; app_rw has no access to `auth.mfa_factors` itself (secrets live there). */
+export const authMfaTotp = app
+  .view('auth_mfa_totp', {
+    id: uuid('id').notNull(),
+    userId: uuid('user_id').notNull(),
   })
   .existing();

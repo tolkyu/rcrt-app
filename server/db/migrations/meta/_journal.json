@@ -50,6 +50,13 @@
       "when": 1793525743888,
       "tag": "0006_audit_viewer_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793553205837,
+      "tag": "0007_user_list",
+      "breakpoints": true
     }
   ]
 }

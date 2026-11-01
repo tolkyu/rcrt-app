@@ -54,7 +54,7 @@ const adminRequest = (args: FixtureArgs) =>
   request(args, { admin: true, aal: 'aal2', verified: true });
 
 describe('Settings → Вертикалі: create, rename, list [ROLE-03, STORY-ROLE-03-1, D34]', () => {
-  it('creates a vertical with audit and vertical.created, then lists it with active user counts', async () => {
+  it('creates a vertical with audit and vertical.created, then lists it counting only users with status «Активний»', async () => {
     await fixture.run(async (args) => {
       const ctx = await adminRequest(args);
       const created = await createVertical(ctx, { name: '  Нутра  ' });
@@ -93,7 +93,18 @@ describe('Settings → Вертикалі: create, rename, list [ROLE-03, STORY-
         isActive: false,
         deactivatedAt: ctx.clock.now(),
       });
+      const invitedId = randomUUID();
+      await ctx.db.insert(schema.appUser).values({
+        id: invitedId,
+        email: `${invitedId}@fixture.test`,
+        fullName: 'Запрошений',
+      });
       await ctx.db.insert(schema.userRole).values([
+        {
+          userId: invitedId,
+          role: 'RECRUITER',
+          verticalId: args.user.verticalId,
+        },
         {
           userId: inactiveId,
           role: 'RECRUITER',

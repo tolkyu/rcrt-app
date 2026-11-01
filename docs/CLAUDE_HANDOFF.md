@@ -6,6 +6,7 @@
 ## State — 2026-11-01 (evening)
 
 - **Working mode (owner):** one small slice end-to-end → commit → report → wait for «далі».
+- **T6 slice 3 done — «Користувачі та ролі» list** (`/settings/users`, `GET /api/v1/users`): search + single-select filters in the URL (API accepts multi), derived status (deactivated > activated > pending invite valid/expired > revoked), roles via shared `sortRoles`/`useRoleLabel`, 2FA from view `app.auth_mfa_totp` (migration `0007`, also `app_user_list_idx` uk-collation keyset), id-only cursor, total only on the first page. Admin now lands on Users. Vertical «Користувачі» count = status «Активний» only (invitees excluded) and links to `/settings/users?status=ACTIVE&vertical=…`. Seed: expired invitee now has its RECRUITER · Гемблінг role (run `pnpm db:seed`). Verified: lint, typecheck, 1874 vitest, E2E 72 + 2 skips, perf users 175.5 kB / audit 179.07 kB. Screenshots `08-admin-users-list-*` (sign-in times rewritten to fixed values in the spec).
 - **PERF-04 initial-JS gate GREEN** (`e251de6` + review fixes `5be02ea`): deferred shell menus, in-house rail tooltip, Intl Kyiv dates. Shell 166.2 kB, audit 178.95 (1 kB headroom — watch it), all routes pass `perf:size`. Report: `docs/perf/report-phase-1-deferred-menus.md`. Local demo DB was reset on owner request; statistics-tabs mockups stored in `docs/ux/reference/statistics/` (Phase 4 input).
 - Screenshot `06-admin-audit-detail-desktop-dark.png` changes every E2E run (real timestamps of the test's own rename) → T7: freeze or mask dynamic values; until then `git checkout -- screenshots` after E2E.
 - **Claude verified Codex's `a92f0fc` + `1030ba0`** (lint, typecheck, 1711 unit, 149 integration, build) and fixed E2E infra in the following commit: `e2e-sessions` setup signs each demo user in once (`.playwright-auth/`, gitignored); `settings-*` specs run last in `e2e-admin-desktop` → `e2e-admin-mobile` (workers 1). Full E2E 58/58, screenshots unchanged. Each full run uses ~8 sign-ins of the 30 / 15 min per-IP limit — wait for the next window on 429.
@@ -29,7 +30,7 @@
 
 ## Next steps (in order)
 
-1. **Next small slice: T6** «Користувачі та ролі» list → invite dialog → user drawer actions → TL priorities, followed by audit polish. Settings per `docs/ux/wireframes/settings-admin.md` (resend/revoke/re-invite D70, invited-user email change D69, roles × verticals, deactivation + SEC-AUTH-R04). Settings nav and Admin landing are already built. Team defaults for wireframe gaps U2/U3/U5/U6/L1–L3.
+1. **Next small slice: T6** «Користувачі та ролі» invite dialog (list done) → user drawer actions → TL priorities, followed by audit polish. Settings per `docs/ux/wireframes/settings-admin.md` (resend/revoke/re-invite D70, invited-user email change D69, roles × verticals, deactivation + SEC-AUTH-R04). Settings nav and Admin landing are already built. Team defaults for wireframe gaps U2/U3/U5/U6/L1–L3.
 2. **T7** QA: full phase-1 E2E, Newman, screenshots → `screenshots/phase-1/` + `index.html` + `screenshots/latest/`.
 3. **T8** perf gates for phase-1 screens.
 4. **T9** carry-overs: CI Supabase job, CI SHA pins, `pnpm audit`, Drizzle drift, `format:check`, secret grep, DG-03 storage test, hosted Supabase config drift (A04, B06, C06, D03, H04, I03, R03), SEC-CORE-13/14.

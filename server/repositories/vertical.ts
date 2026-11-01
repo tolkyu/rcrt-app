@@ -1,4 +1,12 @@
-import { and, asc, countDistinct, eq, sql, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  countDistinct,
+  eq,
+  isNotNull,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 import type { DbExecutor } from '../db';
 import { appUser, userRole, vertical } from '../db/schema';
 
@@ -11,7 +19,7 @@ export function listVerticals(db: DbExecutor, scope: SQL) {
     .orderBy(asc(vertical.name), asc(vertical.id));
 }
 
-/** One query for «Налаштування → Вертикалі»: users = active users with ≥ 1 role in the vertical. */
+/** One query for «Налаштування → Вертикалі»: users = signed-up, not deactivated users (status «Активний») with ≥ 1 role; invitees are excluded. */
 export function listVerticalsWithUserCounts(db: DbExecutor) {
   return db
     .select({
@@ -25,7 +33,11 @@ export function listVerticalsWithUserCounts(db: DbExecutor) {
     .leftJoin(userRole, eq(userRole.verticalId, vertical.id))
     .leftJoin(
       appUser,
-      and(eq(appUser.id, userRole.userId), eq(appUser.isActive, true)),
+      and(
+        eq(appUser.id, userRole.userId),
+        eq(appUser.isActive, true),
+        isNotNull(appUser.activatedAt),
+      ),
     )
     .groupBy(vertical.id)
     .orderBy(asc(vertical.name), asc(vertical.id));
@@ -85,7 +97,11 @@ export function countActiveVerticalUsers(db: DbExecutor, verticalId: string) {
     .from(userRole)
     .innerJoin(
       appUser,
-      and(eq(appUser.id, userRole.userId), eq(appUser.isActive, true)),
+      and(
+        eq(appUser.id, userRole.userId),
+        eq(appUser.isActive, true),
+        isNotNull(appUser.activatedAt),
+      ),
     )
     .where(eq(userRole.verticalId, verticalId))
     .then(([row]) => row?.usersCount ?? 0);

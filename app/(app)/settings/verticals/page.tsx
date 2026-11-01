@@ -30,7 +30,10 @@ export default async function SettingsVerticalsPage() {
           query.queryKey[0] === 'settings' && query.state.status === 'success',
       })}
     >
-      <VerticalsView canReadAudit={hasAnyGrant(ctx.auth, 'audit.read')} />
+      <VerticalsView
+        canReadAudit={hasAnyGrant(ctx.auth, 'audit.read')}
+        canManageUsers={hasAnyGrant(ctx.auth, 'settings.users.manage')}
+      />
     </HydrationBoundary>
   );
 }

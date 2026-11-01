@@ -165,12 +165,12 @@ describe('visibleNavItems: sections follow permission codes, never role names [U
 });
 
 describe('visibleSettingsSections: only built sections the user may manage [STORY-ROLE-03-1, D28]', () => {
-  it('lists Вертикалі and Журнал дій for an aal2 Admin and nothing for other roles', () => {
+  it('lists Користувачі та ролі, Вертикалі and Журнал дій for an aal2 Admin and nothing for other roles', () => {
     expect(
       visibleSettingsSections(permissionsOf(roleContext('ADMIN', 'aal2'))).map(
         (section) => section.href,
       ),
-    ).toEqual(['/settings/verticals', '/settings/audit']);
+    ).toEqual(['/settings/users', '/settings/verticals', '/settings/audit']);
     for (const role of ['HEAD_RECRUITER', 'HEAD_HR', 'FINANCE'] as const)
       expect(
         visibleSettingsSections(permissionsOf(roleContext(role, 'aal2'))),

@@ -98,7 +98,11 @@ export const DEMO_USERS: {
     inactive: true,
     roles: [{ role: 'RECRUITER', verticalId: g }],
   },
-  { email: 'expired.invite@demo', fullName: 'Богдан Поліщук', roles: [] },
+  {
+    email: 'expired.invite@demo',
+    fullName: 'Богдан Поліщук',
+    roles: [{ role: 'RECRUITER', verticalId: g }],
+  },
 ];
 
 /** The DB fixture deliberately does not fabricate Supabase identities or MFA factors. */

@@ -37,6 +37,26 @@ export const auditQuery = (filters: AuditFilterValues) =>
     getNextPageParam: (page) => page.nextCursor,
   });
 
+export const usersQuery = (
+  filters: Readonly<Record<string, string | undefined>>,
+) =>
+  infiniteQueryOptions({
+    queryKey: queryKeys.settingsUsers(filters),
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam, signal }) => {
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(filters))
+        if (value) params.set(key, value);
+      if (pageParam) params.set('cursor', pageParam);
+      return apiRequest(`/users?${params}`, {
+        schema: async () => (await import('@/lib/schemas/user')).userPageSchema,
+        signal,
+        background: pageParam === null,
+      });
+    },
+    getNextPageParam: (page) => page.nextCursor,
+  });
+
 export const auditRecordQuery = (id: string) =>
   queryOptions({
     queryKey: queryKeys.settingsAuditRecord(id),

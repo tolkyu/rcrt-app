@@ -20,13 +20,33 @@ const VerticalNameDialog = dynamic(() =>
 
 type DialogState = { target: SettingsVertical | null } | null;
 
-export function VerticalsView({ canReadAudit }: { canReadAudit: boolean }) {
+export function VerticalsView({
+  canReadAudit,
+  canManageUsers,
+}: {
+  canReadAudit: boolean;
+  canManageUsers: boolean;
+}) {
   const t = useTranslations('settings.verticals');
   const { data, isError, isFetching, refetch } = useQuery(
     settingsVerticalsQuery(),
   );
   const [dialog, setDialog] = useState<DialogState>(null);
   const openCreate = () => setDialog({ target: null });
+  /** The count is users with status «Активний», so the link opens exactly that subset (wireframe §2.1). */
+  const usersCount = (vertical: SettingsVertical) => {
+    const label = t('usersCount', { count: vertical.usersCount });
+    return canManageUsers && vertical.usersCount > 0 ? (
+      <Link
+        href={`/settings/users?status=ACTIVE&vertical=${vertical.id}`}
+        className="text-link hover:underline"
+      >
+        {label}
+      </Link>
+    ) : (
+      label
+    );
+  };
   const actions = (vertical: SettingsVertical) => (
     <div className="flex items-center justify-end gap-1">
       <RenameButton
@@ -109,7 +129,7 @@ export function VerticalsView({ canReadAudit }: { canReadAudit: boolean }) {
                   {vertical.name}
                 </th>
                 <td className="text-muted-foreground px-4">
-                  {t('usersCount', { count: vertical.usersCount })}
+                  {usersCount(vertical)}
                 </td>
                 <td className="text-muted-foreground px-4 tabular-nums">
                   {t('createdOn', { at: new Date(vertical.createdAt) })}
@@ -130,7 +150,7 @@ export function VerticalsView({ canReadAudit }: { canReadAudit: boolean }) {
                   {vertical.name}
                 </p>
                 <p className="text-muted-foreground text-sm">
-                  {t('usersCount', { count: vertical.usersCount })}
+                  {usersCount(vertical)}
                 </p>
                 <p className="text-muted-foreground text-xs">
                   {t('createdOn', { at: new Date(vertical.createdAt) })}

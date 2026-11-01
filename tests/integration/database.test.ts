@@ -265,6 +265,11 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       )`;
       await owner`grant usage on schema auth to ${owner(loginName)}`;
       await owner`grant select on auth.sessions to ${owner(loginName)} with grant option`;
+      await owner`create table auth.mfa_factors (
+        id uuid primary key, user_id uuid not null, factor_type text not null,
+        status text not null, secret text
+      )`;
+      await owner`grant select on auth.mfa_factors to ${owner(loginName)}`;
       const [authOwner] = await owner`select n.nspowner::regrole::text as owner,
         has_schema_privilege('app_rw', 'auth', 'USAGE') as runtime_usage
         from pg_namespace n where n.nspname = 'auth'`;
@@ -387,6 +392,39 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       expect(
         await temporaryRuntime`select id from app.auth_session_status where id = ${sessionId}`,
       ).toHaveLength(0);
+
+      const factorColumns =
+        await owner`select column_name from information_schema.columns
+        where table_schema = 'app' and table_name = 'auth_mfa_totp' order by ordinal_position`;
+      expect(factorColumns.map((column) => column.column_name)).toEqual([
+        'id',
+        'user_id',
+      ]);
+      const [factorOptions] = await owner`select reloptions from pg_class
+        where oid = 'app.auth_mfa_totp'::regclass`;
+      expect(factorOptions?.reloptions).toContain('security_barrier=true');
+      const factorUser = randomUUID();
+      const verifiedTotp = randomUUID();
+      await owner`insert into auth.mfa_factors (id, user_id, factor_type, status, secret) values
+        (${verifiedTotp}, ${factorUser}, 'totp', 'verified', 'synthetic-totp-secret'),
+        (${randomUUID()}, ${factorUser}, 'totp', 'unverified', 'synthetic-totp-secret'),
+        (${randomUUID()}, ${factorUser}, 'phone', 'verified', null)`;
+      expect(
+        await temporaryRuntime`select * from app.auth_mfa_totp where user_id = ${factorUser}`,
+      ).toEqual([{ id: verifiedTotp, user_id: factorUser }]);
+      await expect(
+        temporaryRuntime`select secret from auth.mfa_factors`,
+      ).rejects.toMatchObject({ code: '42501' });
+      await expect(
+        temporaryRuntime`delete from app.auth_mfa_totp`,
+      ).rejects.toMatchObject({ code: '42501' });
+      expect(
+        await owner`select acl.privilege_type from pg_class c
+        cross join lateral aclexplode(c.relacl) acl left join pg_roles r on r.oid = acl.grantee
+        where c.oid = 'app.auth_mfa_totp'::regclass
+        and (acl.grantee = 0 or r.rolname in ('anon','authenticated','service_role'))`,
+      ).toHaveLength(0);
+      await owner`delete from auth.mfa_factors where user_id = ${factorUser}`;
     } finally {
       await Promise.all([temporary.end(), owner.end(), temporaryRuntime.end()]);
       if (databaseCreated) await admin`drop database ${admin(databaseName)}`;
@@ -736,12 +774,16 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
     );
 
     const viewAcl = await admin`
-      select coalesce(r.rolname, 'PUBLIC') || '|' || acl.privilege_type as entry
+      select c.relname || '|' || coalesce(r.rolname, 'PUBLIC') || '|' || acl.privilege_type as entry
       from pg_class c join pg_namespace n on n.oid = c.relnamespace
       cross join lateral aclexplode(coalesce(c.relacl, acldefault('r', c.relowner))) acl
       left join pg_roles r on r.oid = acl.grantee
-      where n.nspname = 'app' and c.relkind = 'v' and acl.grantee <> c.relowner`;
-    expect(viewAcl.map((row) => row.entry)).toEqual(['app_rw|SELECT']);
+      where n.nspname = 'app' and c.relkind = 'v' and acl.grantee <> c.relowner
+      order by 1`;
+    expect(viewAcl.map((row) => row.entry)).toEqual([
+      'auth_mfa_totp|app_rw|SELECT',
+      'auth_session_status|app_rw|SELECT',
+    ]);
 
     const routineAcl = await admin`
       select p.proname || '|' || coalesce(r.rolname, 'PUBLIC') || '|' || acl.privilege_type as entry
@@ -998,9 +1040,9 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       await runtime`select count(*)::int as count from app.user_invite
       where status = 'PENDING' and expires_at < now() and expires_at = sent_at + interval '72 hours' and octet_length(token_hash) = 32`;
     expect(expired?.count).toBe(1);
-    const [auth] =
-      await admin`select to_regclass('auth.users') as users, to_regclass('auth.mfa_factors') as mfa`;
-    expect(auth).toEqual({ users: null, mfa: null });
+    const [auth] = await admin`select to_regclass('auth.users') as users,
+        (select count(*)::int from auth.mfa_factors) as factors`;
+    expect(auth).toEqual({ users: null, factors: 0 });
   });
 
   it.each([
