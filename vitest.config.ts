@@ -11,6 +11,8 @@ const databaseTestEnv = Object.fromEntries(
 );
 
 export default defineConfig({
+  // tsconfig keeps JSX for Next.js; component tests need it compiled.
+  oxc: { jsx: { runtime: 'automatic' } },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('.', import.meta.url)),
