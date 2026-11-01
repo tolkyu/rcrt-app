@@ -1,6 +1,7 @@
 # Threat model — HRIS Recruiting App
 
-- **Owner:** security-engineer · **Status:** Phase 0 baseline (design only, no code) · **Date:** 2026-10-30
+- **Owner:** security-engineer · **Status:** Phase 0 baseline, revised 2026-10-31 for T3/T4 · **Date:** 2026-10-30
+- **Revision 2026-10-31:** D22 = second TOTP + Admin reset (no recovery codes); D63 = aal1 keeps nonprivileged grants. T-A09 without Supabase Pro → app-level 12 h idle / 7 d absolute limits (`docs/security/t4-auth-requirements.md` §B). New design hazards: self-benefit on `candidate.bonus_flags.update` (T-D06), D13 `OWN_EARLY` mismatch (T-Z04), generic unique-violation existence oracle (T-Z07), denylist PII split (T-D11), custom roles skipping aal2 (T-Z05). See `docs/security/review-phase-1-core.md`.
 - **Standard:** OWASP ASVS 4.0 L2, GDPR (Art. 5, 17, 25, 32, 33)
 - **Inputs:** PRD v1.1 (§2.3, §8, §9, §12, §13 SEC), `docs/architecture.md`, `docs/authz-matrix.md`, ADR-001…009, `docs/perf/plan.md` §8.2, `docs/stories/phase-1.md`, `docs/OPEN_QUESTIONS.md`
 - **Method:** STRIDE per component and flow. L = likelihood, I = impact (H/M/L). Residual = risk once the listed mitigation is in place.

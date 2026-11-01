@@ -26,31 +26,45 @@ const databaseUrlSchema = z.url().superRefine((value, context) => {
   }
 });
 
+const originSchema = z.url().superRefine((value, context) => {
+  if (!URL.canParse(value)) return;
+  const url = new URL(value);
+  if (
+    !['http:', 'https:'].includes(url.protocol) ||
+    url.username ||
+    url.password ||
+    url.pathname !== '/' ||
+    url.search ||
+    url.hash
+  ) {
+    context.addIssue({ code: 'custom', message: 'Expected an HTTP origin' });
+  }
+  if (
+    url.protocol === 'http:' &&
+    !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
+  ) {
+    context.addIssue({
+      code: 'custom',
+      message: 'HTTPS required for remote hosts',
+    });
+  }
+});
+
 const schema = z.object({
   APP_ENV: z.enum(['local', 'test', 'preview', 'production']),
-  APP_URL: z.url().superRefine((value, context) => {
-    if (!URL.canParse(value)) return;
-    const url = new URL(value);
-    if (
-      !['http:', 'https:'].includes(url.protocol) ||
-      url.username ||
-      url.password ||
-      url.pathname !== '/' ||
-      url.search ||
-      url.hash
-    ) {
-      context.addIssue({ code: 'custom', message: 'Expected an HTTP origin' });
-    }
-    if (
-      url.protocol === 'http:' &&
-      !['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
-    ) {
-      context.addIssue({
-        code: 'custom',
-        message: 'HTTPS required for remote hosts',
-      });
-    }
-  }),
+  APP_URL: originSchema,
+  SUPABASE_URL: originSchema.optional(),
+  SUPABASE_PUBLISHABLE_KEY: z.string().min(20).optional(),
+  SUPABASE_SECRET_KEY: z.string().min(20).optional(),
+  AUTH_RATE_LIMIT_SECRET: z.string().trim().min(32).optional(),
+  AUTH_GOOGLE_ENABLED: z.enum(['true', 'false']).default('false'),
+  EMAIL_FROM: z
+    .string()
+    .regex(/^[^\s@<>]+@[^\s@<>]+$/)
+    .optional(),
+  RESEND_API_KEY: z.string().min(10).optional(),
+  MAILPIT_URL: originSchema.optional(),
+  VERCEL_ENV: z.string().optional(),
   DATABASE_URL: databaseUrlSchema,
   LOG_LEVEL: z
     .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
@@ -58,7 +72,14 @@ const schema = z.object({
 });
 
 export function parseEnv(source: Record<string, string | undefined>) {
-  const result = schema.safeParse(source);
+  const result = schema.safeParse(
+    Object.fromEntries(
+      Object.entries(source).map(([name, value]) => [
+        name,
+        value?.trim() === '' ? undefined : value,
+      ]),
+    ),
+  );
   if (!result.success) {
     const names = [
       ...new Set(result.error.issues.map((issue) => issue.path.join('.'))),
@@ -68,11 +89,42 @@ export function parseEnv(source: Record<string, string | undefined>) {
   return result.data;
 }
 
-export function parseRuntimeEnv(source: Record<string, string | undefined>) {
+const runtimeRequired = [
+  'SUPABASE_URL',
+  'SUPABASE_PUBLISHABLE_KEY',
+  'SUPABASE_SECRET_KEY',
+  'AUTH_RATE_LIMIT_SECRET',
+  'EMAIL_FROM',
+] as const;
+
+/** Server boot contract: everything sign-in needs, and no local-only tool reachable from hosted builds. */
+export function parseRuntimeEnv(
+  source: Record<string, string | undefined>,
+  perfBuild = false,
+) {
   const env = parseEnv(source);
   assertRuntimeDatabaseUrl(env.DATABASE_URL);
-  return env;
+  const missing: string[] = runtimeRequired.filter((name) => !env[name]);
+  const hosted = env.APP_ENV === 'preview' || env.APP_ENV === 'production';
+  if (hosted && !env.RESEND_API_KEY) missing.push('RESEND_API_KEY');
+  if (hosted && env.MAILPIT_URL) missing.push('MAILPIT_URL');
+  if (missing.length)
+    throw new Error(`Invalid environment variables: ${missing.join(', ')}`);
+  // DG-01: a perf build carries a test-token verifier and must never boot as a hosted environment.
+  if (perfBuild && (hosted || env.VERCEL_ENV === 'production'))
+    throw new Error(
+      'Invalid environment variables: PERF_BUILD on a hosted environment',
+    );
+  return {
+    ...env,
+    SUPABASE_URL: env.SUPABASE_URL!,
+    SUPABASE_PUBLISHABLE_KEY: env.SUPABASE_PUBLISHABLE_KEY!,
+    SUPABASE_SECRET_KEY: env.SUPABASE_SECRET_KEY!,
+    AUTH_RATE_LIMIT_SECRET: env.AUTH_RATE_LIMIT_SECRET!,
+    EMAIL_FROM: env.EMAIL_FROM!,
+  };
 }
+export type RuntimeEnv = ReturnType<typeof parseRuntimeEnv>;
 
 export function assertRuntimeDatabaseUrl(value: string | undefined) {
   const result = databaseUrlSchema.safeParse(value);
@@ -120,7 +172,7 @@ export function parseLocalDatabaseTargets(
   source: Record<string, string | undefined>,
 ) {
   const env = assertLocalDatabase(source);
-  parseRuntimeEnv(source);
+  assertRuntimeDatabaseUrl(env.DATABASE_URL);
   const migrationUrl = parseMigrationDatabaseUrl(source);
   assertLocalDatabase({ ...source, DATABASE_URL: migrationUrl });
   const runtime = new URL(env.DATABASE_URL);

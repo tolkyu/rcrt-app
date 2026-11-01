@@ -86,6 +86,7 @@ As an **invited, active user** in any vertical, I want to sign in with a link se
 - Given the link, When opened within its lifetime for the first time, Then the user is signed in and lands on their role landing page (STORY-UI-04-1).
 - (negative) Given an email that is unknown, deactivated or only has a pending invite, When a link is requested, Then the screen shows the same neutral message and no email is sent (no account enumeration).
 - (negative) Given a used or expired link, When opened, Then sign-in fails with «Посилання недійсне або прострочене. Запросіть нове.»
+- (negative) Given an eligible active user and a token-issue or email-delivery failure, Then show «Не вдалося надіслати лист. Спробуйте пізніше.» (`503 AUTH_EMAIL_DELIVERY_FAILED`); record a sanitized failed attempt. The owner confirmed this exception to uniform responses and response timing (D68).
 
 **Data:** email. **Validation:** email format; normalised; rate limit (STORY-FND-5); no CAPTCHA (D37).
 **Events:** `auth.login_succeeded` / `auth.login_failed` (method = magic link) into login history (AUD).
@@ -106,16 +107,16 @@ As an **invited, active user**, I want «Увійти через Google», so th
 As an **Admin or Фінансист**, I want a second factor on every sign-in, so that the accounts with the widest access are protected (SEC, D22).
 
 **Acceptance criteria**
-- Given a user holding `ADMIN` or `FINANCE` without TOTP, When they sign in (magic link or Google), Then they must complete TOTP enrolment (QR + code) before any page loads; 10 recovery codes are shown once.
-- Given an enrolled Admin/Finance user, When they sign in, Then a 6-digit code (or one recovery code) is required.
+- Given a user holding `ADMIN` or `FINANCE` without TOTP, When they sign in (magic link or Google), Then they must complete TOTP enrolment (QR + code) before using grants from these roles. They may enrol a second TOTP factor for recovery; no recovery codes are issued (owner-confirmed D22).
+- Given an enrolled Admin/Finance user, When they sign in to use those grants, Then a 6-digit code from an enrolled TOTP factor is required.
 - Given a user lost their device, When an Admin chooses «Скинути 2FA» with a reason, Then the user must re-enrol at next sign-in.
 - All other roles may optionally enable TOTP in «Профіль».
-- (negative) Given an Admin/Finance user who skipped the TOTP step, When they call any API, Then 401; their pages are unreachable.
+- (negative) Given a user at `aal1`, When they access an action requiring their Admin/Finance grant, Then 401 `MFA_REQUIRED`. Other role assignments remain usable; e.g. Admin + Recruiter may use Recruiter pages/APIs until completing MFA (owner-confirmed D63).
 - (negative) An Admin cannot reset their own 2FA — another Admin must.
 
 **Events:** `user.mfa_enrolled`, `auth.mfa_challenge_failed`, `user.mfa_reset` (actor, target, reason).
 **Notifications:** email to the affected user on `user.mfa_reset`.
-**Edge cases:** ADMIN or FINANCE role granted to a user who is currently signed in → TOTP required on next request; 5 wrong codes → temporary lock; only one Admin and lost device → recovery codes are the only path (recommend ≥ 2 Admins).
+**Edge cases:** ADMIN or FINANCE role granted to a signed-in user → those grants require TOTP on the next request; other grants remain usable. Five wrong codes → temporary lock. Lost device → use the second enrolled TOTP or reset by another Admin; keep at least 2 Admins before launch (ADR-002).
 
 ### STORY-SEC-AUTH-4: Session timeout, sign-out and revocation
 As a **user**, I want my session to end after 12 h of inactivity and immediately when I am deactivated, so that unattended devices don't expose candidate data.

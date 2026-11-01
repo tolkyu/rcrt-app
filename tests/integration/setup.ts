@@ -37,7 +37,8 @@ export default async function setup(project: TestProject) {
       create table auth.sessions (
         id uuid primary key,
         user_id uuid not null,
-        not_after timestamptz
+        not_after timestamptz,
+        created_at timestamptz not null default now()
       )
     `;
     await migrateDatabase(urls.migration);

@@ -1,0 +1,41 @@
+# Security review — Phase 1 auth identity slice
+
+- Date: 2026-10-31
+- Scope: T4 credential verification and its T3 request boundary. PostgreSQL 17 is owner-approved. This review does not approve the full, unfinished login/session/MFA/invite flow.
+- Inputs: current `AGENTS.md`, `CLAUDE.md`, PRD, PROGRESS, ADR-002/006, threat model; installed `jose` 6.2.14 and Supabase SDK source.
+- Ownership: reviewer changes only this document; engineers own implementation and tests.
+- Status: review complete for this slice; no open blocking findings. Independent credential/body unit run 58/58; QA PostgreSQL integration run 53/53.
+
+## Findings
+
+| ID | Severity | Evidence and impact | Required fix / status |
+|---|---|---|---|
+| SEC-ID-01 | Medium | `server/http/define-route.ts` previously used unbounded `request.text()` then `JSON.parse`, contrary to the ADR 1 MiB cap. No deployed POST route currently reaches it, but any authenticated mutation using the factory could buffer an arbitrarily large body before Zod validation. | Resolved: `server/http/read-json.ts:6` counts raw streamed bytes, rejects an excessive declared length early, cancels oversized/failed streams, handles split UTF-8, and maps overflow to a sanitized 413. `server/http/define-route.ts:216` awaits this reader before the handler. Missing/false Content-Length and multibyte overflow tests passed. |
+
+No credential-verification bypass found in source review or the synthetic signature/cookie/network tests. The current credential-verification slice can be enabled without changing the agreed MFA/role policy.
+
+## Verified controls
+
+| Boundary | Evidence | Assessment |
+|---|---|---|
+| Trusted key source | `server/auth/supabase-identity.ts:50`: JWKS path derived only from configured Supabase origin; HTTPS required except loopback; URL credentials/path/query/hash rejected | No request-supplied URL or token `jku`/`jwk`/`x5u` selects keys. Installed jose remote JWKS fetch uses manual redirects. |
+| Signature and claims | `server/auth/supabase-identity.ts:138`, `:217`: ES256/RS256 allowlist, required bounded `kid`, issuer and authenticated audience, mandatory finite `exp`, optional checked `nbf`/finite `iat`, 30-second clock tolerance, UUID subject/session and `aal1`/`aal2` | Decoded envelope/signature shape is only a rejection preflight; identity is returned only after `jwtVerify` succeeds against cached JWKS. No alternate signer, symmetric fallback or dev bypass. |
+| Cookie/Bearer parsing | `server/auth/supabase-identity.ts:82`, `:205`: 16 KiB token, 64 KiB cookie header/combined value, at most 32 chunks; SDK parsing/base64/chunk helpers | Only the configured project's default cookie is read. Duplicate, mixed complete/chunked, missing/gapped and malformed chunks fail closed. An invalid Authorization header cannot fall back to a valid cookie. |
+| Network/error handling | `server/auth/supabase-identity.ts:184`, `:232`: cached module-level production verifier, bounded trusted timeout/cache/cooldown options; exceptions return null | JWKS/config/parse/verification failures deny access without returning or logging tokens, cookie JSON, JWKS responses or claim PII. Successful cached checks do not call Auth per request. |
+| Identity versus authorization | `server/context/identity.ts`, `server/context/request-context.ts`, `server/repositories/principal.ts` | Verifier returns only subject/session/assurance. Active app user, matching unexpired/nonrevoked session and role assignments are loaded from the database; claim role/user_metadata cannot grant access. Invalid credentials are rejected before DB creation. |
+| Existing route authorization | `/api/v1/me`, `/api/v1/verticals`, `server/services/me.ts`, `server/services/vertical.ts` | Profile lookup uses the verified app user's ID. Vertical list requires the permission and SQL scope; Finance has no vertical-list grant. MFA-gated grants remain withheld at aal1, while owner-approved nonprivileged grants remain available for mixed-role users. |
+| HTTP and log boundary | `server/http/define-route.ts`, `server/security/http.ts`, `server/http/map-error.ts`, `server/observability/logger.ts` | Origin/JSON/custom-header CSRF checks remain at the route factory; errors use stable codes; logs use operation name/IDs/status/timing and sanitized error classification. Cookie mutations are not enabled by this slice. |
+
+## Verification evidence
+
+- Independently executed `vitest run --project unit tests/unit/auth/supabase-identity.test.ts tests/unit/http-body.test.ts`: **58/58 passed** (50 credential cases, 8 body cases).
+- Credential tests use ephemeral ES256/RS256 keys and a loopback HTTP JWKS server: valid signatures, foreign keys, HMAC/unsigned denial, claim/time/identity denial, rejected token-directed keys, cached single fetch, rotation, 503/invalid JSON, and a hanging response bounded by a 25 ms configured timeout. Cookie cases cover normal raw/base64 storage, consecutive chunks, precedence, duplicates/gaps and size limits.
+- QA reported **53/53 integration cases passed** on disposable PostgreSQL 17, including a real signed identity resolved through database context: malicious ADMIN metadata does not grant privileges; deactivation, foreign/missing session and deletion of the active session reject the signed token.
+- Source confirms production wiring at `server/context/app.ts:15` and sanitized rejection before DB initialization. No real Supabase credentials, Auth rows or session data were accessed for this review.
+
+## Limits
+
+- Full magic-link/Google/invite flows, refresh-cookie writes, absolute/idle session lifetime, MFA enrollment/reset and auth/API rate limiting remain separate work. Current code has a rate-limit table but no consuming limiter/route integration. Existing context checks revocation, `not_after` and user activation; this slice does not add the full timeout policy.
+- The verifier reads credentials only. Tests against synthetic JWKS cannot prove live Supabase signing-key configuration or the full SSR refresh flow.
+- Supabase's default cookie-name derivation is unsupported for IPv6-literal project URLs in this implementation; localhost/127.0.0.1 and normal hosted domains are supported. Invalid configuration denies access.
+- No production/hosted access, database migration, deployment, commit or full-phase security sign-off is included.

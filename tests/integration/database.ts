@@ -14,6 +14,7 @@ export const phaseOneTables = [
   'team_lead_priority',
   'user_invite',
   'user_role',
+  'user_session',
   'vertical',
 ] as const;
 

@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { refreshSessionCookies } from './server/auth/refresh';
 import { problemResponse } from './server/http/problem';
 import {
   contentSecurityPolicy,
   isTrustedMutation,
 } from './server/security/http';
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
   const csp = contentSecurityPolicy(
     nonce,
@@ -16,16 +17,28 @@ export function middleware(request: NextRequest) {
   requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('Content-Security-Policy', csp);
 
-  let response: Response;
   const path = request.nextUrl.pathname;
-  if (
-    (path === '/api/v1' || path.startsWith('/api/v1/')) &&
-    !isTrustedMutation(request, process.env.APP_URL!)
-  ) {
-    response = problemResponse(403, 'CSRF_FORBIDDEN', crypto.randomUUID());
-  } else {
-    response = NextResponse.next({ request: { headers: requestHeaders } });
+  const api = path === '/api/v1' || path.startsWith('/api/v1/');
+  if (api && !isTrustedMutation(request, process.env.APP_URL!)) {
+    const response = problemResponse(403, 'CSRF_FORBIDDEN', crypto.randomUUID());
+    response.headers.set('Content-Security-Policy', csp);
+    return response;
   }
+
+  // Only keeps the Supabase session cookie fresh; every authorization check happens server-side (ADR-002 §10a).
+  const refreshed =
+    request.headers.has('authorization') || !process.env.SUPABASE_URL
+      ? null
+      : await refreshSessionCookies(request.headers.get('cookie') ?? '', {
+          supabaseUrl: process.env.SUPABASE_URL,
+          publishableKey: process.env.SUPABASE_PUBLISHABLE_KEY ?? '',
+          secure: process.env.APP_URL?.startsWith('https:') ?? true,
+        }).catch(() => null);
+  if (refreshed) requestHeaders.set('cookie', refreshed.requestCookie);
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  for (const cookie of refreshed?.setCookies ?? [])
+    response.headers.append('Set-Cookie', cookie);
   response.headers.set('Content-Security-Policy', csp);
   response.headers.set('Cache-Control', 'private, no-store');
   return response;

@@ -1,8 +1,15 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
+const development = process.env.NODE_ENV === 'development';
+
 const config: NextConfig = {
   poweredByHeader: false,
+  // Dev-only routes (`*.dev.tsx`) are not even compiled outside `next dev` (DG-12b, T4-H01).
+  pageExtensions: development ? ['dev.tsx', 'dev.ts', 'tsx', 'ts'] : ['tsx', 'ts'],
+  distDir: process.env.NEXT_DIST_DIR ?? '.next',
+  // DG-01: baked at build time; instrumentation refuses to boot a perf build on hosted environments.
+  env: { PERF_BUILD: process.env.PERF_BUILD === '1' ? '1' : '' },
   reactStrictMode: true,
   serverExternalPackages: ['pino', 'postgres'],
   async headers() {

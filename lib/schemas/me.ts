@@ -5,7 +5,7 @@ export const scopeKindSchema = z.enum([
   'VERTICAL',
   'VERTICAL_FROM_STAGE',
   'OWN',
-  'OWN_EARLY',
+  'OWN_INITIATED_NEW',
   'ASSIGNED',
   'UNASSIGNED_OPEN',
   'SUBMITTED_TO_ME',

@@ -87,16 +87,18 @@ import type { AuthContext } from '@/server/authz/types';
 import type { Clock } from '@/server/domain/pipeline/types';
 
 export interface RequestContext {
+  readonly identity: VerifiedIdentity; // verified sub/session_id/aal; never a raw token or a role source
   readonly auth: AuthContext;          // null-free: unauthenticated requests never reach services
   readonly requestId: string;
   readonly clock: Clock;               // SystemClock in prod, FixedClock in tests/screenshots
   readonly ip: string | null;          // audit only, never logged with PII
   readonly userAgent: string | null;
 }
-export interface SystemContext extends Omit<RequestContext, 'auth'> { readonly auth: null; readonly jobName: string }
+export interface SystemContext extends Omit<RequestContext, 'auth' | 'identity'> { readonly auth: null; readonly jobName: string }
 export declare const getRequestContext: () => Promise<RequestContext>; // React.cache for RSC
 ```
 - Loaded once per request: RSC via `React.cache`; route handlers via `defineRoute` (React.cache is not request-scoped there) and passed explicitly.
+- `verifySupabaseIdentity` is wired into both paths: locally verified ES256/RS256 JWT from Bearer or standard Supabase SSR cookies, cached configured JWKS, strict issuer/audience/session claims; roles still load only from DB (ADR-010). Runtime requires `SUPABASE_URL`; standalone database tooling does not.
 - Services always take `ctx` first; never read cookies/headers themselves.
 - Context query (`server/repositories/principal.ts`, one round-trip, < 2 ms): `app_user u` by `auth_user_id = $1` + `EXISTS (SELECT 1 FROM app.auth_session_status s WHERE s.id = $2 AND s.user_id = u.auth_user_id AND (s.not_after IS NULL OR s.not_after > now))` + `json_agg` of `user_role` rows. `$1`/`$2` = JWT `sub`/`session_id`; `aal` comes from the verified JWT claims (ADR-002 §4), not from the database. No live session ⇒ 401 `SESSION_EXPIRED`; inactive user ⇒ 401 `USER_DEACTIVATED` (DG-05; logout/revocation are immediate). Access-token TTL ≤ 15 min. JWT checks per ADR-002 (DG-02). `app_rw` reads sessions only through the `app.auth_session_status` view (id, user_id, not_after); it has no grant on `auth.sessions`.
 - Authorization never relies on `middleware.ts` (DG-17); it only refreshes the session cookie.

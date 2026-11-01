@@ -76,6 +76,8 @@ export const appUser = app.table(
     ),
     timezone: text('timezone').notNull().default('Europe/Kyiv'),
     lastLoginAt: instant('last_login_at'),
+    /** Set after 5 failed TOTP checks; until then the session counts as aal1 (SEC-AUTH-3, T4-F04). */
+    mfaLockedUntil: instant('mfa_locked_until'),
     createdBy: uuid('created_by').references((): AnyPgColumn => appUser.id, {
       onDelete: 'restrict',
     }),
@@ -551,10 +553,54 @@ export const rateLimitBucket = app.table(
   ],
 );
 
+/** App-side session state keyed by the Supabase session id: idle/absolute limits and revocation (SEC-AUTH-4, DG-05). */
+export const userSession = app.table(
+  'user_session',
+  {
+    sessionId: uuid('session_id').primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => appUser.id, { onDelete: 'restrict' }),
+    method: text('method', {
+      enum: ['MAGIC_LINK', 'GOOGLE', 'INVITE', 'DEV'],
+    }).notNull(),
+    startedAt: instant('started_at').notNull(),
+    lastSeenAt: instant('last_seen_at').notNull(),
+    endedAt: instant('ended_at'),
+    endReason: text('end_reason', {
+      enum: ['LOGOUT', 'IDLE', 'ABSOLUTE', 'DEACTIVATED', 'USER', 'MFA_RESET'],
+    }),
+    ip: inet('ip'),
+    userAgent: text('user_agent'),
+  },
+  (t) => [
+    index('user_session_user_open_idx')
+      .on(t.userId, t.lastSeenAt.desc().nullsFirst())
+      .where(sql`${t.endedAt} IS NULL`),
+    check(
+      'user_session_method_chk',
+      sql`${t.method} IN ('MAGIC_LINK','GOOGLE','INVITE','DEV')`,
+    ),
+    check(
+      'user_session_end_chk',
+      sql`(${t.endedAt} IS NULL) = (${t.endReason} IS NULL)`,
+    ),
+    check(
+      'user_session_reason_chk',
+      sql`${t.endReason} IS NULL OR ${t.endReason} IN ('LOGOUT','IDLE','ABSOLUTE','DEACTIVATED','USER','MFA_RESET')`,
+    ),
+    check(
+      'user_session_time_chk',
+      sql`${t.lastSeenAt} >= ${t.startedAt}`,
+    ),
+  ],
+);
+
 export const authSessionStatus = app
   .view('auth_session_status', {
     id: uuid('id').notNull(),
     userId: uuid('user_id').notNull(),
     notAfter: instant('not_after'),
+    createdAt: instant('created_at'),
   })
   .existing();

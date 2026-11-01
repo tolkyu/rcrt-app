@@ -319,6 +319,7 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
 
 ### Security & privacy (SEC-xx)
 - Auth: email magic link (valid 15 min, single use) + Google SSO (Google email must equal invited email; no domain restriction in v1). Sessions: 12h idle timeout, 7-day absolute limit; deactivation revokes all sessions immediately (D23). 2FA (TOTP) mandatory for Admin and Finance grants (also with Google sign-in), optional for other roles; recovery uses a second TOTP factor or reset by another Admin, without recovery codes (D22). A mixed-role user at `aal1` retains grants from their other, nonprivileged roles; Admin/Finance grants require `aal2` (D63).
+- Magic-link delivery failure is shown to an eligible active user as «Не вдалося надіслати лист. Спробуйте пізніше.» Unknown, deactivated and pending-invite addresses retain the neutral completion response. Delivery completes before success; the owner accepted the resulting eligibility signal during failure and differing response latency (D68).
 - Files in private storage, access only via short-lived signed URLs after an authorization check; MIME sniffing + extension + size validation; DOC/DOCX download-only until antivirus (D29); (Phase 7) antivirus scan.
 - Rate limiting on auth and API, CSRF protection, strict CSP, input validation with Zod on every endpoint. No CAPTCHA — sign-in is invite-only (D37).
 - PII minimization in logs (no emails/phones/salaries in logs or error trackers).
@@ -420,6 +421,7 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
 | D65 | Candidate deletion | **Decided by owner 2026-10-31:** Recruiters **cannot delete** candidates; unsuitable candidates are rejected → Rejected archive. Delete (soft) candidate = Head Recruiter (in vertical) and Admin only. Supersedes the candidate part of D13; the vacancy part of D13 stays |
 | D66 | Bonus-relevant candidate flags | **Decided by owner 2026-10-31:** Head Recruiter **cannot clear** any bonus-relevant flag (former employee, self-referral/referrer). Setting a flag is allowed to Recruiter (own) and Head Recruiter; **clearing is Admin-only**, with mandatory reason, audited (closes SEC-CORE-01) |
 | D67 | Vacancy ownership and number | **Decided by owner 2026-10-31:** a Team Lead manages only vacancies where they are the current `team_lead`; after reassignment the previous TL (even the creator) loses all management rights (closes SEC-CORE-03). Every vacancy has a visible number (VAC-07) |
+| D68 | Magic-link delivery errors | **Decided by owner 2026-10-31:** show delivery failure to an eligible active user, as required by STORY-SEC-AUTH-1. Unknown, inactive and pending-invite addresses remain neutral. This overrides the proposed uniform/deferred success response; the owner accepted the eligibility signal during delivery failure and the delivery-dependent wait |
 | D38 | Self-referral flag | **Confirmed 2026-10-31:** bonus blocked unless Admin approves; flag set by recruiter or Head Recruiter (BONUS-05; Q-12) |
 
 ---

@@ -226,7 +226,7 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
     ).toEqual(history);
   });
 
-  it('migrates with a non-superuser and restricts managed session access to the three-column bridge [FND-1, DG-05, DG-22]', async () => {
+  it('migrates with a non-superuser and restricts managed session access to the four-column bridge [FND-1, DG-05, DG-22]', async () => {
     testDatabaseUrls();
     const suffix = randomUUID().replaceAll('-', '');
     const loginName = `qa_migrator_${suffix}`;
@@ -261,7 +261,7 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       await owner`revoke all on schema auth from public`;
       await owner`create table auth.sessions (
         id uuid primary key, user_id uuid not null, not_after timestamptz,
-        refresh_token_hmac_key text, ip inet
+        created_at timestamptz, refresh_token_hmac_key text, ip inet
       )`;
       await owner`grant usage on schema auth to ${owner(loginName)}`;
       await owner`grant select on auth.sessions to ${owner(loginName)} with grant option`;
@@ -328,6 +328,7 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
         'id',
         'user_id',
         'not_after',
+        'created_at',
       ]);
       const [direct] =
         await owner`select has_schema_privilege('app_rw', 'auth', 'USAGE') as usage,
@@ -352,7 +353,7 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
         await temporaryRuntime`select * from app.auth_session_status
         where id = ${sessionId} and user_id = ${sessionUserId} and (not_after is null or not_after > now())`;
       expect(visible).toEqual([
-        { id: sessionId, user_id: sessionUserId, not_after: null },
+        { id: sessionId, user_id: sessionUserId, not_after: null, created_at: null },
       ]);
       await expect(
         temporaryRuntime`select id, user_id, not_after from auth.sessions`,
@@ -669,6 +670,7 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       team_lead_priority: readWrite,
       user_invite: readWrite,
       user_role: readWrite,
+      user_session: noDelete,
       vertical: noDelete,
     };
     const purgeTable: Partial<
@@ -742,7 +744,10 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) acl
       left join pg_roles r on r.oid = acl.grantee
       where n.nspname = 'app'`;
-    expect(routineAcl.map((row) => row.entry)).toEqual([
+    // end_auth_sessions belongs to the migration executor, which alone may delete Supabase sessions (T4-B04).
+    expect(routineAcl.map((row) => row.entry).sort()).toEqual([
+      'end_auth_sessions|app_rw|EXECUTE',
+      'end_auth_sessions|recruiting_test|EXECUTE',
       'guard_append_only|app_migrator|EXECUTE',
     ]);
 

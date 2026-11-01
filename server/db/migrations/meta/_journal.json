@@ -29,6 +29,13 @@
       "when": 1793448234776,
       "tag": "0003_file_object_checks_event_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793466727379,
+      "tag": "0004_auth_sessions",
+      "breakpoints": true
     }
   ]
 }

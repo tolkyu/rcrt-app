@@ -10,6 +10,7 @@ import {
 const local = {
   APP_ENV: 'local',
   APP_URL: 'http://localhost:3000',
+  SUPABASE_URL: 'http://127.0.0.1:55321',
   DATABASE_URL: 'postgresql://postgres:password@127.0.0.1:55322/postgres',
 };
 
@@ -23,6 +24,12 @@ describe('local database endpoint consistency', () => {
     expect(parseLocalDatabaseTargets(source).migrationUrl).toBe(
       source.DATABASE_MIGRATION_URL,
     );
+  });
+  it('does not require auth-provider configuration for standalone database tooling', () => {
+    expect(
+      parseLocalDatabaseTargets({ ...source, SUPABASE_URL: undefined })
+        .runtimeUrl,
+    ).toBe(source.DATABASE_URL);
   });
   it.each([
     'postgresql://postgres:password@127.0.0.1:55332/postgres',
@@ -45,13 +52,116 @@ describe('local database endpoint consistency', () => {
   });
 });
 
+const authRuntime = {
+  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_fixture_value_0001',
+  SUPABASE_SECRET_KEY: 'sb_secret_fixture_value_000000001',
+  AUTH_RATE_LIMIT_SECRET: 'fixture-rate-limit-secret-of-32-chars!',
+  EMAIL_FROM: 'no-reply@fixture.test',
+};
+
 describe('runtime environment', () => {
+  it('treats blank optional provider settings from .env.example as unset', () => {
+    expect(
+      parseRuntimeEnv({
+        ...local,
+        ...authRuntime,
+        DATABASE_URL: 'postgresql://app_rw:password@127.0.0.1:55322/postgres',
+        RESEND_API_KEY: '',
+        MAILPIT_URL: 'http://127.0.0.1:55324',
+      }).RESEND_API_KEY,
+    ).toBeUndefined();
+  });
+  it('requires every sign-in secret and names only the missing variables [SEC-T4-03]', () => {
+    expect(() =>
+      parseRuntimeEnv({
+        ...local,
+        DATABASE_URL: 'postgresql://app_rw:password@127.0.0.1:55322/postgres',
+      }),
+    ).toThrow(
+      'Invalid environment variables: SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY, AUTH_RATE_LIMIT_SECRET, EMAIL_FROM',
+    );
+  });
+  it('rejects a short rate-limit secret', () => {
+    expect(() =>
+      parseEnv({ ...local, AUTH_RATE_LIMIT_SECRET: 'too-short' }),
+    ).toThrow('AUTH_RATE_LIMIT_SECRET');
+  });
+  it('requires Resend and forbids the local mail catcher on hosted environments', () => {
+    const hosted = {
+      ...local,
+      ...authRuntime,
+      APP_ENV: 'production',
+      APP_URL: 'https://hiring.fixture.test',
+      SUPABASE_URL: 'https://project.supabase.co',
+      DATABASE_URL:
+        'postgresql://app_rw:password@db.fixture.test:5432/postgres',
+    };
+    expect(() => parseRuntimeEnv(hosted)).toThrow('RESEND_API_KEY');
+    expect(() =>
+      parseRuntimeEnv({
+        ...hosted,
+        RESEND_API_KEY: 're_fixture_key',
+        MAILPIT_URL: 'http://127.0.0.1:55324',
+      }),
+    ).toThrow('MAILPIT_URL');
+  });
+  it.each([
+    [{ APP_ENV: 'production' }],
+    [{ APP_ENV: 'preview' }],
+    [{ VERCEL_ENV: 'production' }],
+  ])(
+    'refuses to boot a perf build on a hosted environment %j [DG-01]',
+    (override) => {
+      expect(() =>
+        parseRuntimeEnv(
+          {
+            ...local,
+            ...authRuntime,
+            RESEND_API_KEY: 're_fixture_key',
+            DATABASE_URL:
+              'postgresql://app_rw:password@127.0.0.1:55322/postgres',
+            ...override,
+          },
+          true,
+        ),
+      ).toThrow('PERF_BUILD');
+    },
+  );
+  it('allows a perf build locally', () => {
+    expect(
+      parseRuntimeEnv(
+        {
+          ...local,
+          ...authRuntime,
+          DATABASE_URL: 'postgresql://app_rw:password@127.0.0.1:55322/postgres',
+        },
+        true,
+      ).APP_ENV,
+    ).toBe('local');
+  });
+  it('requires the auth origin at startup without printing its value', () => {
+    expect(() =>
+      parseRuntimeEnv({
+        ...local,
+        DATABASE_URL: 'postgresql://app_rw:password@127.0.0.1:55322/postgres',
+        SUPABASE_URL: undefined,
+      }),
+    ).toThrow('Invalid environment variables: SUPABASE_URL');
+  });
+  it.each([
+    'http://remote.example.com',
+    'https://user:secret@example.com',
+    'https://example.com/path',
+  ])('rejects an unsafe Supabase origin', (SUPABASE_URL) => {
+    expect(() => parseEnv({ ...local, SUPABASE_URL })).toThrow('SUPABASE_URL');
+  });
   it.each(['app_rw', 'app_rw.project_ref'])(
     'allows only the dedicated runtime login %s',
     (username) => {
       expect(
         parseRuntimeEnv({
           ...local,
+          ...authRuntime,
           DATABASE_URL: `postgresql://${username}:password@127.0.0.1:55322/postgres`,
         }).APP_ENV,
       ).toBe('local');
@@ -63,6 +173,7 @@ describe('runtime environment', () => {
       expect(() =>
         parseRuntimeEnv({
           ...local,
+          ...authRuntime,
           DATABASE_URL: `postgresql://${username}:password@127.0.0.1:55322/postgres`,
         }),
       ).toThrow('DATABASE_URL must use the app_rw');

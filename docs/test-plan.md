@@ -110,7 +110,7 @@ Seeded actors (§10): ADM `admin@demo` · HREC `head.recruiter.gambling@demo` ·
 | `V` | Object in Гемблінг | Same object type in «Е-комерція» → 404 |
 | `V≥P` | Application on V-V with `max_stage_reached = POLYGRAPH` (also one rejected after Polygraph → still visible) | Same vertical, `max_stage_reached = TL_INTERVIEW` → 404 |
 | `own` | REC's own object (owner or sourcer); TL: own vacancy; stats: own subject id | REC2's object in the same vertical / TLT's vacancy / filter on another subject id → 404 |
-| `own<I` | Own candidate / recruiter-initiated vacancy whose applications never reached TL_INTERVIEW | Own object with an application that reached TL_INTERVIEW → 403 |
+| `ownN` | Own recruiter-initiated vacancy with no application past NEW (D13, D65) | Same vacancy with an application in IN_WORK, a TL-requested vacancy, or another recruiter's → 403 |
 | `asg + uo` | Vacancy assigned to REC; unassigned OPEN vacancy | Vacancy assigned only to REC2; unassigned ON_HOLD vacancy → 404 |
 | `uo` (`vacancy.self_assign`) | Unassigned OPEN vacancy | Unassigned ON_HOLD vacancy → 404 |
 | `sub` | Application on V-V at SUBMITTED_TO_TL or later | Application on V-V at IN_WORK; application on V-T → 404 |
@@ -134,7 +134,7 @@ Cell = scope → A + D cases, or `403`/`404`/`absent` → D case only. ⚠ = wor
 | 009 | `vacancy.resume` | G | V | 403 | 403 | 403 | own ⚠ | 404 |
 | 010 | `vacancy.cancel` | G | V | 403 | 403 | 403 | own ⚠ | 404 |
 | 011 | `vacancy.reopen` | G | V | 403 | 403 | 403 | 403 | 404 |
-| 012 | `vacancy.delete` | G | V | own<I | 403 | 403 | 403 | 404 |
+| 012 | `vacancy.delete` (D13, D65) | G | V | ownN | 403 | 403 | 403 | 404 |
 | 013 | `vacancy.priority.override` | G | 403 | 403 | 403 | 403 | 403 | 404 |
 | 014 | `vacancy.bonus_scheme.override` | G | 403 | 403 | 403 | 403 | 403 | 404 |
 | 015 | `vacancy.bonus.update` | G | 403 | 403 | 403 | 403 | 403 | 404 |
@@ -143,11 +143,11 @@ Cell = scope → A + D cases, or `403`/`404`/`absent` → D case only. ⚠ = wor
 | 018 | `candidate.read` | G | V | own | V≥P | V≥P | sub | 404 |
 | 019 | `candidate.create` | G | V | V | 403 | 403 | 403 | 404 |
 | 020 | `candidate.update` | G | V | own | 403 | 403 | 403 | 404 |
-| 021 | `candidate.bonus_flags.update` | G | V | 403 | V≥P | 403 | 403 | 404 |
+| 021 | `candidate.bonus_flags.set` (D66) | G | V | own | 403 | 403 | 403 | 404 |
 | 022 | `candidate.file.read` | G | V | own | V≥P | V≥P | sub | 404 |
 | 023 | `candidate.file.upload` | G | V | own | 403 | 403 | 403 | 404 |
 | 024 | `candidate.merge` | G | V | 403 | 403 | 403 | 403 | 404 |
-| 025 | `candidate.delete` | G | V | own<I | 403 | 403 | 403 | 404 |
+| 025 | `candidate.delete` (D65) | G | V | 403 | 403 | 403 | 403 | 404 |
 | 026 | `archive.deleted.read` | G | V | 404 | 404 | 404 | 404 | 404 |
 | 027 | `archive.restore` | G | V | 404 | 404 | 404 | 404 | 404 |
 | 028 | `candidate.purge` | G | 403 | 404 | 404 | 404 | 404 | 404 |
@@ -214,8 +214,9 @@ Cell = scope → A + D cases, or `403`/`404`/`absent` → D case only. ⚠ = wor
 | 089 | `candidate.transfer_vertical` (source-vertical role ⁹) | G | V | 403 | V≥P | 403 | 403 | 404 |
 | 090 | `candidate.contacts.read` (field ⁸) | G | V | own | V≥P | V≥P | absent | 404 |
 | 091 | `vertical.read` (STORY-VIS-02-1, added in T3) | G | V | V | V | V | V | 404 |
+| 092 | `candidate.bonus_flags.clear` (D66; self-benefit guarded, aal2) | G | 403 | 403 | 403 | 403 | 403 | 404 |
 
-Count (rows 001–090, the 90 codes of `authz-matrix.md`): 630 cells = 247 granted (247 A + 247 D) + 383 empty (383 D) = **877 cases**. Field permissions (`offer.salary.read`, `candidate.contacts.read`): `absent` = 200 with the fields omitted (FLD-01..03), counted as a D case. ⁸ ⁹ = footnotes of `authz-matrix.md`. Admin settings rows 079–087 additionally require aal2 (MFA-02).
+Count (rows 001–092, the 92 codes of `authz-matrix.md` after D65/D66 and `vertical.read`): 644 cells = 253 granted (253 A + 253 D) + 391 empty (391 D) = **897 cases** (implemented in `tests/unit/authz/matrix.test.ts`). Field permissions (`offer.salary.read`, `candidate.contacts.read`): `absent` = 200 with the fields omitted (FLD-01..03), counted as a D case. ⁸ ⁹ = footnotes of `authz-matrix.md`. Admin settings rows 079–087 additionally require aal2 (MFA-02).
 
 ### 3.3 Field-level rules (owner 2026-10-31)
 
@@ -278,12 +279,13 @@ Per-role DTO snapshot tests for candidate, application, offer, vacancy, payout r
 
 | ID | Case | Expected |
 |---|---|---|
-| MFA-01 | Admin / Finance first sign-in | TOTP enrolment before any page; 10 recovery codes shown once |
-| MFA-02 | Admin API call with aal1 token | 401 `MFA_REQUIRED` |
+| MFA-01 | Admin / Finance first sign-in | TOTP before Admin/Finance grants; optional second TOTP for recovery, no recovery codes (D22/D63) |
+| MFA-02 | Admin-only action with aal1 token | 401 `MFA_REQUIRED` |
 | MFA-03 | Finance statistics call with aal1 | 401 `MFA_REQUIRED` |
 | MFA-04 | HREC / REC / HHR / HR / TL with aal1 | Allowed (2FA optional) |
-| MFA-05 | Reset by another Admin with reason; own reset refused | Re-enrol at next sign-in; event `MFA_RESET` |
+| MFA-05 | Reset by another Admin with reason; own reset refused | Re-enrol at next sign-in; event `user.mfa_reset` |
 | MFA-06 | 5 wrong codes | Temporary lock |
+| MFA-07 | Admin + Recruiter with aal1 | Recruiter grants remain usable; Admin grants require aal2 (owner-confirmed D63) |
 
 **Multi-role (ROLE-02)** — fixture `multi.role@fixture.test` = HEAD_RECRUITER@Гемблінг + RECRUITER@Крипто
 
@@ -292,7 +294,7 @@ Per-role DTO snapshot tests for candidate, application, offer, vacancy, payout r
 | MR-01 | Candidate list | Гемблінг all + Крипто own only |
 | MR-02 | Approve bonus of another recruiter in Крипто | 403 (own Крипто tranche: SB applies) / foreign Крипто tranche → 404 |
 | MR-03 | Reassign owner in Крипто | 403 |
-| MR-04 | Delete Крипто candidate after TL interview | 403 (`own<I` only) |
+| MR-04 | Delete own Крипто candidate | 403 (recruiters never delete candidates, D65); Гемблінг candidate as HREC → allowed |
 | MR-05 | Statistics | Гемблінг vertical + Крипто own rows |
 | MR-06 | Nav | Union |
 | MR-07 | Grants never unioned across verticals (DG-10) | HREC permissions evaluated with Гемблінг ids only |
