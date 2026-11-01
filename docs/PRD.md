@@ -422,6 +422,8 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
 | D66 | Bonus-relevant candidate flags | **Decided by owner 2026-10-31:** Head Recruiter **cannot clear** any bonus-relevant flag (former employee, self-referral/referrer). Setting a flag is allowed to Recruiter (own) and Head Recruiter; **clearing is Admin-only**, with mandatory reason, audited (closes SEC-CORE-01) |
 | D67 | Vacancy ownership and number | **Decided by owner 2026-10-31:** a Team Lead manages only vacancies where they are the current `team_lead`; after reassignment the previous TL (even the creator) loses all management rights (closes SEC-CORE-03). Every vacancy has a visible number (VAC-07) |
 | D68 | Magic-link delivery errors | **Decided by owner 2026-10-31:** show delivery failure to an eligible active user, as required by STORY-SEC-AUTH-1. Unknown, inactive and pending-invite addresses remain neutral. This overrides the proposed uniform/deferred success response; the owner accepted the eligibility signal during delivery failure and the delivery-dependent wait |
+| D69 | Changing a user's email (ROLE-05, D44) | **Decided by owner 2026-11-01 (Q-153):** Phase 1 — for a not-yet-activated user, email change = revoke the invite and send a new one to the corrected address. Changing the email of an activated user is deferred to Phase 5 and will end all of that user's sessions. |
+| D70 | Re-invite after revoke | **Decided by owner 2026-11-01 (Q-154):** Admin can re-invite a user whose invite was revoked: a new email with a new link is sent, every older link stops working. |
 | D38 | Self-referral flag | **Confirmed 2026-10-31:** bonus blocked unless Admin approves; flag set by recruiter or Head Recruiter (BONUS-05; Q-12) |
 
 ---

@@ -76,6 +76,7 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 
 | Date | Decision | Ref |
 |---|---|---|
+| 2026-11-01 | Email change in Phase 1 only for not-yet-activated users (revoke + new invite), activated users later (Phase 5, ends sessions); revoked invite can be re-sent with a new link | PRD D69, D70, Q-153, Q-154 |
 | 2026-10-31 | Recovery uses second TOTP or reset by another Admin, without recovery codes. Mixed-role users retain nonprivileged role grants at aal1; ADMIN/FINANCE grants require aal2 | PRD D22/D63, Q-30/Q-128, ADR-002 |
 | — | Probation extension not allowed, only shorter | PRD D10, PROB-05 |
 | — | Finance role included, sees Statistics only | PRD D12, STAT-08 |
