@@ -157,6 +157,7 @@ async function seed(tx: Transaction) {
       method: 'MAGIC_LINK' as const,
       startedAt,
       lastSeenAt: startedAt,
+      mfaVerifiedAt: startedAt,
     })),
   );
 }
@@ -169,7 +170,12 @@ async function contextFor(
   return resolveRequestContext(
     { db: () => tx, clock, verifyIdentity: async () => identity(actor, aal) },
     new Headers({ 'user-agent': 'vitest' }),
-    { requestId: randomUUID(), ip: '198.51.100.4', userAgent: 'vitest', mutationId: null },
+    {
+      requestId: randomUUID(),
+      ip: '198.51.100.4',
+      userAgent: 'vitest',
+      mutationId: null,
+    },
   );
 }
 

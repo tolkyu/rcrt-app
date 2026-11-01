@@ -139,7 +139,8 @@ export async function seedDemo(
           occurredAt: DEMO_CLOCK,
           actorKind: 'SYSTEM',
           action: type,
-          entityType: subjectType,
+          // Audit rows name users 'user', as the services write them; events keep 'app_user'.
+          entityType: subjectType === 'app_user' ? 'user' : subjectType,
           entityId: subjectId,
         });
       };
@@ -233,7 +234,7 @@ export async function seedDemo(
           );
       }
       const sentAt = new Date('2020-01-10T08:00:00.000Z');
-      const invites = await tx
+      await tx
         .insert(schema.userInvite)
         .values({
           id: demoId('invite:expired'),
@@ -247,10 +248,7 @@ export async function seedDemo(
           invitedBy: adminId,
           createdAt: sentAt,
         })
-        .onConflictDoNothing()
-        .returning({ id: schema.userInvite.id });
-      if (invites.length)
-        await record('user.invited', 'user_invite', demoId('invite:expired'));
+        .onConflictDoNothing();
       for (const [email, name, filters] of [
         ['admin@demo', 'Усі напрями', {}],
         ['head.recruiter.gambling@demo', 'Гемблінг', { verticalId: g }],

@@ -10,6 +10,7 @@ import {
   ValidationError,
 } from '@/server/http/errors';
 import { mapError } from '@/server/http/map-error';
+import { describeError } from '@/server/observability/logger';
 import { PROBLEM_CONTENT_TYPE } from '@/server/http/problem';
 
 const requestId = '00000000-0000-4000-8000-000000000001';
@@ -62,7 +63,7 @@ describe('Domain errors → RFC 9457 problem+json [API, ADR-006]', () => {
     ).toBe('42');
   });
 
-  it('maps database invariants by SQLSTATE; unique violations only via the allowlist [SEC-CORE-06]', async () => {
+  it('maps database invariants by SQLSTATE; other unique violations go to the logged 500 path [SEC-CORE-06, CR-P1-01]', async () => {
     const trigger = mapError(
       postgresError('P0001', 'PROBATION_EXTENSION_FORBIDDEN'),
       requestId,
@@ -82,16 +83,25 @@ describe('Domain errors → RFC 9457 problem+json [API, ADR-006]', () => {
           ),
         },
       );
-    const hidden = mapError(duplicate('candidate_email_norm_uq'), requestId)!;
-    const text = await hidden.text();
-    expect(hidden.status).toBe(409);
-    expect(JSON.parse(text).code).toBe('CONFLICT');
-    expect(text).not.toMatch(/secret@example\.com|exist|candidate/i);
     const visible = mapError(duplicate('vertical_name_uq'), requestId)!;
+    expect(visible.status).toBe(409);
     expect((await visible.json()).code).toBe('VERTICAL_NAME_TAKEN');
+    for (const constraint of ['candidate_email_norm_uq', '__proto__'])
+      expect(mapError(duplicate(constraint), requestId)).toBeNull();
     expect(
-      (await mapError(duplicate('__proto__'), requestId)!.json()).code,
-    ).toBe('CONFLICT');
+      mapError(
+        postgresError(
+          '23505',
+          'duplicate key value violates unique constraint',
+        ),
+        requestId,
+      ),
+    ).toBeNull();
+    expect(describeError(duplicate('candidate_email_norm_uq'))).toEqual({
+      name: 'PostgresError',
+      sqlState: '23505',
+      constraint: 'candidate_email_norm_uq',
+    });
   });
 
   it('leaves unexpected errors to the 500 path', () => {

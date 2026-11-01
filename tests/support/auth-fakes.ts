@@ -39,7 +39,7 @@ export class FakeAuthServer {
   async issueSession(
     authUserId: string,
     aal: 'aal1' | 'aal2' = 'aal1',
-    sessionId = randomUUID(),
+    sessionId: string = randomUUID(),
   ) {
     await this
       .sql`insert into auth.sessions (id, user_id, not_after, created_at)

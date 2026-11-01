@@ -13,7 +13,7 @@ import {
 import {
   auditLoginFailure,
   establishSession,
-  landingPath,
+  postSignInPath,
   withRateLimitAudit,
 } from './session';
 
@@ -25,7 +25,11 @@ export async function startGoogle(
   if (!deps.googleEnabled()) throw new NotFoundError();
   await withRateLimitAudit(ctx, 'GOOGLE', () =>
     consumeRateLimit(ctx.db, ctx.clock.now(), deps.rateLimitSecret(), [
-      { namespace: 'auth:google:ip', value: ctx.ip, limit: AUTH_LIMITS.googlePerIp },
+      {
+        namespace: 'auth:google:ip',
+        value: ctx.ip,
+        limit: AUTH_LIMITS.googlePerIp,
+      },
     ]),
   );
   const url = await deps
@@ -51,17 +55,19 @@ export async function completeGoogleCallback(
   cookies: AuthCookieStore,
 ): Promise<string> {
   const inviteToken =
-    cookies.getAll().find((cookie) => cookie.name === INVITE_COOKIE)?.value ?? null;
+    cookies.getAll().find((cookie) => cookie.name === INVITE_COOKIE)?.value ??
+    null;
   const finish = (path: string) => {
     clearInviteCookie(cookies);
     return path;
   };
+  // A cross-site GET can reach these paths, so they never sign the browser out (SEC-AUTH-R05).
   if (!deps.googleEnabled()) {
-    cookies.clear();
+    cookies.abandonHandoff();
     return finish(failed);
   }
   if (input.error || !input.code) {
-    cookies.clear();
+    cookies.abandonHandoff();
     await auditLoginFailure(ctx, 'GOOGLE', 'PROVIDER_REFUSED');
     return finish(refused);
   }
@@ -73,7 +79,7 @@ export async function completeGoogleCallback(
       )
     : null;
   if (!exchanged || !identity) {
-    cookies.clear();
+    cookies.abandonHandoff();
     await auditLoginFailure(ctx, 'GOOGLE', 'EXCHANGE_FAILED');
     return finish(failed);
   }
@@ -86,13 +92,15 @@ export async function completeGoogleCallback(
     ? await completeInviteGoogle(ctx, inviteToken, identity, google)
     : Boolean(
         user?.isActive &&
-          user.activatedAt &&
-          google.verified &&
-          emailsMatch(google.email, user.email),
+        user.activatedAt &&
+        google.verified &&
+        emailsMatch(google.email, user.email),
       );
   if (!allowed) {
-    await endAuthSessions(ctx.db, identity.authUserId, { only: identity.sessionId });
-    cookies.clear();
+    await endAuthSessions(ctx.db, identity.authUserId, {
+      only: identity.sessionId,
+    });
+    cookies.abandonHandoff();
     await auditLoginFailure(ctx, 'GOOGLE', 'EMAIL_MISMATCH', user?.id ?? null);
     return finish(refused);
   }
@@ -103,7 +111,7 @@ export async function completeGoogleCallback(
       cookies,
       client,
     });
-    return finish(landingPath(auth));
+    return finish(postSignInPath(auth));
   } catch {
     return finish(refused);
   }

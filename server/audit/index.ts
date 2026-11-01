@@ -5,9 +5,40 @@ import { auditLog } from '../db/schema';
 
 const json = z.json();
 
-/** Key fragments that signal identifiers or free text; such values belong in purgeable before/after. */
-const piiKey =
-  /email|phone|telegram|name|comment|note|text|url|link|address|file|feedback|message|description|terms|salary/i;
+/** Words that signal identifiers or free text; such values belong in purgeable before/after. */
+const PII_WORDS = new Set([
+  'email',
+  'phone',
+  'telegram',
+  'name',
+  'filename',
+  'username',
+  'fullname',
+  'comment',
+  'note',
+  'text',
+  'url',
+  'link',
+  'address',
+  'file',
+  'feedback',
+  'message',
+  'description',
+  'terms',
+  'salary',
+]);
+
+/** Whole camelCase words only (plural too), so `profileId`, `contextId`, `linkedAt` or `renamed` pass. */
+export function isPiiKey(key: string): boolean {
+  return key
+    .split(/(?=[A-Z])|\d+/)
+    .map((word) => word.toLowerCase())
+    .some((word) =>
+      [word, word.replace(/s$/, ''), word.replace(/es$/, '')].some((form) =>
+        PII_WORDS.has(form),
+      ),
+    );
+}
 /** Detail values are codes, ids, numbers or flags; free text cannot match these shapes (SEC-CORE-07). */
 const detailScalar = z.union([
   z.boolean(),
@@ -21,7 +52,7 @@ const detailsSchema = z.record(
   z
     .string()
     .regex(/^[a-z][a-zA-Z0-9]{0,39}$/)
-    .refine((key) => !piiKey.test(key), 'PII-like key in audit details'),
+    .refine((key) => !isPiiKey(key), 'PII-like key in audit details'),
   z.union([detailScalar, z.array(detailScalar).max(50)]),
 );
 

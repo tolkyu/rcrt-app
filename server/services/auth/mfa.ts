@@ -19,6 +19,7 @@ import { mfaResetEmail } from '@/server/integrations/email/templates';
 import {
   findSessionStart,
   findUserById,
+  markSessionMfaVerified,
   setMfaLock,
 } from '@/server/repositories/auth';
 import {
@@ -64,12 +65,12 @@ export async function mfaStatus(deps: AuthDependencies, ctx: RequestContext) {
   if (!factors) throw new Error('Factor listing unavailable');
   const verified = factors.filter((factor) => factor.verified);
   return {
-    aal: ctx.identity.aal,
+    aal: ctx.auth.aal,
     required: ctx.auth.mfaRequired,
     hasOtherGrants: ctx.auth.grants.size > 0,
     canAddFactor:
       verified.length < MAX_VERIFIED_FACTORS &&
-      (verified.length === 0 || ctx.identity.aal === 'aal2'),
+      (verified.length === 0 || ctx.auth.aal === 'aal2'),
     factors: verified.map((factor) => ({ id: factor.id, name: factor.name })),
   };
 }
@@ -94,7 +95,7 @@ export async function enrollTotp(
   const factors = await client.listTotpFactors();
   if (!factors) throw new UnauthenticatedError();
   const verified = factors.filter((factor) => factor.status === 'verified');
-  if (verified.length > 0 && ctx.identity.aal !== 'aal2')
+  if (verified.length > 0 && ctx.auth.aal !== 'aal2')
     throw new UnauthenticatedError('MFA_REQUIRED');
   if (verified.length >= MAX_VERIFIED_FACTORS)
     throw new ConflictError('MFA_FACTOR_LIMIT');
@@ -113,7 +114,8 @@ export async function enrollTotp(
 
 /**
  * Verifies a TOTP code through our API so failures are counted: five in 15 minutes lock the user,
- * and while locked even a correct code does not raise the session to aal2 (T4-F04).
+ * and while locked even a correct code does not raise the session to aal2 (T4-F04). Only this path
+ * records `mfa_verified_at`, so a direct GoTrue verify never unlocks Admin/Finance (SEC-AUTH-R02).
  */
 export async function verifyTotp(
   deps: AuthDependencies,
@@ -199,14 +201,18 @@ export async function verifyTotp(
     throw new RateLimitedError(Math.ceil(remaining / 1000));
   }
   if (failure) throw failure.error;
-  const started = await findSessionStart(ctx.db, ctx.identity.sessionId);
-  if (started)
-    cookies.limitLifetime(
-      (started.getTime() + SESSION_ABSOLUTE_MS - now.getTime()) / 1000,
-    );
-  cookies.commit();
-  if (factor.status === 'unverified') {
+  try {
     await ctx.db.transaction(async (tx) => {
+      if (
+        !(await markSessionMfaVerified(
+          tx,
+          ctx.identity.sessionId,
+          ctx.auth.userId,
+          ctx.clock.now(),
+        ))
+      )
+        throw new UnauthenticatedError('SESSION_EXPIRED');
+      if (factor.status !== 'unverified') return;
       const write = { ...ctx, db: tx };
       await appendEvent(tx, write, {
         type: 'user.mfa_enrolled',
@@ -220,7 +226,16 @@ export async function verifyTotp(
         entityId: ctx.auth.userId,
       });
     });
+  } catch (error) {
+    cookies.discard();
+    throw error;
   }
+  const started = await findSessionStart(ctx.db, ctx.identity.sessionId);
+  if (started)
+    cookies.limitLifetime(
+      (started.getTime() + SESSION_ABSOLUTE_MS - now.getTime()) / 1000,
+    );
+  cookies.commit();
   return { redirectTo: safeNextPath(input.next, '/') };
 }
 

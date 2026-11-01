@@ -1,12 +1,17 @@
 import 'server-only';
-import { and, asc, eq, isNotNull, like } from 'drizzle-orm';
 import type { AuthCookieStore } from '@/server/auth/cookies';
 import type { SystemContext } from '@/server/context/request-context';
 import { getDb } from '@/server/db';
-import { appUser, userRole, vertical } from '@/server/db/schema';
 import { NotFoundError, UnauthenticatedError } from '@/server/http/errors';
 import { authDependencies } from '@/server/services/auth/app';
-import { establishSession, landingPath } from '@/server/services/auth/session';
+import {
+  findActiveDemoUser,
+  listDemoUsersWithRoles,
+} from '@/server/repositories/user';
+import {
+  establishSession,
+  postSignInPath,
+} from '@/server/services/auth/session';
 import { totpCode } from './totp';
 
 const DEMO_EMAIL = /^[a-z0-9._-]+@demo$/;
@@ -28,27 +33,21 @@ export function devLoginAvailable(): boolean {
 
 export async function listDevUsers() {
   if (!devLoginAvailable()) throw new NotFoundError();
-  const rows = await getDb()
-    .select({
-      email: appUser.email,
-      fullName: appUser.fullName,
-      role: userRole.role,
-      vertical: vertical.name,
-    })
-    .from(appUser)
-    .leftJoin(userRole, eq(userRole.userId, appUser.id))
-    .leftJoin(vertical, eq(vertical.id, userRole.verticalId))
-    .where(
-      and(
-        like(appUser.email, '%@demo'),
-        eq(appUser.isActive, true),
-        isNotNull(appUser.authUserId),
-      ),
-    )
-    .orderBy(asc(appUser.email), asc(userRole.role));
-  const users = new Map<string, { email: string; fullName: string; roles: { role: string; vertical: string | null }[] }>();
+  const rows = await listDemoUsersWithRoles(getDb());
+  const users = new Map<
+    string,
+    {
+      email: string;
+      fullName: string;
+      roles: { role: string; vertical: string | null }[];
+    }
+  >();
   for (const row of rows) {
-    const user = users.get(row.email) ?? { email: row.email, fullName: row.fullName, roles: [] };
+    const user = users.get(row.email) ?? {
+      email: row.email,
+      fullName: row.fullName,
+      roles: [],
+    };
     if (row.role) user.roles.push({ role: row.role, vertical: row.vertical });
     users.set(row.email, user);
   }
@@ -64,22 +63,29 @@ export async function devSignIn(
   email: string,
   cookies: AuthCookieStore,
 ): Promise<{ redirectTo: string }> {
-  if (!devLoginAvailable() || !DEMO_EMAIL.test(email)) throw new NotFoundError();
-  const known = (await listDevUsers()).some((user) => user.email === email);
-  if (!known) throw new NotFoundError();
+  if (!devLoginAvailable() || !DEMO_EMAIL.test(email))
+    throw new NotFoundError();
+  if (!(await findActiveDemoUser(ctx.db, email))) throw new NotFoundError();
   const deps = authDependencies;
   const tokenHash = await deps.admin().magicLinkTokenHash(email);
   const client = deps.createClient(cookies);
   let session = tokenHash ? await client.verifyMagicLink(tokenHash) : null;
   if (!session) throw new UnauthenticatedError();
   const secret = process.env.DEV_DEMO_TOTP_SECRET;
-  const factor = (await client.listTotpFactors())?.find((f) => f.status === 'verified');
-  if (factor && secret) session = (await client.verifyTotp(factor.id, totpCode(secret))) ?? session;
+  const factor = (await client.listTotpFactors())?.find(
+    (f) => f.status === 'verified',
+  );
+  const elevated =
+    factor && secret
+      ? await client.verifyTotp(factor.id, totpCode(secret))
+      : null;
+  if (elevated) session = elevated;
   const { auth } = await establishSession(deps, ctx, {
     accessToken: session.accessToken,
     method: 'DEV',
     cookies,
     client,
+    mfaVerified: elevated !== null,
   });
-  return { redirectTo: landingPath(auth) };
+  return { redirectTo: postSignInPath(auth) };
 }

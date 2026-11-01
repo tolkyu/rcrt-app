@@ -32,6 +32,7 @@ const principalSchema = z.object({
         startedAt: z.coerce.date(),
         lastSeenAt: z.coerce.date(),
         ended: z.boolean(),
+        mfaVerifiedAt: z.coerce.date().nullable(),
       })
       .nullable(),
   ),
@@ -43,10 +44,11 @@ export type PrincipalRow = z.infer<typeof principalSchema>;
 
 /**
  * The per-request context query (ADR-002 §4, DG-05, T4-B01..B03): user, active flag, MFA lock,
- * roles × verticals, the Supabase session and the app session in one round-trip. A user-initiated
- * request also refreshes `last_seen_at` in the same statement, at most once a minute and never
- * after the idle limit has passed. Explicit aliases: correlated subqueries in a single-table
- * Drizzle select would render unqualified column names.
+ * roles × verticals, the Supabase session and the app session (with its app-recorded TOTP
+ * verification) in one round-trip. A user-initiated request also refreshes `last_seen_at` in the
+ * same statement, at most once a minute and never after the idle limit has passed. Explicit
+ * aliases: correlated subqueries in a single-table Drizzle select would render unqualified column
+ * names.
  */
 export async function findPrincipal(
   db: DbExecutor,
@@ -76,7 +78,8 @@ export async function findPrincipal(
           and (s.not_after is null or s.not_after > ${at}::timestamptz)
       ) as "authSession",
       case when us.session_id is null then null else json_build_object(
-        'startedAt', us.started_at, 'lastSeenAt', us.last_seen_at, 'ended', us.ended_at is not null
+        'startedAt', us.started_at, 'lastSeenAt', us.last_seen_at, 'ended', us.ended_at is not null,
+        'mfaVerifiedAt', us.mfa_verified_at
       ) end as "appSession",
       coalesce((
         select json_agg(json_build_object('role', r.role, 'verticalId', r.vertical_id)

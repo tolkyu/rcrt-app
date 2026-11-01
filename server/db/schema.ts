@@ -570,6 +570,8 @@ export const userSession = app.table(
     endReason: text('end_reason', {
       enum: ['LOGOUT', 'IDLE', 'ABSOLUTE', 'DEACTIVATED', 'USER', 'MFA_RESET'],
     }),
+    /** Set only by our lockout-guarded TOTP verify; a GoTrue aal2 claim alone is not trusted (SEC-AUTH-R02). */
+    mfaVerifiedAt: instant('mfa_verified_at'),
     ip: inet('ip'),
     userAgent: text('user_agent'),
   },
@@ -589,10 +591,7 @@ export const userSession = app.table(
       'user_session_reason_chk',
       sql`${t.endReason} IS NULL OR ${t.endReason} IN ('LOGOUT','IDLE','ABSOLUTE','DEACTIVATED','USER','MFA_RESET')`,
     ),
-    check(
-      'user_session_time_chk',
-      sql`${t.lastSeenAt} >= ${t.startedAt}`,
-    ),
+    check('user_session_time_chk', sql`${t.lastSeenAt} >= ${t.startedAt}`),
   ],
 );
 

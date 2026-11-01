@@ -10,22 +10,11 @@ import {
   redirectResponseSchema,
   type InviteInspection,
 } from '@/lib/schemas/auth';
+import { useRoleLabel } from './use-role-label';
 import { AuthCard, FormMessage, Spinner } from './auth-card';
 import { useFragmentToken } from './use-fragment-token';
 
 const TOKEN = /^[A-Za-z0-9_-]{43}$/;
-const ROLE_KEYS = [
-  'ADMIN',
-  'HEAD_RECRUITER',
-  'RECRUITER',
-  'HEAD_HR',
-  'HR',
-  'TEAM_LEAD',
-  'FINANCE',
-] as const;
-type RoleKey = (typeof ROLE_KEYS)[number];
-const isRoleKey = (value: string): value is RoleKey =>
-  (ROLE_KEYS as readonly string[]).includes(value);
 
 type View =
   | { kind: 'loading' }
@@ -40,6 +29,7 @@ type View =
 
 export function InviteFlow({ googleEnabled }: { googleEnabled: boolean }) {
   const t = useTranslations('auth');
+  const roleLabel = useRoleLabel();
   const [view, setView] = useState<View>({ kind: 'loading' });
   const [pending, setPending] = useState<'accept' | 'google' | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
@@ -172,21 +162,14 @@ export function InviteFlow({ googleEnabled }: { googleEnabled: boolean }) {
           <dt className="text-muted-foreground">{t('invite.rolesLabel')}</dt>
           <dd>
             <ul className="flex flex-wrap gap-2">
-              {invite.roles.map(({ role, vertical }) => {
-                const name = isRoleKey(role)
-                  ? t(`roles.${role}`)
-                  : t('roles.custom');
-                return (
-                  <li
-                    key={`${role}-${vertical ?? ''}`}
-                    className="bg-primary-subtle text-link rounded-full px-3 py-1 text-xs font-medium"
-                  >
-                    {vertical
-                      ? t('roleInVertical', { role: name, vertical })
-                      : name}
-                  </li>
-                );
-              })}
+              {invite.roles.map(({ role, vertical }) => (
+                <li
+                  key={`${role}-${vertical ?? ''}`}
+                  className="bg-primary-subtle text-link rounded-full px-3 py-1 text-xs font-medium"
+                >
+                  {roleLabel(role, vertical)}
+                </li>
+              ))}
             </ul>
           </dd>
         </div>

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import type { SystemContext } from '../../server/context/request-context';
 import type { VerifiedIdentity } from '../../server/context/identity';
@@ -29,6 +30,8 @@ export function createAuthFixture(
       };
       identity: VerifiedIdentity;
       at: (value: Date) => void;
+      /** Records the app-side TOTP verification that `verifyTotp` writes (SEC-AUTH-R02). */
+      markMfaVerified: (sessionId?: string) => Promise<void>;
     }) => Promise<void>,
   ) {
     let current = new Date('2026-11-16T08:00:00Z');
@@ -86,6 +89,12 @@ export function createAuthFixture(
           identity: { authUserId, sessionId: user.sessionId, aal: 'aal1' },
           at: (value) => {
             current = new Date(value);
+          },
+          markMfaVerified: async (sessionId = user.sessionId) => {
+            await tx
+              .update(schema.userSession)
+              .set({ mfaVerifiedAt: clock.now() })
+              .where(eq(schema.userSession.sessionId, sessionId));
           },
         });
         throw rollback;

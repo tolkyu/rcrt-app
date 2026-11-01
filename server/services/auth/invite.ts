@@ -1,3 +1,4 @@
+import { normalizeFullName } from '@/lib/profile-name';
 import { writeAudit } from '@/server/audit';
 import { requirePermission } from '@/server/authz/can';
 import { GLOBAL_ROLES } from '@/server/authz/roles';
@@ -41,7 +42,7 @@ import type { AuthDependencies } from './deps';
 import {
   auditLoginFailure,
   establishSession,
-  landingPath,
+  postSignInPath,
   withRateLimitAudit,
 } from './session';
 
@@ -95,6 +96,7 @@ export async function createInvite(
 }> {
   requirePermission(ctx.auth, 'settings.users.manage');
   const email = normalizeEmail(input.email);
+  const fullName = normalizeFullName(input.fullName);
   if (!(await rolesAreValid(ctx.db, input.roles)))
     throw new ValidationError([{ path: 'body.roles', code: 'invalid_roles' }]);
   const existing = await findUserByEmail(ctx.db, email);
@@ -114,7 +116,7 @@ export async function createInvite(
   const created = await ctx.db.transaction(async (tx) => {
     const userId = await insertInvitedUser(tx, {
       email,
-      fullName: input.fullName.trim(),
+      fullName,
       createdBy: ctx.auth.userId,
       now,
     });
@@ -133,7 +135,7 @@ export async function createInvite(
       subjectType: 'app_user',
       subjectId: userId,
       payload: { inviteId, roles },
-      pii: { email, fullName: input.fullName.trim() },
+      pii: { email, fullName },
     });
     await writeAudit(tx, write, {
       action: 'user.invited',
@@ -146,7 +148,7 @@ export async function createInvite(
   });
   const delivered = await deps.sendEmail(
     inviteEmail(email, {
-      fullName: input.fullName.trim(),
+      fullName,
       url: inviteUrl(deps.appUrl(), token),
       expiresAt,
     }),
@@ -297,7 +299,7 @@ export async function acceptInvite(
     cookies,
     client,
   });
-  return { redirectTo: landingPath(auth) };
+  return { redirectTo: postSignInPath(auth) };
 }
 
 /** Google path: the invite is only checked here and consumed in the callback once the Google email matches (T4-E08). */

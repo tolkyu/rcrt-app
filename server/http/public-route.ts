@@ -9,12 +9,16 @@ import {
   type SystemContext,
 } from '../context/request-context';
 import { isTrustedMutation } from '../security/http';
-import type { ErrorStatus, RouteHandler, RouteLogEntry } from './define-route';
+import type { RouteHandler, RouteLogEntry } from './define-route';
 import { ForbiddenError, ValidationError } from './errors';
 import { mapError } from './map-error';
-import { problemSchema } from './openapi';
 import { problemResponse } from './problem';
 import { readJsonBody } from './read-json';
+import {
+  problemResponses,
+  zodFieldErrors,
+  type ErrorStatus,
+} from './route-shared';
 
 export interface PublicAuthRouteDependencies extends ContextDependencies {
   appUrl: () => string;
@@ -66,17 +70,14 @@ function authRouteFactory<C extends SystemContext | RequestContext>(
           description: 'Success',
           content: { 'application/json': { schema: spec.response } },
         },
-        ...Object.fromEntries(
-          [...new Set([...spec.errors, 400, 403, 413, 500])].map((status) => [
-            status,
-            {
-              description: `HTTP ${status}`,
-              content: {
-                'application/problem+json': { schema: problemSchema },
-              },
-            },
-          ]),
-        ),
+        ...problemResponses([
+          ...spec.errors,
+          ...(authenticated ? [401 as const] : []),
+          400,
+          403,
+          413,
+          500,
+        ]),
       },
     });
     return async (request) => {
@@ -97,12 +98,7 @@ function authRouteFactory<C extends SystemContext | RequestContext>(
         userId = ctx.auth?.userId ?? null;
         const parsed = spec.body.safeParse(await readJsonBody(request));
         if (!parsed.success)
-          throw new ValidationError(
-            parsed.error.issues.map((issue) => ({
-              path: ['body', ...issue.path.map(String)].join('.'),
-              code: issue.code,
-            })),
-          );
+          throw new ValidationError(zodFieldErrors(parsed.error, 'body'));
         cookies = createAuthCookieStore(request.headers, deps.appUrl());
         const output = spec.response.parse(
           await handler(ctx, parsed.data, cookies),

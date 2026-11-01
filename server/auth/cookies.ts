@@ -11,6 +11,8 @@ export interface AuthCookieStore {
   commit(): void;
   discard(): void;
   clear(): void;
+  /** Failed hand-off: drops staged writes and expires only the PKCE verifier; the current session stays (SEC-AUTH-R05). */
+  abandonHandoff(): void;
   /** Short-lived HttpOnly cookie outside the Supabase session (OAuth invite hand-off). */
   setTransient(name: string, value: string, maxAge: number, path: string): void;
   /** Caps cookie Max-Age at the session's remaining absolute lifetime (T4-B09). */
@@ -19,6 +21,10 @@ export interface AuthCookieStore {
 }
 
 export const SESSION_COOKIE_MAX_AGE = 7 * 24 * 60 * 60;
+const SESSION_COOKIE =
+  /^sb-[A-Za-z0-9_-]+-auth-token(?:-code-verifier)?(?:[.]\d+)?$/;
+const VERIFIER_COOKIE =
+  /^sb-[A-Za-z0-9_-]+-auth-token-code-verifier(?:[.]\d+)?$/;
 
 /** SDK writes are staged until the returned JWT and app principal have both been verified. */
 export function createAuthCookieStore(
@@ -38,6 +44,20 @@ export function createAuthCookieStore(
     maxAge: SESSION_COOKIE_MAX_AGE,
   };
   let committed = false;
+  const expire = (pattern: RegExp) => {
+    const names = new Set(
+      initial.filter(({ name }) => pattern.test(name)).map(({ name }) => name),
+    );
+    for (const name of names) {
+      staged.set(name, {
+        name,
+        value: '',
+        options: { ...defaults, maxAge: 0 },
+      });
+      current.delete(name);
+    }
+    committed = true;
+  };
   return {
     getAll: () => [...current].map(([name, value]) => ({ name, value })),
     setAll(cookies) {
@@ -67,7 +87,8 @@ export function createAuthCookieStore(
         Math.min(SESSION_COOKIE_MAX_AGE, Math.floor(seconds)),
       );
       for (const cookie of staged.values())
-        if (cookie.options.maxAge !== 0) cookie.options.maxAge = defaults.maxAge;
+        if (cookie.options.maxAge !== 0)
+          cookie.options.maxAge = defaults.maxAge;
     },
     commit() {
       committed = true;
@@ -77,16 +98,9 @@ export function createAuthCookieStore(
       committed = false;
     },
     clear() {
-      const names = new Set([
-        ...initial
-          .filter(({ name }) =>
-            /^sb-[A-Za-z0-9_-]+-auth-token(?:-code-verifier)?(?:[.]\d+)?$/.test(name),
-          )
-          .map(({ name }) => name),
-        ...staged.keys(),
-      ]);
+      const pending = [...staged.keys()];
       staged.clear();
-      for (const name of names) {
+      for (const name of pending) {
         staged.set(name, {
           name,
           value: '',
@@ -94,7 +108,11 @@ export function createAuthCookieStore(
         });
         current.delete(name);
       }
-      committed = true;
+      expire(SESSION_COOKIE);
+    },
+    abandonHandoff() {
+      staged.clear();
+      expire(VERIFIER_COOKIE);
     },
     apply(response) {
       if (committed)

@@ -10,14 +10,18 @@ import {
   type RequestContext,
 } from '../context/request-context';
 import { isTrustedMutation } from '../security/http';
-import { ForbiddenError, ValidationError, type FieldError } from './errors';
+import { ForbiddenError, ValidationError } from './errors';
 import { mapError } from './map-error';
-import { problemSchema } from './openapi';
 import { problemResponse } from './problem';
 import { readJsonBody } from './read-json';
+import {
+  problemResponses,
+  zodFieldErrors,
+  type ErrorStatus,
+} from './route-shared';
 
+export type { ErrorStatus } from './route-shared';
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-export type ErrorStatus = 400 | 401 | 403 | 404 | 409 | 413 | 429 | 503;
 type AnyObject = z.ZodObject<z.ZodRawShape>;
 type Output<S> = S extends z.ZodType ? z.output<S> : undefined;
 
@@ -69,24 +73,6 @@ export interface RouteLogEntry {
 }
 
 const unsafe = new Set<HttpMethod>(['POST', 'PUT', 'PATCH', 'DELETE']);
-const statusDescriptions: Record<ErrorStatus | 401 | 500, string> = {
-  400: 'Validation failed',
-  401: 'Unauthenticated, session expired, user deactivated or MFA required',
-  403: 'Forbidden (object visible, action not permitted, or CSRF check failed)',
-  404: 'Not found or out of scope',
-  409: 'Conflict',
-  413: 'Request body exceeds 1 MiB',
-  429: 'Rate limited',
-  500: 'Unexpected error',
-  503: 'Service temporarily unavailable',
-};
-
-function fieldErrors(error: z.ZodError, prefix: string): FieldError[] {
-  return error.issues.map((issue) => ({
-    path: [prefix, ...issue.path.map(String)].join('.'),
-    code: issue.code,
-  }));
-}
 
 function parsePart<S extends AnyObject | z.ZodType | undefined>(
   schema: S,
@@ -96,7 +82,7 @@ function parsePart<S extends AnyObject | z.ZodType | undefined>(
   if (!schema) return undefined as Output<S>;
   const result = schema.safeParse(value);
   if (!result.success)
-    throw new ValidationError(fieldErrors(result.error, prefix));
+    throw new ValidationError(zodFieldErrors(result.error, prefix));
   return result.data as Output<S>;
 }
 
@@ -117,17 +103,6 @@ function openApiRoute(
     z.ZodType
   >,
 ): RouteConfig {
-  const problem = {
-    content: { 'application/problem+json': { schema: problemSchema } },
-  };
-  const statuses = [
-    ...new Set<ErrorStatus | 401 | 500>([
-      ...spec.errors,
-      401,
-      ...(unsafe.has(spec.method) ? [403 as const, 413 as const] : []),
-      500,
-    ]),
-  ].sort();
   return {
     method: spec.method.toLowerCase() as RouteConfig['method'],
     path: spec.path,
@@ -154,12 +129,12 @@ function openApiRoute(
         description: 'Success',
         content: { 'application/json': { schema: spec.response } },
       },
-      ...Object.fromEntries(
-        statuses.map((status) => [
-          status,
-          { description: statusDescriptions[status], ...problem },
-        ]),
-      ),
+      ...problemResponses([
+        ...spec.errors,
+        401,
+        ...(unsafe.has(spec.method) ? [403 as const, 413 as const] : []),
+        500,
+      ]),
     },
   };
 }

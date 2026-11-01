@@ -1,11 +1,6 @@
 import { z } from 'zod';
 import { buildAuthContext, type AuthContext } from '../authz/context';
-import type {
-  RoleAssignment,
-  RoleCode,
-  UserId,
-  VerticalId,
-} from '../authz/types';
+import type { UserId } from '../authz/types';
 import type { DbExecutor } from '../db';
 import type { Clock } from '../domain/clock';
 import { UnauthenticatedError } from '../http/errors';
@@ -140,15 +135,17 @@ export async function loadAuthContext(
       throw new UnauthenticatedError('SESSION_EXPIRED');
     }
   }
-  const roles: RoleAssignment[] = principal.roles.map((row) => ({
-    role: row.role as RoleCode,
-    verticalId: row.verticalId as VerticalId | null,
-  }));
+  // aal2 needs the token claim AND a verification recorded by our lockout-guarded API on this
+  // session; a TOTP lock downgrades it until the lock expires (T4-F04, SEC-AUTH-R02).
+  const aal2 =
+    identity.aal === 'aal2' &&
+    Boolean(principal.appSession?.mfaVerifiedAt) &&
+    principal.appSession?.ended === false &&
+    !principal.mfaLocked;
   return buildAuthContext({
     userId: principal.userId as UserId,
-    roles,
-    // A TOTP lock after repeated failures downgrades the session until it expires (T4-F04).
-    aal: principal.mfaLocked ? 'aal1' : identity.aal,
+    roles: principal.roles,
+    aal: aal2 ? 'aal2' : 'aal1',
     timezone: principal.timezone,
   });
 }

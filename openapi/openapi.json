@@ -628,7 +628,7 @@
             }
           },
           "400": {
-            "description": "HTTP 400",
+            "description": "Validation failed",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -638,7 +638,7 @@
             }
           },
           "401": {
-            "description": "HTTP 401",
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -648,7 +648,7 @@
             }
           },
           "403": {
-            "description": "HTTP 403",
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -658,7 +658,7 @@
             }
           },
           "413": {
-            "description": "HTTP 413",
+            "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -668,7 +668,7 @@
             }
           },
           "429": {
-            "description": "HTTP 429",
+            "description": "Rate limited",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -678,7 +678,7 @@
             }
           },
           "500": {
-            "description": "HTTP 500",
+            "description": "Unexpected error",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -735,7 +735,7 @@
             }
           },
           "400": {
-            "description": "HTTP 400",
+            "description": "Validation failed",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -745,7 +745,7 @@
             }
           },
           "403": {
-            "description": "HTTP 403",
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -755,7 +755,7 @@
             }
           },
           "404": {
-            "description": "HTTP 404",
+            "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -765,7 +765,7 @@
             }
           },
           "413": {
-            "description": "HTTP 413",
+            "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -775,7 +775,7 @@
             }
           },
           "429": {
-            "description": "HTTP 429",
+            "description": "Rate limited",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -785,7 +785,7 @@
             }
           },
           "500": {
-            "description": "HTTP 500",
+            "description": "Unexpected error",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -850,7 +850,7 @@
             }
           },
           "400": {
-            "description": "HTTP 400",
+            "description": "Validation failed",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -860,7 +860,7 @@
             }
           },
           "401": {
-            "description": "HTTP 401",
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -870,7 +870,7 @@
             }
           },
           "403": {
-            "description": "HTTP 403",
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -880,7 +880,7 @@
             }
           },
           "409": {
-            "description": "HTTP 409",
+            "description": "Conflict",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -890,7 +890,7 @@
             }
           },
           "413": {
-            "description": "HTTP 413",
+            "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -900,7 +900,7 @@
             }
           },
           "429": {
-            "description": "HTTP 429",
+            "description": "Rate limited",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -910,7 +910,7 @@
             }
           },
           "500": {
-            "description": "HTTP 500",
+            "description": "Unexpected error",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -975,7 +975,7 @@
             }
           },
           "400": {
-            "description": "HTTP 400",
+            "description": "Validation failed",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -985,7 +985,7 @@
             }
           },
           "403": {
-            "description": "HTTP 403",
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -995,7 +995,7 @@
             }
           },
           "404": {
-            "description": "HTTP 404",
+            "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1005,7 +1005,7 @@
             }
           },
           "409": {
-            "description": "HTTP 409",
+            "description": "Conflict",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1015,7 +1015,7 @@
             }
           },
           "413": {
-            "description": "HTTP 413",
+            "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1025,7 +1025,7 @@
             }
           },
           "429": {
-            "description": "HTTP 429",
+            "description": "Rate limited",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1035,7 +1035,7 @@
             }
           },
           "500": {
-            "description": "HTTP 500",
+            "description": "Unexpected error",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1100,7 +1100,7 @@
             }
           },
           "400": {
-            "description": "HTTP 400",
+            "description": "Validation failed",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1110,7 +1110,7 @@
             }
           },
           "403": {
-            "description": "HTTP 403",
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1120,7 +1120,7 @@
             }
           },
           "413": {
-            "description": "HTTP 413",
+            "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1130,7 +1130,7 @@
             }
           },
           "429": {
-            "description": "HTTP 429",
+            "description": "Rate limited",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1140,7 +1140,7 @@
             }
           },
           "500": {
-            "description": "HTTP 500",
+            "description": "Unexpected error",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1163,9 +1163,13 @@
           {
             "schema": {
               "type": "string",
-              "pattern": "^\\d{4}-\\d{2}-\\d{2}T[\\d:.]+Z_\\d{1,19}$"
+              "maxLength": 64,
+              "pattern": "^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z)_(\\d{1,19})$",
+              "description": "Opaque `nextCursor` from the previous page.",
+              "example": "2026-11-16T08:00:00.000Z_42"
             },
             "required": false,
+            "description": "Opaque `nextCursor` from the previous page.",
             "name": "cursor",
             "in": "query"
           },
@@ -1270,7 +1274,7 @@
             }
           },
           "400": {
-            "description": "HTTP 400",
+            "description": "Validation failed",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1280,7 +1284,7 @@
             }
           },
           "403": {
-            "description": "HTTP 403",
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1290,7 +1294,7 @@
             }
           },
           "413": {
-            "description": "HTTP 413",
+            "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1300,7 +1304,7 @@
             }
           },
           "500": {
-            "description": "HTTP 500",
+            "description": "Unexpected error",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1376,7 +1380,7 @@
             }
           },
           "400": {
-            "description": "HTTP 400",
+            "description": "Validation failed",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1386,7 +1390,7 @@
             }
           },
           "403": {
-            "description": "HTTP 403",
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1396,7 +1400,7 @@
             }
           },
           "413": {
-            "description": "HTTP 413",
+            "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1406,7 +1410,7 @@
             }
           },
           "429": {
-            "description": "HTTP 429",
+            "description": "Rate limited",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1416,7 +1420,7 @@
             }
           },
           "500": {
-            "description": "HTTP 500",
+            "description": "Unexpected error",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1426,7 +1430,7 @@
             }
           },
           "503": {
-            "description": "HTTP 503",
+            "description": "Service temporarily unavailable",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1487,7 +1491,7 @@
             }
           },
           "400": {
-            "description": "HTTP 400",
+            "description": "Validation failed",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1497,7 +1501,7 @@
             }
           },
           "401": {
-            "description": "HTTP 401",
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1507,7 +1511,7 @@
             }
           },
           "403": {
-            "description": "HTTP 403",
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1517,7 +1521,7 @@
             }
           },
           "409": {
-            "description": "HTTP 409",
+            "description": "Conflict",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1527,7 +1531,7 @@
             }
           },
           "413": {
-            "description": "HTTP 413",
+            "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1537,7 +1541,7 @@
             }
           },
           "429": {
-            "description": "HTTP 429",
+            "description": "Rate limited",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1547,7 +1551,7 @@
             }
           },
           "500": {
-            "description": "HTTP 500",
+            "description": "Unexpected error",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1667,7 +1671,7 @@
             }
           },
           "400": {
-            "description": "HTTP 400",
+            "description": "Validation failed",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1677,7 +1681,7 @@
             }
           },
           "401": {
-            "description": "HTTP 401",
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1687,7 +1691,7 @@
             }
           },
           "403": {
-            "description": "HTTP 403",
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1697,7 +1701,7 @@
             }
           },
           "404": {
-            "description": "HTTP 404",
+            "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1707,7 +1711,7 @@
             }
           },
           "413": {
-            "description": "HTTP 413",
+            "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1717,7 +1721,7 @@
             }
           },
           "429": {
-            "description": "HTTP 429",
+            "description": "Rate limited",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1727,7 +1731,7 @@
             }
           },
           "500": {
-            "description": "HTTP 500",
+            "description": "Unexpected error",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -1895,9 +1899,7 @@
                     "type": "string"
                   },
                   "fullName": {
-                    "type": "string",
-                    "minLength": 2,
-                    "maxLength": 100
+                    "type": "string"
                   },
                   "roles": {
                     "type": "array",

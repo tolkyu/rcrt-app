@@ -1,7 +1,7 @@
 {
   "item": [
     {
-      "id": "cf40f1f5-a122-4eec-b7f8-e7bddf225d2d",
+      "id": "3b94f739-9eb8-47e9-a0d2-5375b98b3b21",
       "name": "Auth",
       "description": {
         "content": "",
@@ -9,7 +9,7 @@
       },
       "item": [
         {
-          "id": "f1015b90-6864-48af-8098-95ee06a664df",
+          "id": "f9e42570-0cee-43f9-ab5c-d5cbf359b725",
           "name": "Consume a sign-in link after the explicit button press",
           "request": {
             "name": "Consume a sign-in link after the explicit button press",
@@ -65,7 +65,7 @@
           },
           "response": [
             {
-              "id": "abcff478-ca69-476a-8d10-10df1d47dd62",
+              "id": "6d0d2de3-0b12-4d94-9978-854430c1dab4",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -133,8 +133,8 @@
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "dc9dde27-27bf-4cd0-904d-15f89ba34752",
-              "name": "HTTP 400",
+              "id": "0d6f49c9-4095-4136-bd63-155ab1410749",
+              "name": "Validation failed",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -196,13 +196,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "7e5216d5-0446-44ee-9be5-0210bdb8b458",
-              "name": "HTTP 401",
+              "id": "fd20a5f6-a4dc-4270-943c-df3e3d05b001",
+              "name": "Unauthenticated, session expired, user deactivated or MFA required",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -264,13 +264,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "3e15b4b8-534d-4a61-a07b-9421e1d7b4a3",
-              "name": "HTTP 403",
+              "id": "9705bfb4-e305-4684-a20b-694287061182",
+              "name": "Forbidden (object visible, action not permitted, or CSRF check failed)",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -332,13 +332,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "f447fbeb-5144-4636-a920-783a5cfcbc48",
-              "name": "HTTP 413",
+              "id": "8de8665e-0365-4943-93ae-cbe3c022467a",
+              "name": "Request body exceeds 1 MiB",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -400,13 +400,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "38a618cf-9cb7-49cf-b32f-74320c73ae9a",
-              "name": "HTTP 429",
+              "id": "72ad0b7c-5294-442c-bd87-4121286763a8",
+              "name": "Rate limited",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -468,13 +468,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "4f96d422-1b7f-4f5d-810a-0945d814c6be",
-              "name": "HTTP 500",
+              "id": "b85d3537-24bb-4205-8743-9b4e4ad21ad4",
+              "name": "Unexpected error",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -536,7 +536,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -547,7 +547,7 @@
           }
         },
         {
-          "id": "be1c3283-d066-4702-aa9c-55adb8708e09",
+          "id": "3c0a85bb-dd5b-48c2-9b7a-c300269dfa7b",
           "name": "Start Google sign-in (PKCE); 404 when Google is not configured",
           "request": {
             "name": "Start Google sign-in (PKCE); 404 when Google is not configured",
@@ -603,7 +603,7 @@
           },
           "response": [
             {
-              "id": "ed103394-5252-4936-95bc-81c86987a3aa",
+              "id": "190a8405-75e1-408a-b078-524f78d17862",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -666,13 +666,13 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"url\": \"https://CYJELhsVlhGRBLqNJbOzeczjmQB.nixnPGKSb7Rp-,qS08ohXTTPg3\"\n}",
+              "body": "{\n  \"url\": \"http://fYHwMpsRBlptNodKOfpUNrL.pshkNCi2SMrXGAbpNNyCyQHHL,Lb7Hc6G.\"\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "4f9e88d7-3214-41a1-96db-9b0dd888cf88",
-              "name": "HTTP 400",
+              "id": "cd225b4c-7176-419d-a793-ace92c08b7ee",
+              "name": "Validation failed",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -734,13 +734,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "f23199d5-9fdd-4ad9-96ca-c6c1d54f5d07",
-              "name": "HTTP 403",
+              "id": "5f58190e-4bff-48f8-85db-f5e37afbde75",
+              "name": "Forbidden (object visible, action not permitted, or CSRF check failed)",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -802,13 +802,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "5ba549e8-0c94-437e-8770-47058387f29d",
-              "name": "HTTP 404",
+              "id": "ee6fca1c-71cf-4d66-91ea-f794ab0a04fa",
+              "name": "Not found or out of scope",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -870,13 +870,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "f0d7e078-4cdb-418e-ad9b-60c57002af42",
-              "name": "HTTP 413",
+              "id": "c321aa25-6f11-4fe5-ada7-ef467e47dec5",
+              "name": "Request body exceeds 1 MiB",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -938,13 +938,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "8f10b628-4603-44aa-98ec-820e49b05039",
-              "name": "HTTP 429",
+              "id": "daa888a7-b444-453c-b49f-e19780a5c81d",
+              "name": "Rate limited",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -1006,13 +1006,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "1c0a642f-2a16-4658-8ba3-44aec4b4d865",
-              "name": "HTTP 500",
+              "id": "ae723d9e-6ea0-4014-b004-9185e0181d76",
+              "name": "Unexpected error",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -1074,7 +1074,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -1085,7 +1085,7 @@
           }
         },
         {
-          "id": "148470a0-3479-4bdc-a2da-ab9e660900a7",
+          "id": "2d6d6039-f1f8-4fd5-9dd0-b3c94d9c1e7c",
           "name": "Accept an invite and sign in as the invited email",
           "request": {
             "name": "Accept an invite and sign in as the invited email",
@@ -1142,7 +1142,7 @@
           },
           "response": [
             {
-              "id": "f4f45f70-f1d4-4402-bb65-66460a61df4e",
+              "id": "2c35a3b1-5540-4590-a433-e02644bd575e",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -1211,8 +1211,8 @@
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "8cd10da3-cd60-4b6d-9be2-2b1ec653dd37",
-              "name": "HTTP 400",
+              "id": "10a39efe-1c0d-4c5e-ba89-f4fd70fc1d4b",
+              "name": "Validation failed",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -1275,13 +1275,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "fe13a392-5f9f-4fa4-b5cd-436f13fdfd5e",
-              "name": "HTTP 401",
+              "id": "c7c6793f-3e48-4439-ab16-c0e3f5403486",
+              "name": "Unauthenticated, session expired, user deactivated or MFA required",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -1344,13 +1344,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "c3335862-1c94-40cc-898d-4494153a9334",
-              "name": "HTTP 403",
+              "id": "33772e49-b2b0-4efe-bc47-b3bb57e70c32",
+              "name": "Forbidden (object visible, action not permitted, or CSRF check failed)",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -1413,13 +1413,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "33173e09-dd77-48c5-be0d-9d692ebb6907",
-              "name": "HTTP 409",
+              "id": "3a5fa65e-267d-436e-8573-233f12d60810",
+              "name": "Conflict",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -1482,13 +1482,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "6e8329ec-f4e5-42b0-95f2-d1148a896c25",
-              "name": "HTTP 413",
+              "id": "9f5e49c1-daed-4f6b-96d5-6319d6713ab7",
+              "name": "Request body exceeds 1 MiB",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -1551,13 +1551,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "d43e05e7-3aac-417f-b83d-d5eb9236b2d6",
-              "name": "HTTP 429",
+              "id": "0e4dd3d5-2828-4a98-926d-2409bbfcd889",
+              "name": "Rate limited",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -1620,13 +1620,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "b79f36cb-ff41-408c-87d6-bdc1408a4656",
-              "name": "HTTP 500",
+              "id": "34c8d1d4-32a4-4968-80a4-8f8d94de3a83",
+              "name": "Unexpected error",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -1689,7 +1689,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -1700,7 +1700,7 @@
           }
         },
         {
-          "id": "8e3820db-a019-48b0-b463-91ddb93029c2",
+          "id": "506cb9e2-3998-4c6c-a94e-ca04ab2c81d6",
           "name": "Accept an invite with Google; consumed only if the Google email matches",
           "request": {
             "name": "Accept an invite with Google; consumed only if the Google email matches",
@@ -1757,7 +1757,7 @@
           },
           "response": [
             {
-              "id": "2f66c8ad-7471-4c7a-9a77-1626416bb4c0",
+              "id": "9f2bf49f-7dc0-463b-8a87-42ef3a4bf04a",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -1821,13 +1821,13 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"url\": \"https://CYJELhsVlhGRBLqNJbOzeczjmQB.nixnPGKSb7Rp-,qS08ohXTTPg3\"\n}",
+              "body": "{\n  \"url\": \"http://fYHwMpsRBlptNodKOfpUNrL.pshkNCi2SMrXGAbpNNyCyQHHL,Lb7Hc6G.\"\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "8cbf088f-e614-475f-b086-411107371325",
-              "name": "HTTP 400",
+              "id": "f21f8d35-3c0b-45d4-b037-049c28319c90",
+              "name": "Validation failed",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -1890,13 +1890,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "66dc5b08-8703-4317-9395-e5073a3a92f7",
-              "name": "HTTP 403",
+              "id": "7cdbc504-ebb9-49ab-b57d-90ac721f2912",
+              "name": "Forbidden (object visible, action not permitted, or CSRF check failed)",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -1959,13 +1959,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "a6f8e299-cdf8-487c-831b-2d1d51fea062",
-              "name": "HTTP 404",
+              "id": "5e027716-8c24-46d2-9bbb-2691948a8e17",
+              "name": "Not found or out of scope",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -2028,13 +2028,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "eda5212b-12d7-41da-be09-d90df4bc737e",
-              "name": "HTTP 409",
+              "id": "dc01f192-cf1e-4091-8b95-0d1a5eb64c4c",
+              "name": "Conflict",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -2097,13 +2097,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "11ebee2a-e71a-421c-b664-c6dfe9e72f8d",
-              "name": "HTTP 413",
+              "id": "44b15221-09b3-4879-bd09-3de7da35e661",
+              "name": "Request body exceeds 1 MiB",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -2166,13 +2166,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "99bb7d0e-cf77-4e4c-b04f-d8e234b2a0bf",
-              "name": "HTTP 429",
+              "id": "1ffc68be-3377-4dd2-9685-a7dc09d1cf0b",
+              "name": "Rate limited",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -2235,13 +2235,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "a4b82d0d-ad66-402d-9bd4-a1bffcc50b1d",
-              "name": "HTTP 500",
+              "id": "7b84d751-17f8-41c8-9ba9-6073ed65f83a",
+              "name": "Unexpected error",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -2304,7 +2304,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -2315,7 +2315,7 @@
           }
         },
         {
-          "id": "83a1a078-1e91-4e98-bf8c-d3515f47741e",
+          "id": "32623cac-103a-40b3-bbf9-7b1d1f00e2e4",
           "name": "Show the invited name and roles; one INVALID state for any unusable invite",
           "request": {
             "name": "Show the invited name and roles; one INVALID state for any unusable invite",
@@ -2372,7 +2372,7 @@
           },
           "response": [
             {
-              "id": "07ad7df1-5c11-465e-90dd-8a2c3967b1e7",
+              "id": "f203d44e-c991-4e77-8f80-01db1ade94cc",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -2441,8 +2441,8 @@
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "b9903d91-f873-4180-9a51-1b4458919b01",
-              "name": "HTTP 400",
+              "id": "35b99e9d-de6a-4ca3-b4c7-e48319ab7ada",
+              "name": "Validation failed",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -2505,13 +2505,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "fc62c187-8c57-4887-81dd-684e41189af7",
-              "name": "HTTP 403",
+              "id": "ec38663a-3604-4b92-a7c9-ac571ea827eb",
+              "name": "Forbidden (object visible, action not permitted, or CSRF check failed)",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -2574,13 +2574,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "7d853f9f-db71-4293-86f7-585b0a2e1606",
-              "name": "HTTP 413",
+              "id": "60e8ea1b-42c0-4e0b-9821-caa5cb400fb9",
+              "name": "Request body exceeds 1 MiB",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -2643,13 +2643,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "1923ae73-b7c1-49af-aad6-c5960b0ef86d",
-              "name": "HTTP 429",
+              "id": "218289a5-d0e6-4ac7-bb39-100f38115c1c",
+              "name": "Rate limited",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -2712,13 +2712,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "968b7a16-a1e6-462b-bbe9-12574d27db0a",
-              "name": "HTTP 500",
+              "id": "9c87aed9-42d1-4151-8cd5-18a5a4b14566",
+              "name": "Unexpected error",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -2781,7 +2781,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -2792,7 +2792,7 @@
           }
         },
         {
-          "id": "1a927ae2-eb15-4ef2-9800-d8df8a1028ad",
+          "id": "deb65dd1-c1c8-4c13-bbc8-8a31653a83a9",
           "name": "Own sign-in history, newest first, cursor-paginated",
           "request": {
             "name": "Own sign-in history, newest first, cursor-paginated",
@@ -2809,7 +2809,8 @@
                 {
                   "disabled": false,
                   "key": "cursor",
-                  "value": "<string>"
+                  "value": "<string>",
+                  "description": "Opaque `nextCursor` from the previous page."
                 },
                 {
                   "disabled": false,
@@ -2840,7 +2841,7 @@
           },
           "response": [
             {
-              "id": "8963824e-fe64-4bfd-9fbe-96778bb8a72c",
+              "id": "0583bd3c-964e-49fc-8f8e-f3419281bd1f",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -2854,7 +2855,7 @@
                   "query": [
                     {
                       "key": "cursor",
-                      "value": "<string>"
+                      "value": "2026-11-16T08:00:00.000Z_42"
                     },
                     {
                       "key": "limit",
@@ -2898,12 +2899,12 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"items\": [\n    {\n      \"id\": \"string\",\n      \"occurredAt\": \"2016-01-10T19:08:35.269Z\",\n      \"action\": \"login_succeeded\",\n      \"result\": \"SUCCESS\",\n      \"method\": \"string\",\n      \"reason\": \"string\",\n      \"ip\": \"string\",\n      \"userAgent\": \"string\"\n    },\n    {\n      \"id\": \"string\",\n      \"occurredAt\": \"1953-05-11T22:41:50.221Z\",\n      \"action\": \"login_failed\",\n      \"result\": \"DENIED\",\n      \"method\": \"string\",\n      \"reason\": \"string\",\n      \"ip\": \"string\",\n      \"userAgent\": \"string\"\n    }\n  ],\n  \"nextCursor\": \"string\"\n}",
+              "body": "{\n  \"items\": [\n    {\n      \"id\": \"string\",\n      \"occurredAt\": \"1991-12-02T08:17:24.340Z\",\n      \"action\": \"logged_out\",\n      \"result\": \"SUCCESS\",\n      \"method\": \"string\",\n      \"reason\": \"string\",\n      \"ip\": \"string\",\n      \"userAgent\": \"string\"\n    },\n    {\n      \"id\": \"string\",\n      \"occurredAt\": \"1950-03-23T04:39:05.254Z\",\n      \"action\": \"session_revoked\",\n      \"result\": \"DENIED\",\n      \"method\": \"string\",\n      \"reason\": \"string\",\n      \"ip\": \"string\",\n      \"userAgent\": \"string\"\n    }\n  ],\n  \"nextCursor\": \"string\"\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "65914d37-c73a-48da-b0e1-046b53440cdf",
+              "id": "279ab8ee-95bb-4274-8eb8-044d7997ffb1",
               "name": "Validation failed",
               "originalRequest": {
                 "url": {
@@ -2917,7 +2918,7 @@
                   "query": [
                     {
                       "key": "cursor",
-                      "value": "<string>"
+                      "value": "2026-11-16T08:00:00.000Z_42"
                     },
                     {
                       "key": "limit",
@@ -2961,12 +2962,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "8f3ab1b0-1b0a-4389-bb9c-ebab8f906532",
+              "id": "abec1d58-652e-4537-9b5b-cbf48a4c0f8d",
               "name": "Unauthenticated, session expired, user deactivated or MFA required",
               "originalRequest": {
                 "url": {
@@ -2980,7 +2981,7 @@
                   "query": [
                     {
                       "key": "cursor",
-                      "value": "<string>"
+                      "value": "2026-11-16T08:00:00.000Z_42"
                     },
                     {
                       "key": "limit",
@@ -3024,12 +3025,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "926121d7-e4a5-4208-b4fb-6374b3064f4d",
+              "id": "3ae97e4c-cceb-4438-af60-c0c0e6c94571",
               "name": "Unexpected error",
               "originalRequest": {
                 "url": {
@@ -3043,7 +3044,7 @@
                   "query": [
                     {
                       "key": "cursor",
-                      "value": "<string>"
+                      "value": "2026-11-16T08:00:00.000Z_42"
                     },
                     {
                       "key": "limit",
@@ -3087,7 +3088,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -3098,7 +3099,7 @@
           }
         },
         {
-          "id": "cbe0f3b1-809e-4f65-8e32-ebc52a47ac5d",
+          "id": "e67e53be-0088-40f6-bea0-b7489b224d40",
           "name": "End the current session and clear the session cookies",
           "request": {
             "name": "End the current session and clear the session cookies",
@@ -3154,7 +3155,7 @@
           },
           "response": [
             {
-              "id": "7f4552b7-5e63-4e4c-9626-d2b52fff308f",
+              "id": "572f2a5e-12f5-4013-8b76-f1fe7c2e154d",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -3222,8 +3223,8 @@
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "8e0bbe2b-b305-4cc9-bcd0-83d96c628f08",
-              "name": "HTTP 400",
+              "id": "2271bbf5-1655-4ee5-a997-6a8502dd31d9",
+              "name": "Validation failed",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -3285,13 +3286,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "78704a08-e633-482b-ab5d-bbbe413bbe52",
-              "name": "HTTP 403",
+              "id": "eab5ec6a-b1aa-41ad-9315-18328d3f6892",
+              "name": "Forbidden (object visible, action not permitted, or CSRF check failed)",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -3353,13 +3354,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "cee08ffa-7a78-47b6-8402-4e8c31e0a68a",
-              "name": "HTTP 413",
+              "id": "93355fce-1349-4609-b03c-30cf30e05a46",
+              "name": "Request body exceeds 1 MiB",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -3421,13 +3422,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "759dfc74-18d1-4ac0-8d73-f560ee442c26",
-              "name": "HTTP 500",
+              "id": "7b8ec052-db93-4252-b9f6-1a58b8a11a1b",
+              "name": "Unexpected error",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -3489,7 +3490,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -3500,7 +3501,7 @@
           }
         },
         {
-          "id": "0b63d73b-38f8-4b0d-9f18-fbc7a0e28318",
+          "id": "71079330-5e86-4b0b-b4ba-f0a12a7e8f83",
           "name": "Request a sign-in link; report delivery failures for eligible users",
           "request": {
             "name": "Request a sign-in link; report delivery failures for eligible users",
@@ -3556,7 +3557,7 @@
           },
           "response": [
             {
-              "id": "7d86b077-3acf-4b0f-8c22-8c65e2fd924e",
+              "id": "2249ae4f-b8a4-4ce1-82b6-ad966c60b42c",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -3624,8 +3625,8 @@
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "f313b7b4-08c0-4182-aab1-eaaa2ad5ab9b",
-              "name": "HTTP 400",
+              "id": "ecf3db5c-ac78-44d6-b87b-9fa20030ab98",
+              "name": "Validation failed",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -3687,13 +3688,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "46463951-b35c-4d2c-a062-3e487a1666de",
-              "name": "HTTP 403",
+              "id": "4a650230-6721-4b66-be7b-5937f9d39f08",
+              "name": "Forbidden (object visible, action not permitted, or CSRF check failed)",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -3755,13 +3756,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "7d60a1bd-f04e-4529-aa43-218ae912e272",
-              "name": "HTTP 413",
+              "id": "2e696d49-35d3-4fe6-a6ed-90b0ed28ca98",
+              "name": "Request body exceeds 1 MiB",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -3823,13 +3824,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "06f64254-cc2d-46ed-a689-9ffefcc5b0ca",
-              "name": "HTTP 429",
+              "id": "9753a704-0435-4c2b-a722-e4b3a47f44d1",
+              "name": "Rate limited",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -3891,13 +3892,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "c7c59aa5-795c-47db-b10b-f791461aa751",
-              "name": "HTTP 500",
+              "id": "b30746c1-dbaa-47af-8cd3-efcc4b1fd258",
+              "name": "Unexpected error",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -3959,13 +3960,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "365f9dac-d399-47f4-9a51-32fab29e5ef8",
-              "name": "HTTP 503",
+              "id": "b077f903-ee33-4f4f-a7bd-ddfbdd2faf08",
+              "name": "Service temporarily unavailable",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -4027,7 +4028,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -4038,7 +4039,7 @@
           }
         },
         {
-          "id": "e7bd75c6-4758-4de3-a829-05b1852d46cd",
+          "id": "2f985f29-b31a-4f08-9469-e2d1e140aa08",
           "name": "Start TOTP enrolment; adding a second device needs aal2",
           "request": {
             "name": "Start TOTP enrolment; adding a second device needs aal2",
@@ -4103,7 +4104,7 @@
           },
           "response": [
             {
-              "id": "ce906cda-294c-4649-ad9f-b3d08667cbef",
+              "id": "c283735a-0737-474d-beef-054b3dded7ad",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -4167,13 +4168,13 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"factorId\": \"89aad59e-f01e-3afe-a6d0-b0cb387d5598\",\n  \"qrCode\": \"string\",\n  \"secret\": \"string\"\n}",
+              "body": "{\n  \"factorId\": \"ca2457e3-e75f-82f6-cedd-a106423be7a1\",\n  \"qrCode\": \"string\",\n  \"secret\": \"string\"\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "278f6804-3318-4ca3-bdcf-c66f76e2d105",
-              "name": "HTTP 400",
+              "id": "100f3472-193f-4bcf-b1c6-3f1d80fb2a4c",
+              "name": "Validation failed",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -4236,13 +4237,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "8955bc4b-b6c4-4e52-acea-3a182e0813a9",
-              "name": "HTTP 401",
+              "id": "b23bbf48-8d0d-42b9-8d59-b0468fcc2845",
+              "name": "Unauthenticated, session expired, user deactivated or MFA required",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -4305,13 +4306,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "d8c2089f-5e3f-40d8-8deb-05d8fbf77849",
-              "name": "HTTP 403",
+              "id": "c6035d9e-10aa-42bb-bec9-1020e18b28cb",
+              "name": "Forbidden (object visible, action not permitted, or CSRF check failed)",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -4374,13 +4375,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "b77ccf69-c71f-4952-a39c-e3652dc0eb4c",
-              "name": "HTTP 409",
+              "id": "9e78a5e2-1156-4d7a-ad3d-6fb95e422b81",
+              "name": "Conflict",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -4443,13 +4444,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "f83ced08-ac53-4611-8168-958a4cf90120",
-              "name": "HTTP 413",
+              "id": "e37be076-52af-488f-8b7d-23d65856deef",
+              "name": "Request body exceeds 1 MiB",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -4512,13 +4513,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "f2138285-ca67-46b8-9eea-732b54a094e5",
-              "name": "HTTP 429",
+              "id": "843edfae-17e8-4f2c-9f1a-ee05e967919b",
+              "name": "Rate limited",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -4581,13 +4582,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "1b28db97-882e-4ab6-adb9-7c035adac74d",
-              "name": "HTTP 500",
+              "id": "17ebfd63-ed32-4e21-b3e9-366c8f7423f0",
+              "name": "Unexpected error",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -4650,7 +4651,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -4661,7 +4662,7 @@
           }
         },
         {
-          "id": "6fb5c8b7-e80e-47dc-ad4d-7f4aa63bae06",
+          "id": "2c9b0762-9de0-48ad-8a06-145e7e75e2f9",
           "name": "Own TOTP factors and whether Admin/Finance grants wait for aal2",
           "request": {
             "name": "Own TOTP factors and whether Admin/Finance grants wait for aal2",
@@ -4698,7 +4699,7 @@
           },
           "response": [
             {
-              "id": "a5241a57-1ee5-49b3-8b20-ecbc68713991",
+              "id": "7731af8d-fdc8-4c51-9010-6a7e39913739",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -4747,12 +4748,12 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"aal\": \"aal2\",\n  \"required\": true,\n  \"hasOtherGrants\": true,\n  \"canAddFactor\": true,\n  \"factors\": [\n    {\n      \"id\": \"3f8052c5-74da-f164-7713-d6e8aea14b50\",\n      \"name\": \"string\"\n    },\n    {\n      \"id\": \"8660dde0-2d0b-dab0-a69e-652673958111\",\n      \"name\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"aal\": \"aal2\",\n  \"required\": true,\n  \"hasOtherGrants\": true,\n  \"canAddFactor\": true,\n  \"factors\": [\n    {\n      \"id\": \"b62e1872-10ec-128b-99e3-b0d52764f6fc\",\n      \"name\": \"string\"\n    },\n    {\n      \"id\": \"b1e7835b-5a61-53f0-f94f-457f4fce596e\",\n      \"name\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "379e6d51-6f82-4e10-ae10-609c5d74fea0",
+              "id": "59d93199-cb50-42dc-81e3-2e0721ff3266",
               "name": "Unauthenticated, session expired, user deactivated or MFA required",
               "originalRequest": {
                 "url": {
@@ -4801,12 +4802,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "86e90672-bb05-4004-bf45-92d55b7d3fec",
+              "id": "1ce26963-4d8a-4dea-b2d7-a661c9116f0c",
               "name": "Unexpected error",
               "originalRequest": {
                 "url": {
@@ -4855,7 +4856,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -4866,7 +4867,7 @@
           }
         },
         {
-          "id": "3e0e2eb6-9c37-4a1b-9371-cce76aaafd35",
+          "id": "0da50b92-fb4a-436c-b79a-ce5f2a12b990",
           "name": "Verify a TOTP code and raise the session to aal2; 5 failures lock for 15 min",
           "request": {
             "name": "Verify a TOTP code and raise the session to aal2; 5 failures lock for 15 min",
@@ -4931,7 +4932,7 @@
           },
           "response": [
             {
-              "id": "c69f4e66-de43-4eb2-87f7-cd440c9afb64",
+              "id": "92c61678-eacd-426f-bf0a-4d565e45d7d8",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -5000,8 +5001,8 @@
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "0f869045-0c04-43bc-95bc-953d090e5fb1",
-              "name": "HTTP 400",
+              "id": "104fe7d5-6f5f-4d5e-bd9c-4f89213a8de8",
+              "name": "Validation failed",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -5064,13 +5065,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "75d2c2e7-0952-4151-ab98-27ef0e9035f3",
-              "name": "HTTP 401",
+              "id": "4890f34f-3843-4226-adcf-22f4b620b7a0",
+              "name": "Unauthenticated, session expired, user deactivated or MFA required",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -5133,13 +5134,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "267f2146-5538-4107-a86b-a0b021b70304",
-              "name": "HTTP 403",
+              "id": "f7362fb8-0471-4ef1-9a0e-25f2f4f71b4a",
+              "name": "Forbidden (object visible, action not permitted, or CSRF check failed)",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -5202,13 +5203,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "6495e0c3-3363-4724-b7fe-23173aafd6df",
-              "name": "HTTP 404",
+              "id": "f051b2d5-a18e-4f63-872b-050994be5568",
+              "name": "Not found or out of scope",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -5271,13 +5272,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "6535df78-b487-469c-a90f-4e31708355ab",
-              "name": "HTTP 413",
+              "id": "b464adb1-3dad-4942-93a8-6e00cbd0dd91",
+              "name": "Request body exceeds 1 MiB",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -5340,13 +5341,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "5ef859ab-f533-4c55-aa8c-51512f780d82",
-              "name": "HTTP 429",
+              "id": "317014cd-a1d4-4dd7-81af-ddd4211ca03d",
+              "name": "Rate limited",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -5409,13 +5410,13 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "26955f10-9f2e-4b02-b11e-686eb408721a",
-              "name": "HTTP 500",
+              "id": "34b64a30-d896-427c-a85c-1667018f0f87",
+              "name": "Unexpected error",
               "originalRequest": {
                 "url": {
                   "path": [
@@ -5478,7 +5479,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -5489,7 +5490,7 @@
           }
         },
         {
-          "id": "017962a0-af03-41e6-a631-292523b1888f",
+          "id": "57239d5a-a426-4013-b513-2689c0574a75",
           "name": "End every other session of the current user",
           "request": {
             "name": "End every other session of the current user",
@@ -5533,7 +5534,7 @@
           },
           "response": [
             {
-              "id": "9941ed1e-d5b9-453f-af05-5279fd5d1bb7",
+              "id": "7e440812-21aa-4623-bfae-c637c58c51b4",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -5589,12 +5590,12 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"count\": 6604\n}",
+              "body": "{\n  \"count\": 2306\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "c77c57cb-34ca-448b-a370-f48a8b2aa91b",
+              "id": "6bf91243-1a39-4733-81d5-bdbdfab50bd5",
               "name": "Unauthenticated, session expired, user deactivated or MFA required",
               "originalRequest": {
                 "url": {
@@ -5650,12 +5651,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "88d6a0a2-0ff8-4493-b42b-3e927fae744a",
+              "id": "357d5d45-6248-4839-b481-e6a9b52db445",
               "name": "Forbidden (object visible, action not permitted, or CSRF check failed)",
               "originalRequest": {
                 "url": {
@@ -5711,12 +5712,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "4902764d-35f7-47f2-a8d6-afc5263cb0fb",
+              "id": "6a38b4aa-6372-4f9f-aa1b-cdc2dd66ee29",
               "name": "Request body exceeds 1 MiB",
               "originalRequest": {
                 "url": {
@@ -5772,12 +5773,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "c752d004-a7ff-43e5-b85c-341774f4f501",
+              "id": "58e0ad9d-bb9d-4321-939f-6734ce5b295c",
               "name": "Unexpected error",
               "originalRequest": {
                 "url": {
@@ -5833,7 +5834,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -5844,7 +5845,7 @@
           }
         },
         {
-          "id": "c3ac4420-2c5c-4e61-acb0-52d03906e04c",
+          "id": "ca146020-ba74-4b6d-bb01-10dda76a1fee",
           "name": "Own active sessions",
           "request": {
             "name": "Own active sessions",
@@ -5881,7 +5882,7 @@
           },
           "response": [
             {
-              "id": "d7254645-7d84-415e-8513-9d7d53c9ddc0",
+              "id": "7bb3edb5-8414-442d-85c0-4a2d9dc27eff",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -5930,12 +5931,12 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"items\": [\n    {\n      \"id\": \"20198413-0b64-6675-b0f7-e9b3de9936db\",\n      \"method\": \"DEV\",\n      \"startedAt\": \"1991-08-23T20:29:48.224Z\",\n      \"lastSeenAt\": \"1998-12-17T01:58:38.144Z\",\n      \"userAgent\": \"string\",\n      \"current\": false\n    },\n    {\n      \"id\": \"97e18953-8531-0761-1a4c-bf15d2307bc7\",\n      \"method\": \"INVITE\",\n      \"startedAt\": \"1988-02-21T12:31:23.397Z\",\n      \"lastSeenAt\": \"1994-10-08T04:57:31.371Z\",\n      \"userAgent\": \"string\",\n      \"current\": false\n    }\n  ]\n}",
+              "body": "{\n  \"items\": [\n    {\n      \"id\": \"6a665ae6-1913-080e-ec4e-8dec95cf9ad3\",\n      \"method\": \"DEV\",\n      \"startedAt\": \"1964-07-24T08:11:26.883Z\",\n      \"lastSeenAt\": \"2024-08-15T09:46:23.531Z\",\n      \"userAgent\": \"string\",\n      \"current\": true\n    },\n    {\n      \"id\": \"8920f734-0db4-5d19-8526-1061a2c8144c\",\n      \"method\": \"DEV\",\n      \"startedAt\": \"2019-01-19T13:20:13.177Z\",\n      \"lastSeenAt\": \"1987-12-13T14:10:31.750Z\",\n      \"userAgent\": \"string\",\n      \"current\": true\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "8be21b74-7ae1-4586-b4db-1ab780e3b8ff",
+              "id": "687d512f-6c85-4238-b391-eb688289e10c",
               "name": "Unauthenticated, session expired, user deactivated or MFA required",
               "originalRequest": {
                 "url": {
@@ -5984,12 +5985,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "6caab434-b0f2-44fe-8c1f-ebc63e62a432",
+              "id": "ef53aa07-4861-4020-9080-85f27bdb1fa6",
               "name": "Unexpected error",
               "originalRequest": {
                 "url": {
@@ -6038,7 +6039,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -6052,7 +6053,7 @@
       "event": []
     },
     {
-      "id": "93d984ed-2ad0-4ad3-b826-931e0dda6f4d",
+      "id": "4996ac38-004b-4db4-a196-39cab24554ec",
       "name": "Users",
       "description": {
         "content": "",
@@ -6060,7 +6061,7 @@
       },
       "item": [
         {
-          "id": "802374aa-825a-4ea5-a535-03a35af24412",
+          "id": "e96765b2-092f-449a-ba20-620ff3ee27fe",
           "name": "Invite a person with roles (Admin with aal2 only)",
           "request": {
             "name": "Invite a person with roles (Admin with aal2 only)",
@@ -6115,7 +6116,7 @@
           },
           "response": [
             {
-              "id": "29f9c668-190b-4cdd-96d6-c2d2f2a71bb3",
+              "id": "c3cfc4fa-26bf-4256-ad82-542dc84e7462",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -6177,12 +6178,12 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"userId\": \"eb9e4bb3-3c46-32d1-12fa-648f14ff7227\",\n  \"inviteId\": \"595d4f17-6fdc-68d1-50c3-81deb6b7add3\",\n  \"expiresAt\": \"2011-10-05T21:58:17.753Z\",\n  \"delivered\": true\n}",
+              "body": "{\n  \"userId\": \"5f401fe9-c9dd-d3dd-7e45-b65edb71ba23\",\n  \"inviteId\": \"ee204a59-7041-5d79-1c6d-7728dccde153\",\n  \"expiresAt\": \"2017-12-18T19:58:47.032Z\",\n  \"delivered\": true\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "f37c0784-0b6e-44e6-8553-211f70f719af",
+              "id": "5ff14a48-1b87-45c4-ba43-1b2af933a206",
               "name": "Validation failed",
               "originalRequest": {
                 "url": {
@@ -6244,12 +6245,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "309e94b7-eed0-4710-b535-ac6136c779d5",
+              "id": "9997bcb0-d2d5-4420-830b-3df69f06446d",
               "name": "Unauthenticated, session expired, user deactivated or MFA required",
               "originalRequest": {
                 "url": {
@@ -6311,12 +6312,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "a2281abf-4b4f-4f43-9002-9a662a43c791",
+              "id": "f524c7b4-4aac-4eb6-9b82-2262556ec8a1",
               "name": "Forbidden (object visible, action not permitted, or CSRF check failed)",
               "originalRequest": {
                 "url": {
@@ -6378,12 +6379,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "010ebaaf-7108-4bd2-8d7d-d74870e514a6",
+              "id": "2217b31b-a980-44e4-8d4b-ad1878a08998",
               "name": "Not found or out of scope",
               "originalRequest": {
                 "url": {
@@ -6445,12 +6446,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "f4fb049d-1b81-411a-8f4e-2e3877355d1f",
+              "id": "00c16e09-2d02-4d2d-a40d-a7bd59d30bcc",
               "name": "Conflict",
               "originalRequest": {
                 "url": {
@@ -6512,12 +6513,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "4ff4175c-b206-4d24-b613-84cb2e8b4cf9",
+              "id": "72caca56-cd7a-4986-9cc2-d92a590200ec",
               "name": "Request body exceeds 1 MiB",
               "originalRequest": {
                 "url": {
@@ -6579,12 +6580,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "677017dc-4d34-443d-96e0-d652e57b7b8a",
+              "id": "b60b5592-73d6-4be6-ac0a-69e25911d4d0",
               "name": "Unexpected error",
               "originalRequest": {
                 "url": {
@@ -6646,7 +6647,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -6657,7 +6658,7 @@
           }
         },
         {
-          "id": "210e2058-683d-456c-8cd8-7160aaf0f4b0",
+          "id": "76a83f01-e3ac-4dee-9889-2768f892f87c",
           "name": "Remove all TOTP factors of another user and end their sessions",
           "request": {
             "name": "Remove all TOTP factors of another user and end their sessions",
@@ -6721,7 +6722,7 @@
           },
           "response": [
             {
-              "id": "b9ffa8d2-0b44-42ee-8c59-8be21ffcc8ea",
+              "id": "8485f12b-86e0-424d-931c-c2498d84100e",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -6792,12 +6793,12 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"removedFactors\": 2370\n}",
+              "body": "{\n  \"removedFactors\": 5660\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "dcb14ba9-518d-4fe9-a2a9-e59a54bfd91e",
+              "id": "ab8c9e07-89fe-4982-811d-916977bd0a56",
               "name": "Validation failed",
               "originalRequest": {
                 "url": {
@@ -6868,12 +6869,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "829b87ee-9a9f-4f6c-b36f-dcd8f2af45cd",
+              "id": "137efa40-4917-4177-9f21-f0f615623c27",
               "name": "Unauthenticated, session expired, user deactivated or MFA required",
               "originalRequest": {
                 "url": {
@@ -6944,12 +6945,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "06e0195d-47af-4475-bdf4-6a6dc22885f0",
+              "id": "6340a010-d680-4fa6-99f2-979d0dd92971",
               "name": "Forbidden (object visible, action not permitted, or CSRF check failed)",
               "originalRequest": {
                 "url": {
@@ -7020,12 +7021,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "ccae1580-c0fd-4576-8c1e-04bae32efe70",
+              "id": "ff2f6b09-3075-400d-a0b9-03c032c507a2",
               "name": "Not found or out of scope",
               "originalRequest": {
                 "url": {
@@ -7096,12 +7097,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "f79b624e-55d3-4948-bc18-e113ce4e7ca3",
+              "id": "c2b67c01-4fd2-422d-aea5-f56611b993c1",
               "name": "Request body exceeds 1 MiB",
               "originalRequest": {
                 "url": {
@@ -7172,12 +7173,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "d8396b85-731b-49d8-b633-fc87795e1ff2",
+              "id": "f71036bd-e1b2-4ad8-b02f-eff9a60373e1",
               "name": "Unexpected error",
               "originalRequest": {
                 "url": {
@@ -7248,12 +7249,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "e8b70008-e575-475b-83a5-9681ade9d59d",
+              "id": "08fe3609-8b48-4723-95a1-c0129e234b70",
               "name": "Service temporarily unavailable",
               "originalRequest": {
                 "url": {
@@ -7324,7 +7325,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -7338,7 +7339,7 @@
       "event": []
     },
     {
-      "id": "8263de49-177a-4f41-b26c-b14c53ec456f",
+      "id": "1ba55df6-b83a-4a50-a6fd-e4c14174cb98",
       "name": "Profile",
       "description": {
         "content": "",
@@ -7346,7 +7347,7 @@
       },
       "item": [
         {
-          "id": "e941e8f7-b5e4-4faf-b908-bc32b293137c",
+          "id": "6232396b-7f62-41c8-aada-88e4a3e9bc05",
           "name": "Current user, role assignments and effective permissions",
           "request": {
             "name": "Current user, role assignments and effective permissions",
@@ -7382,7 +7383,7 @@
           },
           "response": [
             {
-              "id": "2953fbc0-ad16-46b8-9754-ebead918ca96",
+              "id": "3dcd27fe-40dc-45fb-ad79-daf9cdd749af",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -7430,12 +7431,12 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"user\": {\n    \"id\": \"c9123bed-a9d9-b435-4484-0ef3bff64b9f\",\n    \"email\": \"string\",\n    \"fullName\": \"string\",\n    \"timezone\": \"string\"\n  },\n  \"roles\": [\n    {\n      \"role\": \"string\",\n      \"vertical\": {\n        \"id\": \"8485d3cf-e2a0-1496-dc4c-b2bbc2565dab\",\n        \"name\": \"string\"\n      }\n    },\n    {\n      \"role\": \"string\",\n      \"vertical\": {\n        \"id\": \"e79adeee-d348-90f1-2d02-92e60117ed1d\",\n        \"name\": \"string\"\n      }\n    }\n  ],\n  \"mfaRequired\": true,\n  \"grants\": [\n    {\n      \"permission\": \"string\",\n      \"scope\": \"VERTICAL\",\n      \"stage\": \"string\",\n      \"verticalIds\": [\n        \"2895fd17-6404-629b-d683-f3c2f528fecd\",\n        \"ff6b1db6-63b3-76e7-d012-57bafd569842\"\n      ]\n    },\n    {\n      \"permission\": \"string\",\n      \"scope\": \"UNASSIGNED_OPEN\",\n      \"stage\": \"string\",\n      \"verticalIds\": [\n        \"5005e9db-797f-3838-c273-b8f8137f68fd\",\n        \"862b59b7-2016-ac43-fd2b-d896dacc476a\"\n      ]\n    }\n  ]\n}",
+              "body": "{\n  \"user\": {\n    \"id\": \"ca3eaa37-a754-48e3-d3cd-0824b5a0bb3b\",\n    \"email\": \"string\",\n    \"fullName\": \"string\",\n    \"timezone\": \"string\"\n  },\n  \"roles\": [\n    {\n      \"role\": \"string\",\n      \"vertical\": {\n        \"id\": \"b3f72617-5afa-f4f1-48c7-8252a65eb1cc\",\n        \"name\": \"string\"\n      }\n    },\n    {\n      \"role\": \"string\",\n      \"vertical\": {\n        \"id\": \"93cd463b-4b97-64ac-1682-f57493f5a26a\",\n        \"name\": \"string\"\n      }\n    }\n  ],\n  \"mfaRequired\": true,\n  \"grants\": [\n    {\n      \"permission\": \"string\",\n      \"scope\": \"VERTICAL\",\n      \"stage\": \"string\",\n      \"verticalIds\": [\n        \"b9104da5-1aa3-47d2-9a20-5e4034039e4a\",\n        \"f2c8c3f3-5d4d-7f01-7188-0e595102c395\"\n      ]\n    },\n    {\n      \"permission\": \"string\",\n      \"scope\": \"SUBMITTED_TO_ME\",\n      \"stage\": \"string\",\n      \"verticalIds\": [\n        \"19385683-cd31-3620-632d-b66333f2f1ce\",\n        \"07884a3a-4d06-d3e2-8114-4a1a439cfa2d\"\n      ]\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "0e610cb7-bdae-418a-ac1b-0698d9d23304",
+              "id": "3640795b-e809-450c-a959-8044a749ef60",
               "name": "Unauthenticated, session expired, user deactivated or MFA required",
               "originalRequest": {
                 "url": {
@@ -7483,12 +7484,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "91861b2f-36f0-4b5c-845a-2ea4b1e8fcc3",
+              "id": "987333c9-79bd-49ae-a1c4-5d43661f6094",
               "name": "Unexpected error",
               "originalRequest": {
                 "url": {
@@ -7536,7 +7537,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -7547,7 +7548,7 @@
           }
         },
         {
-          "id": "39daa022-4822-462b-b6ff-4f422d443929",
+          "id": "d8065e10-7eba-447f-8d1e-a2be80199784",
           "name": "Change own display name (audited, user.profile_updated)",
           "request": {
             "name": "Change own display name (audited, user.profile_updated)",
@@ -7602,7 +7603,7 @@
           },
           "response": [
             {
-              "id": "a2a104c5-e6ea-4c1e-854e-b21be9faa2da",
+              "id": "ec03886f-4a26-4cae-863f-aa4f2a2363c4",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -7664,12 +7665,12 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"user\": {\n    \"id\": \"c9123bed-a9d9-b435-4484-0ef3bff64b9f\",\n    \"email\": \"string\",\n    \"fullName\": \"string\",\n    \"timezone\": \"string\"\n  },\n  \"roles\": [\n    {\n      \"role\": \"string\",\n      \"vertical\": {\n        \"id\": \"8485d3cf-e2a0-1496-dc4c-b2bbc2565dab\",\n        \"name\": \"string\"\n      }\n    },\n    {\n      \"role\": \"string\",\n      \"vertical\": {\n        \"id\": \"e79adeee-d348-90f1-2d02-92e60117ed1d\",\n        \"name\": \"string\"\n      }\n    }\n  ],\n  \"mfaRequired\": true,\n  \"grants\": [\n    {\n      \"permission\": \"string\",\n      \"scope\": \"VERTICAL\",\n      \"stage\": \"string\",\n      \"verticalIds\": [\n        \"2895fd17-6404-629b-d683-f3c2f528fecd\",\n        \"ff6b1db6-63b3-76e7-d012-57bafd569842\"\n      ]\n    },\n    {\n      \"permission\": \"string\",\n      \"scope\": \"UNASSIGNED_OPEN\",\n      \"stage\": \"string\",\n      \"verticalIds\": [\n        \"5005e9db-797f-3838-c273-b8f8137f68fd\",\n        \"862b59b7-2016-ac43-fd2b-d896dacc476a\"\n      ]\n    }\n  ]\n}",
+              "body": "{\n  \"user\": {\n    \"id\": \"ca3eaa37-a754-48e3-d3cd-0824b5a0bb3b\",\n    \"email\": \"string\",\n    \"fullName\": \"string\",\n    \"timezone\": \"string\"\n  },\n  \"roles\": [\n    {\n      \"role\": \"string\",\n      \"vertical\": {\n        \"id\": \"b3f72617-5afa-f4f1-48c7-8252a65eb1cc\",\n        \"name\": \"string\"\n      }\n    },\n    {\n      \"role\": \"string\",\n      \"vertical\": {\n        \"id\": \"93cd463b-4b97-64ac-1682-f57493f5a26a\",\n        \"name\": \"string\"\n      }\n    }\n  ],\n  \"mfaRequired\": true,\n  \"grants\": [\n    {\n      \"permission\": \"string\",\n      \"scope\": \"VERTICAL\",\n      \"stage\": \"string\",\n      \"verticalIds\": [\n        \"b9104da5-1aa3-47d2-9a20-5e4034039e4a\",\n        \"f2c8c3f3-5d4d-7f01-7188-0e595102c395\"\n      ]\n    },\n    {\n      \"permission\": \"string\",\n      \"scope\": \"SUBMITTED_TO_ME\",\n      \"stage\": \"string\",\n      \"verticalIds\": [\n        \"19385683-cd31-3620-632d-b66333f2f1ce\",\n        \"07884a3a-4d06-d3e2-8114-4a1a439cfa2d\"\n      ]\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "cab41896-a909-4239-8bdc-76215f5f6411",
+              "id": "e0599dbc-061d-4d20-9ae3-1030095f3d72",
               "name": "Validation failed",
               "originalRequest": {
                 "url": {
@@ -7731,12 +7732,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "79d106c8-ea8e-406b-94b8-499ebd7d4d67",
+              "id": "234b970e-dba2-4cdd-8067-7f15fe4d1828",
               "name": "Unauthenticated, session expired, user deactivated or MFA required",
               "originalRequest": {
                 "url": {
@@ -7798,12 +7799,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "b5829f7e-8a80-40b9-9fe3-81fcd397f4da",
+              "id": "e218e06f-bb67-4878-a8eb-49416d78c8e7",
               "name": "Forbidden (object visible, action not permitted, or CSRF check failed)",
               "originalRequest": {
                 "url": {
@@ -7865,12 +7866,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "5a27bc23-563a-4cad-87ed-2352aca4cdf6",
+              "id": "86ebdd37-e2cb-4de2-a544-3db6e19d6e26",
               "name": "Request body exceeds 1 MiB",
               "originalRequest": {
                 "url": {
@@ -7932,12 +7933,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "9be63698-6769-490b-acb3-08f1b74fc134",
+              "id": "acfa37dc-76e6-4177-9613-f339c96ab016",
               "name": "Unexpected error",
               "originalRequest": {
                 "url": {
@@ -7999,7 +8000,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -8013,7 +8014,7 @@
       "event": []
     },
     {
-      "id": "65d5b0b8-27e6-4c96-8993-d6f7e051f0f4",
+      "id": "6e7d37b4-a60d-4ad3-bb8a-56e669ac5d66",
       "name": "Verticals",
       "description": {
         "content": "",
@@ -8021,7 +8022,7 @@
       },
       "item": [
         {
-          "id": "1be0ff4a-8bb9-44d9-91fa-1f588c1f8412",
+          "id": "c0180372-e7d0-442d-b2d4-a0ca59b9f4b4",
           "name": "Verticals visible to the caller",
           "request": {
             "name": "Verticals visible to the caller",
@@ -8057,7 +8058,7 @@
           },
           "response": [
             {
-              "id": "1a1dedaa-377e-4350-85e4-eac80cf57fb7",
+              "id": "088a4dd7-28ac-46ca-86f2-38014bdef734",
               "name": "Success",
               "originalRequest": {
                 "url": {
@@ -8105,12 +8106,12 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"items\": [\n    {\n      \"id\": \"5ddb8bae-e18a-f2d9-232e-7c4b4835e919\",\n      \"name\": \"string\"\n    },\n    {\n      \"id\": \"dcf6b781-e1ae-17ff-a094-254327278fec\",\n      \"name\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"items\": [\n    {\n      \"id\": \"7607a7e5-5a7d-fad7-e15f-1f84ad44bf36\",\n      \"name\": \"string\"\n    },\n    {\n      \"id\": \"4fea6e50-5cb0-4810-4579-f15a843e2fb1\",\n      \"name\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "36ce3f60-03d7-4169-be4f-c89097e2a2a9",
+              "id": "55059a2e-f0bb-43b9-a24b-9ec8c7b62d2d",
               "name": "Unauthenticated, session expired, user deactivated or MFA required",
               "originalRequest": {
                 "url": {
@@ -8158,12 +8159,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "aaa83ed7-3b0b-4359-a33d-4c6456627140",
+              "id": "451c5abb-f8a9-4837-ad0b-9d714d2dacb1",
               "name": "Not found or out of scope",
               "originalRequest": {
                 "url": {
@@ -8211,12 +8212,12 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             },
             {
-              "id": "486cfa0d-90ef-442c-8148-3c3a9bf70cc2",
+              "id": "b5e1a73f-d3cf-476c-ac4b-9724c2eb75be",
               "name": "Unexpected error",
               "originalRequest": {
                 "url": {
@@ -8264,7 +8265,7 @@
                   "value": "application/problem+json"
                 }
               ],
-              "body": "{\n  \"type\": \"string\",\n  \"status\": 5468,\n  \"code\": \"string\",\n  \"requestId\": \"2e912d03-27e2-96f4-58c8-4c02ccf62fae\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 765,\n  \"code\": \"string\",\n  \"requestId\": \"e53cfa74-9b08-5fc0-5729-558e8bbead25\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ]\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }
@@ -8305,7 +8306,7 @@
     ]
   },
   "info": {
-    "_postman_id": "8544a6af-17ba-4be5-9101-dca382b7a0b2",
+    "_postman_id": "d83fdbb2-e148-4476-8e48-42b3688396eb",
     "name": "HRIS Recruiting API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "description": {

@@ -126,17 +126,6 @@
     "loading": "Завантаження…",
     "genericError": "Щось пішло не так. Спробуйте ще раз.",
     "rateLimited": "Забагато спроб. Спробуйте знову пізніше — не більше ніж за 15 хв.",
-    "roles": {
-      "ADMIN": "Адміністратор",
-      "HEAD_RECRUITER": "Керівник рекрутингу",
-      "RECRUITER": "Рекрутер",
-      "HEAD_HR": "Керівник HR",
-      "HR": "HR",
-      "TEAM_LEAD": "Тімлід",
-      "FINANCE": "Фінансист",
-      "custom": "Особлива роль"
-    },
-    "roleInVertical": "{role} · {vertical}",
     "login": {
       "metaTitle": "Вхід",
       "title": "Вхід до Hiring",

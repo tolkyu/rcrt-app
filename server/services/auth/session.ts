@@ -1,3 +1,4 @@
+import { decodeTimeIdCursor, encodeTimeIdCursor } from '@/lib/schemas/cursor';
 import type { AuthContext } from '@/server/authz/context';
 import { writeAudit } from '@/server/audit';
 import type { AuthClient } from '@/server/auth/client';
@@ -18,6 +19,7 @@ import {
   DomainError,
   RateLimitedError,
   UnauthenticatedError,
+  ValidationError,
 } from '@/server/http/errors';
 import {
   endAuthSessions,
@@ -78,7 +80,10 @@ function failureReason(error: unknown): string {
 }
 
 /** First page after sign-in: MFA when Admin/Finance grants are withheld, otherwise a safe `next` (DG-15). */
-export function landingPath(auth: AuthContext, next?: string | null): string {
+export function postSignInPath(
+  auth: AuthContext,
+  next?: string | null,
+): string {
   if (auth.mfaRequired) return '/mfa/verify';
   return safeNextPath(next, '/');
 }
@@ -96,6 +101,8 @@ export async function establishSession(
     readonly method: SessionMethod;
     readonly cookies: AuthCookieStore;
     readonly client: AuthClient;
+    /** Dev login only: the server itself completed the TOTP step on this aal2 session. */
+    readonly mfaVerified?: boolean;
   },
 ): Promise<{ auth: AuthContext; identity: VerifiedIdentity }> {
   const identity = await deps.verifyIdentity(
@@ -104,40 +111,51 @@ export async function establishSession(
   try {
     if (!identity) throw new UnauthenticatedError();
     const now = ctx.clock.now();
-    const auth = await loadAuthContext(ctx.db, identity, ctx.clock, {
+    const principal = await loadAuthContext(ctx.db, identity, ctx.clock, {
       requireAppSession: false,
       meta: ctx,
     });
-    await ctx.db.transaction(async (tx) => {
+    const mfaVerified = input.mfaVerified === true && identity.aal === 'aal2';
+    const auth = await ctx.db.transaction(async (tx) => {
       if (!(await recordAuthLogin(tx, identity.authUserId, now)))
         throw new UnauthenticatedError();
       await insertUserSession(tx, {
         sessionId: identity.sessionId,
-        userId: auth.userId,
+        userId: principal.userId,
         method: input.method,
         now,
         ip: ctx.ip,
         userAgent: ctx.userAgent,
+        mfaVerifiedAt: mfaVerified ? now : null,
       });
       await writeAudit(
         tx,
-        { ...ctx, db: tx, auth, identity },
+        { ...ctx, db: tx, auth: principal, identity },
         {
           action: 'auth.login_succeeded',
           entityType: 'user',
-          entityId: auth.userId,
+          entityId: principal.userId,
           details: { method: input.method },
         },
       );
+      return mfaVerified
+        ? loadAuthContext(tx, identity, ctx.clock, { meta: ctx })
+        : principal;
     });
     input.cookies.limitLifetime(SESSION_ABSOLUTE_MS / 1000);
     input.cookies.commit();
     return { auth, identity };
   } catch (error) {
-    if (identity) await endAuthSessions(ctx.db, identity.authUserId, { only: identity.sessionId });
+    if (identity)
+      await endAuthSessions(ctx.db, identity.authUserId, {
+        only: identity.sessionId,
+      });
     input.cookies.clear();
     await auditLoginFailure(ctx, input.method, failureReason(error));
-    if (error instanceof DomainError && !(error instanceof UnauthenticatedError))
+    if (
+      error instanceof DomainError &&
+      !(error instanceof UnauthenticatedError)
+    )
       throw error;
     throw new UnauthenticatedError(
       error instanceof UnauthenticatedError && error.code === 'USER_DEACTIVATED'
@@ -166,14 +184,23 @@ export async function logout(
         await endAuthSessions(tx, identity.authUserId, {
           only: identity.sessionId,
         });
-        const userId = await endUserSession(tx, identity.sessionId, 'LOGOUT', now);
+        const userId = await endUserSession(
+          tx,
+          identity.sessionId,
+          'LOGOUT',
+          now,
+        );
         if (userId)
-          await writeAudit(tx, { ...ctx, db: tx }, {
-            action: 'auth.logged_out',
-            entityType: 'user',
-            entityId: userId,
-            details: { scope: 'local' },
-          });
+          await writeAudit(
+            tx,
+            { ...ctx, db: tx },
+            {
+              action: 'auth.logged_out',
+              entityType: 'user',
+              entityId: userId,
+              details: { scope: 'local' },
+            },
+          );
       });
     }
   } finally {
@@ -191,13 +218,23 @@ export async function endOtherSessions(
     const count = await endAuthSessions(tx, ctx.identity.authUserId, {
       except: ctx.identity.sessionId,
     });
-    await endUserSessions(tx, ctx.auth.userId, 'USER', now, ctx.identity.sessionId);
-    await writeAudit(tx, { ...ctx, db: tx }, {
-      action: 'auth.session_revoked',
-      entityType: 'user',
-      entityId: ctx.auth.userId,
-      details: { reason: 'USER', count },
-    });
+    await endUserSessions(
+      tx,
+      ctx.auth.userId,
+      'USER',
+      now,
+      ctx.identity.sessionId,
+    );
+    await writeAudit(
+      tx,
+      { ...ctx, db: tx },
+      {
+        action: 'auth.session_revoked',
+        entityType: 'user',
+        entityId: ctx.auth.userId,
+        details: { reason: 'USER', count },
+      },
+    );
     return { count };
   });
 }
@@ -216,16 +253,22 @@ export async function revokeUserAccess(
   if (!user) return { count: 0 };
   const now = ctx.clock.now();
   const count = await ctx.db.transaction(async (tx) => {
-    const ended = user.authUserId ? await endAuthSessions(tx, user.authUserId) : 0;
+    const ended = user.authUserId
+      ? await endAuthSessions(tx, user.authUserId)
+      : 0;
     await endUserSessions(tx, userId, reason, now);
     if (reason === 'DEACTIVATED' && ctx.auth)
       await revokePendingInvites(tx, userId, ctx.auth.userId, now);
-    await writeAudit(tx, { ...ctx, db: tx }, {
-      action: 'auth.session_revoked',
-      entityType: 'user',
-      entityId: userId,
-      details: { reason, count: ended },
-    });
+    await writeAudit(
+      tx,
+      { ...ctx, db: tx },
+      {
+        action: 'auth.session_revoked',
+        entityType: 'user',
+        entityId: userId,
+        details: { reason, count: ended },
+      },
+    );
     return ended;
   });
   if (reason === 'DEACTIVATED' && user.authUserId)
@@ -258,19 +301,21 @@ type HistoryAction =
 const historyAction = (action: string) =>
   action.slice('auth.'.length) as HistoryAction;
 
-const CURSOR = /^(\d{4}-\d{2}-\d{2}T[\d:.]+Z)_(\d{1,19})$/;
-
 /** Own login history, newest first; the cursor is the last row's `(occurred_at, id)` (AUD-3). */
 export async function listMyLoginHistory(
   ctx: RequestContext,
   input: { cursor?: string | undefined; limit: number },
 ) {
-  const match = input.cursor ? CURSOR.exec(input.cursor) : null;
+  const cursor = input.cursor ? decodeTimeIdCursor(input.cursor) : null;
+  if (input.cursor && !cursor)
+    throw new ValidationError([
+      { path: 'query.cursor', code: 'invalid_cursor' },
+    ]);
   const rows = await listLoginHistory(
     ctx.db,
     ctx.auth.userId,
     input.limit,
-    match ? { occurredAt: new Date(match[1]!), id: BigInt(match[2]!) } : null,
+    cursor,
   );
   const page = rows.slice(0, input.limit);
   const last = page.at(-1);
@@ -289,8 +334,6 @@ export async function listMyLoginHistory(
       };
     }),
     nextCursor:
-      rows.length > input.limit && last
-        ? `${last.occurredAt.toISOString()}_${last.id.toString()}`
-        : null,
+      rows.length > input.limit && last ? encodeTimeIdCursor(last) : null,
   };
 }

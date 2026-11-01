@@ -70,6 +70,7 @@ it('uses a cryptographically verified identity with current database roles, acti
         method: 'MAGIC_LINK',
         startedAt: clock.now(),
         lastSeenAt: clock.now(),
+        mfaVerifiedAt: clock.now(),
       });
       const deps = { db: () => tx, clock, verifyIdentity };
       const context = await resolveRequestContext(deps, bearer(token));

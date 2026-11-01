@@ -132,10 +132,11 @@ describe('Application session lifetime and revocation [SEC-AUTH-4, D23]', () => 
   });
 
   it('withholds Admin grants at aal1 while retaining Recruiter grants, including during a TOTP lock', async () => {
-    await fixture.run(async ({ ctx, identity, user }) => {
+    await fixture.run(async ({ ctx, identity, user, markMfaVerified }) => {
       await ctx.db
         .insert(schema.userRole)
         .values({ userId: user.id, role: 'ADMIN', verticalId: null });
+      await markMfaVerified();
       const aal1 = await loadAuthContext(ctx.db, identity, ctx.clock);
       expect(aal1.grants.has('vertical.read')).toBe(true);
       expect(aal1.grants.has('audit.read')).toBe(false);

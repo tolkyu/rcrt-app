@@ -20,7 +20,7 @@ import type { AuthDependencies } from './deps';
 import {
   auditLoginFailure,
   establishSession,
-  landingPath,
+  postSignInPath,
   withRateLimitAudit,
 } from './session';
 
@@ -124,5 +124,5 @@ export async function confirmMagicLink(
     cookies,
     client,
   });
-  return { redirectTo: landingPath(auth, input.next) };
+  return { redirectTo: postSignInPath(auth, input.next) };
 }

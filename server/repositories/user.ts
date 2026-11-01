@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, eq, isNotNull, like } from 'drizzle-orm';
 import type { DbExecutor } from '../db';
 import { appUser, userRole, vertical } from '../db/schema';
 
@@ -28,4 +28,42 @@ export function findUserRoleAssignments(db: DbExecutor, userId: string) {
     .leftJoin(vertical, eq(vertical.id, userRole.verticalId))
     .where(eq(userRole.userId, userId))
     .orderBy(asc(userRole.role), asc(vertical.name));
+}
+
+/** Local dev login only (DEV-1): active, linked `@demo` users and their roles, one row per role. */
+export function listDemoUsersWithRoles(db: DbExecutor) {
+  return db
+    .select({
+      email: appUser.email,
+      fullName: appUser.fullName,
+      role: userRole.role,
+      vertical: vertical.name,
+    })
+    .from(appUser)
+    .leftJoin(userRole, eq(userRole.userId, appUser.id))
+    .leftJoin(vertical, eq(vertical.id, userRole.verticalId))
+    .where(
+      and(
+        like(appUser.email, '%@demo'),
+        eq(appUser.isActive, true),
+        isNotNull(appUser.authUserId),
+      ),
+    )
+    .orderBy(asc(appUser.email), asc(userRole.role));
+}
+
+export async function findActiveDemoUser(db: DbExecutor, email: string) {
+  const [row] = await db
+    .select({ id: appUser.id })
+    .from(appUser)
+    .where(
+      and(
+        eq(appUser.email, email),
+        like(appUser.email, '%@demo'),
+        eq(appUser.isActive, true),
+        isNotNull(appUser.authUserId),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
 }

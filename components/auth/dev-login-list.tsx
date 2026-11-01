@@ -4,20 +4,9 @@ import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
+import { useRoleLabel } from './use-role-label';
 import { AuthCard, FormMessage } from './auth-card';
 
-const ROLE_KEYS = [
-  'ADMIN',
-  'HEAD_RECRUITER',
-  'RECRUITER',
-  'HEAD_HR',
-  'HR',
-  'TEAM_LEAD',
-  'FINANCE',
-] as const;
-type RoleKey = (typeof ROLE_KEYS)[number];
-const isRoleKey = (value: string): value is RoleKey =>
-  (ROLE_KEYS as readonly string[]).includes(value);
 const responseSchema = z.object({ redirectTo: z.string() });
 
 export function DevLoginList({
@@ -30,6 +19,7 @@ export function DevLoginList({
   }[];
 }) {
   const t = useTranslations('auth');
+  const roleLabel = useRoleLabel();
   const [pending, setPending] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -77,14 +67,7 @@ export function DevLoginList({
                 </span>
                 <span className="text-muted-foreground-strong text-xs">
                   {user.roles
-                    .map(({ role, vertical }) => {
-                      const name = isRoleKey(role)
-                        ? t(`roles.${role}`)
-                        : t('roles.custom');
-                      return vertical
-                        ? t('roleInVertical', { role: name, vertical })
-                        : name;
-                    })
+                    .map(({ role, vertical }) => roleLabel(role, vertical))
                     .join(', ')}
                 </span>
               </div>

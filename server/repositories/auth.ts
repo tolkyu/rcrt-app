@@ -114,6 +114,7 @@ export async function insertUserSession(
     now: Date;
     ip: string | null;
     userAgent: string | null;
+    mfaVerifiedAt?: Date | null;
   },
 ): Promise<void> {
   await db
@@ -126,6 +127,7 @@ export async function insertUserSession(
       lastSeenAt: input.now,
       ip: input.ip,
       userAgent: input.userAgent,
+      mfaVerifiedAt: input.mfaVerifiedAt ?? null,
     })
     .onConflictDoNothing({ target: userSession.sessionId });
 }
@@ -467,4 +469,25 @@ export async function findSessionStart(
     .where(eq(userSession.sessionId, sessionId))
     .limit(1);
   return row?.startedAt ?? null;
+}
+
+/** Records a TOTP verification done through our lockout-guarded API on an open session (SEC-AUTH-R02). */
+export async function markSessionMfaVerified(
+  db: DbExecutor,
+  sessionId: string,
+  userId: string,
+  now: Date,
+): Promise<boolean> {
+  const rows = await db
+    .update(userSession)
+    .set({ mfaVerifiedAt: now })
+    .where(
+      and(
+        eq(userSession.sessionId, sessionId),
+        eq(userSession.userId, userId),
+        isNull(userSession.endedAt),
+      ),
+    )
+    .returning({ sessionId: userSession.sessionId });
+  return rows.length > 0;
 }
