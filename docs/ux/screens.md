@@ -165,8 +165,8 @@
 ### S-14 Налаштування (Admin) [ROLE-01..06, ROUTE-01, ROUTE-09, BONUS, §6.4]
 | Sub-page | Content | Wireframe |
 |---|---|---|
-| Вертикалі | list, create/rename/deactivate; per-vertical toggles: «Погодження вакансій» (D2), «Автоматичний розподіл» (ROUTE-09), «Перевірка поліграфа керівником HR» (POLY-05); default bonus scheme | inline |
-| Користувачі та ролі | table users (status, roles@verticals, last login); invite; edit roles; deactivate (blocked with reassignment for recruiters, ROLE-06) | inline |
+| Вертикалі | list, create, rename — no deactivate/delete (D34, Q-37); per-vertical toggles shown in their phases: «Погодження вакансій» (D2), «Автоматичний розподіл» (ROUTE-09); no polygraph-review toggle (D36); default bonus scheme | `wireframes/settings-admin.md` §2 |
+| Користувачі та ролі | table users (status, roles@verticals, 2FA, last login); invite (D33); edit roles; resend/revoke invite (D42); deactivate/reactivate (D44, D45; reassignment section Phase 2–3, ROLE-06); «Скинути 2FA» (D22) | `wireframes/settings-admin.md` §1 |
 | Пріоритети тімлідів | per vertical, reorder, per-vacancy override | `wireframes/settings-tl-priorities.md` |
 | Схеми бонусів | presets, editor, defaults | `wireframes/settings-bonus-schemes.md` |
 | Посади | position catalog per vertical ⚠ OPEN-S15 (owner of catalog) | inline |
@@ -174,7 +174,7 @@
 | Місця для поліграфа | rooms/addresses (POLY-02) | inline |
 | Шаблони оферів | merge-field template editor + preview (OFFER-02) | inline |
 | Загальні | offer validity (D11), retention policy (ARCH-04), probation default | inline |
-| Журнал дій | audit viewer + login history (AUD) | inline |
+| Журнал дій | audit viewer + login history as the «Входи та безпека» view (AUD) | `wireframes/settings-admin.md` §3 |
 
 ### S-15 Сповіщення / S-16 Профіль [NOTIF]
 - Bell popover: last 20, unread dot, «Позначити всі прочитаними»; full page with filters by type. Profile: name, avatar, тема (Світла/Темна/Системна), канали per event type (in-app / email matrix), 2FA, активні сесії.
