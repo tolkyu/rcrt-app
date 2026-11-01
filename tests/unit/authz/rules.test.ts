@@ -2,13 +2,15 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 import {
   assertCan,
-  assertNotSelfBenefit,
+  assertCanActOn,
+  beneficiariesOf,
+  canActOn,
   can,
   hasAnyGrant,
   permissionsFor,
   requirePermission,
 } from '@/server/authz/can';
-import { buildAuthContext } from '@/server/authz/context';
+import { buildAuthContext, requiresMfa } from '@/server/authz/context';
 import {
   PERMISSIONS,
   PERMISSION_CODES,
@@ -16,6 +18,7 @@ import {
 } from '@/server/authz/permissions';
 import { BUILTIN_ROLES, GLOBAL_ROLES } from '@/server/authz/roles';
 import {
+  findVisibleOrThrow,
   scopeWhere,
   settingsScope,
   supportedScopes,
@@ -23,12 +26,9 @@ import {
   verticalScope,
 } from '@/server/authz/scopes';
 import type { BuiltinRole, ResourceType } from '@/server/authz/types';
+import { NotFoundError, UnauthenticatedError } from '@/server/http/errors';
 import {
-  ForbiddenError,
-  NotFoundError,
-  UnauthenticatedError,
-} from '@/server/http/errors';
-import {
+  appFacts,
   application,
   candidate,
   contextFor,
@@ -115,28 +115,22 @@ describe('Multi-role users get the union per vertical [ROLE-02, MR-01..07]', () 
     const crypto = application({ verticalId: CRYPTO, ownerId: ME });
     expect(can(multiRole, 'application.read', crypto)).toBe(true);
     expect(() =>
-      assertCan(multiRole, 'application.reassign_owner', crypto),
-    ).toThrow(ForbiddenError);
-    expect(can(multiRole, 'application.reassign_owner', application())).toBe(
-      true,
-    );
+      assertCanActOn(multiRole, 'application.reassign_owner', crypto, [OTHER]),
+    ).toThrow(expect.objectContaining({ code: 'FORBIDDEN' }));
+    expect(
+      canActOn(multiRole, 'application.reassign_owner', application(), [OTHER]),
+    ).toBe(true);
   });
 
-  it('MR-04: deletes an own Крипто candidate only before the TL interview', () => {
-    const late = candidate({
+  it('MR-04: deletes candidates only where Head Recruiter (D65)', () => {
+    const ownCrypto = candidate({
       verticalId: CRYPTO,
       sourcerId: ME,
-      applications: [
-        {
-          ...application({ verticalId: CRYPTO }),
-          maxStageReached: 'TL_INTERVIEW',
-        },
-      ],
+      applications: [],
     });
-    expect(can(multiRole, 'candidate.delete', late)).toBe(false);
-    expect(
-      can(multiRole, 'candidate.delete', { ...late, applications: [] }),
-    ).toBe(true);
+    expect(can(multiRole, 'candidate.read', ownCrypto)).toBe(true);
+    expect(can(multiRole, 'candidate.delete', ownCrypto)).toBe(false);
+    expect(can(multiRole, 'candidate.delete', candidate())).toBe(true);
   });
 
   it('MR-07: keeps scopes apart while merging verticals of identical grants', () => {
@@ -145,7 +139,6 @@ describe('Multi-role users get the union per vertical [ROLE-02, MR-01..07]', () 
       {
         scope: { kind: 'VERTICAL' },
         verticalIds: [CRYPTO, GAMBLING].sort(),
-        roles: ['HEAD_RECRUITER', 'RECRUITER'],
       },
     ]);
     const read = multiRole.grants.get('candidate.read')!;
@@ -282,10 +275,17 @@ describe('ADMIN and FINANCE grants require an aal2 session [SEC, MFA-02..04]', (
   });
 });
 
-describe('Nobody acts on their own bonus [DG-19, SB-01..13]', () => {
+describe('Nobody acts on their own bonus [DG-19, SB-01..13, SEC-CORE-01, SEC-CORE-04]', () => {
   const guarded = PERMISSION_CODES.filter(
     (code) => PERMISSIONS[code].selfBenefit,
   ).sort();
+  const tranche = (recipientId: typeof ME) =>
+    ({
+      type: 'bonus_tranche',
+      id: 't',
+      verticalId: GAMBLING,
+      recipientId,
+    }) as const;
 
   it('guards exactly the footnote-7 permissions', () => {
     expect(guarded).toEqual(
@@ -298,46 +298,327 @@ describe('Nobody acts on their own bonus [DG-19, SB-01..13]', () => {
         'bonus.mark_paid',
         'bonus.release',
         'bonus.self_referral.approve',
+        'candidate.bonus_flags.clear',
       ].sort(),
     );
   });
 
-  it.each(guarded)(
-    '%s refuses a beneficiary actor and allows others',
+  it('refuses self-benefit permissions through can/assertCan even when types are bypassed', () => {
+    const admin = roleContext('ADMIN');
+    for (const permission of guarded) {
+      expect(() =>
+        can(admin, permission as 'vacancy.read', tranche(OTHER) as never),
+      ).toThrow(/assertCanActOn/);
+      expect(() =>
+        assertCan(admin, permission as 'vacancy.read', tranche(OTHER) as never),
+      ).toThrow(/assertCanActOn/);
+    }
+  });
+
+  it.each([
+    'bonus.approve',
+    'bonus.hold',
+    'bonus.release',
+    'bonus.mark_paid',
+    'bonus.adjust',
+    'bonus.self_referral.approve',
+  ] as const)(
+    '%s: Admin acts on another recipient, never on their own tranche',
     (permission) => {
       const admin = roleContext('ADMIN');
       expect(() =>
-        assertNotSelfBenefit(admin, permission, [OTHER, ME]),
-      ).toThrow(
+        assertCanActOn(admin, permission, tranche(OTHER), []),
+      ).not.toThrow();
+      expect(() => assertCanActOn(admin, permission, tranche(ME), [])).toThrow(
         expect.objectContaining({
           code: 'SELF_BENEFIT_FORBIDDEN',
           status: 403,
         }),
       );
-      expect(() =>
-        assertNotSelfBenefit(admin, permission, [OTHER]),
-      ).not.toThrow();
     },
   );
 
-  it('SB-01: Head Recruiter may approve a tranche in the vertical but not their own', () => {
+  it('SB-01: Head Recruiter approves in the vertical but not their own tranche', () => {
     const head = roleContext('HEAD_RECRUITER');
-    const own = {
-      type: 'bonus_tranche',
-      id: 't',
-      verticalId: GAMBLING,
-      recipientId: ME,
-    } as const;
-    expect(can(head, 'bonus.approve', own)).toBe(true);
-    expect(() =>
-      assertNotSelfBenefit(head, 'bonus.approve', [own.recipientId]),
-    ).toThrow(ForbiddenError);
+    expect(canActOn(head, 'bonus.approve', tranche(OTHER), [])).toBe(true);
+    expect(canActOn(head, 'bonus.approve', tranche(ME), [])).toBe(false);
+    expect(permissionsFor(head, tranche(ME)).has('bonus.approve')).toBe(false);
+    expect(permissionsFor(head, tranche(OTHER)).has('bonus.approve')).toBe(
+      true,
+    );
   });
 
-  it('does not apply to permissions without a beneficiary', () => {
+  it('SB-11/13: split and reassign check old and new beneficiaries', () => {
+    const head = roleContext('HEAD_RECRUITER');
     expect(() =>
-      assertNotSelfBenefit(roleContext('ADMIN'), 'bonus.clawback.settle', [ME]),
-    ).not.toThrow();
+      assertCanActOn(
+        head,
+        'application.reassign_owner',
+        application({ ownerId: ME }),
+        [OTHER],
+      ),
+    ).toThrow(expect.objectContaining({ code: 'SELF_BENEFIT_FORBIDDEN' }));
+    expect(() =>
+      assertCanActOn(head, 'application.reassign_owner', application(), [ME]),
+    ).toThrow(expect.objectContaining({ code: 'SELF_BENEFIT_FORBIDDEN' }));
+    expect(
+      canActOn(
+        head,
+        'application.bonus_split.set',
+        application({ splitRecipientIds: [ME] }),
+        [OTHER],
+      ),
+    ).toBe(false);
+    expect(
+      canActOn(head, 'application.bonus_split.set', application(), [OTHER]),
+    ).toBe(true);
+  });
+
+  describe('D66: bonus-relevant candidate flags', () => {
+    it('lets the own Recruiter and the Head Recruiter set a flag, nobody else', () => {
+      expect(
+        can(
+          roleContext('RECRUITER'),
+          'candidate.bonus_flags.set',
+          candidate({ sourcerId: ME }),
+        ),
+      ).toBe(true);
+      expect(
+        can(roleContext('RECRUITER'), 'candidate.bonus_flags.set', candidate()),
+      ).toBe(false);
+      expect(
+        can(
+          roleContext('HEAD_RECRUITER'),
+          'candidate.bonus_flags.set',
+          candidate(),
+        ),
+      ).toBe(true);
+      for (const role of ['HEAD_HR', 'HR', 'TEAM_LEAD', 'FINANCE'] as const) {
+        expect(
+          hasAnyGrant(roleContext(role), 'candidate.bonus_flags.set'),
+          role,
+        ).toBe(false);
+      }
+    });
+
+    it('allows only an aal2 Admin to clear a flag', () => {
+      for (const role of [
+        'HEAD_RECRUITER',
+        'RECRUITER',
+        'HEAD_HR',
+        'HR',
+        'TEAM_LEAD',
+        'FINANCE',
+      ] as const) {
+        expect(
+          canActOn(
+            roleContext(role),
+            'candidate.bonus_flags.clear',
+            candidate(),
+            [],
+          ),
+          role,
+        ).toBe(false);
+      }
+      expect(() =>
+        assertCanActOn(
+          roleContext('HEAD_RECRUITER'),
+          'candidate.bonus_flags.clear',
+          candidate({ sourcerId: ME }),
+          [],
+        ),
+      ).toThrow(expect.objectContaining({ code: 'FORBIDDEN', status: 403 }));
+      expect(
+        canActOn(
+          roleContext('ADMIN', 'aal1'),
+          'candidate.bonus_flags.clear',
+          candidate(),
+          [],
+        ),
+      ).toBe(false);
+      expect(() =>
+        assertCanActOn(
+          roleContext('ADMIN'),
+          'candidate.bonus_flags.clear',
+          candidate(),
+          [],
+        ),
+      ).not.toThrow();
+    });
+
+    it.each([
+      ['the sourcer', candidate({ sourcerId: ME })],
+      ['the talent-pool owner', candidate({ ownerId: ME })],
+      [
+        'an application owner',
+        candidate({ applications: [appFacts({ ownerId: ME })] }),
+      ],
+      [
+        'an application sourcer',
+        candidate({ applications: [appFacts({ sourcerId: ME })] }),
+      ],
+      [
+        'a split recipient',
+        candidate({ applications: [appFacts({ splitRecipientIds: [ME] })] }),
+      ],
+    ])(
+      'refuses an Admin who is %s with SELF_BENEFIT_FORBIDDEN',
+      (_who, target) => {
+        expect(beneficiariesOf(target)).toContain(ME);
+        expect(() =>
+          assertCanActOn(
+            roleContext('ADMIN'),
+            'candidate.bonus_flags.clear',
+            target,
+            [],
+          ),
+        ).toThrow(
+          expect.objectContaining({
+            code: 'SELF_BENEFIT_FORBIDDEN',
+            status: 403,
+          }),
+        );
+      },
+    );
+  });
+});
+
+describe('Delete scopes and Team Lead ownership [D65, D13, D67]', () => {
+  const recruiter = roleContext('RECRUITER');
+  it('D65: Recruiters never delete candidates, even their own before any interview', () => {
+    const own = candidate({
+      sourcerId: ME,
+      applications: [
+        appFacts({ stage: 'NEW', maxStageReached: 'NEW', ownerId: ME }),
+      ],
+    });
+    expect(can(recruiter, 'candidate.read', own)).toBe(true);
+    expect(can(recruiter, 'candidate.delete', own)).toBe(false);
+    expect(can(roleContext('HEAD_RECRUITER'), 'candidate.delete', own)).toBe(
+      true,
+    );
+  });
+
+  it('vacancy (D13): only the creator, recruiter-initiated, with no application past NEW', () => {
+    const own = vacancy({
+      createdBy: ME,
+      recruiterInitiated: true,
+      assignedRecruiterIds: [ME],
+    });
+    expect(can(recruiter, 'vacancy.delete', own)).toBe(true);
+    expect(
+      can(recruiter, 'vacancy.delete', { ...own, maxApplicationStage: 'NEW' }),
+    ).toBe(true);
+    expect(
+      can(recruiter, 'vacancy.delete', {
+        ...own,
+        maxApplicationStage: 'IN_WORK',
+      }),
+    ).toBe(false);
+    expect(
+      can(recruiter, 'vacancy.delete', { ...own, recruiterInitiated: false }),
+    ).toBe(false);
+    expect(can(recruiter, 'vacancy.delete', { ...own, createdBy: OTHER })).toBe(
+      false,
+    );
+  });
+
+  it('Team Lead loses a vacancy they created once it is reassigned to another Team Lead', () => {
+    const teamLead = roleContext('TEAM_LEAD');
+    const reassigned = vacancy({ createdBy: ME, teamLeadId: OTHER });
+    for (const permission of [
+      'vacancy.read',
+      'vacancy.update',
+      'vacancy.hold',
+      'vacancy.resume',
+      'vacancy.cancel',
+    ] as const) {
+      expect(can(teamLead, permission, reassigned), permission).toBe(false);
+      expect(
+        can(teamLead, permission, vacancy({ teamLeadId: ME })),
+        permission,
+      ).toBe(true);
+    }
+  });
+});
+
+describe('MFA follows the permission, custom roles are vertical-bound [SEC-CORE-08, SEC-CORE-09, SEC-CORE-12]', () => {
+  it('exposes no raw role assignments on the auth context', () => {
+    expect('roles' in roleContext('ADMIN')).toBe(false);
+  });
+
+  it('flags every settings, audit, purge and Admin-only bonus write as MFA-only', () => {
+    for (const code of PERMISSION_CODES) {
+      const definition = PERMISSIONS[code];
+      const resources: readonly ResourceType[] = definition.resources;
+      if (
+        code.startsWith('settings.') ||
+        code === 'audit.read' ||
+        code === 'candidate.purge' ||
+        (resources.includes('bonus_tranche') &&
+          definition.write &&
+          definition.scopes.every((kind) => kind === 'GLOBAL'))
+      ) {
+        expect(definition.mfa, code).toBe(true);
+      }
+    }
+  });
+
+  it('keeps grants that are not MFA-flagged for a vertical-bound custom role at aal1', () => {
+    const ctx = buildAuthContext(
+      {
+        userId: ME,
+        roles: [{ role: 'custom:payroll', verticalId: GAMBLING }],
+        aal: 'aal1',
+        timezone: 'Europe/Kyiv',
+      },
+      {
+        'custom:payroll': [
+          { permission: 'bonus.approve', scope: { kind: 'VERTICAL' } },
+          { permission: 'candidate.read', scope: { kind: 'VERTICAL' } },
+        ],
+      },
+    );
+    expect(ctx.mfaRequired).toBe(false);
+    expect(can(ctx, 'candidate.read', candidate())).toBe(true);
+    expect(canActOn(ctx, 'bonus.approve', tranche(), [])).toBe(true);
+    function tranche() {
+      return {
+        type: 'bonus_tranche',
+        id: 't',
+        verticalId: GAMBLING,
+        recipientId: OTHER,
+      } as const;
+    }
+  });
+
+  it('ignores global custom roles and invalid role codes', () => {
+    const global = buildAuthContext(
+      {
+        userId: ME,
+        roles: [{ role: 'custom:superuser', verticalId: null }],
+        aal: 'aal2',
+        timezone: 'Europe/Kyiv',
+      },
+      {
+        'custom:superuser': [
+          { permission: 'settings.users.manage', scope: { kind: 'GLOBAL' } },
+        ],
+      },
+    );
+    expect(global.grants.size).toBe(0);
+    const invalid = buildAuthContext({
+      userId: ME,
+      roles: [
+        { role: '__proto__', verticalId: GAMBLING },
+        { role: 'SUPERUSER', verticalId: null },
+        { role: 'ADMIN', verticalId: GAMBLING },
+        { role: 'RECRUITER', verticalId: null },
+      ],
+      aal: 'aal2',
+      timezone: 'Europe/Kyiv',
+    });
+    expect(invalid.grants.size).toBe(0);
   });
 });
 
@@ -451,5 +732,55 @@ describe('Scoped SQL predicates [VIS-02]', () => {
     expect(render(scopeWhere(ctx, 'audit.read', settingsScope)).sql).toBe(
       'false',
     );
+  });
+});
+
+describe('Detail fetches are scoped by read permissions only [SEC-CORE-05]', () => {
+  it('computes the scope from the read grant and answers 404 without a row', async () => {
+    const seen: string[] = [];
+    const load = async (scope: Parameters<typeof render>[0]) => {
+      seen.push(render(scope).sql);
+      return null;
+    };
+    await expect(
+      findVisibleOrThrow(
+        roleContext('HR'),
+        'vertical.read',
+        verticalScope,
+        load,
+      ),
+    ).rejects.toBeInstanceOf(NotFoundError);
+    expect(seen).toEqual(['"app"."vertical"."id" in ($1)']);
+    await expect(
+      findVisibleOrThrow(
+        roleContext('ADMIN'),
+        'vertical.read',
+        verticalScope,
+        async () => ({ id: 'x' }),
+      ),
+    ).resolves.toEqual({ id: 'x' });
+  });
+
+  it('refuses a write permission even when types are bypassed', async () => {
+    await expect(
+      findVisibleOrThrow(
+        roleContext('ADMIN'),
+        'settings.users.manage' as never,
+        settingsScope,
+        async () => ({ id: 'x' }),
+      ),
+    ).rejects.toThrow(/cannot scope a detail fetch/);
+  });
+});
+
+describe('requiresMfa follows the grants, not role names [SEC-CORE-09]', () => {
+  it.each([
+    ['ADMIN', 'aal1', true],
+    ['ADMIN', 'aal2', true],
+    ['FINANCE', 'aal2', true],
+    ['HEAD_RECRUITER', 'aal1', false],
+    ['TEAM_LEAD', 'aal2', false],
+  ] as const)('%s at %s → %s', (role, aal, expected) => {
+    expect(requiresMfa(roleContext(role, aal))).toBe(expected);
   });
 });

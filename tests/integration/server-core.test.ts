@@ -86,9 +86,21 @@ const identity = (
 });
 
 beforeAll(async () => {
+  const [column] =
+    await admin`select count(*)::int as n from information_schema.columns
+    where table_schema = 'auth' and table_name = 'sessions' and column_name = 'created_at'`;
+  const startedAt = new Date(
+    clock.now().getTime() - 60 * 60 * 1000,
+  ).toISOString();
   for (const [name, actor] of Object.entries(actors)) {
-    await admin`insert into auth.sessions (id, user_id, not_after) values (${actor.sessionId}, ${actor.authUserId},
-      ${name === 'expired' ? '2026-11-16T07:59:59Z' : null})`;
+    const notAfter = name === 'expired' ? '2026-11-16T07:59:59Z' : null;
+    if (column?.n) {
+      await admin`insert into auth.sessions (id, user_id, not_after, created_at)
+        values (${actor.sessionId}, ${actor.authUserId}, ${notAfter}, ${startedAt})`;
+    } else {
+      await admin`insert into auth.sessions (id, user_id, not_after)
+        values (${actor.sessionId}, ${actor.authUserId}, ${notAfter})`;
+    }
   }
 });
 
@@ -137,6 +149,16 @@ async function seed(tx: Transaction) {
     { userId: actors.inactive.id, role: 'RECRUITER', verticalId: verticalA },
     { userId: actors.expired.id, role: 'RECRUITER', verticalId: verticalA },
   ]);
+  const startedAt = new Date(clock.now().getTime() - 60 * 60 * 1000);
+  await tx.insert(schema.userSession).values(
+    Object.values(actors).map((actor) => ({
+      sessionId: actor.sessionId,
+      userId: actor.id,
+      method: 'MAGIC_LINK' as const,
+      startedAt,
+      lastSeenAt: startedAt,
+    })),
+  );
 }
 
 async function contextFor(
@@ -146,7 +168,8 @@ async function contextFor(
 ): Promise<RequestContext> {
   return resolveRequestContext(
     { db: () => tx, clock, verifyIdentity: async () => identity(actor, aal) },
-    new Headers({ 'user-agent': 'vitest', 'x-forwarded-for': '198.51.100.4' }),
+    new Headers({ 'user-agent': 'vitest' }),
+    { requestId: randomUUID(), ip: '198.51.100.4', userAgent: 'vitest', mutationId: null },
   );
 }
 
@@ -155,7 +178,7 @@ describe('Request context: one query for user, roles and session [VIS-01-1, DG-0
     await inRollback(async (tx) => {
       const auth = await loadAuthContext(tx, identity('multi'), clock);
       expect(auth.userId).toBe(actors.multi.id);
-      expect(auth.roles).toHaveLength(2);
+      expect('roles' in auth).toBe(false);
       expect(auth.grants.get('vertical.read')?.[0]?.verticalIds).toEqual(
         [verticalA, verticalB].sort(),
       );
@@ -317,7 +340,7 @@ describe('Audit, events and change feed are written in the caller transaction [A
         subjectType: 'vertical',
         subjectId: verticalA,
         verticalId: verticalA,
-        payload: { field: 'name' },
+        payload: {},
         pii: { old: 'Стара', new: 'Нова' },
       });
       await emitChange(tx, ctx, {
@@ -350,7 +373,7 @@ describe('Audit, events and change feed are written in the caller transaction [A
         .where(eq(schema.entityEvent.id, event));
       expect(eventRow).toMatchObject({
         type: 'vertical.renamed',
-        payload: { v: 1, field: 'name' },
+        payload: { v: 1 },
         sensitivity: 'GENERAL',
       });
       const [pii] = await tx
@@ -408,7 +431,7 @@ describe('Audit, events and change feed are written in the caller transaction [A
     });
   });
 
-  it('records system actions without an actor and refuses PII in event payloads', async () => {
+  it('records system actions without an actor and enforces strict payloads and details [SEC-CORE-07]', async () => {
     await inRollback(async (tx) => {
       const system: SystemContext = {
         auth: null,
@@ -418,31 +441,58 @@ describe('Audit, events and change feed are written in the caller transaction [A
         ip: null,
         userAgent: null,
         mutationId: null,
+        background: false,
       };
       const id = await writeAudit(tx, system, {
         action: 'settings.updated',
-        details: { job: 'stats-reconcile' },
+        details: { job: 'stats-reconcile', rows: 3, dryRun: false },
       });
       const [row] = await tx
         .select()
         .from(schema.auditLog)
         .where(eq(schema.auditLog.id, id));
       expect(row).toMatchObject({ actorId: null, actorKind: 'SYSTEM' });
+
+      const event = (payload: unknown) =>
+        appendEvent(tx, system, {
+          type: 'user.profile_updated',
+          subjectType: 'app_user',
+          subjectId: actors.headA.id,
+          payload: payload as { fields: ['fullName'] },
+          pii: { old: 'Стара назва', new: 'Нова назва' },
+        });
+      await expect(event({ fields: ['fullName'] })).resolves.toEqual(
+        expect.any(BigInt),
+      );
       for (const payload of [
-        { email: 'a@b.c' },
-        { changes: [{ field: 'phone', old: '1', new: '2' }] },
-      ] as Record<string, z.core.util.JSONType>[]) {
+        { fields: ['fullName'], candidateEmail: 'a@b.c' },
+        { fields: ['phoneNumber'] },
+        { fields: ['fullName'], message: 'вільний текст' },
+        {},
+      ]) {
+        await expect(event(payload)).rejects.toBeInstanceOf(z.ZodError);
+      }
+
+      for (const details of [
+        { candidateEmail: 'a@b.c' },
+        { meetLink: 'x' },
+        { reason: 'Кандидат сказав, що передумав' },
+        { reason: 'call me at a@b.c' },
+        { phoneLike: '380501234567' },
+      ] as Record<string, string>[]) {
         await expect(
-          appendEvent(tx, system, {
-            type: 'user.profile_updated',
-            subjectType: 'app_user',
-            subjectId: actors.headA.id,
-            payload,
-          }),
+          writeAudit(tx, system, { action: 'settings.updated', details }),
         ).rejects.toBeInstanceOf(z.ZodError);
       }
       await expect(
         writeAudit(tx, system, { action: 'USER_INVITED' }),
+      ).rejects.toBeInstanceOf(z.ZodError);
+      await expect(
+        writeAudit(tx, system, {
+          action: 'application.stage_changed',
+          entityType: 'application',
+          entityId: randomUUID(),
+        }),
       ).rejects.toBeInstanceOf(z.ZodError);
     });
   });

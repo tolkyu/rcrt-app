@@ -44,6 +44,8 @@
 11. **Deactivated user**: context load checks `app_user.is_active`; inactive ⇒ 401 even with a valid JWT (Supabase sessions are also revoked on deactivation).
 
 ### RLS (defence-in-depth)
+Owner clarification (2026-10-31, D22/D63): recovery is a second TOTP factor or another Admin's reset, without recovery codes. At `aal1`, mixed-role users retain their nonprivileged grants; only ADMIN/FINANCE grants require `aal2`. The credential verifier and composition are implemented in `server/auth/supabase-identity.ts` and `server/context/app.ts` (ADR-010).
+
 - App tables live in schema `app`, **not exposed** through Supabase PostgREST.
 - `ENABLE ROW LEVEL SECURITY` on every table with **no policies for `anon`/`authenticated`** (deny-all), so a leaked anon key reads nothing.
 - App connects as dedicated role `app_rw` (not the table owner, `BYPASSRLS`, no DDL); migrations run as a separate role.

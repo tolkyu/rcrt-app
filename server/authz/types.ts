@@ -38,7 +38,7 @@ export type Scope =
   | { readonly kind: 'VERTICAL' }
   | { readonly kind: 'VERTICAL_FROM_STAGE'; readonly stage: Stage }
   | { readonly kind: 'OWN' }
-  | { readonly kind: 'OWN_EARLY' }
+  | { readonly kind: 'OWN_INITIATED_NEW' }
   | { readonly kind: 'ASSIGNED' }
   | { readonly kind: 'UNASSIGNED_OPEN' }
   | { readonly kind: 'SUBMITTED_TO_ME' };
@@ -48,6 +48,12 @@ export interface RoleAssignment {
   readonly role: RoleCode;
   readonly verticalId: VerticalId | null;
 }
+
+const customRolePattern = /^custom:[a-z0-9_]+$/;
+/** Role codes read from storage are validated, never cast (built-in or `custom:<slug>`). */
+export const isRoleCode = (value: string): value is RoleCode =>
+  (BUILTIN_ROLE_CODES as readonly string[]).includes(value) ||
+  customRolePattern.test(value);
 
 export type ResourceType =
   | 'vacancy'
@@ -66,7 +72,10 @@ export interface VacancyRef {
   readonly status: VacancyStatus;
   readonly teamLeadId: UserId | null;
   readonly createdBy: UserId;
+  /** Created by a recruiter without a Team Lead (VAC-03 footnote 1); only these are recruiter-deletable (D13). */
+  readonly recruiterInitiated: boolean;
   readonly assignedRecruiterIds: readonly UserId[];
+  /** Furthest `max_stage_reached` over the vacancy's applications; null without applications. */
   readonly maxApplicationStage: Stage | null;
 }
 export interface ApplicationRef {
@@ -78,6 +87,8 @@ export interface ApplicationRef {
   readonly ownerId: UserId;
   readonly sourcerId: UserId;
   readonly teamLeadId: UserId | null;
+  /** Manual bonus split recipients (BONUS-05); part of the self-benefit beneficiary set. */
+  readonly splitRecipientIds: readonly UserId[];
 }
 export interface CandidateRef {
   readonly type: 'candidate';

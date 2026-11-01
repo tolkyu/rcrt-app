@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { can } from '@/server/authz/can';
+import { can, canActOn } from '@/server/authz/can';
 import type { AuthContext } from '@/server/authz/context';
 import {
   PERMISSIONS,
@@ -69,8 +69,8 @@ function scopeToken(scopes: readonly Scope[]): string {
       return scope!.stage === 'POLYGRAPH' ? 'V≥P' : `V≥${scope!.stage}`;
     case 'OWN':
       return 'own';
-    case 'OWN_EARLY':
-      return 'own<I';
+    case 'OWN_INITIATED_NEW':
+      return 'ownN';
     case 'UNASSIGNED_OPEN':
       return 'uo';
     case 'SUBMITTED_TO_ME':
@@ -80,11 +80,15 @@ function scopeToken(scopes: readonly Scope[]): string {
   }
 }
 
+/** Self-benefit permissions are checked through canActOn; fixtures never make ME a beneficiary there. */
 const check = (
   ctx: AuthContext,
   permission: PermissionCode,
   resource: ResourceRef,
-) => can(ctx, permission as 'vacancy.read', resource as never);
+) =>
+  PERMISSIONS[permission].selfBenefit
+    ? canActOn(ctx, permission as 'bonus.approve', resource as never, [])
+    : can(ctx, permission as 'vacancy.read', resource as never);
 
 const resourceOf = (permission: PermissionCode) =>
   PERMISSIONS[permission].resources[0];

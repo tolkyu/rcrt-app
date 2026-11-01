@@ -2,7 +2,11 @@ import { inArray, or, sql, type SQL } from 'drizzle-orm';
 import { appUser, userRole, vertical } from '../db/schema';
 import { NotFoundError } from '../http/errors';
 import type { AuthContext } from './context';
-import type { PermissionsOn } from './permissions';
+import {
+  PERMISSIONS,
+  type PermissionsOn,
+  type ReadPermissionOn,
+} from './permissions';
 import type {
   ResourceType,
   ScopeKind,
@@ -25,7 +29,7 @@ export interface ScopeAdapter<R extends ResourceType> {
     ScopeArgs & { readonly stage: Stage }
   >;
   readonly OWN?: ScopeBuilder<ScopeArgs>;
-  readonly OWN_EARLY?: ScopeBuilder<ScopeArgs>;
+  readonly OWN_INITIATED_NEW?: ScopeBuilder<ScopeArgs>;
   readonly ASSIGNED?: ScopeBuilder<ScopeArgs>;
   readonly UNASSIGNED_OPEN?: ScopeBuilder<ScopeArgs>;
   readonly SUBMITTED_TO_ME?: ScopeBuilder<ScopeArgs>;
@@ -40,7 +44,7 @@ export const supportedScopes = (
       'VERTICAL',
       'VERTICAL_FROM_STAGE',
       'OWN',
-      'OWN_EARLY',
+      'OWN_INITIATED_NEW',
       'ASSIGNED',
       'UNASSIGNED_OPEN',
       'SUBMITTED_TO_ME',
@@ -78,12 +82,20 @@ export function scopeWhere<R extends ResourceType>(
   return predicates.length === 1 ? predicates[0]! : or(...predicates)!;
 }
 
-/** Scoped single fetch: no row means missing or out of scope, both answered 404. */
-export async function findVisibleOrThrow<T>(
+/**
+ * Scoped single fetch: the scope is always computed from a read permission, so a write grant
+ * wider than the read grant can never reveal an object (SEC-CORE-05). No row ⇒ 404.
+ */
+export async function findVisibleOrThrow<R extends ResourceType, T>(
+  ctx: AuthContext,
+  permission: ReadPermissionOn<R>,
+  adapter: ScopeAdapter<R>,
   load: (scope: SQL) => Promise<T | null | undefined>,
-  scope: SQL,
 ): Promise<T> {
-  const row = await load(scope);
+  if (PERMISSIONS[permission].write) {
+    throw new Error(`${permission} cannot scope a detail fetch`);
+  }
+  const row = await load(scopeWhere(ctx, permission, adapter));
   if (row === null || row === undefined) throw new NotFoundError();
   return row;
 }

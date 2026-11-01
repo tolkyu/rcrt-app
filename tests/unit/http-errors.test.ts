@@ -62,27 +62,36 @@ describe('Domain errors → RFC 9457 problem+json [API, ADR-006]', () => {
     ).toBe('42');
   });
 
-  it('maps database invariants by SQLSTATE without echoing driver messages', async () => {
+  it('maps database invariants by SQLSTATE; unique violations only via the allowlist [SEC-CORE-06]', async () => {
     const trigger = mapError(
       postgresError('P0001', 'PROBATION_EXTENSION_FORBIDDEN'),
       requestId,
     )!;
     expect(trigger.status).toBe(409);
     expect((await trigger.json()).code).toBe('PROBATION_EXTENSION_FORBIDDEN');
-    const wrapped = Object.assign(
-      new Error('Failed query: insert … params: secret@example.com'),
-      {
-        cause: postgresError(
-          '23505',
-          'duplicate key value violates unique constraint',
-        ),
-      },
-    );
-    const duplicate = mapError(wrapped, requestId)!;
-    const text = await duplicate.text();
-    expect(duplicate.status).toBe(409);
-    expect(text).toContain('ALREADY_EXISTS');
-    expect(text).not.toContain('secret@example.com');
+    const duplicate = (constraint: string) =>
+      Object.assign(
+        new Error('Failed query: insert … params: secret@example.com'),
+        {
+          cause: Object.assign(
+            postgresError(
+              '23505',
+              'duplicate key value violates unique constraint',
+            ),
+            { constraint_name: constraint },
+          ),
+        },
+      );
+    const hidden = mapError(duplicate('candidate_email_norm_uq'), requestId)!;
+    const text = await hidden.text();
+    expect(hidden.status).toBe(409);
+    expect(JSON.parse(text).code).toBe('CONFLICT');
+    expect(text).not.toMatch(/secret@example\.com|exist|candidate/i);
+    const visible = mapError(duplicate('vertical_name_uq'), requestId)!;
+    expect((await visible.json()).code).toBe('VERTICAL_NAME_TAKEN');
+    expect(
+      (await mapError(duplicate('__proto__'), requestId)!.json()).code,
+    ).toBe('CONFLICT');
   });
 
   it('leaves unexpected errors to the 500 path', () => {
@@ -97,13 +106,13 @@ describe('Request metadata', () => {
   it('keeps only well-formed IP, user agent and mutation id', () => {
     const meta = requestMeta(
       new Headers({
-        'x-forwarded-for': '203.0.113.7, 10.0.0.1',
+        'x-forwarded-for': '203.0.113.7',
         'user-agent': 'Mozilla/5.0',
         'x-mutation-id': '6f1c2d34-5a6b-4c7d-8e9f-0a1b2c3d4e5f',
       }),
     );
     expect(meta).toMatchObject({
-      ip: '203.0.113.7',
+      ip: null,
       userAgent: 'Mozilla/5.0',
       mutationId: '6f1c2d34-5a6b-4c7d-8e9f-0a1b2c3d4e5f',
     });

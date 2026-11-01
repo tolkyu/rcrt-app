@@ -7,7 +7,9 @@ import type { AuthContext, ResolvedGrant } from './context';
 import {
   PERMISSIONS,
   PERMISSION_CODES,
+  type GuardedPermission,
   type PermissionCode,
+  type PlainPermission,
   type ResourceFor,
 } from './permissions';
 import {
@@ -64,18 +66,20 @@ function scopeMatches(
       return scope.kind === 'OWN' && resource.recipientId === me;
     case 'application':
       return applicationMatches(scope, me, resource);
-    case 'vacancy': {
-      const own = resource.teamLeadId === me || resource.createdBy === me;
+    case 'vacancy':
       switch (scope.kind) {
         case 'VERTICAL':
           return true;
+        // D67: a Team Lead's vacancy is the one they currently lead; the creator keeps nothing after reassignment.
         case 'OWN':
-          return own;
-        case 'OWN_EARLY':
+          return resource.teamLeadId === me;
+        // D13/D65: a recruiter deletes only their own recruiter-initiated vacancy while no application got past NEW.
+        case 'OWN_INITIATED_NEW':
           return (
-            own &&
+            resource.createdBy === me &&
+            resource.recruiterInitiated &&
             (resource.maxApplicationStage === null ||
-              !reached(resource.maxApplicationStage, 'TL_INTERVIEW'))
+              resource.maxApplicationStage === 'NEW')
           );
         case 'ASSIGNED':
           return resource.assignedRecruiterIds.includes(me);
@@ -87,27 +91,19 @@ function scopeMatches(
         default:
           return false;
       }
-    }
     case 'candidate': {
       // Closed applications keep their historical vertical after a transfer (CAND-06), so each is re-scoped.
       const apps = resource.applications.filter((app) =>
         allowed.includes(app.verticalId),
       );
-      const ownCandidate =
-        resource.sourcerId === me ||
-        resource.ownerId === me ||
-        apps.some((app) => applicationMatches({ kind: 'OWN' }, me, app));
       switch (scope.kind) {
         case 'VERTICAL':
           return true;
         case 'OWN':
-          return ownCandidate;
-        case 'OWN_EARLY':
           return (
-            ownCandidate &&
-            resource.applications.every(
-              (app) => !reached(app.maxStageReached, 'TL_INTERVIEW'),
-            )
+            resource.sourcerId === me ||
+            resource.ownerId === me ||
+            apps.some((app) => applicationMatches(scope, me, app))
           );
         case 'VERTICAL_FROM_STAGE':
         case 'SUBMITTED_TO_ME':
@@ -161,22 +157,89 @@ function evaluate(
   );
 }
 
-/** In-memory check on an already-loaded (visible) resource. */
-export function can<P extends PermissionCode>(
+/** Current beneficiaries of a bonus-relevant object (DG-19, SEC-CORE-01). */
+export function beneficiariesOf(resource: ResourceRef): readonly UserId[] {
+  const ofApplication = (app: AppFacts) => [
+    app.ownerId,
+    app.sourcerId,
+    ...app.splitRecipientIds,
+  ];
+  switch (resource.type) {
+    case 'bonus_tranche':
+      return [resource.recipientId];
+    case 'application':
+      return ofApplication(resource);
+    case 'candidate':
+      return [
+        resource.sourcerId,
+        ...(resource.ownerId ? [resource.ownerId] : []),
+        ...resource.applications.flatMap(ofApplication),
+      ];
+    default:
+      return [];
+  }
+}
+
+function assertPlain(permission: PermissionCode) {
+  if (PERMISSIONS[permission].selfBenefit) {
+    throw new Error(`${permission} must be checked with assertCanActOn`);
+  }
+}
+
+/** In-memory check on an already-loaded (visible) resource. Self-benefit permissions use canActOn. */
+export function can<P extends PlainPermission>(
   ctx: AuthContext,
   permission: P,
   resource: ResourceFor<P>,
 ): boolean {
+  assertPlain(permission);
   return evaluate(ctx, permission, resource);
 }
 
 /** Call only after a scoped fetch: the object is visible, so a refusal is 403. */
-export function assertCan<P extends PermissionCode>(
+export function assertCan<P extends PlainPermission>(
   ctx: AuthContext,
   permission: P,
   resource: ResourceFor<P>,
 ): void {
+  assertPlain(permission);
   if (!evaluate(ctx, permission, resource)) throw new ForbiddenError();
+}
+
+function selfBenefits(
+  ctx: AuthContext,
+  resource: ResourceRef,
+  incoming: readonly UserId[],
+) {
+  return [...beneficiariesOf(resource), ...incoming].includes(ctx.userId);
+}
+
+/**
+ * The only check for self-benefit permissions: the actor may be neither a current beneficiary
+ * of the object nor one of `incoming` (new owner / split recipients; pass [] when none change).
+ */
+export function canActOn<P extends GuardedPermission>(
+  ctx: AuthContext,
+  permission: P,
+  resource: ResourceFor<P>,
+  incoming: readonly UserId[],
+): boolean {
+  return (
+    evaluate(ctx, permission, resource) &&
+    !selfBenefits(ctx, resource, incoming)
+  );
+}
+
+export function assertCanActOn<P extends GuardedPermission>(
+  ctx: AuthContext,
+  permission: P,
+  resource: ResourceFor<P>,
+  incoming: readonly UserId[],
+): void {
+  if (!evaluate(ctx, permission, resource)) throw new ForbiddenError();
+  if (selfBenefits(ctx, resource, incoming)) {
+    throw new ForbiddenError('SELF_BENEFIT_FORBIDDEN');
+  }
 }
 
 export function hasAnyGrant(
@@ -186,7 +249,7 @@ export function hasAnyGrant(
   return (ctx.grants.get(permission)?.length ?? 0) > 0;
 }
 
-/** Route gating (ADR-002 §5): no grant ⇒ 404 for the whole route; withheld ADMIN/FINANCE grant ⇒ 401 MFA_REQUIRED. */
+/** Route gating (ADR-002 §5): no grant ⇒ 404 for the whole route; grant withheld for MFA ⇒ 401 MFA_REQUIRED. */
 export function requirePermission(
   ctx: AuthContext,
   permission: PermissionCode,
@@ -197,28 +260,18 @@ export function requirePermission(
   throw new NotFoundError();
 }
 
-/** Effective permissions on one resource — input for pipeline.availableActions(). */
+/** Effective permissions on one resource — input for pipeline.availableActions(); self-benefit ones exclude the actor's own objects. */
 export function permissionsFor(
   ctx: AuthContext,
   resource: ResourceRef,
 ): ReadonlySet<PermissionCode> {
   return new Set(
-    PERMISSION_CODES.filter((permission) =>
-      evaluate(ctx, permission, resource),
+    PERMISSION_CODES.filter(
+      (permission) =>
+        evaluate(ctx, permission, resource) &&
+        !(
+          PERMISSIONS[permission].selfBenefit && selfBenefits(ctx, resource, [])
+        ),
     ),
   );
-}
-
-/** Separation of duties (DG-19): nobody acts on a bonus, split or ownership that benefits themselves. */
-export function assertNotSelfBenefit(
-  ctx: AuthContext,
-  permission: PermissionCode,
-  beneficiaryIds: readonly UserId[],
-): void {
-  if (
-    PERMISSIONS[permission].selfBenefit &&
-    beneficiaryIds.includes(ctx.userId)
-  ) {
-    throw new ForbiddenError('SELF_BENEFIT_FORBIDDEN');
-  }
 }

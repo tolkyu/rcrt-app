@@ -10,8 +10,8 @@ Source: PRD §2.3 (VIS-01..03), §2.2 (ROLE-01..06), CAND-06, POLY-04, OFFER-01,
 | `G` | `GLOBAL` | Everything | No (role has `vertical_id = null`) |
 | `V` | `VERTICAL` | Object's `vertical_id` ∈ verticals where the user holds the granting role | Yes |
 | `V≥P` | `VERTICAL_FROM_STAGE(POLYGRAPH)` | In vertical **and** application `max_stage_reached ≥ POLYGRAPH` (stays visible after later rejection) | Yes |
-| `own` | `OWN` | Vacancy: `team_lead_id = me` or `created_by = me` · Application: `owner_id = me` or `sourcer_id = me` · Candidate: `sourcer_id = me`, `owner_id = me` (set by CAND-06 transfer) or owner of any of its applications · Bonus: `recipient_id = me` · Stats: subject column `= me` | Yes (still limited to the role's verticals) |
-| `own<I` | `OWN_EARLY` | `own` **and** no application of the object ever reached `TL_INTERVIEW` (D13) | Yes |
+| `own` | `OWN` | Vacancy: `team_lead_id = me` only — a previous Team Lead, even the creator, loses every right after reassignment (D67) · Application: `owner_id = me` or `sourcer_id = me` · Candidate: `sourcer_id = me`, `owner_id = me` (set by CAND-06 transfer) or owner of any of its applications · Bonus: `recipient_id = me` · Stats: subject column `= me` | Yes (still limited to the role's verticals) |
+| `ownN` | `OWN_INITIATED_NEW` | Vacancy only: `created_by = me` **and** recruiter-initiated **and** no application got past `NEW` (`max_stage_reached ≤ NEW`) (D13, D65). Recruiters never delete candidates (D65) | Yes |
 | `asg` | `ASSIGNED` | Vacancy has `vacancy_recruiter(user_id = me)` | Yes |
 | `uo` | `UNASSIGNED_OPEN` | Vacancy `status = OPEN` with no assigned recruiters (D1) | Yes |
 | `sub` | `SUBMITTED_TO_ME` | Application on a vacancy with `team_lead_id = me` and `max_stage_reached ≥ SUBMITTED_TO_TL`; candidate/offer/probation via such an application | Yes |
@@ -36,7 +36,7 @@ Several cells in one column (e.g. `asg`+`uo`) = union. A user with several role 
 | `vacancy.hold` / `vacancy.resume` | G | V | — | — | — | own ⚠ | — | VAC-02 |
 | `vacancy.cancel` | G | V | — | — | — | own ⚠ | — | VAC-02 |
 | `vacancy.reopen` (FILLED→OPEN) | G | V | — | — | — | — | — | VAC-02 |
-| `vacancy.delete` | G | V | own<I | — | — | — | — | §2.3, D13, ARCH-03 |
+| `vacancy.delete` | G | V | ownN | — | — | — | — | §2.3, D13, D65, ARCH-03 |
 | `vacancy.priority.override` | G | — | — | — | — | — | — | ROUTE-01 |
 | `vacancy.bonus_scheme.override` | G | — | — | — | — | — | — | VAC-01, BONUS-01 |
 | `vacancy.bonus.update` (recruiter reward amount + currency on the vacancy) | G | — | — | — | — | — | — | BONUS-16 ⁵ |
@@ -55,11 +55,12 @@ Clone (VAC-05) = `vacancy.read` on source **and** `vacancy.create` in the vertic
 | `candidate.transfer_vertical` | G | V (source) | — | V≥P (source) | — | — | — | CAND-06 ⁹ |
 | `candidate.create` | G | V | V | — | — | — | — | §2.3 |
 | `candidate.update` (profile fields) | G | V | own | — | — | — | — | CAND-01 ⚠ |
-| `candidate.bonus_flags.update` (former-employee flag CAND-05, `referrer_user_id` BONUS-05) | G | V | — ⁶ | V≥P | — | — | — | DG-19 ⚠ OWNER (Q-21) |
+| `candidate.bonus_flags.set` (set former-employee flag CAND-05, `referrer_user_id` / self-referral BONUS-05) | G | V | own | — | — | — | — | D66 ⁶ |
+| `candidate.bonus_flags.clear` (clear any of those flags; reason mandatory, audited) | G ⁷ | — | — | — | — | — | — | D66 ⁶ |
 | `candidate.file.read` (CV, attachments) | G | V | own | V≥P | V≥P | sub | — | CAND-04 |
 | `candidate.file.upload` | G | V | own | — | — | — | — | CAND-01 |
 | `candidate.merge` | G | V | — | — | — | — | — | CAND-02 |
-| `candidate.delete` | G | V | own<I | — | — | — | — | §2.3, D13 |
+| `candidate.delete` | G | V | — | — | — | — | — | §2.3, D65 (recruiters reject instead; the candidate goes to the archive) |
 | `archive.deleted.read` | G | V | — | — | — | — | — | ARCH-01 |
 | `archive.restore` | G | V | — | — | — | — | — | §2.3 |
 | `candidate.purge` | G | — | — | — | — | — | — | ARCH-04/05 |
@@ -123,8 +124,8 @@ Interview/polygraph/offer/probation sub-objects are always read through `applica
 | `bonus.self_referral.approve` | G ⁷ | — | — | — | — | — | — | BONUS-05 |
 | `bonus.payout_report.read` / `.export` | G | V ⚠ | — | — | — | — | G (inside Statistics) | BONUS-13 |
 
-⁶ DG-19: the own recruiter can't set or clear these fields, because they block that recruiter's own bonus (BONUS-05/11). Every change is audited and shown on the bonus approval screen. ⚠ OWNER (Q-21): the roles listed are the security default, waiting for the owner.
-⁷ **Actor ≠ beneficiary** (DG-19), **owner-confirmed 2026-10-31**: a Head Recruiter can be sourcer/owner and earn bonuses, and nobody approves their own bonus. Another HREC of the vertical, or an Admin, approves. The permission alone isn't enough: the actor must not be the tranche recipient (approve, hold/release, mark paid, adjust, self-referral approval) or a split recipient. Reassigning an owner to yourself needs another HREC or an Admin. Enforced in the service → 403 `SELF_BENEFIT_FORBIDDEN`, plus DB CHECKs (`approved_by <> recipient_id`, `paid_by <> recipient_id`). Bulk mark-paid skips the actor's own rows. Needs ≥ 2 Admins. ⚠ OWNER: a vertical with a single HREC depends on Admin approval.
+⁶ D66 (owner 2026-10-31): setting a bonus-relevant flag only ever blocks a bonus, so the own Recruiter and the Head Recruiter may set it; **clearing** unblocks a bonus, so it is Admin-only (aal2), with a mandatory reason, audited and shown on the bonus approval screen. Head HR holds neither. `clear` also carries the self-benefit guard (footnote 7) as defence in depth.
+⁷ **Actor ≠ beneficiary** (DG-19), **owner-confirmed 2026-10-31**: a Head Recruiter can be sourcer/owner and earn bonuses, and nobody approves their own bonus. Another HREC of the vertical, or an Admin, approves. The permission alone isn't enough: the actor must not be the tranche recipient (approve, hold/release, mark paid, adjust, self-referral approval) or a split recipient; for `candidate.bonus_flags.clear` the beneficiaries are the candidate's sourcer and owner plus the owners, sourcers and split recipients of all its applications. Reassigning an owner to yourself needs another HREC or an Admin; split and reassign check the old **and** new beneficiaries. Code: these permissions are excluded from `can`/`assertCan` at type level and checked only with `canActOn`/`assertCanActOn(ctx, permission, resource, incoming)` (SEC-CORE-04). Enforced in the service → 403 `SELF_BENEFIT_FORBIDDEN`, plus DB CHECKs (`approved_by <> recipient_id`, `paid_by <> recipient_id`). Bulk mark-paid skips the actor's own rows. Needs ≥ 2 Admins. ⚠ OWNER: a vertical with a single HREC depends on Admin approval.
 
 ### 2.5 Statistics (STAT-07/08)
 | Permission | ADM | HREC | REC | HHR | HR | TL | FIN |
@@ -137,7 +138,7 @@ Interview/polygraph/offer/probation sub-objects are always read through `applica
 Finance rows (Q-23, owner): candidate-level rows in payout reports / who-brought-whom show **only the candidate's full name + application ID** (purged → stub). No contacts, no other candidate fields, no links to cards. Counts follow Q-15: only objects the viewer can open (ADR-008).
 
 ### 2.6 Settings, users, audit (Admin only — §2.3 last row)
-`settings.verticals.manage` (create/rename only — no deactivation, owner 2026-10-31) · `settings.vertical_flags.manage` (approval D2, auto-routing ROUTE-09) · `settings.users.manage` (invite, roles, deactivate) · `settings.priorities.manage` (ROUTE-01) · `settings.bonus_schemes.manage` · `settings.reference_data.manage` (rejection reasons, polygraph locations, offer templates) · `settings.retention.manage` · `settings.jobs.run` (manual job re-run, aal2, ADR-004 DG-04) · `audit.read` — **ADM `G` only**. ADMIN and FINANCE grants are active only with an aal2 session (MFA mandatory for both, owner 2026-10-31). Granting `ADMIN`/`FINANCE` and any self role change are refused (DG-10).
+`settings.verticals.manage` (create/rename only — no deactivation, owner 2026-10-31) · `settings.vertical_flags.manage` (approval D2, auto-routing ROUTE-09) · `settings.users.manage` (invite, roles, deactivate) · `settings.priorities.manage` (ROUTE-01) · `settings.bonus_schemes.manage` · `settings.reference_data.manage` (rejection reasons, polygraph locations, offer templates) · `settings.retention.manage` · `settings.jobs.run` (manual job re-run, aal2, ADR-004 DG-04) · `audit.read` — **ADM `G` only**. aal2 is derived from the grant, not the role (SEC-CORE-09): every `G` grant and every MFA-flagged permission (all `settings.*`, `audit.read`, `candidate.purge`, `candidate.bonus_flags.clear`, Admin-only bonus writes, `application.force_move`, vacancy bonus/priority overrides) is withheld until the session is aal2 — so ADMIN and FINANCE need MFA (owner 2026-10-31). Only ADMIN and FINANCE may be assigned without a vertical; a global custom role is ignored. Granting `ADMIN`/`FINANCE` and any self role change are refused (DG-10).
 `user.directory.read` (pickers, mentions): all roles except FIN, `V` (users holding a role in my verticals). `vertical.read` (vertical lists, filters; STORY-VIS-02-1, added in T3): ADM `G`, every vertical role `V` (verticals where I hold a role), FIN — (404, FIN-03). Pickers return only users holding the **required** role in that vertical (e.g. split recipients = REC/HREC, `hrUserId` = HR/HHR) (DG-10).
 
 ## 3. Scope → SQL predicate (repository `WHERE`)
@@ -149,7 +150,8 @@ Finance rows (Q-23, owner): candidate-level rows in payout reports / who-brought
 | vacancy | V | `v.vertical_id = ANY(:V)` | `vacancy(vertical_id, status, updated_at DESC, id DESC) WHERE LIVE` (IDX-23) |
 | vacancy | asg | `v.vertical_id = ANY(:V) AND EXISTS (SELECT 1 FROM vacancy_recruiter vr WHERE vr.vacancy_id = v.id AND vr.user_id = :me)` | `vacancy_recruiter(user_id, vacancy_id)` |
 | vacancy | uo | `v.vertical_id = ANY(:V) AND v.status = 'OPEN' AND NOT EXISTS (SELECT 1 FROM vacancy_recruiter vr WHERE vr.vacancy_id = v.id)` | `vacancy_recruiter(vacancy_id)` |
-| vacancy | own | `v.vertical_id = ANY(:V) AND (v.team_lead_id = :me OR v.created_by = :me)` | `vacancy(team_lead_id)`, `vacancy(created_by)` |
+| vacancy | own | `v.vertical_id = ANY(:V) AND v.team_lead_id = :me` (D67) | `vacancy(team_lead_id)` |
+| vacancy | ownN | `v.vertical_id = ANY(:V) AND v.created_by = :me AND v.recruiter_initiated AND NOT EXISTS (SELECT 1 FROM application a WHERE a.vacancy_id = v.id AND a.max_stage_reached > 'NEW')` (D13, D65) | `vacancy(created_by)`, `application(vacancy_id)` |
 | application | V | `a.vertical_id = ANY(:V)` | board: `application(vertical_id, stage, stage_entered_at DESC, id DESC) WHERE ACTIVE` (ERD IDX-01); lists/archive: IDX-08/09/13 |
 | application | V≥P | `a.vertical_id = ANY(:V) AND a.max_stage_reached >= 'POLYGRAPH'` (ordinal smallint) | `application(vertical_id, max_stage_reached)` |
 | application | own | `a.vertical_id = ANY(:V) AND (a.owner_id = :me OR a.sourcer_id = :me)` | `application(owner_id, stage, stage_entered_at DESC, id DESC)` (IDX-02), `application(sourcer_id, created_at DESC, id DESC)` (IDX-12) |
@@ -195,6 +197,8 @@ Soft delete: every predicate is AND-ed with `deleted_at IS NULL` except in `arch
 
 ## 7. Interfaces (types/signatures only)
 
+> Implemented in `server/authz/` (T3 + security review SEC-CORE-04/05/08): `AuthContext` has **no** `roles` field and `ResolvedGrant` has no role list (decisions read grants only; `/me` loads role names separately for display); self-benefit permissions use `canActOn`/`assertCanActOn(ctx, permission, resource, incoming)`; `findVisibleOrThrow(ctx, readPermission, adapter, load)` accepts only `write: false` permissions and computes the scope itself. The sketch below is the original design.
+
 ```ts
 // server/authz/types.ts
 export type UserId = string & { readonly __brand: 'UserId' };
@@ -216,7 +220,7 @@ export type PermissionCode =
   | 'vacancy.probation_length.set'
   | 'position.manage'
   | 'candidate.read' | 'candidate.contacts.read' | 'candidate.transfer_vertical' | 'candidate.create'
-  | 'candidate.update' | 'candidate.bonus_flags.update' | 'candidate.file.read'
+  | 'candidate.update' | 'candidate.bonus_flags.set' | 'candidate.bonus_flags.clear' | 'candidate.file.read'
   | 'candidate.file.upload' | 'candidate.merge' | 'candidate.delete' | 'candidate.purge'
   | 'archive.deleted.read' | 'archive.restore' | 'comment.create'
   | 'application.read' | 'application.create' | 'application.reactivate'
@@ -245,7 +249,7 @@ export type Scope =
   | { readonly kind: 'VERTICAL' }
   | { readonly kind: 'VERTICAL_FROM_STAGE'; readonly stage: Stage }
   | { readonly kind: 'OWN' }
-  | { readonly kind: 'OWN_EARLY' }
+  | { readonly kind: 'OWN_INITIATED_NEW' }
   | { readonly kind: 'ASSIGNED' }
   | { readonly kind: 'UNASSIGNED_OPEN' }
   | { readonly kind: 'SUBMITTED_TO_ME' };

@@ -51,11 +51,13 @@ const appFacts = (overrides: Partial<AppFacts> = {}): AppFacts => ({
   ownerId: OTHER,
   sourcerId: OTHER,
   teamLeadId: OTHER,
+  splitRecipientIds: [],
   ...overrides,
 });
 const atStage = (stage: Stage, overrides: Partial<AppFacts> = {}) =>
   appFacts({ stage, maxStageReached: stage, ...overrides });
 
+export { appFacts };
 export const vacancy = (overrides: Partial<VacancyRef> = {}): VacancyRef => ({
   type: 'vacancy',
   id: 'vacancy-1',
@@ -63,6 +65,7 @@ export const vacancy = (overrides: Partial<VacancyRef> = {}): VacancyRef => ({
   status: 'OPEN',
   teamLeadId: OTHER,
   createdBy: OTHER,
+  recruiterInitiated: false,
   assignedRecruiterIds: [OTHER],
   maxApplicationStage: null,
   ...overrides,
@@ -91,8 +94,8 @@ type Variant =
   | 'from_stage'
   | 'below_stage'
   | 'own'
-  | 'own_early'
-  | 'own_late'
+  | 'own_new'
+  | 'own_progressed'
   | 'assigned'
   | 'unassigned_open'
   | 'unassigned_hold'
@@ -129,12 +132,17 @@ export function fixture(type: ResourceType, variant: Variant): ResourceRef {
       switch (variant) {
         case 'own':
           return vacancy({ teamLeadId: ME });
-        case 'own_early':
-          return vacancy({ createdBy: ME, maxApplicationStage: 'IN_WORK' });
-        case 'own_late':
+        case 'own_new':
           return vacancy({
             createdBy: ME,
-            maxApplicationStage: 'TL_INTERVIEW',
+            recruiterInitiated: true,
+            maxApplicationStage: 'NEW',
+          });
+        case 'own_progressed':
+          return vacancy({
+            createdBy: ME,
+            recruiterInitiated: true,
+            maxApplicationStage: 'IN_WORK',
           });
         case 'assigned':
           return vacancy({ status: 'ON_HOLD', assignedRecruiterIds: [ME] });
@@ -176,16 +184,6 @@ export function fixture(type: ResourceType, variant: Variant): ResourceRef {
       switch (variant) {
         case 'own':
           return candidate({ sourcerId: ME });
-        case 'own_early':
-          return candidate({
-            sourcerId: ME,
-            applications: [atStage('IN_WORK')],
-          });
-        case 'own_late':
-          return candidate({
-            sourcerId: ME,
-            applications: [atStage('TL_INTERVIEW')],
-          });
         case 'below_stage':
           return candidate({ applications: [atStage('TL_INTERVIEW')] });
         case 'submitted':
@@ -231,10 +229,10 @@ export function scopeCases(
         allowed: [fixture(type, 'own')],
         denied: [fixture(type, 'base')],
       };
-    case 'own<I':
+    case 'ownN':
       return {
-        allowed: [fixture(type, 'own_early')],
-        denied: [fixture(type, 'own_late')],
+        allowed: [fixture(type, 'own_new')],
+        denied: [fixture(type, 'own_progressed')],
       };
     case 'asg+uo':
       return {

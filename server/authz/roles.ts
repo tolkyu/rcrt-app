@@ -13,7 +13,7 @@ const FROM_POLYGRAPH: Scope = {
   stage: 'POLYGRAPH',
 };
 const OWN: Scope = { kind: 'OWN' };
-const OWN_EARLY: Scope = { kind: 'OWN_EARLY' };
+const OWN_INITIATED_NEW: Scope = { kind: 'OWN_INITIATED_NEW' };
 const ASSIGNED: Scope = { kind: 'ASSIGNED' };
 const UNASSIGNED_OPEN: Scope = { kind: 'UNASSIGNED_OPEN' };
 const SUBMITTED: Scope = { kind: 'SUBMITTED_TO_ME' };
@@ -52,7 +52,7 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRole, readonly Grant[]>> = {
     'candidate.transfer_vertical',
     'candidate.create',
     'candidate.update',
-    'candidate.bonus_flags.update',
+    'candidate.bonus_flags.set',
     'candidate.file.read',
     'candidate.file.upload',
     'candidate.merge',
@@ -102,12 +102,13 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRole, readonly Grant[]>> = {
       'user.directory.read',
       'vertical.read',
     ),
-    ...grant(OWN_EARLY, 'vacancy.delete', 'candidate.delete'),
+    ...grant(OWN_INITIATED_NEW, 'vacancy.delete'),
     ...grant(
       OWN,
       'candidate.read',
       'candidate.contacts.read',
       'candidate.update',
+      'candidate.bonus_flags.set',
       'candidate.file.read',
       'candidate.file.upload',
       'comment.create',
@@ -158,7 +159,6 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRole, readonly Grant[]>> = {
       'candidate.read',
       'candidate.contacts.read',
       'candidate.transfer_vertical',
-      'candidate.bonus_flags.update',
       'candidate.file.read',
       'comment.create',
       'application.read',
@@ -239,12 +239,8 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRole, readonly Grant[]>> = {
   ),
 };
 
-/** Global-only roles (D40); their grants exist only in an aal2 session (owner 2026-10-31). */
+/** The only roles that may be assigned without a vertical (D40); custom roles are always vertical-bound. */
 export const GLOBAL_ROLES: ReadonlySet<BuiltinRole> = new Set([
-  'ADMIN',
-  'FINANCE',
-]);
-export const MFA_REQUIRED_ROLES: ReadonlySet<BuiltinRole> = new Set([
   'ADMIN',
   'FINANCE',
 ]);

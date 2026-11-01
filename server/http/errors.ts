@@ -63,3 +63,24 @@ export class RateLimitedError extends DomainError {
     super('RATE_LIMITED');
   }
 }
+
+export class PayloadTooLargeError extends DomainError {
+  readonly status = 413;
+  constructor() {
+    super('BODY_TOO_LARGE');
+  }
+}
+
+export class AuthEmailDeliveryFailedError extends DomainError {
+  readonly status = 503;
+  constructor() {
+    super('AUTH_EMAIL_DELIVERY_FAILED');
+  }
+}
+
+export class MfaResetIncompleteError extends DomainError {
+  readonly status = 503;
+  constructor() {
+    super('MFA_RESET_INCOMPLETE');
+  }
+}

@@ -5,6 +5,38 @@ import { auditLog } from '../db/schema';
 
 const json = z.json();
 
+/** Key fragments that signal identifiers or free text; such values belong in purgeable before/after. */
+const piiKey =
+  /email|phone|telegram|name|comment|note|text|url|link|address|file|feedback|message|description|terms|salary/i;
+/** Detail values are codes, ids, numbers or flags; free text cannot match these shapes (SEC-CORE-07). */
+const detailScalar = z.union([
+  z.boolean(),
+  z.number().finite(),
+  z.null(),
+  z.uuid(),
+  z.string().regex(/^[a-z][a-z0-9_.-]{0,63}$/),
+  z.string().regex(/^[A-Z][A-Z0-9_]{0,63}$/),
+]);
+const detailsSchema = z.record(
+  z
+    .string()
+    .regex(/^[a-z][a-zA-Z0-9]{0,39}$/)
+    .refine((key) => !piiKey.test(key), 'PII-like key in audit details'),
+  z.union([detailScalar, z.array(detailScalar).max(50)]),
+);
+
+/** Rows about these entities must carry candidate_id so the purge procedure finds them (DG-20). */
+const candidateEntities = new Set([
+  'candidate',
+  'application',
+  'interview',
+  'polygraph',
+  'offer',
+  'probation',
+  'comment',
+  'file_object',
+]);
+
 const auditEntrySchema = z
   .object({
     action: z.string().regex(/^[a-z_]+\.[a-z_]+$/),
@@ -15,9 +47,19 @@ const auditEntrySchema = z
     candidateId: z.uuid().nullable().default(null),
     before: json.nullable().default(null),
     after: json.nullable().default(null),
-    details: z.record(z.string(), json).nullable().default(null),
+    details: detailsSchema.nullable().default(null),
   })
-  .strict();
+  .strict()
+  .refine(
+    (entry) =>
+      entry.entityType === null ||
+      !candidateEntities.has(entry.entityType) ||
+      entry.candidateId !== null,
+    {
+      path: ['candidateId'],
+      message: 'candidateId is required for candidate-related rows',
+    },
+  );
 export type AuditEntry = z.input<typeof auditEntrySchema>;
 
 /**

@@ -4,6 +4,17 @@ import { problemResponse } from './problem';
 
 const triggerCode = /^[A-Z][A-Z0-9_]+$/;
 
+/**
+ * Unique constraints whose duplicates the caller can already see (Admin-only settings surfaces).
+ * Any other unique violation is a generic conflict, so it never confirms that a record exists
+ * elsewhere (SEC-CORE-06, DG-11); candidate dedupe answers through its own rate-limited service.
+ */
+const VISIBLE_UNIQUE_CONSTRAINTS: Readonly<Record<string, string>> = {
+  vertical_name_uq: 'VERTICAL_NAME_TAKEN',
+  user_role_uq: 'ROLE_ALREADY_ASSIGNED',
+  user_invite_pending_uq: 'INVITE_ALREADY_PENDING',
+};
+
 /** Domain or database error → problem response; `null` means unexpected (500, reported by the caller). */
 export function mapError(error: unknown, requestId: string): Response | null {
   if (error instanceof DomainError) {
@@ -19,8 +30,13 @@ export function mapError(error: unknown, requestId: string): Response | null {
   if (pg?.sqlState === 'P0001' && triggerCode.test(pg.message)) {
     return problemResponse(409, pg.message, requestId);
   }
-  if (pg?.sqlState === '23505')
-    return problemResponse(409, 'ALREADY_EXISTS', requestId);
+  if (pg?.sqlState === '23505') {
+    const code =
+      pg.constraint && Object.hasOwn(VISIBLE_UNIQUE_CONSTRAINTS, pg.constraint)
+        ? VISIBLE_UNIQUE_CONSTRAINTS[pg.constraint]!
+        : 'CONFLICT';
+    return problemResponse(409, code, requestId);
+  }
   if (pg?.sqlState === '40001')
     return problemResponse(409, 'STALE_STATE', requestId);
   return null;

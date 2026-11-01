@@ -1,4 +1,4 @@
-/** docs/test-plan.md §3.2 (rows 001–090) + 091 `vertical.read` (STORY-VIS-02-1). Columns: ADM HREC REC HHR HR TL FIN. */
+/** docs/test-plan.md §3.2 (owner decisions D65–D67: rows 012, 021, 025, 092) (rows 001–090) + 091 `vertical.read` (STORY-VIS-02-1). Columns: ADM HREC REC HHR HR TL FIN. */
 export const MATRIX = `
 001 | vacancy.read | G | V | asg+uo | V | V | own | 404
 002 | vacancy.create | G | V | V | 403 | 403 | V | 404
@@ -11,7 +11,7 @@ export const MATRIX = `
 009 | vacancy.resume | G | V | 403 | 403 | 403 | own | 404
 010 | vacancy.cancel | G | V | 403 | 403 | 403 | own | 404
 011 | vacancy.reopen | G | V | 403 | 403 | 403 | 403 | 404
-012 | vacancy.delete | G | V | own<I | 403 | 403 | 403 | 404
+012 | vacancy.delete | G | V | ownN | 403 | 403 | 403 | 404
 013 | vacancy.priority.override | G | 403 | 403 | 403 | 403 | 403 | 404
 014 | vacancy.bonus_scheme.override | G | 403 | 403 | 403 | 403 | 403 | 404
 015 | vacancy.bonus.update | G | 403 | 403 | 403 | 403 | 403 | 404
@@ -20,11 +20,11 @@ export const MATRIX = `
 018 | candidate.read | G | V | own | V≥P | V≥P | sub | 404
 019 | candidate.create | G | V | V | 403 | 403 | 403 | 404
 020 | candidate.update | G | V | own | 403 | 403 | 403 | 404
-021 | candidate.bonus_flags.update | G | V | 403 | V≥P | 403 | 403 | 404
+021 | candidate.bonus_flags.set | G | V | own | 403 | 403 | 403 | 404
 022 | candidate.file.read | G | V | own | V≥P | V≥P | sub | 404
 023 | candidate.file.upload | G | V | own | 403 | 403 | 403 | 404
 024 | candidate.merge | G | V | 403 | 403 | 403 | 403 | 404
-025 | candidate.delete | G | V | own<I | 403 | 403 | 403 | 404
+025 | candidate.delete | G | V | 403 | 403 | 403 | 403 | 404
 026 | archive.deleted.read | G | V | 404 | 404 | 404 | 404 | 404
 027 | archive.restore | G | V | 404 | 404 | 404 | 404 | 404
 028 | candidate.purge | G | 403 | 404 | 404 | 404 | 404 | 404
@@ -91,4 +91,5 @@ export const MATRIX = `
 089 | candidate.transfer_vertical | G | V | 403 | V≥P | 403 | 403 | 404
 090 | candidate.contacts.read | G | V | own | V≥P | V≥P | absent | 404
 091 | vertical.read | G | V | V | V | V | V | 404
+092 | candidate.bonus_flags.clear | G | 403 | 403 | 403 | 403 | 403 | 404
 `;

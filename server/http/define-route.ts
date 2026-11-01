@@ -14,9 +14,10 @@ import { ForbiddenError, ValidationError, type FieldError } from './errors';
 import { mapError } from './map-error';
 import { problemSchema } from './openapi';
 import { problemResponse } from './problem';
+import { readJsonBody } from './read-json';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-export type ErrorStatus = 400 | 401 | 403 | 404 | 409 | 429;
+export type ErrorStatus = 400 | 401 | 403 | 404 | 409 | 413 | 429 | 503;
 type AnyObject = z.ZodObject<z.ZodRawShape>;
 type Output<S> = S extends z.ZodType ? z.output<S> : undefined;
 
@@ -74,8 +75,10 @@ const statusDescriptions: Record<ErrorStatus | 401 | 500, string> = {
   403: 'Forbidden (object visible, action not permitted, or CSRF check failed)',
   404: 'Not found or out of scope',
   409: 'Conflict',
+  413: 'Request body exceeds 1 MiB',
   429: 'Rate limited',
   500: 'Unexpected error',
+  503: 'Service temporarily unavailable',
 };
 
 function fieldErrors(error: z.ZodError, prefix: string): FieldError[] {
@@ -106,16 +109,6 @@ function searchParamsObject(url: URL): Record<string, string | string[]> {
   return out;
 }
 
-async function readJson(request: Request): Promise<unknown> {
-  const text = await request.text();
-  if (text.length === 0) return undefined;
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new ValidationError([{ path: 'body', code: 'invalid_json' }]);
-  }
-}
-
 function openApiRoute(
   spec: RouteSpec<
     AnyObject | undefined,
@@ -131,7 +124,7 @@ function openApiRoute(
     ...new Set<ErrorStatus | 401 | 500>([
       ...spec.errors,
       401,
-      ...(unsafe.has(spec.method) ? [403 as const] : []),
+      ...(unsafe.has(spec.method) ? [403 as const, 413 as const] : []),
       500,
     ]),
   ].sort();
@@ -221,7 +214,7 @@ export function createRouteFactory(deps: RouteFactoryDependencies) {
           body: unsafe.has(spec.method)
             ? (parsePart(
                 spec.body,
-                await readJson(request),
+                await readJsonBody(request),
                 'body',
               ) as Output<B>)
             : (undefined as Output<B>),
