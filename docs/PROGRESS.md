@@ -39,11 +39,11 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 
 | # | Task | Agent(s) | Status |
 |---|---|---|---|
-| T1 | Repo bootstrap, local Supabase stack, CI, security baseline (FND-1..5) | devops-engineer (done by Codex) | ✅ Committed `fd0463f`; code review running; DB version Q-142 open |
+| T1 | Repo bootstrap, local Supabase stack, CI, security baseline (FND-1..5) | devops-engineer (done by Codex) | ✅ Foundation committed `c34712a`; PostgreSQL 17 approved (Q-142); remaining hardening tracked in T9 |
 | T2 | Drizzle schema + migrations (phase-1 tables), grants/triggers, demo + perf seed | database-engineer (done by Codex; review fixes by database-engineer) | ✅ 14 tables, grants, triggers, demo seed (`c34712a`); review fixes in migration `0003` (timeline/audit indexes, plain-DESC keys, file CHECKs, `app_setting` row, `auth` USAGE revoke), grant-matrix test, seed guard against non-demo data; 35 integration tests green on PostgreSQL 17.11. Perf seed → Phase 2 (SEED-1) |
-| T3 | Server core: request context, authz module + matrix tests, API wrapper/OpenAPI, audit + events | senior-fullstack-engineer | 🔄 authz map (91 codes × 7 roles, `can`/scoped SQL, aal2, self-benefit guard), one-query RequestContext with a T4 identity seam, `defineRoute` (CSRF, Zod, problem+json, OpenAPI 3.1), audit/event/change-feed writers, `GET /me` + `GET /verticals`; 1 333 new unit + 17 integration tests green; awaiting QA/review; DB rate limiter and JWT verification remain (T4) |
-| T4 | Auth: magic link, Google, invites, TOTP (Admin + Finance), sessions, dev-login | senior-fullstack-engineer + security-engineer | ⏳ |
-| T5 | Design system shell, navigation per role, profile, states — **owner's designer mockups (docs/ux/reference) are the target look** | ux-ui-designer + senior-fullstack-engineer | 🔄 design system being rewritten from mockups |
+| T3 | Server core: request context, authz module + matrix tests, API wrapper/OpenAPI, audit + events | senior-fullstack-engineer | 🔄 Committed `e6be251`; security review found 3 blocking (SEC-CORE-01 self-benefit on bonus flags, -02 D13 own-early scope, -03 TL vacancy ownership) + 6 pre-Phase-2 items — fixing; code review pending |
+| T4 | Auth: magic link, Google, invites, TOTP (Admin + Finance), sessions, dev-login | senior-fullstack-engineer + security-engineer (identity slice by Codex) | 🔄 JWT verifier, rate limiter, public-auth wrapper done (uncommitted); magic link in progress; Google, invites, MFA, sessions, dev-login pending |
+| T5 | Design system shell, navigation per role, profile, states — owner's designer mockups (docs/ux/reference) are the target look | senior-fullstack-engineer | 🔄 tokens, shell, profile in progress |
 | T6 | Settings: users & invites, roles, verticals, TL priorities, audit viewer | senior-fullstack-engineer | ⏳ |
 | T7 | Tests (integration, E2E, Newman), screenshots + gallery | qa-engineer | ⏳ |
 | T8 | Perf seed + perf:check | performance-engineer | ⏳ |
@@ -51,17 +51,18 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 
 ## Implementation checkpoint — 2026-10-31 (Codex)
 
-- Continued Claude's unfinished T1; existing product decisions and working changes preserved. Details and exact next tasks: `docs/CLAUDE_HANDOFF.md` (also linked from `CLAUDE.md`).
-- Added runnable Next.js baseline, runtime env validation/local-tool guard, typed Ukrainian i18n, HTTP liveness, nonce CSP/REST CSRF, lint/type/test configs, CI, per-page gzip budget, isolated test PostgreSQL and screenshot tooling.
-- Verified: frozen install, lint, typecheck, 36 unit tests, production build, 102.67 kB gzip initial JS (<180 kB), 8 E2E, 4 screenshot cases, Gitleaks source/history scans. Foundation gallery: `screenshots/foundation/index.html`.
-- Isolated PostgreSQL 16.13 was healthy and was removed after verification; existing Supabase containers/data were preserved. Supabase CLI rejects version 16; Q-142 records the unresolved discrepancy.
-- Next: T2 schema/migrations/grants/local-only seeds, then T3 server/authz/API and T4 auth. Full setup, full Phase 1 acceptance, auth-aware screens, Newman, Lighthouse/k6 and independent security/code review remain pending. No commits/push/deployment performed.
+- Resumed after Claude's T3 commit `e6be251`; kept its uncommitted Supabase SDK dependencies and phase status changes. Current handoff: `docs/CLAUDE_HANDOFF.md`.
+- Delegated implementation, QA, security and independent code review. Added T4 JWT verification and retained verified identity in request context; DB remains the only role/session authority.
+- Fixed the security review's bounded-input finding: streamed 1 MiB JSON reader, cancellation, UTF-8 byte accounting, sanitized 413 and automatic OpenAPI documentation.
+- Verified: frozen install, lint/typecheck, 1,505 unit/integration tests (50 credential tests; 53 PostgreSQL integration cases), OpenAPI/Postman generation, production build, 102.67 kB gzip initial JS, 8 desktop/mobile E2E. Local public Supabase JWKS: HTTP 200, ES256. No real Auth/session rows changed or read in this slice; no UI changed.
+- Owner confirmed second TOTP/Admin reset and mixed-role `aal1` access (D22/D63). Security review: `docs/security/review-phase-1-auth-identity.md`; independent code review approved this slice. Full T4/Phase 1 remain in progress; no new commits, push or deployment in this session.
 
 ## Gaps (cannot be built yet)
 
 | Item | Reason | Unblocked by |
 |---|---|---|
-| Newman/OpenAPI, database rate limiter, auth, operational PII-safe logging, Lighthouse/k6 | Require the server core and actual authenticated screens | T2–T8; current CI only runs implemented gates |
+| T4 sign-in/session completion | Magic-link/Google/refresh/invite flows, TOTP enrolment/reset, local dev-login and 12 h idle/7 day absolute enforcement not implemented by the credential slice | T4, with real local Supabase/mailbox E2E and fixture provisioning |
+| Database rate limiter, Newman runner, Lighthouse/k6 | OpenAPI/Postman and error types exist; actual limiter consumption, API runner and broader perf gates are pending | T4/T7/T8; do not claim full authentication or Phase 1 complete |
 | Perf seed `pnpm db:seed:perf` (PERF-01) | Needs Phase 2 tables (candidates, vacancies, applications) | Phase 2 (SEED-1) |
 | FKs `audit_log.candidate_id`, `entity_event.vacancy_id` / `candidate_id` / `application_id` | Parent tables don't exist yet (`docs/erd.md` §10) | Phase 2 |
 | `vertical.default_bonus_scheme_id`, `app_setting.global_bonus_scheme_id` | Added together with `bonus_scheme` | Phase 4 |
@@ -75,6 +76,7 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 
 | Date | Decision | Ref |
 |---|---|---|
+| 2026-10-31 | Recovery uses second TOTP or reset by another Admin, without recovery codes. Mixed-role users retain nonprivileged role grants at aal1; ADMIN/FINANCE grants require aal2 | PRD D22/D63, Q-30/Q-128, ADR-002 |
 | — | Probation extension not allowed, only shorter | PRD D10, PROB-05 |
 | — | Finance role included, sees Statistics only | PRD D12, STAT-08 |
 | 2026-10-30 | No paid Supabase tier for perf tests; perf runs on local PostgreSQL 16 (Docker) | perf plan Q6 |
@@ -91,4 +93,6 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 | 2026-10-31 | "Go phase 1"; repo https://github.com/tolkyu/rcrt-app; all remaining Top-10 / phase-1 questions per recommendations (Q-14, Q-16, Q-22, Q-25, Q-32, Q-34..36, Q-43, Q-44, Q-46, Q-93, Q-133..135, Q-140, Q-141 = local only) | OPEN_QUESTIONS |
 | 2026-10-31 | Designer mockups = target look for the whole app (docs/ux/reference). Approved: brand «Hiring» in UI; manual personal tasks (Ph5); private notes author-only (Ph3); optional candidate photo (Ph2); «Поділитися» link (Ph2); dashboard KPI row; stats funnel on our stages; no «Онлайн»; Google Calendar post-launch; primary colour contrast tweak | design-adoption |
 | 2026-10-31 | PostgreSQL 17 instead of 16 (Supabase CLI supports 15/17 only) | Q-142, CLAUDE.md §2 |
+| 2026-10-31 | Design adoption A-11…A-48 approved as recommended; KPI «Вийшли на роботу»; probation marker on every candidate card | PRD D64 |
+| 2026-10-31 | Recruiters can't delete candidates (reject → archive; delete = Head Recruiter/Admin); clearing bonus flags Admin-only; previous TL loses vacancy control; vacancy number V-0001 | PRD D65–D67, VAC-07 |
 | 2026-10-30 | Phase 6 input (not designed yet): vacancy is entered fully via Telegram bot, then appears in the app (`source = TELEGRAM_BOT`) | VAC-06 |

@@ -4,7 +4,7 @@ import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 
 test('foundation not-found screen', async ({ page }, testInfo) => {
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
-  await page.goto('/');
+  await page.goto('/missing-page');
   await expect(
     page.getByRole('heading', { name: 'Сторінку не знайдено', exact: true }),
   ).toBeVisible();

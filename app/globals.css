@@ -1,29 +1,248 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
 
+/*
+ * Design tokens — docs/ux/design-system.md (v1.0, designer mockups).
+ * One declaration per token: light-dark() follows `color-scheme`, which the
+ * server sets from the theme cookie (`.light` / `.dark` on <html>; none = system).
+ */
 :root {
-  color-scheme: light;
-  --background: #ffffff;
-  --foreground: #0f172a;
-  --muted-foreground: #475569;
+  color-scheme: light dark;
+
+  --brand: light-dark(#6366f1, #818cf8);
+  --cyan: light-dark(#06b6d4, #22d3ee);
+  --magenta: light-dark(#ec4899, #f472b6);
+  --yellow: light-dark(#f59e0b, #fbbf24);
+  --background: light-dark(#f8fafc, #0b1220);
+  --surface: light-dark(#ffffff, #111827);
+  --surface-muted: light-dark(#f1f5f9, #1f2937);
+  --foreground: light-dark(#0f172a, #f8fafc);
+  --muted-foreground: light-dark(#64748b, #94a3b8);
+  --muted-foreground-strong: light-dark(#475569, #94a3b8);
+  --border: light-dark(#e2e8f0, #334155);
+  --success: light-dark(#22c55e, #34d399);
+  --warning: light-dark(#f59e0b, #fbbf24);
+  --error: light-dark(#ef4444, #f87171);
+
+  /* Derived for WCAG AA (design-system §1.2–1.4): white on #6366F1 is 4.47:1, on #5558EF 5.21:1. */
+  --primary: #5558ef;
+  --primary-hover: #4f46e5;
+  --primary-active: #4338ca;
+  --primary-foreground: #ffffff;
+  --link: light-dark(#5558ef, #818cf8);
+  --primary-subtle: light-dark(#eef2ff, #232b48);
+  --ring: light-dark(#6366f1, #818cf8);
+  --input: light-dark(#7b8698, #64748b);
+  --success-text: light-dark(#15803d, #34d399);
+  --warning-text: light-dark(#b45309, #fbbf24);
+  --error-text: light-dark(#b91c1c, #f87171);
+  --destructive: #dc2626;
+  --destructive-subtle: light-dark(#fef2f2, #3a1d24);
+  --now-line: light-dark(#ef4444, #f87171);
+  --tooltip: #0f172a;
+  --tooltip-foreground: #ffffff;
+
+  --shadow-color-sm: light-dark(rgb(0 0 0 / 0.05), rgb(0 0 0 / 0.3));
+  --shadow-color-md: light-dark(rgb(0 0 0 / 0.08), rgb(0 0 0 / 0.4));
+  --shadow-color-lg: light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.5));
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --background: #0b0f17;
-    --foreground: #e6eaf2;
-    --muted-foreground: #9aa4b5;
+:root.light {
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand: var(--brand);
+  --color-cyan: var(--cyan);
+  --color-magenta: var(--magenta);
+  --color-yellow: var(--yellow);
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--foreground);
+  --color-muted: var(--surface-muted);
+  --color-accent: var(--surface-muted);
+  --color-accent-foreground: var(--foreground);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted-foreground-strong: var(--muted-foreground-strong);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-subtle: var(--primary-subtle);
+  --color-secondary: var(--primary-subtle);
+  --color-secondary-foreground: var(--link);
+  --color-link: var(--link);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-success-text: var(--success-text);
+  --color-warning-text: var(--warning-text);
+  --color-error-text: var(--error-text);
+  --color-destructive: var(--destructive);
+  --color-destructive-subtle: var(--destructive-subtle);
+  --color-now-line: var(--now-line);
+  --color-tooltip: var(--tooltip);
+  --color-tooltip-foreground: var(--tooltip-foreground);
+
+  --shadow-sm: 0 1px 2px 0 var(--shadow-color-sm);
+  --shadow-md: 0 4px 12px 0 var(--shadow-color-md);
+  --shadow-lg: 0 10px 32px 0 var(--shadow-color-lg);
+}
+
+/* Radius and type scale: design-system §2–3. Tailwind's text-base/sm/xs already match 16/24, 14/20, 12/16. */
+@theme {
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+
+  --text-display-3xl: 3rem;
+  --text-display-3xl--line-height: 3.5rem;
+  --text-display-3xl--font-weight: 700;
+  --text-display-3xl--letter-spacing: -0.02em;
+  --text-display-2xl: 2rem;
+  --text-display-2xl--line-height: 2.5rem;
+  --text-display-2xl--font-weight: 700;
+  --text-display-2xl--letter-spacing: -0.02em;
+  --text-display-xl: 1.5rem;
+  --text-display-xl--line-height: 2rem;
+  --text-display-xl--font-weight: 700;
+  --text-display-xl--letter-spacing: -0.01em;
+  --text-heading-lg: 1.25rem;
+  --text-heading-lg--line-height: 1.75rem;
+  --text-heading-lg--font-weight: 600;
+  --text-heading-lg--letter-spacing: -0.01em;
+
+  /* Stage palette (design-system §1.5): accent, chip background, chip text. Dark bg = accent 16 % over surface. */
+  --color-stage-new: #10b981;
+  --color-stage-new-bg: light-dark(
+    #ecfdf5,
+    color-mix(in srgb, #10b981 16%, #111827)
+  );
+  --color-stage-new-fg: light-dark(#065f46, #6ee7b7);
+  --color-stage-in-work: #3b82f6;
+  --color-stage-in-work-bg: light-dark(
+    #eff6ff,
+    color-mix(in srgb, #3b82f6 16%, #111827)
+  );
+  --color-stage-in-work-fg: light-dark(#1d4ed8, #93c5fd);
+  --color-stage-submitted: #8b5cf6;
+  --color-stage-submitted-bg: light-dark(
+    #f5f3ff,
+    color-mix(in srgb, #8b5cf6 16%, #111827)
+  );
+  --color-stage-submitted-fg: light-dark(#6d28d9, #c4b5fd);
+  --color-stage-interview: #6366f1;
+  --color-stage-interview-bg: light-dark(
+    #eef2ff,
+    color-mix(in srgb, #6366f1 16%, #111827)
+  );
+  --color-stage-interview-fg: light-dark(#4338ca, #a5b4fc);
+  --color-stage-polygraph: #f59e0b;
+  --color-stage-polygraph-bg: light-dark(
+    #fffbeb,
+    color-mix(in srgb, #f59e0b 16%, #111827)
+  );
+  --color-stage-polygraph-fg: light-dark(#92400e, #fcd34d);
+  --color-stage-offer: #ec4899;
+  --color-stage-offer-bg: light-dark(
+    #fdf2f8,
+    color-mix(in srgb, #ec4899 16%, #111827)
+  );
+  --color-stage-offer-fg: light-dark(#be185d, #f9a8d4);
+  --color-stage-probation: #14b8a6;
+  --color-stage-probation-bg: light-dark(
+    #f0fdfa,
+    color-mix(in srgb, #14b8a6 16%, #111827)
+  );
+  --color-stage-probation-fg: light-dark(#115e59, #5eead4);
+  --color-stage-passed: #22c55e;
+  --color-stage-passed-bg: light-dark(
+    #f0fdf4,
+    color-mix(in srgb, #22c55e 16%, #111827)
+  );
+  --color-stage-passed-fg: light-dark(#166534, #86efac);
+  --color-stage-rejected: #ef4444;
+  --color-stage-rejected-bg: light-dark(
+    #fef2f2,
+    color-mix(in srgb, #ef4444 16%, #111827)
+  );
+  --color-stage-rejected-fg: light-dark(#b91c1c, #fca5a5);
+  --color-stage-withdrawn: #64748b;
+  --color-stage-withdrawn-bg: light-dark(
+    #f1f5f9,
+    color-mix(in srgb, #64748b 16%, #111827)
+  );
+  --color-stage-withdrawn-fg: light-dark(#334155, #cbd5e1);
+  --color-stage-failed: #f97316;
+  --color-stage-failed-bg: light-dark(
+    #fff7ed,
+    color-mix(in srgb, #f97316 16%, #111827)
+  );
+  --color-stage-failed-fg: light-dark(#9a3412, #fdba74);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans text-sm antialiased;
+  }
+
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  p {
+    hyphens: auto;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
+/* Skeletons appear only if loading lasts longer than 150 ms (UI-06/UI-07); no shimmer. */
+@keyframes skeleton-appear {
+  to {
+    opacity: 1;
+  }
 }
 
-p {
-  color: var(--muted-foreground);
+@utility skeleton-delayed {
+  opacity: 0;
+  animation: skeleton-appear 0s linear 150ms forwards;
 }

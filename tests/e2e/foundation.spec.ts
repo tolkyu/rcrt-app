@@ -15,7 +15,7 @@ test('unknown pages use Ukrainian copy and a fresh script nonce', async ({
   page,
   request,
 }, testInfo) => {
-  const response = await page.goto('/');
+  const response = await page.goto('/missing-page');
   expect(response?.status()).toBe(404);
   await expect(page.locator('html')).toHaveAttribute('lang', 'uk');
   await expect(

@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { cookies } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
+import { PREFERENCE_COOKIES } from '@/lib/preference-cookie';
+import { parseTheme, themeClassName } from '@/lib/theme';
 import './globals.css';
 
 // A fresh CSP nonce must accompany every HTML response.
@@ -15,9 +18,11 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const cookieStore = await cookies();
+  const theme = parseTheme(cookieStore.get(PREFERENCE_COOKIES.theme)?.value);
   return (
-    <html lang="uk">
+    <html lang="uk" className={themeClassName(theme)}>
       <body>{children}</body>
     </html>
   );

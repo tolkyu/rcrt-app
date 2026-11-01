@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 
 const variants = [
   'desktop-light',
@@ -23,3 +23,31 @@ writeFileSync(
 <p>Публічна сторінка 404. Бізнес-екрани та повна рольова галерея фази 1 ще не реалізовані.</p>
 <main>${cards.join('\n')}</main></html>\n`,
 );
+
+const screens = [
+  ['01-public-login', 'Вхід'],
+  ['02-public-confirm', 'Підтвердження входу'],
+  ['03-public-confirm-invalid', 'Недійсне посилання'],
+  ['04-public-invite-invalid', 'Недійсне запрошення'],
+  ['05-public-session-expired', 'Завершена сесія'],
+];
+mkdirSync('screenshots/latest', { recursive: true });
+const sections = screens.map(([id, title]) => {
+  const items = variants.map((variant) => {
+    const file = `${id}-${variant}.png`;
+    const source = `screenshots/phase-1/${file}`;
+    if (!existsSync(source)) throw new Error(`Missing screenshot: ${source}`);
+    copyFileSync(source, `screenshots/latest/${file}`);
+    return `<figure><a href="${file}"><img src="${file}" alt="${title} — ${variant}" loading="lazy"></a><figcaption>${variant}</figcaption></figure>`;
+  });
+  return `<section><h2>${title}</h2><div class="grid">${items.join('\n')}</div></section>`;
+});
+const gallery = `<!doctype html>
+<html lang="uk"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hiring — фаза 1</title>
+<style>body{margin:32px;background:#f8fafc;color:#0f172a;font:16px/1.5 system-ui}section{margin:32px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}figure{margin:0}img{width:100%;border:1px solid #94a3b8;border-radius:12px}figcaption{padding:8px 0}</style>
+<h1>Hiring — фаза 1</h1>
+<p>Екрани входу: світла й темна теми, комп’ютер 1440×900 та телефон 390×844. Рольові екрани та налаштування ще проходять розробку й перевірку.</p>
+${sections.join('\n')}</html>\n`;
+writeFileSync('screenshots/phase-1/index.html', gallery);
+writeFileSync('screenshots/latest/index.html', gallery);

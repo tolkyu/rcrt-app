@@ -19,7 +19,10 @@
 | A-09 | «Підключити календар» | CAL | Google Calendar OAuth sync (PRD: only a Phase 6 option for Meet creation) | ✅ approved 2026-10-31 as **post-launch**; button hidden in v1 |
 | A-10 | Primary `#6366F1` with white text = 4.47:1 (< AA) | F, C | Filled buttons and primary text use `#5558EF` (5.21:1); `#6366F1` stays for accents/icons/focus | ✅ approved 2026-10-31 · `design-system.md` §1.4 |
 
-## 2. For owner decision (orchestrator to take to the owner)
+## 2. For owner decision — ✅ ALL APPROVED 2026-10-31 as recommended (PRD D64)
+
+> Owner addition to A-38: on every candidate/application card show a visible probation marker «Випробувальний · N дн. залишилось» while the candidate is on probation.
+
 
 | # | Element | Mockup | What it implies | Recommendation |
 |---|---|---|---|---|
