@@ -16,7 +16,6 @@
 | Keyboard | Ctrl/Cmd K search; `g d/v/c/k/s/a` go-to; `j/k` list nav; `Enter` open; `m` «Перемістити до…» on focused card; `?` shortcuts help. Every DnD has a menu alternative. |
 | Mobile (390 px) | Top bar (logo «Hiring», search icon, bell, avatar); bottom nav Головна · Вакансії · Кандидати · Календар · Ще; dialogs become bottom sheets; kanban becomes a stage list with counts; card actions via sticky «Дії з кандидатом» sheet; tap targets ≥ 44 px. TL flows are first-class on mobile [UI-05]. |
 | Realtime | Board/card receives change feed → silent refresh; if the open dialog's object changed stage → banner «Картку оновлено іншим користувачем». |
-| Read-only vertical | Deactivated vertical: banner «Вертикаль деактивована — лише перегляд»; all mutating actions hidden [ROLE-03]. |
 
 ## 1. Navigation per role [UI-04, STAT-08]
 
