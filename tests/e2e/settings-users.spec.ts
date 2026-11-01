@@ -97,9 +97,23 @@ test('search and filters live in the URL and narrow the list; reset brings every
   await expect(page.getByText(t.empty.title, { exact: true })).toBeVisible();
 });
 
-test('Head Recruiter and Finance get not-found for the users screen and API [VIS-01..03, STORY-ROLE-05-4]', async ({
+test('Head Recruiter and Finance get not-found for the users screen, user card and API [VIS-01..03, STORY-ROLE-05-4]', async ({
   browser,
+  page: adminPage,
 }) => {
+  const listing = await adminPage.request.get(
+    `/api/v1/users?q=${encodeURIComponent('Василь Мороз')}`,
+  );
+  expect(listing.status()).toBe(200);
+  const { items } = (await listing.json()) as { items: { id: string }[] };
+  expect(items).toHaveLength(1);
+  const userId = items[0]!.id;
+  expect(
+    (await adminPage.request.get(`/api/v1/users/${userId}`)).status(),
+  ).toBe(200);
+  expect(
+    (await adminPage.request.get(`/api/v1/users/${userId}/events`)).status(),
+  ).toBe(200);
   for (const email of [
     'head.recruiter.gambling@demo',
     'finance@demo',
@@ -109,13 +123,24 @@ test('Head Recruiter and Finance get not-found for the users screen and API [VIS
       storageState: sessionFile(email),
     });
     try {
-      expect((await context.request.get('/api/v1/users')).status()).toBe(404);
+      for (const path of [
+        '/api/v1/users',
+        `/api/v1/users/${userId}`,
+        `/api/v1/users/${userId}/events`,
+      ])
+        expect((await context.request.get(path)).status(), path).toBe(404);
       const page = await context.newPage();
-      await page.goto('/settings/users');
-      await expect(
-        page.getByRole('heading', { name: messages.errors.notFoundTitle }),
-      ).toBeVisible();
-      await expect(page.getByRole('table')).toHaveCount(0);
+      for (const path of [
+        '/settings/users',
+        `/settings/users?user=${userId}`,
+      ]) {
+        await page.goto(path);
+        await expect(
+          page.getByRole('heading', { name: messages.errors.notFoundTitle }),
+        ).toBeVisible();
+        await expect(page.getByRole('table')).toHaveCount(0);
+        await expect(page.getByRole('dialog')).toHaveCount(0);
+      }
     } finally {
       await context.close();
     }
@@ -383,5 +408,373 @@ test('captures the invite dialog screenshots [SHOT-01..03]', async ({
     await page.screenshot({ path, animations: 'disabled', scale: 'css' });
     copyFileSync(path, `screenshots/latest/${file}`);
     await testInfo.attach(file, { path, contentType: 'image/png' });
+  }
+});
+
+const drawerT = t.drawer;
+const drawer = (page: Page) => page.getByRole('dialog');
+const listedUser = (page: Page, isMobile: boolean, name: string) =>
+  listed(page, isMobile).filter({ hasText: name });
+const userIdOf = async (page: Page, isMobile: boolean, name: string) => {
+  const id = await listedUser(page, isMobile, name)
+    .getByRole('button')
+    .getAttribute('data-user-id');
+  expect(id).toMatch(/^[0-9a-f-]{36}$/);
+  return id!;
+};
+const withUser = (id: string) => new RegExp(`[?&]user=${id}(&|$)`);
+test('user card opens by click and by Enter, lives in ?user=, closes with Esc, Back and «×» and returns focus to the row [STORY-ROLE-05-4]', async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto('/settings/users');
+  const row = listedUser(page, isMobile, 'Василь Мороз');
+  const opener = row.getByRole('button');
+  const id = await userIdOf(page, isMobile, 'Василь Мороз');
+  const card = drawer(page);
+  const title = card.getByRole('heading', { name: 'Василь Мороз' });
+
+  await row.click();
+  await expect(card).toBeVisible();
+  await expect(page).toHaveURL(withUser(id));
+  await expect(title).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(card).toHaveCount(0);
+  await expect(page).toHaveURL(/\/settings\/users$/);
+  await expect(opener).toBeFocused();
+
+  await opener.focus();
+  await page.keyboard.press('Enter');
+  await expect(card).toBeVisible();
+  await expect(page).toHaveURL(withUser(id));
+  await page.goBack();
+  await expect(card).toHaveCount(0);
+  await expect(page).toHaveURL(/\/settings\/users$/);
+  await expect(opener).toBeFocused();
+
+  await page.getByLabel(t.filterStatus, { exact: true }).selectOption('ACTIVE');
+  await expect(page).toHaveURL(/status=ACTIVE/);
+  await row.click();
+  await expect(page).toHaveURL(withUser(id));
+  await expect(page).toHaveURL(/status=ACTIVE/);
+  await card.getByRole('button', { name: drawerT.close }).click();
+  await expect(card).toHaveCount(0);
+  await expect(page).toHaveURL(/\/settings\/users\?status=ACTIVE$/);
+  await expect(opener).toBeFocused();
+});
+
+test('a deep link opens the card on load with the heading focused; Esc focuses the user row [STORY-ROLE-05-4]', async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto('/settings/users');
+  const id = await userIdOf(page, isMobile, 'Василь Мороз');
+  await page.goto(`/settings/users?user=${id}`);
+  const card = drawer(page);
+  await expect(
+    card.getByRole('heading', { name: 'Василь Мороз' }),
+  ).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(card).toHaveCount(0);
+  await expect(page).toHaveURL(/\/settings\/users$/);
+  await expect(
+    listedUser(page, isMobile, 'Василь Мороз').getByRole('button'),
+  ).toBeFocused();
+});
+
+test('Team Lead card: roles, TL priority, sign-in security and the audit link; read-only [STORY-ROLE-05-4]', async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto('/settings/users');
+  const id = await userIdOf(page, isMobile, 'Василь Мороз');
+  await listedUser(page, isMobile, 'Василь Мороз').click();
+  const card = drawer(page);
+  await expect(card.getByText('vasyl.tl@demo', { exact: true })).toBeVisible();
+  await expect(card.getByText(t.status.ACTIVE, { exact: true })).toBeVisible();
+  await expect(
+    card.getByRole('tab', { name: drawerT.tabProfile }),
+  ).toHaveAttribute('aria-selected', 'true');
+  await expect(
+    card.getByRole('heading', { name: drawerT.rolesTitle }),
+  ).toBeVisible();
+  await expect(
+    card.getByText(`${roles.TEAM_LEAD} · Гемблінг`, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    card.getByRole('heading', { name: drawerT.priorityTitle }),
+  ).toBeVisible();
+  await expect(card.getByText('Гемблінг: П0', { exact: true })).toBeVisible();
+  await expect(
+    card.getByRole('heading', { name: drawerT.securityTitle }),
+  ).toBeVisible();
+  await expect(
+    card.getByText(drawerT.mfaOptionalRole, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    card.getByRole('heading', { name: drawerT.inviteTitle }),
+  ).toHaveCount(0);
+  await expect(
+    card.getByRole('link', { name: drawerT.auditLink }),
+  ).toHaveAttribute(
+    'href',
+    `/settings/audit?entityType=user&entityId=${id}&period=365d`,
+  );
+  await expect(card.getByRole('tab')).toHaveCount(2);
+  await expect(card.getByRole('button')).toHaveCount(1);
+  await expect(card.getByRole('button', { name: drawerT.close })).toBeVisible();
+});
+
+test('expired invitee card shows the invitation block and no sign-in security [STORY-ROLE-05-4]', async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto('/settings/users');
+  await listedUser(page, isMobile, 'Богдан Поліщук').click();
+  const card = drawer(page);
+  await expect(
+    card.getByRole('heading', { name: 'Богдан Поліщук' }),
+  ).toBeVisible();
+  await expect(
+    card.getByText(t.status.INVITE_EXPIRED, { exact: true }),
+  ).toBeVisible();
+  await expect(card.getByText(t.lastLoginNever, { exact: true })).toBeVisible();
+  await expect(
+    card.getByText(`${roles.RECRUITER} · Гемблінг`, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    card.getByRole('heading', { name: drawerT.inviteTitle }),
+  ).toBeVisible();
+  await expect(
+    card.getByText('Надіслано: 10.01.2020, 10:00', {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    card.getByText('Прострочене з 13.01.2020, 10:00', {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    card.getByText('Надсилалося повторно: 0', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    card.getByRole('heading', { name: drawerT.securityTitle }),
+  ).toHaveCount(0);
+  await expect(
+    card.getByRole('heading', { name: drawerT.priorityTitle }),
+  ).toHaveCount(0);
+});
+
+test('deactivated and self cards: «(деактивовано)» with inactive roles; «(ви)» with own 2FA devices [STORY-ROLE-05-4]', async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto('/settings/users');
+  const card = drawer(page);
+  await listedUser(page, isMobile, 'Юлія Петренко').click();
+  await expect(
+    card.getByRole('heading', {
+      name: `Юлія Петренко ${t.deactivatedSuffix}`,
+    }),
+  ).toBeVisible();
+  await expect(
+    card.getByText('inactive.recruiter@demo', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    card.getByText(t.status.DEACTIVATED, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    card.getByText(`${roles.RECRUITER} · Гемблінг`, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    card.getByText(drawerT.rolesInactive, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    card.getByRole('heading', { name: drawerT.securityTitle }),
+  ).toHaveCount(0);
+  await expect(
+    card.getByRole('heading', { name: drawerT.inviteTitle }),
+  ).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(card).toHaveCount(0);
+
+  await listedUser(page, isMobile, 'admin@demo').click();
+  await expect(
+    card.getByRole('heading', { name: `Іван Коваленко ${t.you}` }),
+  ).toBeVisible();
+  await expect(card.getByText(roles.ADMIN, { exact: true })).toBeVisible();
+  await expect(
+    card.getByText(/^Останній вхід: \d{2}\.\d{2}\.\d{4}, \d{2}:\d{2}$/),
+  ).toBeVisible();
+  await expect(
+    card.getByRole('heading', { name: drawerT.securityTitle }),
+  ).toBeVisible();
+  await expect(card.getByText('1 пристрій', { exact: true })).toBeVisible();
+  await expect(
+    card.getByText(drawerT.mfaRequiredRole, { exact: true }),
+  ).toBeVisible();
+});
+
+test('«Історія» lists the user timeline newest first and pages by cursor with «Показати ще» [STORY-ROLE-05-4, HIST-03]', async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto('/settings/users');
+  const id = await userIdOf(page, isMobile, 'Юлія Петренко');
+  const full = await page.request.get(`/api/v1/users/${id}/events`);
+  expect(full.status()).toBe(200);
+  const timeline = (await full.json()) as {
+    items: { type: string; occurredAt: string }[];
+    nextCursor: string | null;
+  };
+  expect(timeline.nextCursor).toBeNull();
+  const types = timeline.items.map((event) => event.type);
+  expect(types.at(-1)).toBe('user.invited');
+  expect(types).toContain('user.deactivated');
+
+  const requested: string[] = [];
+  await page.route(
+    (url) => url.pathname === `/api/v1/users/${id}/events`,
+    (route) => {
+      const url = new URL(route.request().url());
+      url.searchParams.set('limit', '1');
+      requested.push(url.search);
+      return route.continue({ url: url.toString() });
+    },
+  );
+  await listedUser(page, isMobile, 'Юлія Петренко').click();
+  const card = drawer(page);
+  await card.getByRole('tab', { name: drawerT.tabHistory }).click();
+  const events = card
+    .getByRole('list', { name: drawerT.historyTitle })
+    .locator('> li');
+  const more = card.getByRole('button', { name: t.loadMore });
+  const action = messages.settings.audit.actions.user;
+  await expect(events).toHaveCount(1);
+  await expect(events.nth(0)).toContainText(messages.settings.audit.system);
+  const time = events.nth(0).locator('time');
+  await expect(time).toHaveAttribute('datetime', timeline.items[0]!.occurredAt);
+  await expect(time).toHaveText('16.11.2026, 10:00');
+  for (let shown = 1; shown < types.length; shown++) {
+    await expect(more).toBeVisible();
+    await more.click();
+    await expect(events).toHaveCount(shown + 1);
+  }
+  await expect(more).toHaveCount(0);
+  await expect(events.last()).toContainText(action.invited);
+  await expect(events.filter({ hasText: action.deactivated })).toHaveCount(1);
+  expect(requested).toHaveLength(types.length);
+  expect(requested[0]).toBe('?limit=1');
+  for (const search of requested.slice(1))
+    expect(search).toMatch(/^\?cursor=[^&]+&limit=1$/);
+
+  await card.getByRole('tab', { name: drawerT.tabProfile }).click();
+  await expect(
+    card.getByText(drawerT.rolesInactive, { exact: true }),
+  ).toBeVisible();
+  await card.getByRole('tab', { name: drawerT.tabHistory }).click();
+  await expect(events).toHaveCount(types.length);
+  expect(requested).toHaveLength(types.length);
+});
+
+test('an unknown ?user= shows the not-found state inside the card [STORY-ROLE-05-4]', async ({
+  page,
+}) => {
+  const unknown = '00000000-0000-4000-8000-000000000999';
+  for (const path of [
+    `/api/v1/users/${unknown}`,
+    `/api/v1/users/${unknown}/events`,
+  ])
+    expect((await page.request.get(path)).status(), path).toBe(404);
+  await page.goto(`/settings/users?user=${unknown}`);
+  const card = page.getByRole('dialog', { name: drawerT.title });
+  await expect(card.getByText(drawerT.notFound, { exact: true })).toBeVisible();
+  await expect(card.getByRole('tab')).toHaveCount(0);
+  await expect(card.getByRole('link')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(card).toHaveCount(0);
+  await expect(page).toHaveURL(/\/settings\/users$/);
+});
+
+test('captures the user card screenshots with fixed sign-in times [SHOT-01..03]', async ({
+  page,
+  isMobile,
+}, testInfo) => {
+  const anchor = Date.parse(FIXED_CLOCK_ISO);
+  const lastLogin = new Date(anchor - 3_600_000).toISOString();
+  await page.route('**/api/v1/users?*', async (route) => {
+    const response = await route.fetch();
+    const body = (await response.json()) as {
+      items: { lastLoginAt: string | null }[];
+    };
+    body.items.forEach((item, index) => {
+      if (item.lastLoginAt)
+        item.lastLoginAt = new Date(
+          anchor - (index + 1) * 3_600_000,
+        ).toISOString();
+    });
+    await route.fulfill({ response, json: body });
+  });
+  await page.route(
+    (url) => /^\/api\/v1\/users\/[0-9a-f-]{36}$/.test(url.pathname),
+    async (route) => {
+      const response = await route.fetch();
+      const body = (await response.json()) as { lastLoginAt: string | null };
+      body.lastLoginAt = lastLogin;
+      await route.fulfill({ response, json: body });
+    },
+  );
+  await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const viewport = isMobile ? 'mobile' : 'desktop';
+  const capture = async (file: string) => {
+    await page.evaluate(() => document.fonts.ready);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    const path = `screenshots/phase-1/${file}`;
+    await page.screenshot({ path, animations: 'disabled', scale: 'css' });
+    copyFileSync(path, `screenshots/latest/${file}`);
+    await testInfo.attach(file, { path, contentType: 'image/png' });
+  };
+  for (const theme of ['light', 'dark'] as const) {
+    await page
+      .context()
+      .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
+    await page.goto('/settings/users?status=REVOKED');
+    const refetched = page.waitForResponse((response) =>
+      response.url().includes('/api/v1/users?'),
+    );
+    await page.getByLabel(t.filterStatus, { exact: true }).selectOption('');
+    await refetched;
+    await expect(listed(page, isMobile)).toHaveCount(13);
+    await listedUser(page, isMobile, 'Василь Мороз').click();
+    const card = drawer(page);
+    await expect(card.getByText('Гемблінг: П0', { exact: true })).toBeVisible();
+    await expect(
+      card.getByText('Останній вхід: 16.11.2026, 09:00', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      card.getByText(drawerT.mfaOptionalRole, { exact: true }),
+    ).toBeVisible();
+    await capture(`10-admin-user-drawer-profile-${viewport}-${theme}.png`);
+
+    await card.getByRole('tab', { name: drawerT.tabHistory }).click();
+    const times = card
+      .getByRole('list', { name: drawerT.historyTitle })
+      .locator('time');
+    await expect(times.first()).toBeVisible();
+    expect(
+      new Set(
+        await times.evaluateAll((nodes) =>
+          nodes.map((node) => node.getAttribute('datetime')),
+        ),
+      ),
+    ).toEqual(new Set([FIXED_CLOCK_ISO]));
+    await expect(card.getByRole('button', { name: t.loadMore })).toHaveCount(0);
+    await capture(`10-admin-user-drawer-history-${viewport}-${theme}.png`);
   }
 });

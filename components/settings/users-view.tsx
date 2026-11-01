@@ -1,14 +1,7 @@
 'use client';
 
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import {
-  AlertTriangle,
-  Check,
-  Lock,
-  Plus,
-  Search,
-  UsersRound,
-} from 'lucide-react';
+import { Plus, Search, UsersRound } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
@@ -40,12 +33,14 @@ import {
 } from '@/lib/user-constants';
 import {
   normalizeUserQuery,
+  parseDrawerUser,
   parseUserSearch,
   userFilterValues,
   userSearchParams,
   type UserSearch,
 } from '@/lib/user-filters';
 import { cn } from '@/lib/utils';
+import { MfaStatus, StatusChip } from './user-status';
 
 const loadInviteDialog = () => import('./invite-user-dialog');
 const InviteUserDialog = dynamic(() =>
@@ -53,6 +48,13 @@ const InviteUserDialog = dynamic(() =>
 );
 const preloadInviteDialog = () => {
   loadInviteDialog().catch(() => undefined);
+};
+const loadUserDrawer = () => import('./user-drawer');
+const UserDrawer = dynamic(() =>
+  loadUserDrawer().then((module) => module.UserDrawer),
+);
+const preloadUserDrawer = () => {
+  loadUserDrawer().catch(() => undefined);
 };
 
 const selectClass =
@@ -72,14 +74,6 @@ const kyivYear = new Intl.DateTimeFormat('en-US', {
   timeZone: 'Europe/Kyiv',
   year: 'numeric',
 });
-
-const STATUS_DOT = {
-  ACTIVE: 'bg-success',
-  INVITED: 'bg-primary',
-  INVITE_EXPIRED: 'bg-warning',
-  REVOKED: 'bg-muted-foreground',
-  DEACTIVATED: 'border-muted-foreground border border-dashed',
-} as const satisfies Record<UserListItem['status'], string>;
 
 function FilterSelect({
   label,
@@ -108,64 +102,6 @@ function FilterSelect({
       </select>
     </div>
   );
-}
-
-function StatusChip({ user }: { user: UserListItem }) {
-  const t = useTranslations('settings.users');
-  return (
-    <span className="inline-flex flex-col">
-      <span className="text-foreground inline-flex items-center gap-2 text-sm">
-        <span
-          aria-hidden="true"
-          className={cn(
-            'size-2 shrink-0 rounded-full',
-            STATUS_DOT[user.status],
-          )}
-        />
-        {t(`status.${user.status}`)}
-      </span>
-      {user.status === 'INVITED' && user.inviteExpiresAt && (
-        <span className="text-muted-foreground pl-4 text-xs tabular-nums">
-          {t('inviteUntil', { at: new Date(user.inviteExpiresAt) })}
-        </span>
-      )}
-    </span>
-  );
-}
-
-function MfaStatus({ mfa }: { mfa: UserListItem['mfa'] }) {
-  const t = useTranslations('settings.users.mfa');
-  switch (mfa.state) {
-    case 'ENABLED':
-      return (
-        <span className="text-success-text inline-flex items-center gap-1 whitespace-nowrap">
-          <Check className="size-4" aria-hidden="true" />
-          {t('enabled', { count: mfa.factors })}
-        </span>
-      );
-    case 'REQUIRED_MISSING':
-      return (
-        <span className="text-warning-text inline-flex items-center gap-1">
-          <AlertTriangle className="size-4 shrink-0" aria-hidden="true" />
-          {t('requiredMissing')}
-        </span>
-      );
-    case 'LOCKED':
-      return mfa.lockedUntil ? (
-        <span className="text-error-text inline-flex items-center gap-1 whitespace-nowrap">
-          <Lock className="size-4" aria-hidden="true" />
-          {t('locked', { at: new Date(mfa.lockedUntil) })}
-        </span>
-      ) : null;
-    case 'OFF':
-      return (
-        <span className="text-muted-foreground whitespace-nowrap">
-          {t('off')}
-        </span>
-      );
-    case 'NONE':
-      return <span className="text-muted-foreground">{t('none')}</span>;
-  }
 }
 
 function RoleChips({ user }: { user: UserListItem }) {
@@ -245,9 +181,11 @@ function UserName({ user, self }: { user: UserListItem; self: boolean }) {
 export function UsersView({
   currentUserId,
   canListVerticals,
+  canReadAudit,
 }: {
   currentUserId: string;
   canListVerticals: boolean;
+  canReadAudit: boolean;
 }) {
   const [inviting, setInviting] = useState(false);
   const t = useTranslations('settings.users');
@@ -255,10 +193,10 @@ export function UsersView({
   const lastLogin = useLastLogin();
   const params = useSearchParams();
   const searchKey = params.toString();
-  const search = useMemo(
-    () => parseUserSearch(Object.fromEntries(new URLSearchParams(searchKey))),
-    [searchKey],
-  );
+  const [search, drawerUser] = useMemo(() => {
+    const source = Object.fromEntries(new URLSearchParams(searchKey));
+    return [parseUserSearch(source), parseDrawerUser(source)] as const;
+  }, [searchKey]);
   const filters = useMemo(() => userFilterValues(search), [search]);
   const query = useInfiniteQuery(usersQuery(filters));
   const verticals = useQuery({
@@ -277,16 +215,45 @@ export function UsersView({
   useEffect(() => () => clearTimeout(timer.current), []);
 
   /** Reads the live URL so a debounced search never overwrites a filter chosen meanwhile. */
-  const apply = (patch: Partial<UserSearch>) => {
-    const current = parseUserSearch(
-      Object.fromEntries(new URLSearchParams(window.location.search)),
+  const navigate = (
+    patch: Partial<UserSearch>,
+    user: (current: string | undefined) => string | undefined,
+    mode: 'pushState' | 'replaceState' = 'replaceState',
+  ) => {
+    const live = Object.fromEntries(
+      new URLSearchParams(window.location.search),
     );
-    const next = userSearchParams({ ...current, ...patch }).toString();
-    window.history.replaceState(
+    const next = userSearchParams(
+      { ...parseUserSearch(live), ...patch },
+      user(parseDrawerUser(live)),
+    ).toString();
+    window.history[mode](
       null,
       '',
       next ? `?${next}` : window.location.pathname,
     );
+  };
+  const apply = (patch: Partial<UserSearch>) =>
+    navigate(patch, (current) => current);
+  /** Push on open so Back closes the drawer; replace on close (same pattern as the audit record sheet). */
+  const openUser = (user: string | undefined) =>
+    navigate({}, () => user, user ? 'pushState' : 'replaceState');
+  const opener = useRef<HTMLElement | null>(null);
+  const openFromRow = (button: HTMLElement | null, user: string) => {
+    opener.current = button;
+    openUser(user);
+  };
+  /** Focus goes back to the row that opened the drawer, or to the visible row of a drawer opened by URL (wireframe §7). */
+  const restoreFocus = (user: string) => {
+    const target = opener.current?.isConnected
+      ? opener.current
+      : Array.from(
+          document.querySelectorAll<HTMLElement>(
+            `button[data-user-id="${user}"]`,
+          ),
+        ).find((button) => button.offsetParent !== null);
+    opener.current = null;
+    target?.focus();
   };
   const changeText = (value: string) => {
     setText(value);
@@ -376,10 +343,31 @@ export function UsersView({
               {items.map((user) => (
                 <tr
                   key={user.id}
-                  className="border-border h-14 border-b align-middle last:border-0"
+                  onClick={(event) => {
+                    // A drag that selected text is not a click; keyboard clicks (detail 0) always open.
+                    if (event.detail > 0 && window.getSelection()?.toString())
+                      return;
+                    openFromRow(
+                      event.currentTarget.querySelector('button'),
+                      user.id,
+                    );
+                  }}
+                  onPointerEnter={preloadUserDrawer}
+                  className={cn(
+                    'border-border hover:bg-surface-muted h-14 cursor-pointer border-b align-middle last:border-0',
+                    drawerUser === user.id && 'bg-primary-subtle',
+                  )}
                 >
                   <th scope="row" className="px-4 py-2 text-left font-normal">
-                    <UserName user={user} self={user.id === currentUserId} />
+                    <button
+                      type="button"
+                      onFocus={preloadUserDrawer}
+                      aria-haspopup="dialog"
+                      data-user-id={user.id}
+                      className="rounded-md text-left"
+                    >
+                      <UserName user={user} self={user.id === currentUserId} />
+                    </button>
                   </th>
                   <td className="px-4 py-2">
                     <RoleChips user={user} />
@@ -410,9 +398,25 @@ export function UsersView({
           aria-label={t('caption')}
         >
           {items.map((user) => (
-            <li key={user.id} className="flex flex-col gap-2 p-4">
+            <li
+              key={user.id}
+              onPointerEnter={preloadUserDrawer}
+              className={cn(
+                'hover:bg-surface-muted relative flex flex-col gap-2 p-4',
+                drawerUser === user.id && 'bg-primary-subtle',
+              )}
+            >
               <div className="flex items-start justify-between gap-3">
-                <UserName user={user} self={user.id === currentUserId} />
+                <button
+                  type="button"
+                  onClick={(event) => openFromRow(event.currentTarget, user.id)}
+                  onFocus={preloadUserDrawer}
+                  aria-haspopup="dialog"
+                  data-user-id={user.id}
+                  className="min-w-0 rounded-md text-left after:absolute after:inset-0"
+                >
+                  <UserName user={user} self={user.id === currentUserId} />
+                </button>
                 <StatusChip user={user} />
               </div>
               <RoleChips user={user} />
@@ -567,6 +571,16 @@ export function UsersView({
           canManageVerticals={canListVerticals}
           onClose={() => setInviting(false)}
           onShowUser={showUser}
+        />
+      )}
+      {drawerUser && (
+        <UserDrawer
+          userId={drawerUser}
+          cached={items.find((user) => user.id === drawerUser)}
+          currentUserId={currentUserId}
+          canReadAudit={canReadAudit}
+          onClose={() => openUser(undefined)}
+          onRestoreFocus={() => restoreFocus(drawerUser)}
         />
       )}
     </>

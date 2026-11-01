@@ -9,10 +9,13 @@ import type { DbExecutor } from '../db';
 import {
   appUser,
   authMfaTotp,
+  entityEvent,
+  teamLeadPriority,
   userInvite,
   userRole,
   vertical,
 } from '../db/schema';
+import { USER_SUBJECT } from '../events';
 
 export async function findUserProfile(db: DbExecutor, userId: string) {
   const [row] = await db
@@ -218,4 +221,130 @@ export async function countUsers(
     ${whereClause(whereFilters(filters, now.toISOString()))}
   `);
   return z.object({ total: z.number().int() }).parse(row).total;
+}
+
+const userDetailRowSchema = userListRowSchema.extend({
+  createdAt: instant,
+  activatedAt: instant.nullable(),
+  deactivatedAt: instant.nullable(),
+  priorities: z.array(
+    z.object({
+      verticalId: z.uuid(),
+      verticalName: z.string(),
+      priority: z.number().int().nullable(),
+    }),
+  ),
+  inviteSentAt: instant.nullable(),
+  inviteExpiresAt: instant.nullable(),
+  inviteResendCount: z.number().int().nullable(),
+  inviteRevokedAt: instant.nullable(),
+  inviteRevokedById: z.uuid().nullable(),
+  inviteRevokedByName: z.string().nullable(),
+  inviteRevokedByActive: z.boolean().nullable(),
+});
+export type UserDetailRow = z.infer<typeof userDetailRowSchema>;
+
+/** One query for the drawer: profile, derived status, roles, TL priorities and the latest invite (pending first). */
+export async function findUserDetail(
+  db: DbExecutor,
+  userId: string,
+  now: Date,
+): Promise<UserDetailRow | null> {
+  const [row] = await db.execute(sql`
+    select u.id, u.full_name as "fullName", u.email,
+      ${statusExpr(now.toISOString())} as status,
+      u.created_at as "createdAt",
+      u.activated_at as "activatedAt",
+      u.deactivated_at as "deactivatedAt",
+      u.last_login_at as "lastLoginAt",
+      u.mfa_locked_until as "mfaLockedUntil",
+      (select count(*)::int from ${authMfaTotp} f where f.user_id = u.auth_user_id) as factors,
+      coalesce((
+        select json_agg(json_build_object('role', r.role, 'verticalId', v.id, 'verticalName', v.name))
+        from ${userRole} r left join ${vertical} v on v.id = r.vertical_id
+        where r.user_id = u.id
+      ), '[]'::json) as roles,
+      coalesce((
+        select json_agg(json_build_object('verticalId', v.id, 'verticalName', v.name, 'priority', p.priority)
+          order by v.name collate "uk-UA-x-icu")
+        from ${userRole} r join ${vertical} v on v.id = r.vertical_id
+        left join ${teamLeadPriority} p on p.user_id = r.user_id and p.vertical_id = r.vertical_id
+        where r.user_id = u.id and r.role = 'TEAM_LEAD'
+      ), '[]'::json) as priorities,
+      li.sent_at as "inviteSentAt",
+      li.expires_at as "inviteExpiresAt",
+      li.resend_count::int as "inviteResendCount",
+      li.revoked_at as "inviteRevokedAt",
+      rb.id as "inviteRevokedById",
+      rb.full_name as "inviteRevokedByName",
+      rb.is_active as "inviteRevokedByActive"
+    ${fromUsers}
+    left join lateral (
+      select x.sent_at, x.expires_at, x.resend_count, x.revoked_at, x.revoked_by
+      from ${userInvite} x where x.user_id = u.id
+      order by x.status = 'PENDING' desc, x.created_at desc, x.id desc
+      limit 1
+    ) li on true
+    left join ${appUser} rb on rb.id = li.revoked_by
+    where u.id = ${userId}::uuid
+  `);
+  return row ? userDetailRowSchema.parse(row) : null;
+}
+
+export async function userExists(
+  db: DbExecutor,
+  userId: string,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ id: appUser.id })
+    .from(appUser)
+    .where(eq(appUser.id, userId))
+    .limit(1);
+  return row !== undefined;
+}
+
+const userEventRowSchema = z.object({
+  id: z.coerce.bigint(),
+  occurredAt: instant,
+  type: z.string(),
+  actorKind: z.enum(['USER', 'SYSTEM', 'ADMIN_FORCE']),
+  actorId: z.uuid().nullable(),
+  actorName: z.string().nullable(),
+  actorActive: z.boolean().nullable(),
+  payload: z.record(z.string(), z.unknown()),
+  verticalNames: z.record(z.string(), z.string()),
+});
+export type UserEventRow = z.infer<typeof userEventRowSchema>;
+
+/**
+ * User timeline, newest first, on `entity_event_subject_idx`; `limit + 1` rows signal a next page.
+ * Only `user.*` types (the allowlisted user events), and never `entity_event_pii`: no names or free text.
+ * Legacy profile events were written as subject 'user' before unification; append-only rows are never relabelled (CLAUDE.md §3.5).
+ */
+export async function listUserEvents(
+  db: DbExecutor,
+  userId: string,
+  cursor: { occurredAt: Date; id: bigint } | null,
+  limit: number,
+): Promise<UserEventRow[]> {
+  const rows = await db.execute(sql`
+    select e.id::text as id, e.occurred_at as "occurredAt", e.type,
+      e.actor_kind as "actorKind", a.id as "actorId", a.full_name as "actorName",
+      a.is_active as "actorActive", e.payload,
+      (select coalesce(jsonb_object_agg(v.id, v.name), '{}'::jsonb) from ${vertical} v
+        where to_jsonb(v.id::text) in (select jsonb_path_query(e.payload, 'lax $.**.verticalId'))
+      ) as "verticalNames"
+    from ${entityEvent} e
+    left join ${appUser} a on a.id = e.actor_id
+    where e.subject_type in (${USER_SUBJECT}, 'user') and e.subject_id = ${userId}
+      and e.type like 'user.%'
+    ${
+      cursor
+        ? sql`and (e.occurred_at, e.id) < (${cursor.occurredAt.toISOString()}::timestamptz, ${cursor.id.toString()}::bigint)`
+        : sql``
+    }
+    order by e.occurred_at desc, e.id desc
+    limit ${limit + 1}
+  `);
+  return z.array(userEventRowSchema).parse([...rows]);
 }

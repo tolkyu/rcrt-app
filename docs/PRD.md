@@ -425,6 +425,8 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
 | D69 | Changing a user's email (ROLE-05, D44) | **Decided by owner 2026-11-01 (Q-153):** Phase 1 — for a not-yet-activated user, email change = revoke the invite and send a new one to the corrected address. Changing the email of an activated user is deferred to Phase 5 and will end all of that user's sessions. |
 | D70 | Re-invite after revoke | **Decided by owner 2026-11-01 (Q-154):** Admin can re-invite a user whose invite was revoked: a new email with a new link is sent, every older link stops working. |
 | D71 | Invite dialog vs designer mockup | **Decided by owner 2026-11-01 (Q-155):** take the mockup's look (two columns, «Підсумок доступу», roles × verticals matrix with check toggles); content stays per PRD — no «Посада», no «Базова роль», no extra roles or per-user permission toggles (permissions come from roles; custom roles in Phase 2, ROLE-04), no temporary passwords (invite link / Google only). |
+| D72 | Name change in user «Історія» | **Decided by owner 2026-11-01 (Q-156):** the user timeline shows only «Змінено: ПІБ» (field names, no values) plus a link to «Журнал дій»; old/new values stay in the audit log (Admin, aal2). |
+| D73 | TL priority changes in user «Історія» | **Decided by owner 2026-11-01 (Q-157):** a Team Lead priority change also appears in that Team Lead's own timeline; built with the «Пріоритети тімлідів» slice. |
 | D38 | Self-referral flag | **Confirmed 2026-10-31:** bonus blocked unless Admin approves; flag set by recruiter or Head Recruiter (BONUS-05; Q-12) |
 
 ---

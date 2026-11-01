@@ -20,3 +20,6 @@ export const GLOBAL_VERTICAL = 'GLOBAL';
 export const USERS_PAGE = 50;
 export const USER_SEARCH_MIN = 2;
 export const USER_SEARCH_MAX = 100;
+export const USER_EVENTS_PAGE = 20;
+/** Profile fields a `user.profile_updated` event may name (allowlist, server/events). */
+export const USER_PROFILE_FIELDS = ['fullName', 'email', 'timezone'] as const;

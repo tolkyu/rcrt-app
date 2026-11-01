@@ -11,6 +11,9 @@ export const queryKeys = {
     ['settings', 'users', filters] as const,
   settingsAuditRecord: (id: string) =>
     ['settings', 'audit-record', id] as const,
+  settingsUser: (id: string) => ['settings', 'user', id] as const,
+  settingsUserEvents: (id: string) =>
+    ['settings', 'user', id, 'events'] as const,
 };
 
 /** First page size of «Історія входів» on «Профіль». */

@@ -5,13 +5,16 @@ import { getTranslations } from 'next-intl/server';
 import { UsersView } from '@/components/settings/users-view';
 import { queryKeys } from '@/lib/query-keys';
 import {
+  parseDrawerUser,
   parseUserSearch,
   userFilterValues,
   userSearchParams,
 } from '@/lib/user-filters';
 import { hasAnyGrant } from '@/server/authz/can';
+import { NotFoundError } from '@/server/http/errors';
+import { describeError, logger } from '@/server/observability/logger';
 import { getQueryClient } from '@/server/query/query-client';
-import { listUserPage } from '@/server/services/user';
+import { getUserDetail, listUserPage } from '@/server/services/user';
 import { listSettingsVerticals } from '@/server/services/vertical';
 import { requirePrivilegedSession } from '../../_lib/session';
 
@@ -32,6 +35,7 @@ export default async function SettingsUsersPage({
   ]);
   if (!hasAnyGrant(ctx.auth, 'settings.users.manage')) notFound();
   const search = parseUserSearch(params);
+  const drawerUser = parseDrawerUser(params);
   const filters = userFilterValues(search);
   const queryClient = getQueryClient();
   await Promise.all([
@@ -45,6 +49,20 @@ export default async function SettingsUsersPage({
         queryKey: queryKeys.settingsVerticals(),
         queryFn: () => listSettingsVerticals(ctx),
       }),
+    // Cache only a found user: the layout may dehydrate a still-pending query, and a rejected 404 must not stream.
+    drawerUser &&
+      getUserDetail(ctx, drawerUser).then(
+        (detail) =>
+          queryClient.setQueryData(queryKeys.settingsUser(drawerUser), detail),
+        (error: unknown) => {
+          if (error instanceof NotFoundError) return;
+          // The drawer's own query retries and shows the error state; the log carries no ids or PII.
+          logger.error(
+            { err: describeError(error) },
+            'user drawer prefetch failed',
+          );
+        },
+      ),
   ]);
   return (
     <HydrationBoundary
@@ -57,6 +75,7 @@ export default async function SettingsUsersPage({
         key={userSearchParams(search).toString()}
         currentUserId={ctx.auth.userId}
         canListVerticals={hasAnyGrant(ctx.auth, 'settings.verticals.manage')}
+        canReadAudit={hasAnyGrant(ctx.auth, 'audit.read')}
       />
     </HydrationBoundary>
   );

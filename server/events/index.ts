@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { USER_PROFILE_FIELDS } from '../../lib/user-constants';
 import type { WriteContext } from '../context/request-context';
 import type { DbExecutor } from '../db';
 import { changeFeed, entityEvent, entityEventPii } from '../db/schema';
@@ -19,6 +20,9 @@ const settingField = z.enum([
 ]);
 const empty = z.object({}).strict();
 
+/** Subject type of every user event; the user timeline is keyed on it (HIST-03). */
+export const USER_SUBJECT = 'app_user';
+
 /**
  * Allowlisted payload per event type (ADR-003, SEC-CORE-07): ids, enums, numbers only, unknown keys
  * rejected. Names, emails and free text go to `pii` (entity_event_pii, purgeable). An event type is
@@ -36,7 +40,7 @@ export const EVENT_PAYLOADS = {
   'user.reactivated': z.object({ restoredRoles: z.array(roleRef) }).strict(),
   'user.profile_updated': z
     .object({
-      fields: z.array(z.enum(['fullName', 'email', 'timezone'])).min(1),
+      fields: z.array(z.enum(USER_PROFILE_FIELDS)).min(1),
     })
     .strict(),
   'user.role_assigned': roleRef,

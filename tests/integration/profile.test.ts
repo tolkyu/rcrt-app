@@ -249,7 +249,7 @@ describe('PATCH /api/v1/me: own display name [ROLE-05-6, AUD-1, HIST-03]', () =>
         type: 'user.profile_updated',
         actorId: actors.me.id,
         actorKind: 'USER',
-        subjectType: 'user',
+        subjectType: 'app_user',
         subjectId: actors.me.id,
         verticalId: null,
         sensitivity: 'GENERAL',

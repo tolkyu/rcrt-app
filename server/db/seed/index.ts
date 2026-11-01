@@ -125,6 +125,7 @@ export async function seedDemo(
         subjectType: string,
         subjectId: string,
         verticalId?: string,
+        payload: Record<string, unknown> = {},
       ) => {
         const [event] = await tx
           .insert(schema.entityEvent)
@@ -135,7 +136,7 @@ export async function seedDemo(
             subjectType,
             subjectId,
             verticalId,
-            payload: { v: 1 },
+            payload: { v: 1, ...payload },
           })
           .returning({ id: schema.entityEvent.id });
         if (!event) throw new Error('Seed history insert failed');
@@ -171,6 +172,8 @@ export async function seedDemo(
           );
       }
       const adminId = demoId('user:admin@demo');
+      const invitee = 'expired.invite@demo';
+      const expiredSentAt = new Date('2020-01-10T08:00:00.000Z');
       for (const user of DEMO_USERS) {
         const id = demoId(`user:${user.email}`);
         const rows = await tx
@@ -187,30 +190,51 @@ export async function seedDemo(
           })
           .onConflictDoNothing()
           .returning({ id: schema.appUser.id });
-        if (rows.length) {
-          await record('user.invited', 'app_user', id);
-          if (user.inactive) await record('user.deactivated', 'app_user', id);
-        }
-        for (const role of user.roles) {
-          const assigned = await tx
-            .insert(schema.userRole)
-            .values({
+        await tx
+          .insert(schema.userRole)
+          .values(
+            user.roles.map((role) => ({
               id: demoId(`role:${user.email}:${role.role}:${role.verticalId}`),
               userId: id,
               ...role,
               createdAt: DEMO_CLOCK,
               createdBy: adminId,
-            })
-            .onConflictDoNothing()
-            .returning({ id: schema.userRole.id });
-          if (assigned.length)
-            await record(
-              'user.role_assigned',
-              'user_role',
-              assigned[0]!.id,
-              role.verticalId ?? undefined,
-            );
-        }
+            })),
+          )
+          .onConflictDoNothing();
+        if (!rows.length) continue;
+        // Every demo user came in by invite, so `user.invited` points at a real row; only the invitee's is still pending.
+        const pending = user.email === invitee;
+        const sentAt = pending ? expiredSentAt : DEMO_CLOCK;
+        const invited = await tx
+          .insert(schema.userInvite)
+          .values({
+            id: demoId(pending ? 'invite:expired' : `invite:${user.email}`),
+            userId: id,
+            tokenHash: createHash('sha256')
+              .update(
+                pending
+                  ? 'hris:phase1:expired-demo-invite-no-usable-token'
+                  : `hris:phase1:accepted-demo-invite:${user.email}`,
+              )
+              .digest(),
+            roles: user.roles,
+            sentAt,
+            expiresAt: new Date(sentAt.getTime() + 72 * 3_600_000),
+            invitedBy: adminId,
+            createdAt: sentAt,
+            ...(pending
+              ? {}
+              : { status: 'ACCEPTED' as const, acceptedAt: DEMO_CLOCK }),
+          })
+          .onConflictDoNothing()
+          .returning({ id: schema.userInvite.id });
+        if (invited.length)
+          await record('user.invited', 'app_user', id, undefined, {
+            inviteId: invited[0]!.id,
+            roles: user.roles,
+          });
+        if (user.inactive) await record('user.deactivated', 'app_user', id);
       }
       for (const [email, verticalId, priority] of [
         ['vasyl.tl@demo', g, 0],
@@ -237,22 +261,6 @@ export async function seedDemo(
             verticalId,
           );
       }
-      const sentAt = new Date('2020-01-10T08:00:00.000Z');
-      await tx
-        .insert(schema.userInvite)
-        .values({
-          id: demoId('invite:expired'),
-          userId: demoId('user:expired.invite@demo'),
-          tokenHash: createHash('sha256')
-            .update('hris:phase1:expired-demo-invite-no-usable-token')
-            .digest(),
-          roles: [{ role: 'RECRUITER', verticalId: g }],
-          sentAt,
-          expiresAt: new Date('2020-01-13T08:00:00.000Z'),
-          invitedBy: adminId,
-          createdAt: sentAt,
-        })
-        .onConflictDoNothing();
       for (const [email, name, filters] of [
         ['admin@demo', 'Усі напрями', {}],
         ['head.recruiter.gambling@demo', 'Гемблінг', { verticalId: g }],

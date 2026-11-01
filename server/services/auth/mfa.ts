@@ -5,7 +5,7 @@ import type { AuthClient } from '@/server/auth/client';
 import { safeNextPath } from '@/server/auth/safe-redirect';
 import { SESSION_ABSOLUTE_MS } from '@/server/auth/session-policy';
 import type { RequestContext } from '@/server/context/request-context';
-import { appendEvent } from '@/server/events';
+import { appendEvent, USER_SUBJECT } from '@/server/events';
 import {
   ConflictError,
   ForbiddenError,
@@ -216,7 +216,7 @@ export async function verifyTotp(
       const write = { ...ctx, db: tx };
       await appendEvent(tx, write, {
         type: 'user.mfa_enrolled',
-        subjectType: 'app_user',
+        subjectType: USER_SUBJECT,
         subjectId: ctx.auth.userId,
         payload: {},
       });
@@ -323,7 +323,7 @@ export async function resetUserMfa(
     await setMfaLock(tx, target.id, null);
     await appendEvent(tx, write, {
       type: 'user.mfa_reset',
-      subjectType: 'app_user',
+      subjectType: USER_SUBJECT,
       subjectId: target.id,
       payload: {},
       pii: { reason: input.reason },

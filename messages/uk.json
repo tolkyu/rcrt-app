@@ -407,6 +407,38 @@
         "toastNotDelivered": "Запрошення створено, але лист не надіслано. Його можна буде надіслати повторно з картки користувача.",
         "verticalsFailed": "Не вдалося завантажити вертикалі.",
         "selected": "{count, plural, one {Обрано # роль} few {Обрано # ролі} many {Обрано # ролей} other {Обрано # ролі}}"
+      },
+      "drawer": {
+        "title": "Користувач",
+        "close": "Закрити картку користувача",
+        "auditLink": "Усі дії в журналі",
+        "tabsLabel": "Розділи картки користувача",
+        "tabProfile": "Профіль і ролі",
+        "tabHistory": "Історія",
+        "lastLogin": "Останній вхід: {at, date, ::dd.MM.yyyy HH:mm}",
+        "rolesTitle": "Ролі та вертикалі",
+        "rolesInactive": "Ролі неактивні, поки користувача деактивовано.",
+        "noRoles": "Ролей немає — користувач бачить лише «Профіль».",
+        "priorityTitle": "Пріоритет тімліда",
+        "priorityValue": "{vertical}: П{priority}",
+        "priorityNotSet": "{vertical}: пріоритет не задано",
+        "securityTitle": "Безпека входу",
+        "mfaLabel": "Двофакторна автентифікація",
+        "mfaRequiredRole": "Обовʼязкова для ролей Адміністратор і Фінансист.",
+        "mfaOptionalRole": "Необовʼязкова для ролей цього користувача.",
+        "inviteTitle": "Запрошення",
+        "inviteSent": "Надіслано: {at, date, ::dd.MM.yyyy HH:mm}",
+        "inviteExpires": "Діє до: {at, date, ::dd.MM.yyyy HH:mm}",
+        "inviteExpired": "Прострочене з {at, date, ::dd.MM.yyyy HH:mm}",
+        "inviteRevoked": "Відкликано: {at, date, ::dd.MM.yyyy HH:mm} · {name}",
+        "inviteRevokedAt": "Відкликано: {at, date, ::dd.MM.yyyy HH:mm}",
+        "inviteResentCount": "Надсилалося повторно: {count}",
+        "historyTitle": "Історія користувача",
+        "historyTime": "{at, date, ::dd.MM.yyyy HH:mm}",
+        "historyFields": "Змінено: {fields}",
+        "historyEmpty": "Подій ще немає.",
+        "unknownVertical": "Вертикаль {id}",
+        "notFound": "Сторінку не знайдено або доступ обмежено."
       }
     },
     "verticals": {
@@ -518,11 +550,19 @@
           "mfa_reset": "2FA скинуто",
           "invited": "Запрошено користувача",
           "invite_accepted": "Запрошення прийнято",
-          "profile_updated": "Змінено імʼя"
+          "profile_updated": "Змінено профіль",
+          "invite_resent": "Запрошення надіслано повторно",
+          "invite_revoked": "Запрошення відкликано",
+          "activated": "Користувача активовано",
+          "role_assigned": "Призначено роль",
+          "role_removed": "Знято роль",
+          "deactivated": "Користувача деактивовано",
+          "reactivated": "Користувача активовано знову"
         },
         "vertical": {
           "created": "Створено вертикаль",
-          "renamed": "Перейменовано вертикаль"
+          "renamed": "Перейменовано вертикаль",
+          "tl_priority_changed": "Змінено пріоритет тімліда"
         }
       },
       "actionUnknown": "Інша дія ({code})",
@@ -540,7 +580,9 @@
         "reason": "Причина",
         "removedFactors": "Видалено пристроїв 2FA",
         "inviteId": "Запрошення",
-        "method": "Спосіб входу"
+        "method": "Спосіб входу",
+        "email": "Електронна пошта",
+        "timezone": "Часовий пояс"
       },
       "loadMore": "Показати ще",
       "shown": "Показано {shown} (до 100 останніх завантажених записів)",

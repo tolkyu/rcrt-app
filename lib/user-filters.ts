@@ -48,12 +48,19 @@ export function parseUserSearch(source: SearchSource): UserSearch {
   };
 }
 
-export function userSearchParams(search: UserSearch) {
+/** The open «Картка користувача» (`?user=<id>`); kept out of `UserSearch`, which is also the API query. */
+export function parseDrawerUser(source: SearchSource): string | undefined {
+  const user = one(source, 'user');
+  return user && UUID.test(user) ? user.toLowerCase() : undefined;
+}
+
+export function userSearchParams(search: UserSearch, user?: string) {
   const params = new URLSearchParams();
   for (const key of KEYS) {
     const value = search[key];
     if (value) params.set(key, value);
   }
+  if (user) params.set('user', user);
   return params;
 }
 

@@ -17,7 +17,7 @@ import type {
   SystemContext,
 } from '@/server/context/request-context';
 import type { DbExecutor } from '@/server/db';
-import { appendEvent } from '@/server/events';
+import { appendEvent, USER_SUBJECT } from '@/server/events';
 import {
   ConflictError,
   NotFoundError,
@@ -132,7 +132,7 @@ export async function createInvite(
     const write = { ...ctx, db: tx };
     await appendEvent(tx, write, {
       type: 'user.invited',
-      subjectType: 'app_user',
+      subjectType: USER_SUBJECT,
       subjectId: userId,
       payload: { inviteId, roles },
       pii: { email, fullName },
@@ -240,13 +240,13 @@ async function acceptInTransaction(
       const write = { ...ctx, db: tx };
       await appendEvent(tx, write, {
         type: 'user.invite_accepted',
-        subjectType: 'app_user',
+        subjectType: USER_SUBJECT,
         subjectId: consumed.userId,
         payload: { inviteId: consumed.id },
       });
       await appendEvent(tx, write, {
         type: 'user.activated',
-        subjectType: 'app_user',
+        subjectType: USER_SUBJECT,
         subjectId: consumed.userId,
         payload: {},
       });

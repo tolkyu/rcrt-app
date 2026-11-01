@@ -39,6 +39,13 @@ const screens = [
   ],
   ['08-admin-users-list', 'Користувачі та ролі — Адміністратор'],
   ['09-admin-invite-dialog', 'Запросити користувача — Адміністратор'],
+  [
+    '10-admin-user-drawer',
+    'Картка користувача — Адміністратор',
+    ['profile', 'history'].flatMap((tab) =>
+      variants.map((variant) => `${tab}-${variant}`),
+    ),
+  ],
 ];
 mkdirSync('screenshots/latest', { recursive: true });
 const sections = screens.map(([id, title, screenVariants = variants]) => {

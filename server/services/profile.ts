@@ -3,7 +3,7 @@ import type { UpdateMeInput } from '../../lib/schemas/profile';
 import { updateMeSchema } from '../../lib/schemas/profile';
 import { writeAudit } from '../audit';
 import type { RequestContext } from '../context/request-context';
-import { appendEvent } from '../events';
+import { appendEvent, USER_SUBJECT } from '../events';
 import { UnauthenticatedError } from '../http/errors';
 import { lockUserName, updateUserName } from '../repositories/profile';
 import { getMe } from './me';
@@ -32,7 +32,7 @@ export async function updateMyProfile(
     });
     await appendEvent(tx, ctx, {
       type: 'user.profile_updated',
-      subjectType: 'user',
+      subjectType: USER_SUBJECT,
       subjectId: userId,
       payload: { fields: ['fullName'] },
       pii: { fullName: { old: current.fullName, new: fullName } },
