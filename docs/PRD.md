@@ -424,6 +424,7 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
 | D68 | Magic-link delivery errors | **Decided by owner 2026-10-31:** show delivery failure to an eligible active user, as required by STORY-SEC-AUTH-1. Unknown, inactive and pending-invite addresses remain neutral. This overrides the proposed uniform/deferred success response; the owner accepted the eligibility signal during delivery failure and the delivery-dependent wait |
 | D69 | Changing a user's email (ROLE-05, D44) | **Decided by owner 2026-11-01 (Q-153):** Phase 1 — for a not-yet-activated user, email change = revoke the invite and send a new one to the corrected address. Changing the email of an activated user is deferred to Phase 5 and will end all of that user's sessions. |
 | D70 | Re-invite after revoke | **Decided by owner 2026-11-01 (Q-154):** Admin can re-invite a user whose invite was revoked: a new email with a new link is sent, every older link stops working. |
+| D71 | Invite dialog vs designer mockup | **Decided by owner 2026-11-01 (Q-155):** take the mockup's look (two columns, «Підсумок доступу», roles × verticals matrix with check toggles); content stays per PRD — no «Посада», no «Базова роль», no extra roles or per-user permission toggles (permissions come from roles; custom roles in Phase 2, ROLE-04), no temporary passwords (invite link / Google only). |
 | D38 | Self-referral flag | **Confirmed 2026-10-31:** bonus blocked unless Admin approves; flag set by recruiter or Head Recruiter (BONUS-05; Q-12) |
 
 ---
