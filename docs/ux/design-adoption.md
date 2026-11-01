@@ -90,3 +90,9 @@
 | «Відгуків» (applicants) | «кандидатів» | A-13 |
 | «Нотатки» (event) | «Підсумок для тімліда» | A-26 |
 | «Пошук … нотаток» | «Пошук кандидатів і вакансій…» | A-33 |
+
+## Statistics with tabs — owner's designer mockups (2026-11-01)
+
+- Files: `docs/ux/reference/statistics/01…07-statistics-tab.webp` (originals in the git-ignored `UI FROM DESIGNER/`).
+- Target look for **Phase 4** «Статистика»: tabs Огляд · Воронка · Час · Джерела · Тімліди · Рекрутери · Команди · Бонуси · Виплати; filter row (period, вертикаль, посада, рекрутер, тімлід); KPI row; funnel on our stages; light/dark; mobile.
+- Not adopted yet: the Phase 4 design step (ux-ui-designer + business-analyst) maps each tab to PRD STAT-*/BONUS-*, role visibility (Finance D12) and flags items without a PRD source (e.g. «Джерела», «Команди», CSV/XLSX export, «Ключові інсайти», «Порівняння сегментів») as owner questions.
