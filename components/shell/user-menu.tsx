@@ -5,6 +5,7 @@ import { ChevronDown, LogOut, UserRound } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Avatar } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +25,8 @@ export function UserMenu() {
   const { data: me } = useQuery(meQuery());
   const { summary } = useRoleLabels();
   const logout = useLogout();
-  if (!me) return null;
+  if (!me)
+    return <Skeleton className="skeleton-delayed size-9 rounded-full" />;
   const roleText = summary(me.roles);
   return (
     <DropdownMenu>

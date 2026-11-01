@@ -22,6 +22,8 @@ interface RequestOptions<S extends z.ZodType> {
   readonly body?: unknown;
   readonly schema: S | (() => Promise<S>);
   readonly signal?: AbortSignal;
+  /** Query refetches send `X-Activity: background` so they do not extend the 12 h idle timer (T4-B03). */
+  readonly background?: boolean;
 }
 
 function isProblem(
@@ -37,7 +39,7 @@ function isProblem(
 /** Same-origin fetch for /api/v1: cookies carry the session; mutations add the CSRF transport header (FND-5). */
 export async function apiRequest<S extends z.ZodType>(
   path: string,
-  { method = 'GET', body, schema, signal }: RequestOptions<S>,
+  { method = 'GET', body, schema, signal, background }: RequestOptions<S>,
 ): Promise<z.output<S>> {
   const mutation = method !== 'GET';
   const response = await fetch(`/api/v1${path}`, {
@@ -45,6 +47,7 @@ export async function apiRequest<S extends z.ZodType>(
     credentials: 'same-origin',
     headers: {
       Accept: 'application/json',
+      ...(background ? { 'X-Activity': 'background' } : {}),
       ...(mutation
         ? { 'Content-Type': 'application/json', 'X-CSRF-Protection': '1' }
         : {}),

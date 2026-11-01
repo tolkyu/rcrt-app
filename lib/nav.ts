@@ -1,7 +1,7 @@
-import { Settings, UserRound, type LucideIcon } from 'lucide-react';
+import { UserRound, type LucideIcon } from 'lucide-react';
 import type { PermissionCode } from '@/server/authz/permissions';
 
-export type NavItemId = 'profile' | 'settings';
+export type NavItemId = 'profile';
 
 export interface NavItem {
   readonly id: NavItemId;
@@ -15,16 +15,9 @@ export interface NavItem {
   readonly anyOf: readonly PermissionCode[] | null;
 }
 
-const SETTINGS_PERMISSIONS: readonly PermissionCode[] = [
-  'settings.users.manage',
-  'settings.verticals.manage',
-  'settings.priorities.manage',
-  'audit.read',
-];
-
 /**
  * The single navigation config (UI-04, screens.md §1). Only sections that are built are listed (D28);
- * later phases add Головна, Вакансії, Кандидати, Календар (`bar`) and Статистика, Архів (`more`).
+ * T6 adds Налаштування (`footer`); later phases add Головна, Вакансії, Кандидати, Календар (`bar`) and Статистика, Архів (`more`).
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   {
@@ -34,14 +27,6 @@ export const NAV_ITEMS: readonly NavItem[] = [
     zone: 'main',
     mobile: 'more',
     anyOf: null,
-  },
-  {
-    id: 'settings',
-    href: '/settings',
-    icon: Settings,
-    zone: 'footer',
-    mobile: 'more',
-    anyOf: SETTINGS_PERMISSIONS,
   },
 ];
 

@@ -10,6 +10,7 @@ export const meQuery = () =>
       apiRequest('/me', {
         schema: async () => (await import('@/lib/schemas/me')).meSchema,
         signal,
+        background: true,
       }),
   });
 
@@ -21,6 +22,7 @@ export const mySessionsQuery = () =>
         schema: async () =>
           (await import('@/lib/schemas/auth')).sessionListSchema,
         signal,
+        background: true,
       }),
   });
 
@@ -32,6 +34,7 @@ export const myMfaQuery = () =>
         schema: async () =>
           (await import('@/lib/schemas/auth')).mfaStatusResponseSchema,
         signal,
+        background: true,
       }),
   });
 
@@ -46,6 +49,7 @@ export const myLoginHistoryQuery = () =>
         schema: async () =>
           (await import('@/lib/schemas/auth')).loginHistorySchema,
         signal,
+        background: pageParam === null,
       });
     },
     getNextPageParam: (page) => page.nextCursor,

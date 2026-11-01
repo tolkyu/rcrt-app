@@ -16,6 +16,11 @@ export async function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-nonce', nonce);
   requestHeaders.set('Content-Security-Policy', csp);
+  // Always overwritten so a client-sent value never reaches the post-sign-in redirect.
+  requestHeaders.set(
+    'x-pathname',
+    request.nextUrl.pathname + request.nextUrl.search,
+  );
 
   const path = request.nextUrl.pathname;
   const api = path === '/api/v1' || path.startsWith('/api/v1/');

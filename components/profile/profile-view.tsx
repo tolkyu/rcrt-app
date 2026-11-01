@@ -5,6 +5,7 @@ import { UserRoundX } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRoleLabels } from '@/components/shell/role-summary';
 import { EmptyState } from '@/components/states/empty-state';
+import { SectionError } from '@/components/states/section-error';
 import { THEME_ICONS } from '@/components/theme/theme-icon';
 import { useTheme } from '@/components/theme/theme-provider';
 import { Avatar } from '@/components/ui/avatar';
@@ -15,6 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { meQuery } from '@/lib/queries/me';
 import { sortRoles } from '@/lib/roles';
 import { THEMES } from '@/lib/theme';
@@ -73,8 +75,18 @@ function AppearanceCard() {
 export function ProfileView() {
   const t = useTranslations('profile');
   const { label } = useRoleLabels();
-  const { data: me } = useQuery(meQuery());
-  if (!me) return null;
+  const { data: me, isError, isFetching, refetch } = useQuery(meQuery());
+  if (!me)
+    return isError ? (
+      <Card>
+        <SectionError onRetry={() => void refetch()} retrying={isFetching} />
+      </Card>
+    ) : (
+      <div className="skeleton-delayed grid gap-6 lg:grid-cols-12">
+        <Skeleton className="h-80 w-full lg:col-span-7" />
+        <Skeleton className="h-80 w-full lg:col-span-5" />
+      </div>
+    );
   const roles = sortRoles(me.roles);
   return (
     <div className="grid gap-6 lg:grid-cols-12">
