@@ -3,14 +3,46 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 import { isActivePath, type NavItem } from '@/lib/nav';
 import { cn } from '@/lib/utils';
 import { BrandMark } from './brand';
+
+const TOOLTIP_DELAY_MS = 300;
+
+/**
+ * Icon-rail label without a tooltip runtime (PERF-04): shown on focus or after a hover delay, dismissed
+ * with Escape and hoverable, as WCAG 1.4.13 requires; it sits beside the link so the link name stays single.
+ */
+function useRailTooltip() {
+  const id = useId();
+  const [open, setOpen] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const hide = () => {
+    clearTimeout(timer.current);
+    setOpen(false);
+  };
+  return {
+    id,
+    open,
+    wrapper: {
+      onPointerEnter: () => {
+        clearTimeout(timer.current);
+        timer.current = setTimeout(() => setOpen(true), TOOLTIP_DELAY_MS);
+      },
+      onPointerLeave: hide,
+    },
+    trigger: {
+      onFocus: () => setOpen(true),
+      onBlur: hide,
+      onKeyDown: (event: KeyboardEvent) => {
+        if (event.key === 'Escape') hide();
+      },
+      'aria-describedby': open ? id : undefined,
+    },
+  };
+}
 
 function NavLink({
   item,
@@ -23,6 +55,7 @@ function NavLink({
 }) {
   const t = useTranslations('nav');
   const pathname = usePathname();
+  const tooltip = useRailTooltip();
   const active = isActivePath(pathname, item.href);
   const Icon = item.icon;
   const link = (
@@ -30,6 +63,7 @@ function NavLink({
       href={item.href}
       aria-current={active ? 'page' : undefined}
       onClick={onNavigate}
+      {...(collapsed ? tooltip.trigger : {})}
       className={cn(
         'flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors duration-120 lg:h-10',
         collapsed && 'justify-center px-0',
@@ -50,10 +84,18 @@ function NavLink({
   );
   if (!collapsed) return link;
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>{link}</TooltipTrigger>
-      <TooltipContent side="right">{t(item.id)}</TooltipContent>
-    </Tooltip>
+    <div className="relative" {...tooltip.wrapper}>
+      {link}
+      {tooltip.open && (
+        <span
+          role="tooltip"
+          id={tooltip.id}
+          className="border-border bg-tooltip text-tooltip-foreground animate-in fade-in-0 absolute top-1/2 left-full z-30 ml-2 -translate-y-1/2 rounded-md border px-2.5 py-1.5 text-xs whitespace-nowrap shadow-md"
+        >
+          {t(item.id)}
+        </span>
+      )}
+    </div>
   );
 }
 

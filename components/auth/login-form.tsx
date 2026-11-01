@@ -51,7 +51,8 @@ export function LoginForm({
     error instanceof ApiError && error.status === 429
       ? t('rateLimited')
       : error instanceof ApiError && error.code === 'AUTH_EMAIL_DELIVERY_FAILED'
-        ? t('login.sendFailed') : t('genericError');
+        ? t('login.sendFailed')
+        : t('genericError');
 
   const submit = form.handleSubmit(async ({ email }) => {
     setFailure(null);

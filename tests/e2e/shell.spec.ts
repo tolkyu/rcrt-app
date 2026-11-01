@@ -317,3 +317,38 @@ test('navigation follows the viewport: sidebar rail on desktop; no bottom nav on
     ),
   ).toBe(true);
 });
+
+test('deferred shell menus open from the keyboard, take focus, and return it on Escape [UI-04, PERF-04]', async ({
+  page,
+}) => {
+  await page.goto('/profile');
+  const themeTrigger = page.getByRole('button', {
+    name: new RegExp(`^${t.theme.label}:`),
+  });
+  await expect(themeTrigger).toHaveAttribute('aria-haspopup', 'menu');
+  await themeTrigger.focus();
+  await themeTrigger.press('Enter');
+  const menu = page.getByRole('menu');
+  await expect(
+    menu.getByRole('menuitemradio', { name: t.theme.dark, exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.activeElement?.closest('[role="menu"]') !== null,
+    ),
+  ).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect(menu).toHaveCount(0);
+  await expect(themeTrigger).toBeFocused();
+
+  const userTrigger = page.getByRole('button', { name: t.shell.userMenu });
+  await userTrigger.focus();
+  await userTrigger.press('ArrowDown');
+  await expect(
+    page
+      .getByRole('menu')
+      .getByRole('menuitem', { name: t.nav.profile, exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(userTrigger).toBeFocused();
+});

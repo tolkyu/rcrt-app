@@ -1,11 +1,18 @@
 import { TZDate } from '@date-fns/tz';
-import { addDays, differenceInCalendarDays, format, subDays } from 'date-fns';
+import { addDays, differenceInCalendarDays } from 'date-fns';
 
 const KYIV = 'Europe/Kyiv';
 export const AUDIT_PERIODS = ['today', '7d', '30d', '365d'] as const;
 export type AuditPeriod = (typeof AUDIT_PERIODS)[number];
 
-const kyivDay = (at: Date) => format(new TZDate(at, KYIV), 'yyyy-MM-dd');
+/** `en-CA` formats as YYYY-MM-DD; built-in Intl keeps date-fns out of the client bundle (PERF-04). */
+const kyivDayFormat = new Intl.DateTimeFormat('en-CA', {
+  timeZone: KYIV,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+const DAY_MS = 86_400_000;
 
 const PERIOD_DAYS: Record<AuditPeriod, number> = {
   today: 0,
@@ -16,11 +23,13 @@ const PERIOD_DAYS: Record<AuditPeriod, number> = {
 
 /** Preset → inclusive Kyiv calendar dates; «Останні 7 днів» = today and the six days before. */
 export function auditPeriodRange(period: AuditPeriod, now: Date) {
-  const days = PERIOD_DAYS[period];
-  return {
-    from: kyivDay(subDays(new TZDate(now, KYIV), days)),
-    to: kyivDay(now),
-  };
+  const to = kyivDayFormat.format(now);
+  const from = new Date(
+    Date.parse(`${to}T00:00:00Z`) - PERIOD_DAYS[period] * DAY_MS,
+  )
+    .toISOString()
+    .slice(0, 10);
+  return { from, to };
 }
 
 function kyivMidnight(date: string) {

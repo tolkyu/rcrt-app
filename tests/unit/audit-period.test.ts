@@ -48,6 +48,9 @@ describe('Audit Kyiv calendar periods [STORY-AUD-2]', () => {
           from: '2026-10-20',
           to: '2026-10-26',
         });
+        expect(
+          auditPeriodRange('today', new Date('2026-10-26T22:30:00Z')),
+        ).toEqual({ from: '2026-10-27', to: '2026-10-27' });
       } finally {
         if (previous === undefined) delete process.env.TZ;
         else process.env.TZ = previous;
