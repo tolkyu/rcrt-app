@@ -3,7 +3,7 @@
 - Date: 2026-10-31
 - Scope: current T4 request context, authentication wrappers/services, session ledger, MFA, invites, refresh and cookie boundaries. PostgreSQL 17 is approved. Earlier reviews/test counts describe earlier snapshots and are not completion evidence for this tree.
 - Reviewer ownership: `server/context/request-context.ts` trusted-IP fix and this report only. No real Auth/session data, secrets, database reset, commit or deployment.
-- Status (updated 2026-11-01): C01–C06 resolved with passing regressions. Residual for C05: direct GoTrue MFA-verify limits to be confirmed on staging (T9). No demonstrated High authentication/authorization bypass found in this pass. This is not blanket approval of T4.
+- Status (updated 2026-11-01): current verdict is in "Re-check 2026-11-01" at the end. C01–C06 resolved with passing regressions. Residual for C05: direct GoTrue MFA-verify limits to be confirmed on staging (T9). No demonstrated High authentication/authorization bypass found in this pass. This is not blanket approval of T4.
 
 ## Findings
 
@@ -38,3 +38,110 @@ Malformed, missing or comma-separated provider IP values return null. Audits the
 - Independently ran `vitest run --project unit tests/unit/auth/client-ip.test.ts`: **12/12 passed**, including runtime environment gates.
 - QA reported fresh **9/9 limiter** and **6/6 MFA** regressions against disposable PostgreSQL and signed JWT fixtures. Those include fixed unknown-IP behavior, mixed-principal mutation denial, partial reset failure handling and serial lockout. They do not prove C05's concurrent bound.
 - C06's newly added invite regression exposed the defect before its reviewed fix; its post-fix run is pending. C05's concurrent-attempt correction has been assigned separately and is not reviewed here. Full provider/UI/flow completion QA is separate; no earlier suite counts are reused as proof for this tree.
+
+## Re-check 2026-11-01
+
+- Scope: `10ca37b` (T4), `da6733b` (SEC-CORE fixes), auth UI from `838e20f`.
+- Method: source review; `corepack pnpm test:unit` (11 files, **1541/1541** including the new R01 test) and `test:integration` (8 files, **98/98**); two read-only probes against the **local** GoTrue (loopback only, no hosted data): magic-link token format and replay, and MFA enrolment and verification.
+- Status words: **Closed** = code plus a test or probe. **Open** = not built, or a defect remains; the owning task is named. **Accepted** = an owner decision or a documented residual.
+
+### SEC-T4-01…10 and SEC-AUTH-C01…C06
+
+| Item | Status | Evidence |
+|---|---|---|
+| SEC-T4-01 token format | Closed | `lib/schemas/auth.ts:10` `^(pkce_)?[a-f0-9]{56}$`. Local GoTrue probe: the `generateLink` hash is 56 hex and `verifyOtp` accepts it |
+| SEC-T4-02 latency oracle | Accepted (D68) | By owner decision an eligible delivery failure returns 503; ineligible addresses stay neutral (`magic-link.ts:53-63`). Test `returns neutral success for active, unknown, inactive and pending users…` |
+| SEC-T4-03 rate-limit secret | Closed | `lib/env.ts:59,96`, `.env.example:27`, read through `runtimeEnv()` (`services/auth/app.ts`) |
+| SEC-T4-04 link page and allowlist | Closed | Server-composed mail links to `/auth/confirm#token_hash=` (`magic-link.ts:66-75`). `supabase/config.toml` allowlist is `/auth/callback` only |
+| SEC-T4-05 lint selector | Closed | `eslint.config.mjs:126` lists the exact factory names |
+| SEC-T4-06 logout clears cookies | Closed | `session.ts:156-181` (`finally cookies.clear()`). Test `ends other sessions without revoking the caller and logs out the caller server-side` |
+| SEC-T4-07 anon/role claims | Closed | `tests/unit/auth/supabase-identity.test.ts` `rejects %s [SEC-T4-07]` |
+| SEC-T4-08 trusted IP | Closed | `request-context.ts:67-76`; both cases in `client-ip.test.ts` |
+| SEC-T4-09 JS-readable cookies | Closed | `httpOnly: true` in `cookies.ts` and `refresh.ts`. Test `holds SDK cookies until commit and enforces the approved cookie attributes` |
+| SEC-T4-10 401 before 400 | Closed | `public-route.ts:96-98` resolves the context before parsing the body |
+| SEC-AUTH-C01…C04, C06 | Closed | Regressions pass: `rate-limit.test.ts`, `auth-mfa.test.ts` (`revokes sessions but never reports a partial factor deletion…`), `auth-invites.test.ts` (`rechecks roles after external provisioning…`) |
+| SEC-AUTH-C05 | Closed (app path); residual is **R02** | `admits at most five concurrent TOTP attempts…` passes |
+
+### Checklist T4-A…L
+
+| Item | Status | Evidence / owner |
+|---|---|---|
+| A01, A02, A03, A07 | Closed | `supabase-identity.test.ts`: alg, kid, iss/aud, untrusted key, metadata ignored |
+| A04 hosted asymmetric keys | Open → T9 | Needs the drift check (L01) |
+| A05, A06 perf signer | Closed | No perf verifier exists in the source. Boot guard `lib/env.ts:113-117`, tested in `env.test.ts` (`PERF_BUILD`). Re-open with the build-artifact grep when T8 adds a perf verifier |
+| B01–B04, B07–B09 | Closed | `auth-sessions.test.ts`: idle boundary, 7 days from the provider session start, background requests, app plus provider session, end-others and logout. `end_auth_sessions` definer in `0004_auth_sessions.sql`. Cookie caps `cookies.ts:261-268`, `refresh.ts:154-170` |
+| B05 client idle timer | Open (Low, UX only) → T5/T6 | Not built; the server enforces the limit |
+| B06 token lifetimes | Closed locally; hosted Open → T9 | `config.toml`: `jwt_expiry=900`, rotation on, reuse interval 10 s |
+| C01, C03 neutrality | Accepted (D68) | Same as SEC-T4-02 |
+| C02, C10 | Closed | `AUTH_LIMITS` in `rate-limit.ts`; `rate-limit.test.ts` (11th request for one email, 30 confirms per IP) |
+| C04, C05 | Closed | Token in the URL fragment. E2E `confirmation waits for a click and removes the token fragment before sending a POST` |
+| C06 | Closed locally; hosted Open → T9 | Exact allowlist in `config.toml` |
+| C07 single use, latest only | Closed (probe) | Local GoTrue: replay → `otp_expired`; an older link after a newer one → `otp_expired`; `otp_expiry=900`. The automated real-GoTrue E2E is still T7 |
+| C08 | Closed | `rejects deactivation between issuance and confirmation…`, `does not commit provider cookies when the returned token fails…` |
+| C09 `next` guard | Closed (fixed today, **R01**) | `server/auth/safe-redirect.ts`; `tests/unit/auth/safe-redirect.test.ts` |
+| D01, D02, D05 | Closed | `google.ts:175-238`; `activates the invite only for the matching verified Google email…`; an aal1 Admin lands on `/mfa/verify` (`landingPath`) |
+| D03 | Closed locally; hosted Open → T9 | `config.toml`: signups off for all providers, manual linking off, anonymous sign-ins off |
+| D04 email change | Open → T6 | No endpoint yet, so no exposure |
+| E01 create invite | Closed (code); test gap → T6/T7 | `invite.ts:96` `requirePermission('settings.users.manage')` (aal2 Admin only). No allowed/denied test for `createInvite`. Resend and revoke not built |
+| E02–E04, E06–E09 | Closed | `invite-token.ts`; fragment link `invite.ts:78-80` plus `useFragmentToken`. Tests `allows exactly one concurrent consume…`, `checks exact expiry and current roles…`, `rolls back single-use consumption…`. Single `INVITE_INVALID` code. Limits 10 per IP, 5 per token |
+| E05 resend | Open → T6 | Not built |
+| E10 secret key server-only | Closed (code) | `server/auth/admin.ts` imports `server-only`; no `NEXT_PUBLIC_*` in the repo. CI bundle grep → T9 |
+| F01, F02, F05, F07, F08 | Closed | `auth-sessions.test.ts` (aal1 withholding, including during a lock); page guard; reset tests. Audited: `auth.mfa_challenge_failed`, `auth.mfa_locked`, `user.mfa_enrolled`. The TOTP secret appears only in the enrol response and is never logged |
+| F03 second factor needs aal2 | Closed | `mfa.ts:97-98`. Probe: GoTrue itself refuses a direct enrol at aal1 (`insufficient_aal`). See **R03** for the factor cap |
+| F04 lockout | Closed (app path); **R02** Open | `locks at the fifth wrong TOTP and refuses a correct code while locked` |
+| F06 single-Admin warning | Open → T6 | Admin UI not built |
+| G01 | Closed | `auth-identity.test.ts` |
+| G02–G04 deactivation | Open → T6 | `revokeUserAccess` is ready but has no caller; see **R04** |
+| H01–H03 dev login | Closed | `next.config.ts:108` `pageExtensions`; runtime lock and `@demo`-only check in `dev-login.ts:20-28`; real GoTrue session; no dev branch in `server/authz/**`. CI manifest grep → T9 |
+| H04 password sign-in off in prod | Open → T9 | Drift check |
+| I01 | Closed | Every auth route is rate-limited; 429s are audited without email or IP |
+| I02 bucket cleanup | Open (Low) → T9 | No job deletes old `rate_limit_bucket` rows |
+| I03 GoTrue limits | Closed locally; hosted Open → T9 | — |
+| J01–J03 | Closed | `public-route.ts:93-96`. No browser Supabase client exists, so `connect-src 'self'` is exact (`http.ts`). `no-store` on auth responses |
+| K01 | Closed for T4 actions; the rest → T6 | Audited: login success and failure, logout, end-others, expiry, invite create and accept, MFA enrol, failure, lock and reset |
+| K02, K03 | Closed | PII-key guard `server/audit/index.ts:9-24`; profile shows only the user's own `user_session` rows |
+| K04 Sentry scrubbing | Open → T9 | Sentry not installed yet. pino redacts `authorization`, `cookie`, `body`, `query` |
+| L01 drift check | Open → T9 | `scripts/auth-drift-check.ts` does not exist |
+
+### SEC-CORE-01…17
+
+| Item | Status | Evidence |
+|---|---|---|
+| 01 (High) | Closed (D66) | `permissions.ts:65-66`: setting a flag is a plain write; clearing is guarded, GLOBAL scope, MFA; `assertCanActOn` |
+| 02 | Closed (D65) | Candidate delete is not granted to Recruiter. Vacancy scope `OWN_INITIATED_NEW` in `can.ts:77-83` |
+| 03 | Closed (D67) | `can.ts:73-75` `teamLeadId === me` |
+| 04 | Closed | `can.ts` `assertPlain` plus the `PlainPermission`/`GuardedPermission` types; `incoming` beneficiaries |
+| 05 | Closed | `scopes.ts:89-95` accepts read permissions only |
+| 06 | Closed | `map-error.ts` constraint allowlist |
+| 07 | Closed | Strict per-type payloads in `events/index.ts`; audit PII guard and required `candidateId` |
+| 08, 09, 12 | Closed | `context.ts`: no raw roles; aal2 decided per permission; global custom roles ignored; `isRoleCode` plus `Object.hasOwn` |
+| 10, 11 | Closed | `read-json.ts`; 11 is the same as SEC-T4-08 |
+| 13 | Open (Low) → T9 | `app_rw` still has DELETE on `user_invite`; no `pg_default_acl` assertion (`database.test.ts:671`) |
+| 14 | Open (Low, optional) → T9 | The seed guard has no local DB marker |
+| 15 | Closed | Relative-import patterns in `eslint.config.mjs:74-79` |
+| 16 | Open (Info) → before routing ships | D53 read scope not defined yet (fails closed) |
+| 17 | Closed | The browser needs no Supabase origin; `style-src 'unsafe-inline'` is accepted |
+
+### New findings
+
+| ID | Sev | Evidence / impact | Fix / status |
+|---|---|---|---|
+| SEC-AUTH-R01 | Medium | **Open redirect.** `safeNextPath` checked for `//` before URL normalisation, then returned the normalised path. So `/a/..//evil.tld`, `/.//evil.tld` and `/%2e%2e//evil.tld` all became `//evil.tld`. One click was enough: `/mfa/verify?next=…` for an aal2 user (server `redirect`), `/mfa/setup?next=…`, after magic-link sign-in (`login?next=` → localStorage → confirm → `window.location.replace`), and after TOTP verify | **Fixed** in `server/auth/safe-redirect.ts`: a normalised pathname starting with `//` is rejected. Regression `tests/unit/auth/safe-redirect.test.ts` (19 cases; 5 failed before the fix) |
+| SEC-AUTH-R02 | Medium | **Direct GoTrue verify bypasses the app TOTP lockout.** In the local probe, 8 wrong direct `/factors/{id}/verify` calls were all evaluated and none was rate-limited. Our counter and `mfa_locked_until` only see `/api/v1/auth/mfa/verify`. Someone holding a stolen aal1 session (the tokens plus the publishable key; both are server-side or httpOnly today) can brute-force TOTP at GoTrue. The resulting aal2 JWT keeps the same `session_id`, so `loadAuthContext` grants Admin/Finance | **Open. Must be fixed before the first hosted deployment with real data (T9).** Steps: add `user_session.mfa_verified_at timestamptz` (migration plus grant-matrix test). Set it in `verifyTotp` after success, and in dev login after its TOTP step. Return it from `findPrincipal`. In `loadAuthContext` use `aal = identity.aal === 'aal2' && appSession.mfaVerifiedAt && !mfaLocked ? 'aal2' : 'aal1'`. Tests: an aal2 JWT without an app verification → Admin API 401 `MFA_REQUIRED`; after `verifyTotp` → allowed |
+| SEC-AUTH-R03 | Low | `supabase/config.toml` sets `[auth.mfa] max_enrolled_factors = 10`, but T4-F03 requires 3. An aal2 session can enrol more than D22's 2 verified factors directly at GoTrue | Set it to 3 and pin it in the T9 drift check |
+| SEC-AUTH-R04 | Low | `services/auth/session.ts:231-232` runs `setBanned` after the commit and ignores a `false` result. If the ban fails, GoTrue keeps issuing sessions. The app still rejects them (`is_active`), so this is defence in depth | When T6 wires up deactivation: check the result, then retry or answer 503 with a DENIED audit (the C03 pattern) |
+| SEC-AUTH-R05 | Low | `/auth/callback` (GET) calls `cookies.clear()` when there is an `error`, no code, or a failed exchange (`google.ts:187-206`). A top-level link from another site can sign a victim out of their browser (logout CSRF). The server session stays alive until idle expiry | On these paths, discard only the staged writes and the PKCE verifier/invite cookies. Keep existing session cookies unless a new session is established |
+| SEC-AUTH-R06 | Info | Login CSRF: an insider can send a colleague their own `/auth/confirm#token_hash=…` link; pressing the button signs the colleague in as the insider. A new sign-in also leaves the browser's previous server session alive until idle expiry. And `/auth/confirm` still accepts `?token_hash=` in the query (`confirm-form.tsx:20`), which would reach access logs if a mail ever used it | Optional: show the target email on the confirm page; end the previous cookie session in `establishSession`; drop `allowQuery` |
+
+Notes:
+- The probe left local-only GoTrue sessions for `recruiter1.gambling@demo` with no `user_session` rows. The app rejects them; they expire or disappear on `supabase db reset`.
+- Commit `024bdd9` (T5 review fixes) landed during this pass. Auth-relevant parts were checked briefly: middleware always overwrites `x-pathname` (no client spoofing), and `X-Activity: background` is sent only on query refetches. The `x-pathname` → `next` deep link depends on the R01 fix.
+
+### Verdict
+
+No Critical or High finding is open. R01, the one exploitable defect, is fixed with a regression test. **T4 is acceptable for Phase 1 sign-off** on these conditions:
+1. R02 is fixed before any hosted deployment with real personal data (T9 gate, together with the hosted GoTrue limit check).
+2. The T6 items land with their tests: invite resend/revoke, deactivation and ban (with R04), email change, single-Admin warning, `createInvite` allowed/denied tests.
+3. The T9 drift check covers A04, B06, C06, D03, H04, I03 and R03.
+
+This is not a production-launch approval.

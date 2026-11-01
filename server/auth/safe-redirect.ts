@@ -16,7 +16,12 @@ export function safeNextPath(
   } catch {
     return fallback;
   }
-  if (url.origin !== 'http://app.invalid' || AUTH_PATHS.test(url.pathname))
+  // Dot segments can normalise `/a/..//evil.tld` into the protocol-relative `//evil.tld` (SEC-AUTH-R01).
+  if (
+    url.origin !== 'http://app.invalid' ||
+    url.pathname.startsWith('//') ||
+    AUTH_PATHS.test(url.pathname)
+  )
     return fallback;
   return `${url.pathname}${url.search}`;
 }
