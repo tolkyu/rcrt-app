@@ -4,6 +4,7 @@ export const queryKeys = {
   mySessions: () => ['me', 'sessions'] as const,
   myMfa: () => ['me', 'mfa'] as const,
   myLoginHistory: () => ['me', 'login-history'] as const,
+  settingsVerticals: () => ['settings', 'verticals'] as const,
 };
 
 /** First page size of «Історія входів» on «Профіль». */

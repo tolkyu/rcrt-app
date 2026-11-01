@@ -24,6 +24,7 @@ const CLIENT_NAMESPACES = [
   'theme',
   'states',
   'profile',
+  'settings',
 ] as const;
 
 export default async function AppLayout({ children }: { children: ReactNode }) {

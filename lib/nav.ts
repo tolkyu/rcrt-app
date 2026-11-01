@@ -1,7 +1,7 @@
-import { UserRound, type LucideIcon } from 'lucide-react';
+import { Settings, UserRound, type LucideIcon } from 'lucide-react';
 import type { PermissionCode } from '@/server/authz/permissions';
 
-export type NavItemId = 'profile';
+export type NavItemId = 'profile' | 'settings';
 
 export interface NavItem {
   readonly id: NavItemId;
@@ -13,11 +13,34 @@ export interface NavItem {
   readonly mobile: 'bar' | 'more';
   /** Visible when the user holds any of these permissions; `null` = every signed-in user. */
   readonly anyOf: readonly PermissionCode[] | null;
+  /** Lower wins the landing after sign-in (UI-04-1); items without a rank only act as the fallback. */
+  readonly landingRank?: number;
+}
+
+export type SettingsSectionId = 'verticals';
+
+/** «Налаштування» sub-sections in display order; only built ones are listed (D28). */
+export const SETTINGS_SECTIONS: readonly {
+  readonly id: SettingsSectionId;
+  readonly href: string;
+  readonly permission: PermissionCode;
+}[] = [
+  {
+    id: 'verticals',
+    href: '/settings/verticals',
+    permission: 'settings.verticals.manage',
+  },
+];
+
+export function visibleSettingsSections(permissions: ReadonlySet<string>) {
+  return SETTINGS_SECTIONS.filter((section) =>
+    permissions.has(section.permission),
+  );
 }
 
 /**
  * The single navigation config (UI-04, screens.md §1). Only sections that are built are listed (D28);
- * T6 adds Налаштування (`footer`); later phases add Головна, Вакансії, Кандидати, Календар (`bar`) and Статистика, Архів (`more`).
+ * later phases add Головна, Вакансії, Кандидати, Календар (`bar`) and Статистика, Архів (`more`).
  */
 export const NAV_ITEMS: readonly NavItem[] = [
   {
@@ -27,6 +50,15 @@ export const NAV_ITEMS: readonly NavItem[] = [
     zone: 'main',
     mobile: 'more',
     anyOf: null,
+  },
+  {
+    id: 'settings',
+    href: '/settings',
+    icon: Settings,
+    zone: 'footer',
+    mobile: 'more',
+    anyOf: SETTINGS_SECTIONS.map((section) => section.permission),
+    landingRank: 1,
   },
 ];
 
@@ -48,10 +80,15 @@ export function navItemsByIds(
   return items.filter((item) => ids.includes(item.id));
 }
 
-/** Landing after sign-in and for `/`: the first main section, else the first footer section. */
+/** Landing after sign-in and for `/`: the best-ranked section, else the first main, else the first footer one. */
 export function landingPath(items: readonly NavItem[]): string {
+  const ranked = items
+    .filter((item) => item.landingRank !== undefined)
+    .sort((a, b) => a.landingRank! - b.landingRank!);
   const target =
-    items.find((item) => item.zone === 'main') ?? items.find(() => true);
+    ranked[0] ??
+    items.find((item) => item.zone === 'main') ??
+    items.find(() => true);
   return target?.href ?? '/profile';
 }
 

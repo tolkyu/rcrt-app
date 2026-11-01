@@ -6,7 +6,9 @@ import {
   mobileNav,
   NAV_ITEMS,
   navItemsByIds,
+  SETTINGS_SECTIONS,
   visibleNavItems,
+  visibleSettingsSections,
   type NavItem,
   type NavItemId,
 } from '@/lib/nav';
@@ -149,16 +151,40 @@ describe('visibleNavItems: sections follow permission codes, never role names [U
     expect(only('audit.read')).toEqual(['/']);
   });
 
-  it('defaults to NAV_ITEMS: Profile is open to every signed-in user, Settings is not listed before T6 [D28]', () => {
+  it('defaults to NAV_ITEMS: Profile for everyone, Settings only with a built section permission [D28]', () => {
+    const ids = (ctx: ReturnType<typeof contextFor>) =>
+      visibleNavItems(permissionsOf(ctx)).map((entry) => entry.id);
     expect(visibleNavItems(new Set()).map((entry) => entry.id)).toEqual([
       'profile',
     ]);
+    expect(ids(roleContext('ADMIN', 'aal2'))).toEqual(['profile', 'settings']);
+    expect(ids(roleContext('ADMIN', 'aal1'))).toEqual(['profile']);
+    expect(ids(roleContext('HEAD_RECRUITER', 'aal1'))).toEqual(['profile']);
+    expect(ids(roleContext('FINANCE', 'aal2'))).toEqual(['profile']);
+  });
+});
+
+describe('visibleSettingsSections: only built sections the user may manage [STORY-ROLE-03-1, D28]', () => {
+  it('lists Вертикалі for an aal2 Admin and nothing for other roles', () => {
     expect(
-      visibleNavItems(permissionsOf(roleContext('ADMIN', 'aal2'))).map(
-        (entry) => entry.href,
+      visibleSettingsSections(permissionsOf(roleContext('ADMIN', 'aal2'))).map(
+        (section) => section.href,
       ),
-    ).toEqual(['/profile']);
-    expect(NAV_ITEMS.map((entry) => entry.href)).not.toContain('/settings');
+    ).toEqual(['/settings/verticals']);
+    for (const role of ['HEAD_RECRUITER', 'HEAD_HR', 'FINANCE'] as const)
+      expect(
+        visibleSettingsSections(permissionsOf(roleContext(role, 'aal2'))),
+      ).toEqual([]);
+    expect(
+      visibleSettingsSections(permissionsOf(roleContext('ADMIN', 'aal1'))),
+    ).toEqual([]);
+  });
+
+  it('the Settings nav item opens exactly when a section does', () => {
+    const settingsItem = NAV_ITEMS.find((entry) => entry.id === 'settings');
+    expect(settingsItem?.anyOf).toEqual(
+      SETTINGS_SECTIONS.map((section) => section.permission),
+    );
   });
 });
 
@@ -170,12 +196,21 @@ describe('navItemsByIds: the client shell rebuilds items from server-filtered id
   });
 });
 
-describe('landingPath: first main section, else first footer section, else Profile', () => {
+describe('landingPath: best landing rank, else first main section, else first footer section, else Profile', () => {
+  const rankedSettings = { ...settings, landingRank: 1 };
+  const rankedHome = { ...home, landingRank: 0 };
   it.each<[string, readonly NavItem[], string]>([
     ['main sections lead', [settings, vacancies, candidates], '/vacancies'],
     ['footer only', [settings], '/settings'],
+    [
+      'ranked section beats main sections',
+      [vacancies, rankedSettings],
+      '/settings',
+    ],
+    ['lower rank wins', [rankedSettings, rankedHome], '/'],
     ['nothing visible', [], '/profile'],
-    ['current config', NAV_ITEMS, '/profile'],
+    ['Admin with aal2 lands on Settings [UI-04-1]', NAV_ITEMS, '/settings'],
+    ['others land on Profile', [NAV_ITEMS[0]!], '/profile'],
   ])('%s', (_case, items, expected) => {
     expect(landingPath(items)).toBe(expected);
   });
@@ -185,7 +220,11 @@ describe('mobileNav: up to 4 bar slots + «Ще» (screens.md §1, A-46)', () =>
   it('is hidden when fewer than two sections exist', () => {
     expect(mobileNav([])).toBeNull();
     expect(mobileNav([vacancies])).toBeNull();
-    expect(mobileNav(NAV_ITEMS)).toBeNull();
+    expect(mobileNav([NAV_ITEMS[0]!])).toBeNull();
+  });
+
+  it('gives the aal2 Admin Профіль and Налаштування under «Ще»', () => {
+    expect(mobileNav(NAV_ITEMS)).toEqual({ bar: [], more: [...NAV_ITEMS] });
   });
 
   it('puts bar sections in slots and more sections in the sheet', () => {
