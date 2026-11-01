@@ -46,8 +46,14 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 | T5 | Design system shell, navigation per role, profile, states — owner's designer mockups (docs/ux/reference) are the target look | senior-fullstack-engineer | ✅ `838e20f`, `024bdd9`, tests `a213c76` (96 unit, 15 integration, 12 E2E). Known: server field error not shown on name form (Minor, remount by `key`); axe not installed; screenshots → T7 |
 | T6 | Settings: users & invites, roles, verticals, TL priorities, audit viewer | senior-fullstack-engineer | 🔄 Slice 1 `b7520c6`: settings frame + Вертикалі. Slice 2: bounded audit list/detail + filters, Admin aal2 only, migration `0006`; review approved. Users & invites, TL priorities and audit polish remain |
 | T7 | Tests (integration, E2E, Newman), screenshots + gallery | qa-engineer | ⏳ |
-| T8 | Perf seed + perf:check | performance-engineer | ⏳ |
+| T8 | Perf seed + perf:check | performance-engineer | 🔄 Small import optimization: shell 188.02 → 186.72 kB; 180 kB gate still red. Load/Web Vitals gates and Phase-2 perf seed remain pending |
 | T9 | Security review, code review, fixes, verify | security-engineer, code-reviewer | ⏳ Carry-over from foundation review: CI action SHA pins, `pnpm audit` gate, Drizzle drift check, `format:check`, `NEXT_PUBLIC_`/static secret grep; DG-03 storage policy test on local Supabase; AGENTS.md/.codex duplication (owner call) |
+
+## Implementation checkpoint — 2026-11-01 (Codex, query-import optimization)
+
+- Performance engineer identified unused TanStack Query exports in the initial graph. Added only `@tanstack/react-query` to Next's existing import optimization list; retained the original shell/menu implementation after measuring negligible benefit from a Sheet extraction.
+- Actual initial gzip: shell 186.72 kB (was 188.02), audit 205.05 (206.06), verticals 193.31 (194.66), profile 194.28 (195.30), settings 189.60 (190.90). The 180 kB gate remains red; T8/Phase 1 are not complete.
+- Clean build (incl. lint/TypeScript), 1,860 unit/integration tests and independent code review passed. Full E2E: 52 passed + 6 existing mobile-vertical skips; screenshot suite: 24/24. QA added keyboard/focus coverage and 4 tablet/mobile navigation PNGs, visually checked both themes; each phase/latest gallery now contains 32 images with no missing files. Measurements: `docs/perf/report-phase-1-query-imports.md`.
 
 ## Implementation checkpoint — 2026-11-01 (Codex, T6 audit slice)
 

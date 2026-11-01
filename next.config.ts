@@ -13,7 +13,9 @@ const config: NextConfig = {
   // DG-01: baked at build time; instrumentation refuses to boot a perf build on hosted environments.
   env: { PERF_BUILD: process.env.PERF_BUILD === '1' ? '1' : '' },
   reactStrictMode: true,
-  experimental: { optimizePackageImports: ['radix-ui'] },
+  experimental: {
+    optimizePackageImports: ['radix-ui', '@tanstack/react-query'],
+  },
   serverExternalPackages: ['pino', 'postgres'],
   async headers() {
     return [

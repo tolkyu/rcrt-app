@@ -267,6 +267,17 @@ async function expectDesktopNav(page: Page) {
   await expect(
     page.getByRole('button', { name: t.shell.expandSidebar }),
   ).toHaveAttribute('aria-expanded', 'false');
+  const profileLink = sidebar.getByRole('link', {
+    name: t.nav.profile,
+    exact: true,
+  });
+  await profileLink.focus();
+  await expect(
+    page.getByRole('tooltip', { name: t.nav.profile, exact: true }),
+  ).toBeVisible();
+  await profileLink.press('Escape');
+  await expect(page.getByRole('tooltip')).toHaveCount(0);
+  await expect(profileLink).toBeFocused();
   expect(
     (await page.context().cookies()).find((cookie) => cookie.name === 'sidebar')
       ?.value,
