@@ -12,15 +12,16 @@ Date: 2026-11-01. Scope: PERF-04, UI-04..07.
 
 | Route | Before, kB | After, kB | 180 kB gate |
 |---|---:|---:|---|
-| App shell / home | 186.72 | 165.70 | Pass |
-| Settings | 189.60 | 168.58 | Pass |
-| Audit | 205.05 | 178.44 | Pass |
-| Verticals | 193.31 | 172.28 | Pass |
-| Profile | 194.28 | 173.25 | Pass |
+| App shell / home | 186.72 | 166.16 | Pass |
+| Settings | 189.60 | 169.04 | Pass |
+| Audit | 205.05 | 178.95 | Pass |
+| Verticals | 193.31 | 172.75 | Pass |
+| Profile | 194.28 | 173.71 | Pass |
 | Public/auth routes | 103.00–175.38 | unchanged | Pass |
 
-`pnpm perf:size` passes for every route. Audit has the least headroom (1.6 kB); its next candidates are the infinite-query chunk and the record sheet.
+`pnpm perf:size` passes for every route. Numbers include the review fixes (`5be02ea`: load boundary, transition, tooltip state). Audit has the least headroom (1.05 kB); its next candidates are the infinite-query chunk and the record sheet.
 
 ## Verification
 
-- lint, typecheck, 1711 unit, 149 integration, build, full E2E 58/58 + new keyboard test for deferred menus (desktop + mobile).
+- Code review CR-PERF-01..07 fixed in `5be02ea`: stale-deploy chunk failure no longer crashes the shell (load boundary + reload on next press), focus kept while loading (transition), first item focused on keyboard open, WCAG 1.4.13 tooltip, locale-independent Kyiv date, Ukrainian `app/global-error.tsx`.
+- lint, typecheck, 1711 unit, 149 integration, build, `perf:size` pass, full E2E 64 passed + 2 intentional desktop-only skips.
