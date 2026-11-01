@@ -76,3 +76,21 @@ export async function signInWithTotp(
   });
   expect(response.status(), await response.text()).toBe(200);
 }
+
+/** Seeded users whose sessions the `e2e-sessions` setup project creates once per run. */
+export const E2E_USERS = {
+  'admin@demo': 'totp',
+  'finance@demo': 'totp',
+  'head.recruiter.gambling@demo': 'link',
+  'head.hr@demo': 'link',
+  'recruiter1.gambling@demo': 'link',
+  'recruiter2.gambling@demo': 'link',
+} as const;
+export type E2EUser = keyof typeof E2E_USERS;
+
+/**
+ * One stored session per user for the whole run: parallel sign-ins of the same user invalidate each
+ * other's magic links, and every sign-in counts against the 30 / 15 min per-IP confirm limit.
+ */
+export const sessionFile = (email: E2EUser) =>
+  `.playwright-auth/${email.replace(/[^a-z0-9.]/g, '_')}.json`;

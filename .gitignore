@@ -31,3 +31,4 @@ Thumbs.db
 .claude/settings.local.json
 
 /UI FROM DESIGNER/
+.playwright-auth/

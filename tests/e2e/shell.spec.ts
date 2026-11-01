@@ -1,6 +1,6 @@
 import { test as base, expect, type Page } from '@playwright/test';
 import messages from '../../messages/uk.json' with { type: 'json' };
-import { MUTATION_HEADERS, signIn } from '../support/e2e-session';
+import { MUTATION_HEADERS, sessionFile, signIn } from '../support/e2e-session';
 
 const t = {
   shell: messages.shell,
@@ -14,22 +14,14 @@ const demoEmail = (project: string) =>
     ? 'recruiter2.gambling@demo'
     : 'recruiter1.gambling@demo';
 
-/** One real session per worker; desktop and mobile use different seeded users so edits never collide. */
-const test = base.extend<object, { sessionState: string }>({
-  sessionState: [
-    async ({ browser }, provide, workerInfo) => {
-      const context = await browser.newContext({
-        baseURL: 'http://localhost:3100',
-      });
-      await signIn(context.request, demoEmail(workerInfo.project.name));
-      const path = `${workerInfo.project.outputDir}/session-${workerInfo.workerIndex}.json`;
-      await context.storageState({ path });
-      await context.close();
-      await provide(path);
-    },
-    { scope: 'worker' },
-  ],
-  storageState: ({ sessionState }, provide) => provide(sessionState),
+/** Desktop and mobile use different seeded users, so name edits never collide. */
+const test = base.extend({
+  storageState: async ({ isMobile }, provide) =>
+    provide(
+      sessionFile(
+        isMobile ? 'recruiter2.gambling@demo' : 'recruiter1.gambling@demo',
+      ),
+    ),
 });
 
 const htmlClass = (page: Page) =>

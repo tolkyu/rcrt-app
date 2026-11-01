@@ -1,32 +1,17 @@
 import { copyFileSync, mkdirSync } from 'node:fs';
-import { test as base, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import type { AuditPage, AuditRecord } from '../../lib/schemas/audit';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import {
   E2E_ORIGIN,
   MUTATION_HEADERS,
-  signIn,
-  signInWithTotp,
+  sessionFile,
 } from '../support/e2e-session';
 
 const t = messages.settings.audit;
 
-/** Admin sign-ins run with one worker because the seeded TOTP factor is shared. */
-const test = base.extend<object, { adminState: string }>({
-  adminState: [
-    async ({ browser }, provide, workerInfo) => {
-      const context = await browser.newContext({ baseURL: E2E_ORIGIN });
-      await signInWithTotp(context.request, 'admin@demo');
-      const path = `${workerInfo.project.outputDir}/audit-admin-${workerInfo.workerIndex}.json`;
-      await context.storageState({ path });
-      await context.close();
-      await provide(path);
-    },
-    { scope: 'worker' },
-  ],
-  storageState: ({ adminState }, provide) => provide(adminState),
-});
+test.use({ storageState: sessionFile('admin@demo') });
 
 test('Admin investigates a real rename, before/after and entity history [STORY-AUD-2]', async ({
   page,
@@ -84,11 +69,14 @@ test('Admin investigates a real rename, before/after and entity history [STORY-A
     await expect(
       page.getByLabel(t.filters.action, { exact: true }),
     ).toHaveValue('');
-    await page
+    const auditLink = page
       .getByRole('navigation', { name: messages.settings.nav.label })
-      .getByRole('link', { name: messages.settings.nav.audit })
-      .click();
-    await expect(page).toHaveURL(/\/settings\/audit$/);
+      .getByRole('link', { name: messages.settings.nav.audit });
+    // A click that lands while the reloaded page is still hydrating can be dropped; retry until it navigates.
+    await expect(async () => {
+      await auditLink.click();
+      await expect(page).toHaveURL(/\/settings\/audit$/, { timeout: 1_000 });
+    }).toPass();
     await expect(
       page.getByLabel(t.filters.entityType, { exact: true }),
     ).toHaveValue('');
@@ -198,12 +186,15 @@ test('actor and custom Kyiv dates reach the API, while a period over one year st
 test('Finance and Head Recruiter cannot read audit records or settings [VIS-01..03, D25]', async ({
   browser,
 }) => {
-  for (const email of ['finance@demo', 'head.recruiter.gambling@demo']) {
-    const context = await browser.newContext({ baseURL: E2E_ORIGIN });
+  for (const email of [
+    'finance@demo',
+    'head.recruiter.gambling@demo',
+  ] as const) {
+    const context = await browser.newContext({
+      baseURL: E2E_ORIGIN,
+      storageState: sessionFile(email),
+    });
     try {
-      if (email === 'finance@demo')
-        await signInWithTotp(context.request, email);
-      else await signIn(context.request, email);
       expect((await context.request.get('/api/v1/audit')).status()).toBe(404);
       expect((await context.request.get('/api/v1/audit/1')).status()).toBe(404);
       const page = await context.newPage();

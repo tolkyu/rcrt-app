@@ -74,7 +74,9 @@ test('login reports a rate limit and permits retry after an upstream failure', a
     name: /Надіслати посилання для входу|Надсилаємо…/,
   });
   await submit.click();
-  await expect(page.getByRole('alert').filter({ hasText: 'Забагато спроб.' })).toBeVisible();
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'Забагато спроб.' }),
+  ).toBeVisible();
   await expect(submit).toBeEnabled();
   await submit.click();
   await expect(
@@ -162,9 +164,9 @@ test('delivery failure shows the owner-approved safe error instead of a sent con
   await page
     .getByRole('button', { name: 'Надіслати посилання для входу', exact: true })
     .click();
-  await expect(page.getByRole('alert').filter({ hasText: 'Не вдалося надіслати лист.' })).toHaveText(
-    'Не вдалося надіслати лист. Спробуйте пізніше.',
-  );
+  await expect(
+    page.getByRole('alert').filter({ hasText: 'Не вдалося надіслати лист.' }),
+  ).toHaveText('Не вдалося надіслати лист. Спробуйте пізніше.');
   await expect(
     page.getByRole('heading', { name: 'Перевірте пошту', exact: true }),
   ).toHaveCount(0);

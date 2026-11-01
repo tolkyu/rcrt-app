@@ -1,26 +1,12 @@
 import { copyFileSync, mkdirSync } from 'node:fs';
-import { test as base, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
-import { E2E_ORIGIN, signInWithTotp } from '../support/e2e-session';
+import { E2E_ORIGIN, sessionFile } from '../support/e2e-session';
 
 const t = messages.shell;
 
-/** Shared Admin signs in once per sequential worker; both responsive navigation paths need its settings grant. */
-const test = base.extend<object, { adminState: string }>({
-  adminState: [
-    async ({ browser }, provide, workerInfo) => {
-      const context = await browser.newContext({ baseURL: E2E_ORIGIN });
-      await signInWithTotp(context.request, 'admin@demo');
-      const path = `${workerInfo.project.outputDir}/navigation-admin-${workerInfo.workerIndex}.json`;
-      await context.storageState({ path });
-      await context.close();
-      await provide(path);
-    },
-    { scope: 'worker' },
-  ],
-  storageState: ({ adminState }, provide) => provide(adminState),
-});
+test.use({ storageState: sessionFile('admin@demo') });
 
 test('keyboard opening moves focus into navigation, Escape restores its trigger, and navigation closes it [UI-04..07]', async ({
   page,

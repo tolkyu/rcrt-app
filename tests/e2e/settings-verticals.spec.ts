@@ -1,38 +1,18 @@
-import { test as base, expect, type Page } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import {
   E2E_ORIGIN,
   MUTATION_HEADERS,
-  signIn,
-  signInWithTotp,
+  sessionFile,
 } from '../support/e2e-session';
 
 const t = messages.settings;
 const dialogErrors = t.verticals.dialog.errors;
 
-/** One admin@demo exists, so this spec runs only in the desktop project; mobile layout via viewport. */
-const test = base.extend<object, { adminState: string | undefined }>({
-  adminState: [
-    async ({ browser }, provide, workerInfo) => {
-      if (workerInfo.project.use.isMobile) return provide(undefined);
-      const context = await browser.newContext({ baseURL: E2E_ORIGIN });
-      await signInWithTotp(context.request, 'admin@demo');
-      const path = `${workerInfo.project.outputDir}/admin-${workerInfo.workerIndex}.json`;
-      await context.storageState({ path });
-      await context.close();
-      await provide(path);
-    },
-    { scope: 'worker' },
-  ],
-  storageState: ({ adminState }, provide) => provide(adminState),
-});
+/** Admin-only screen; runs in `e2e-admin-desktop`, the mobile layout is covered by resizing. */
+test.use({ storageState: sessionFile('admin@demo') });
 
 test.describe.configure({ mode: 'default' });
-test.skip(
-  ({ isMobile }) => isMobile,
-  'single seeded Admin; mobile layout via viewport',
-);
-
 const verticalsTable = (page: Page) => page.getByRole('table');
 const openDialog = (page: Page) => page.getByRole('dialog');
 
@@ -197,9 +177,11 @@ test('mobile: card list without horizontal scroll and the dialog as a bottom she
 test('roles without settings permissions get the not-found page and 404 from the API [VIS-02, STORY-ROLE-03-1]', async ({
   browser,
 }) => {
-  const context = await browser.newContext({ baseURL: E2E_ORIGIN });
+  const context = await browser.newContext({
+    baseURL: E2E_ORIGIN,
+    storageState: sessionFile('head.hr@demo'),
+  });
   try {
-    await signIn(context.request, 'head.hr@demo');
     const page = await context.newPage();
     await page.goto('/settings/verticals');
     await expect(
