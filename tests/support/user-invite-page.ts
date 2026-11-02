@@ -32,6 +32,7 @@ export async function userInvitePage(
   };
   if (options.noRoles) detail.roles = [];
   const posts: string[] = [];
+  const emails: string[] = [];
   const events: UserEvent[] = [
     {
       id: '1',
@@ -59,6 +60,7 @@ export async function userInvitePage(
       for (const item of data.items)
         if (item.id === detail.id) {
           item.status = detail.status;
+          item.email = detail.email;
           item.roles = detail.roles;
           item.inviteExpiresAt = detail.invitation?.expiresAt ?? null;
         }
@@ -125,5 +127,43 @@ export async function userInvitePage(
       });
     },
   );
-  return { detail, posts };
+  await page.route(
+    (url) => url.pathname === `/api/v1/users/${detail.id}/email`,
+    async (route) => {
+      expect(route.request().method()).toBe('PUT');
+      const { email, expectedVersion } = route.request().postDataJSON() as {
+        email: string;
+        expectedVersion: number;
+      };
+      expect(expectedVersion).toBe(detail.version);
+      emails.push(email);
+      events.unshift({
+        id: String(events.length + 1),
+        type: 'user.email_changed',
+        occurredAt: FIXED_CLOCK_ISO,
+        actorKind: 'USER',
+        actor: null,
+        roles: null,
+        fields: null,
+      });
+      detail.email = email;
+      detail.version += 1;
+      detail.status = 'INVITED';
+      detail.invitation = {
+        sentAt: FIXED_CLOCK_ISO,
+        expiresAt: at(72),
+        resendCount: 0,
+        revokedAt: null,
+        revokedBy: null,
+      };
+      await route.fulfill({
+        json: {
+          inviteId: '00000000-0000-4000-8000-000000000114',
+          expiresAt: at(72),
+          delivered: options.delivered ?? true,
+        },
+      });
+    },
+  );
+  return { detail, posts, emails };
 }

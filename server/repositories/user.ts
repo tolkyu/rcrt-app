@@ -241,6 +241,7 @@ const userDetailRowSchema = userListRowSchema.extend({
   inviteRevokedById: z.uuid().nullable(),
   inviteRevokedByName: z.string().nullable(),
   inviteRevokedByActive: z.boolean().nullable(),
+  version: z.number().int().positive(),
 });
 export type UserDetailRow = z.infer<typeof userDetailRowSchema>;
 
@@ -258,6 +259,7 @@ export async function findUserDetail(
       u.deactivated_at as "deactivatedAt",
       u.last_login_at as "lastLoginAt",
       u.mfa_locked_until as "mfaLockedUntil",
+      u.version,
       (select count(*)::int from ${authMfaTotp} f where f.user_id = u.auth_user_id) as factors,
       coalesce((
         select json_agg(json_build_object('role', r.role, 'verticalId', v.id, 'verticalName', v.name))

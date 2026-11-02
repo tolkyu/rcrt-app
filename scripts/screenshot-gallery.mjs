@@ -53,6 +53,13 @@ const screens = [
       variants.map((variant) => `${state}-${variant}`),
     ),
   ],
+  [
+    '11-admin-user-change-email',
+    'Змінити email — меню, діалог і зайнята адреса',
+    ['menu', 'dialog', 'taken'].flatMap((state) =>
+      variants.map((variant) => `${state}-${variant}`),
+    ),
+  ],
 ];
 mkdirSync('screenshots/latest', { recursive: true });
 const sections = screens.map(([id, title, screenVariants = variants]) => {

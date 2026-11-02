@@ -37,6 +37,14 @@ export const EVENT_PAYLOADS = {
   'user.reinvited': z
     .object({ inviteId: id, roles: z.array(roleRef).min(1) })
     .strict(),
+  /** Old/new address only in the PII side row (D18); `revokedInviteId` is null when the user was «Відкликано». */
+  'user.email_changed': z
+    .object({
+      inviteId: id,
+      revokedInviteId: id.nullable(),
+      roles: z.array(roleRef).min(1),
+    })
+    .strict(),
   'user.invite_accepted': z.object({ inviteId: id }).strict(),
   'user.activated': empty,
   'user.deactivated': empty,

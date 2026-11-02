@@ -1,5 +1,10 @@
 import { pgErrorInfo } from '../db/errors';
-import { DomainError, RateLimitedError, ValidationError } from './errors';
+import {
+  ConflictError,
+  DomainError,
+  RateLimitedError,
+  ValidationError,
+} from './errors';
 import { problemResponse } from './problem';
 
 const triggerCode = /^[A-Z][A-Z0-9_]+$/;
@@ -22,7 +27,10 @@ const VISIBLE_UNIQUE_CONSTRAINTS: Readonly<Record<string, string>> = {
 export function mapError(error: unknown, requestId: string): Response | null {
   if (error instanceof DomainError) {
     return problemResponse(error.status, error.code, requestId, {
-      ...(error instanceof ValidationError ? { errors: error.errors } : {}),
+      ...(error instanceof ValidationError ||
+      (error instanceof ConflictError && error.errors.length > 0)
+        ? { errors: error.errors }
+        : {}),
       ...(error instanceof RateLimitedError
         ? { headers: { 'Retry-After': String(error.retryAfterSeconds) } }
         : {}),

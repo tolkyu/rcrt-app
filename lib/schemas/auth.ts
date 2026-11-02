@@ -1,21 +1,19 @@
 import { z } from 'zod';
 import { timeIdCursorSchema } from './cursor';
+import { emailAddressSchema } from './email';
 import { fullNameSchema } from './profile';
 
-const email = z.string().trim().toLowerCase().pipe(z.email().max(254));
-const nextPath = z
-  .string()
-  .max(512)
-  .optional()
-  .meta({
-    description: 'Same-origin path to return to; anything else is ignored.',
-  });
+const nextPath = z.string().max(512).optional().meta({
+  description: 'Same-origin path to return to; anything else is ignored.',
+});
 /** GoTrue email token hash: hex SHA-224 (verified against local Supabase, SEC-T4-01). */
 const tokenHash = z.string().regex(/^(pkce_)?[a-f0-9]{56}$/);
 const inviteToken = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
 const redirect = z.object({ redirectTo: z.string() }).strict();
 
-export const magicLinkRequestSchema = z.object({ email }).strict();
+export const magicLinkRequestSchema = z
+  .object({ email: emailAddressSchema })
+  .strict();
 export const magicLinkResponseSchema = z
   .object({ accepted: z.literal(true) })
   .strict();
@@ -51,7 +49,7 @@ export const roleAssignmentInputSchema = z
   .strict();
 export const createInviteSchema = z
   .object({
-    email,
+    email: emailAddressSchema,
     fullName: fullNameSchema,
     roles: z.array(roleAssignmentInputSchema).min(1).max(20),
   })

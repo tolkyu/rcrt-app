@@ -899,11 +899,282 @@ test('an invitee without roles can revoke but cannot receive another link [ROLE-
   ]);
 });
 
-test('captures invitation actions and revoke confirmation with deterministic state [SHOT-01..03]', async ({
+const changeT = drawerT.changeEmail;
+const userCard = (page: Page, name: string) =>
+  page.getByRole('dialog', { name, exact: true });
+const changeDialog = (page: Page, name: string) =>
+  page.getByRole('dialog', { name: changeT.title.replace('{name}', name) });
+
+async function openChangeEmail(page: Page, name: string) {
+  await userCard(page, name)
+    .getByRole('button', { name: drawerT.moreActions })
+    .click();
+  await page.getByRole('menuitem', { name: changeT.menuItem }).click();
+  const dialog = changeDialog(page, name);
+  await expect(dialog).toBeVisible();
+  return dialog;
+}
+
+test('change email: «⋯» waits for invite actions, the dialog starts on the selected address, Escape closes only it, success updates card and history [STORY-ROLE-05-7]', async ({
+  page,
+  isMobile,
+}) => {
+  const fixture = await userInvitePage(page);
+  const name = fixture.detail.fullName;
+  const original = fixture.detail.email;
+  const next = 'bohdan.polishchuk@company.com';
+  await page.goto('/settings/users?q=Богдан');
+  await listedUser(page, isMobile, name).click();
+  const card = userCard(page, name);
+  const more = card.getByRole('button', { name: drawerT.moreActions });
+  await expect(more).toBeEnabled();
+
+  const release = deferred();
+  const received = deferred();
+  await page.route(
+    `**/api/v1/users/${fixture.detail.id}/invite/resend`,
+    async (route) => {
+      received.resolve();
+      await release.promise;
+      await route.fallback();
+    },
+  );
+  try {
+    await card
+      .getByRole('button', { name: drawerT.resend, exact: true })
+      .click();
+    await received.promise;
+    await expect(more).toBeDisabled();
+  } finally {
+    release.resolve();
+  }
+  await expect(more).toBeEnabled();
+
+  let dialog = await openChangeEmail(page, name);
+  const input = dialog.getByLabel(changeT.newLabel);
+  const submit = dialog.getByRole('button', { name: changeT.submit });
+  await expect(input).toBeFocused();
+  await expect(input).toHaveValue(original);
+  await expect(dialog.getByText(original, { exact: true })).toBeVisible();
+  await expect(
+    dialog.getByText(`Ролі після прийняття: ${roles.RECRUITER} · Гемблінг`),
+  ).toBeVisible();
+  await expect(submit).toBeDisabled();
+  await expect(dialog.getByText(changeT.errors.unchanged)).toHaveCount(0);
+  await page.keyboard.type('x');
+  await expect(input).toHaveValue('x');
+  await input.fill(` ${original.toUpperCase()} `);
+  await expect(
+    dialog.getByText(changeT.errors.unchanged, { exact: true }),
+  ).toBeVisible();
+  await expect(submit).toBeDisabled();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(card).toBeVisible();
+  await expect(more).toBeFocused();
+  expect(fixture.emails).toEqual([]);
+
+  dialog = await openChangeEmail(page, name);
+  await dialog.getByLabel(changeT.newLabel).fill('не-адреса');
+  await dialog.getByRole('button', { name: changeT.submit }).click();
+  await expect(
+    dialog.getByText(t.inviteDialog.errors.emailInvalid, { exact: true }),
+  ).toBeVisible();
+  await dialog.getByLabel(changeT.newLabel).fill(` ${next.toUpperCase()} `);
+  await dialog.getByRole('button', { name: changeT.submit }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByText(
+      `Email змінено. Запрошення надіслано на ${next} · діє до 19.11.2026, 10:00`,
+      { exact: true },
+    ),
+  ).toBeVisible();
+  expect(fixture.emails).toEqual([next]);
+  await expect(card.getByRole('heading', { name })).toBeFocused();
+  await expect(card.getByText(next, { exact: true })).toBeVisible();
+  await expect(card.getByText(t.status.INVITED, { exact: true })).toBeVisible();
+  await card.getByRole('tab', { name: drawerT.tabHistory }).click();
+  await expect(
+    card
+      .getByRole('list', { name: drawerT.historyTitle })
+      .getByText(messages.settings.audit.actions.user.email_changed, {
+        exact: true,
+      }),
+  ).toBeVisible();
+});
+
+test('change email: an address held by someone else stays in the dialog with «Показати в списку»; a state conflict closes and refreshes [STORY-ROLE-05-7]', async ({
+  page,
+  isMobile,
+}) => {
+  const fixture = await userInvitePage(page);
+  const name = fixture.detail.fullName;
+  let answer: { code: string; field: boolean } = {
+    code: 'USER_EXISTS',
+    field: true,
+  };
+  await page.route(`**/api/v1/users/${fixture.detail.id}/email`, (route) => {
+    if (!answer.field) {
+      fixture.detail.status = 'ACTIVE';
+      fixture.detail.activatedAt = FIXED_CLOCK_ISO;
+      fixture.detail.invitation = null;
+    }
+    return route.fulfill({
+      status: 409,
+      contentType: 'application/problem+json',
+      json: {
+        status: 409,
+        code: answer.code,
+        ...(answer.field
+          ? { errors: [{ path: 'body.email', code: 'taken' }] }
+          : {}),
+      },
+    });
+  });
+  await page.goto('/settings/users?q=Богдан');
+  await listedUser(page, isMobile, name).click();
+  let dialog = await openChangeEmail(page, name);
+  const input = dialog.getByLabel(changeT.newLabel);
+  await input.fill('Olena.Taken@Company.com');
+  await dialog.getByRole('button', { name: changeT.submit }).click();
+  await expect(
+    dialog.getByText(t.inviteDialog.errors.userExists, { exact: true }),
+  ).toBeVisible();
+  await expect(input).toBeFocused();
+  answer = { code: 'USER_DEACTIVATED', field: true };
+  await dialog.getByRole('button', { name: changeT.submit }).click();
+  await expect(
+    dialog.getByText(t.inviteDialog.errors.userDeactivated, { exact: true }),
+  ).toBeVisible();
+  await dialog
+    .getByRole('button', { name: t.inviteDialog.errors.showInList })
+    .click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page).toHaveURL(/q=olena.taken%40company.com/);
+  await expect(page).not.toHaveURL(/user=/);
+  await expect(page.getByLabel(t.searchLabel, { exact: true })).toBeFocused();
+
+  await page.goto('/settings/users?q=Богдан');
+  await listedUser(page, isMobile, name).click();
+  answer = { code: 'USER_ACTIVATED', field: false };
+  dialog = await openChangeEmail(page, name);
+  await dialog.getByLabel(changeT.newLabel).fill('olena.free@company.com');
+  await dialog.getByRole('button', { name: changeT.submit }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByText(messages.settings.common.conflict, { exact: true }),
+  ).toBeVisible();
+  const card = userCard(page, name);
+  await expect(card.getByText(t.status.ACTIVE, { exact: true })).toBeVisible();
+  await expect(
+    card.getByRole('button', { name: drawerT.moreActions }),
+  ).toHaveCount(0);
+  await expect(card.getByRole('heading', { name })).toBeFocused();
+});
+
+test('change email: a revoked card offers «⋯»; a server error keeps the typed address; an undelivered letter warns; active cards have no «⋯» [STORY-ROLE-05-7]', async ({
+  page,
+  isMobile,
+}) => {
+  const fixture = await userInvitePage(page, { delivered: false });
+  const name = fixture.detail.fullName;
+  fixture.detail.status = 'REVOKED';
+  fixture.detail.invitation!.revokedAt = FIXED_CLOCK_ISO;
+  const next = 'bohdan.new@company.com';
+  let failNext = true;
+  await page.route(`**/api/v1/users/${fixture.detail.id}/email`, (route) => {
+    if (!failNext) return route.fallback();
+    failNext = false;
+    return route.fulfill({
+      status: 500,
+      contentType: 'application/problem+json',
+      json: { status: 500, code: 'INTERNAL' },
+    });
+  });
+  await page.goto('/settings/users?q=Богдан');
+  await listedUser(page, isMobile, name).click();
+  const card = userCard(page, name);
+  await expect(card.getByText(t.status.REVOKED, { exact: true })).toBeVisible();
+  const dialog = await openChangeEmail(page, name);
+  await dialog.getByLabel(changeT.newLabel).fill(next);
+  await dialog.getByRole('button', { name: changeT.submit }).click();
+  await expect(
+    page.getByText(messages.settings.common.saveFailed, { exact: true }),
+  ).toBeVisible();
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel(changeT.newLabel)).toHaveValue(next);
+  expect(fixture.emails).toEqual([]);
+  await dialog.getByRole('button', { name: changeT.submit }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByText(changeT.notDelivered, { exact: true }),
+  ).toBeVisible();
+  expect(fixture.emails).toEqual([next]);
+  await expect(card.getByText(t.status.INVITED, { exact: true })).toBeVisible();
+  await expect(card.getByText(next, { exact: true })).toBeVisible();
+
+  await page.goto('/settings/users?q=Василь');
+  await listedUser(page, isMobile, 'Василь Мороз').click();
+  const active = userCard(page, 'Василь Мороз');
+  await expect(
+    active.getByText(t.status.ACTIVE, { exact: true }),
+  ).toBeVisible();
+  // Security renders from the loaded detail, the same data the «⋯» waits for.
+  await expect(
+    active.getByRole('heading', { name: drawerT.securityTitle }),
+  ).toBeVisible();
+  await expect(
+    active.getByRole('button', { name: drawerT.moreActions }),
+  ).toHaveCount(0);
+});
+
+test('change email: without roles the item stays readable but inert, with the reason [STORY-ROLE-05-7, ROLE-05-2]', async ({
+  page,
+  isMobile,
+}) => {
+  const fixture = await userInvitePage(page, { noRoles: true });
+  const name = fixture.detail.fullName;
+  await page.goto('/settings/users?q=Богдан');
+  await listedUser(page, isMobile, name).click();
+  await userCard(page, name)
+    .getByRole('button', { name: drawerT.moreActions })
+    .click();
+  const item = page.getByRole('menuitem', {
+    name: changeT.menuItem,
+    exact: true,
+  });
+  await expect(item).toHaveAttribute('aria-disabled', 'true');
+  await expect(item).toHaveAccessibleDescription(drawerT.noRolesReason);
+  // Playwright treats aria-disabled as not actionable; force is the mouse user's real click.
+  await item.click({ force: true });
+  await page.keyboard.press('ArrowDown');
+  await expect(item).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(item).toBeVisible();
+  await expect(changeDialog(page, name)).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(item).toHaveCount(0);
+  await expect(userCard(page, name)).toBeVisible();
+  expect(fixture.emails).toEqual([]);
+});
+
+test('captures invitation actions, revoke confirmation and change email with deterministic state [SHOT-01..03]', async ({
   page,
   isMobile,
 }, testInfo) => {
   const fixture = await userInvitePage(page);
+  const name = fixture.detail.fullName;
+  await page.route(`**/api/v1/users/${fixture.detail.id}/email`, (route) =>
+    route.fulfill({
+      status: 409,
+      contentType: 'application/problem+json',
+      json: {
+        status: 409,
+        code: 'USER_EXISTS',
+        errors: [{ path: 'body.email', code: 'taken' }],
+      },
+    }),
+  );
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const capture = async (state: string, theme: string) => {
@@ -913,7 +1184,7 @@ test('captures invitation actions and revoke confirmation with deterministic sta
         () => document.documentElement.scrollWidth <= window.innerWidth,
       ),
     ).toBe(true);
-    const file = `11-admin-user-invite-${state}-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
+    const file = `11-admin-user-${state}-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
     const path = `screenshots/phase-1/${file}`;
     await page.screenshot({
       path,
@@ -929,19 +1200,42 @@ test('captures invitation actions and revoke confirmation with deterministic sta
       .context()
       .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
     await page.goto('/settings/users?q=Богдан');
-    await listedUser(page, isMobile, fixture.detail.fullName).click();
+    await listedUser(page, isMobile, name).click();
     const card = drawer(page);
     await expect(
       card.getByText('Прострочене з 16.11.2026, 09:00', { exact: true }),
     ).toBeVisible();
-    await capture('actions', theme);
+    await capture('invite-actions', theme);
     await card
       .getByRole('button', { name: drawerT.revoke, exact: true })
       .click();
     await expect(page.getByRole('alertdialog')).toBeVisible();
-    await capture('revoke', theme);
+    await capture('invite-revoke', theme);
     await page.keyboard.press('Escape');
     await expect(page.getByRole('alertdialog')).toHaveCount(0);
+
+    await card.getByRole('button', { name: drawerT.moreActions }).click();
+    const item = page.getByRole('menuitem', { name: changeT.menuItem });
+    await expect(item).toBeVisible();
+    await capture('change-email-menu', theme);
+    await item.click();
+    const dialog = changeDialog(page, name);
+    const input = dialog.getByLabel(changeT.newLabel);
+    await expect(input).toBeFocused();
+    await expect(input).toHaveValue(fixture.detail.email);
+    await capture('change-email-dialog', theme);
+    await input.fill('olena.taken@company.com');
+    await dialog.getByRole('button', { name: changeT.submit }).click();
+    await expect(
+      dialog.getByText(t.inviteDialog.errors.userExists, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole('button', { name: t.inviteDialog.errors.showInList }),
+    ).toBeVisible();
+    await capture('change-email-taken', theme);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(card).toBeVisible();
   }
 });
 

@@ -239,6 +239,14 @@ export function UsersView({
   const openUser = (user: string | undefined) =>
     navigate({}, () => user, user ? 'pushState' : 'replaceState');
   const opener = useRef<HTMLElement | null>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
+  const [searchFocus, setSearchFocus] = useState(0);
+  useEffect(() => {
+    if (!searchFocus) return;
+    // Runs after the closing dialog's own focus return (Radix restores focus in a 0 ms timeout on unmount).
+    const id = setTimeout(() => searchInput.current?.focus());
+    return () => clearTimeout(id);
+  }, [searchFocus]);
   const openFromRow = (button: HTMLElement | null, user: string) => {
     opener.current = button;
     openUser(user);
@@ -269,16 +277,18 @@ export function UsersView({
   const filtered = Boolean(
     search.q || search.status || search.role || search.vertical,
   );
+  /** From the invite dialog or a user card: the card (if any) closes so the matching row is visible. */
   const showUser = (email: string) => {
     clearTimeout(timer.current);
     setInviting(false);
     setText(email);
-    apply({
-      q: email,
-      status: undefined,
-      role: undefined,
-      vertical: undefined,
-    });
+    // A closing card returns focus to its opener; make that the search box showing the address.
+    if (drawerUser) opener.current = searchInput.current;
+    setSearchFocus((count) => count + 1);
+    navigate(
+      { q: email, status: undefined, role: undefined, vertical: undefined },
+      () => undefined,
+    );
   };
   const reset = () => {
     clearTimeout(timer.current);
@@ -466,6 +476,7 @@ export function UsersView({
               aria-hidden="true"
             />
             <Input
+              ref={searchInput}
               id="users-search"
               type="search"
               value={text}
@@ -581,6 +592,7 @@ export function UsersView({
           canReadAudit={canReadAudit}
           onClose={() => openUser(undefined)}
           onRestoreFocus={() => restoreFocus(drawerUser)}
+          onShowUser={showUser}
         />
       )}
     </>

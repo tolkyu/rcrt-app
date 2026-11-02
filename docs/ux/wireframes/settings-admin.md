@@ -138,12 +138,21 @@ Variants of the drawer body/footer (only allowed actions render; blocked ones ar
 |---|---|---|
 | Активний | Ролі, Пріоритет тімліда (only if TEAM_LEAD), Безпека входу | «Скинути 2FA» (enabled if ≥ 1 factor or locked), «Деактивувати» |
 | Запрошено / прострочене | Ролі, block «Запрошення»: «Надіслано: …» · «Діє до: …» / «Прострочене з …» · «Надсилалося повторно: N» | «Надіслати повторно» (secondary), «Відкликати» (destructive-soft; both states — an expired invite is still `PENDING` in the data) |
-| Відкликано | Ролі, block «Запрошення» (revoked at/by) | none ⚠ OPEN-U4 |
+| Відкликано | Ролі, block «Запрошення» (revoked at/by) | «Запросити знову» (§1.7, D70) |
 | Деактивовано | Ролі (muted, «неактивні»), name suffix «(деактивовано)» | «Активувати знову» (primary) |
 | Self «(ви)» | as Активний | «Деактивувати» disabled «Не можна деактивувати власний обліковий запис.»; «Скинути 2FA» disabled «Свою 2FA ви не можете скинути — це робить інший адміністратор.» |
 | Last active Admin | as Активний | «Деактивувати» disabled «Це останній активний адміністратор. Спершу призначте ще одного.» |
 
-- `[⋯]` header menu: «Скопіювати email», «Усі дії в журналі» (→ `/settings/audit?entity=user:<id>`, needs `audit.read`), «Змінити email» ⚠ OPEN-U1.
+- `[⋯]` header menu: «Скопіювати email», «Усі дії в журналі» (→ `/settings/audit?entity=user:<id>`, needs `audit.read`), «Змінити email» (D69, dialog §1.11).
+  - In code the audit link is an inline header link (keep it). Phase 1 builds the `[⋯]` DropdownMenu (trigger `aria-label` «Інші дії», ghost icon button 44×44 / 36 desktop) with **only** «Змінити email»; the trigger renders only when the menu has ≥ 1 item.
+  - «Змінити email» visibility by status:
+
+| Status | Item |
+|---|---|
+| Запрошено · Запрошення прострочене · Відкликано | shown, enabled |
+| same, but 0 roles | shown, **disabled**: second line in the item `text-xs` muted = `drawer.noRolesReason` «Спершу призначте ролі — без ролей запрошення недійсне.» (same reason as resend / re-invite). Use `aria-disabled="true"` + `onSelect` → `preventDefault()`, **not** Radix `disabled` (Radix skips disabled items in arrow navigation, so the reason would never be read) |
+| same, while a resend / revoke / re-invite / change-email mutation is pending | trigger disabled (shared `mutationKey` `['settings','user',id,'invite']` → `useIsMutating`) |
+| Активний · Деактивовано | **hidden** (no Phase 1 action; activated-user email change = Phase 5, ends sessions — D69) |
 - **Історія** tab: user timeline from `entity_event` (append-only, HIST-03) via compact `Timeline`: icon, action label (same labels as Журнал дій §3.4), actor, `dd.MM.yyyy HH:mm`, old→new for roles/name. Cursor «Показати ще». No IP/UA here (that is Журнал дій).
 - Drawer opens instantly from the list row cache (name/status/roles), details stream in (skeleton for Безпека/Історія only).
 
@@ -241,6 +250,86 @@ Variants of the drawer body/footer (only allowed actions render; blocked ones ar
 - 401 `MFA_REQUIRED` on any call (aal dropped): Alert under page header «Підтвердьте вхід кодом 2FA, щоб керувати налаштуваннями.» + [Підтвердити кодом] → `/mfa/verify?next=…`. (At aal1 the Settings nav item is hidden anyway — grants are withheld, D63.)
 - 404 (user id not visible/unknown in `?user=`): drawer shows NotFoundState «Сторінку не знайдено або доступ обмежено.»
 - 409 version conflict: toast «Дані щойно змінив інший адміністратор. Ми оновили сторінку — перевірте й повторіть.» + refetch.
+
+### 1.11 «Змінити email» (Dialog; D69, ROLE-05)
+
+Only for users who never activated (Запрошено / прострочене / Відкликано; visibility §1.3). Effect: the current invite is revoked (old link dies), a new 72 h invite goes to the new address with the user's **current** roles; status becomes «Запрошено».
+
+```
+┌ Змінити email: Марина Савчук ───────────────────────── [×] ┐
+│ Попереднє посилання з листа перестане діяти. На нову        │
+│ адресу ми надішлемо запрошення, яке діятиме 72 години.      │
+│                                                             │
+│ Поточна адреса                                              │
+│ marina.savchuk@gmial.com                 (text, read-only)  │
+│                                                             │
+│ Нова адреса                                                 │
+│ [ marina.savchuk@gmail.com                          ]       │
+│ З цією адресою людина входитиме, зокрема через Google.      │
+│                                                             │
+│ Ролі після прийняття: Рекрутер · Гемблінг                   │
+│                                                             │
+│              [Скасувати] [Змінити й надіслати запрошення]   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+- **Dialog, not AlertDialog:** it is a form (initial focus must land in the field, like §1.4 / §2.2 rename); nothing is lost — the old link is replaced, and the consequence is the dialog description. Component: `components/ui/dialog.tsx` (desktop 448 centred; < 768 px bottom sheet built in).
+- **Current address:** plain text (`<p>` with visible label, not a disabled input — better contrast, copyable), `overflow-wrap:anywhere`.
+- **New address:** `type="email"`, `autocomplete="off"`, `inputMode="email"`, `text-base` on mobile (no iOS zoom), h 44 / 40. **Prefilled with the current email**, all text selected on open → typing replaces it, arrow keys let the Admin fix one typo.
+- **Roles line:** reuse `drawer.reinviteDialog.roles`; chips joined via `useRoleLabel` exactly like the re-invite dialog.
+- **Validation** (client, shared `emailAddressSchema`; format on blur + submit; server re-checks):
+
+| Case | Where | Message (key) |
+|---|---|---|
+| empty | under field | `inviteDialog.errors.emailRequired` «Введіть адресу електронної пошти.» |
+| invalid format / server 400 | under field | `inviteDialog.errors.emailInvalid` «Введіть коректну адресу електронної пошти.» |
+| equals current (trim + case-insensitive; server `EMAIL_UNCHANGED`) | under field, muted hint (not error), submit **disabled** while equal | `drawer.changeEmail.errors.unchanged` «Це поточна адреса — введіть виправлену.» — shown after the **first edit** (not on open, not on blur: opening inside the Sheet can blur/refocus the field once) |
+| 409 address held by another user | under field (`role="alert"`), field focused, dialog stays open | same copy as the invite dialog §1.2 by code: `USER_EXISTS` → `errors.userExists`, `INVITE_PENDING` → `errors.invitePending`, `USER_DEACTIVATED` → `errors.userDeactivated`, `INVITE_REVOKED` → `errors.inviteRevoked`; + link-button `errors.showInList` «Показати в списку» (STORY-ROLE-05-7) → closes the dialog **and** the card, puts that address into the list search, focus → list search field |
+
+- **Pending:** submit label `inviteDialog.submitting` «Надсилаємо…» + `aria-busy`; input `readOnly`; «Скасувати» disabled; [×] stays enabled but does nothing (guard in `close()`), Escape and overlay click ignored — same as the invite dialog. No optimistic update (address uniqueness + email send are server truths).
+- **Success** (`{ inviteId, expiresAt, delivered }`): dialog closes → invalidate user detail, users list, audit (same `refresh()` as `user-invite-actions.tsx`) → focus the drawer heading (`onFocusHeading`). Drawer header and Запрошення block show the new address / new «Діє до».
+  - `delivered: true` → success toast `drawer.changeEmail.toast`.
+  - `delivered: false` → error toast `drawer.changeEmail.notDelivered` (email already changed and old link dead — the toast says so; «Надіслати повторно» in the footer is the recovery).
+- **Errors** (same mapping as `onError` in `user-invite-actions.tsx`):
+
+| Response | Behaviour |
+|---|---|
+| 409 `INVITE_ROLES_INVALID` | toast `drawer.rolesInvalid`, close, refetch, focus heading |
+| 409 `STALE_STATE` (`expectedVersion` outdated — e.g. two Admins change the same email, STORY-ROLE-05-7 edge case) / other 409 (user activated, invite moved) / 404 | toast `settings.common.conflict`, close, refetch, focus heading (the `[⋯]` may disappear) |
+| 409 address taken (`body.email`) | field error (table above), stays open |
+| other / network | toast `settings.common.saveFailed`; dialog stays open, typed value kept |
+
+- **Focus & Escape:** the menu item opens the dialog via state after the DropdownMenu closes (avoid the Radix menu→dialog focus fight). Initial focus = new-address input (text selected). Cancel/[×]/Escape → focus back to the `[⋯]` trigger; **every close caused by a server answer** (success, conflict, `INVITE_ROLES_INVALID`) → drawer heading; «Показати в списку» → list search field. **Escape closes only the Dialog, never the Sheet behind it:** reuse `useNestedDialog` from `components/settings/invite-dialog-behaviour.ts` (`onEscapeKeyDown` → `preventDefault`, `onKeyDown` Escape → close if not busy, `onCloseAutoFocus` → heading when flagged).
+- **Mobile 390:** bottom sheet (`max-h 85dvh`, safe-area padding); fields full width; buttons stacked full width, h 48: «Змінити й надіслати запрошення» at the bottom (thumb zone), «Скасувати» above (§1.9). Long Ukrainian label wraps to 2 lines, never truncates. Keyboard open → content scrolls, primary stays reachable.
+  - Follow-up (small): the invite dialog §1.2 on mobile still puts the confirm button above «Скасувати»; align it with §1.9/§1.11 (confirm at the bottom).
+- **Accessibility:** title = accessible name; description via `aria-describedby`; no visible «*» on «Нова адреса» (consistent with the invite dialog), `aria-required="true"`; errors/hint linked with `aria-describedby`, `role="alert"` on every field error returned by the server (taken, 400 invalid, `EMAIL_UNCHANGED`); client-side checks only describe the field.
+- **Audit / history:** event `user.email_changed` (actor, user, invite ids); old/new email only in `audit_log` (Admin, aal2). User «Історія» entry «Змінено email» shows the roles line (like «Запрошено повторно»), **never** the addresses (same rule as D72 for ПІБ).
+- **API:** `PUT /api/v1/users/{userId}/email` body `{ email, expectedVersion }` → `200 { inviteId, expiresAt, delivered }`; stale version → 409 `STALE_STATE`; perm `settings.users.manage` (aal2); one transaction: revoke current invite (any of PENDING/expired/REVOKED), update `app_user.email`, create invite, emit event; email sent after commit.
+
+**New strings** → `messages/uk.json`:
+
+```json
+"settings": { "users": { "drawer": {
+  "moreActions": "Інші дії",
+  "changeEmail": {
+    "menuItem": "Змінити email",
+    "title": "Змінити email: {name}",
+    "description": "Попереднє посилання з листа перестане діяти. На нову адресу ми надішлемо запрошення, яке діятиме 72 години.",
+    "currentLabel": "Поточна адреса",
+    "newLabel": "Нова адреса",
+    "submit": "Змінити й надіслати запрошення",
+    "errors": {
+      "unchanged": "Це поточна адреса — введіть виправлену."
+    },
+    "toast": "Email змінено. Запрошення надіслано на {email} · діє до {at, date, ::dd.MM.yyyy HH:mm}",
+    "notDelivered": "Email змінено, але лист не надіслано, а попереднє посилання вже не діє. Спробуйте «Надіслати повторно»."
+  }
+} },
+"audit": {
+  "actions": { "user.email_changed": "Змінено email" }
+} }
+```
+Reused (do not duplicate): `inviteDialog.emailHint`, `inviteDialog.submitting`, `inviteDialog.errors.{emailRequired,emailInvalid,userExists,invitePending,userDeactivated,inviteRevoked,showInList}`, `drawer.reinviteDialog.roles`, `drawer.noRolesReason`, `drawer.rolesInvalid`, `settings.common.{cancel,conflict,saveFailed}`, dialog close label as in `invite-user-dialog.tsx` (`tClose('close')`).
 
 ---
 
@@ -779,6 +868,7 @@ Shared keys reused, not duplicated: `common.roles.*`, `common.roleInVertical`, `
 | «Запросити» | `settings.users.manage` | `POST /invites` | ✔ `createInvite` |
 | «Надіслати повторно» / «Відкликати» | `settings.users.manage` | `POST /invites/{id}/resend`, `POST /invites/{id}/revoke` | build |
 | «Змінити ролі» | `settings.users.manage` | `PUT /users/{id}/roles` (+ `version`) | build |
+| «Змінити email» (not-activated users only, D69) | `settings.users.manage` | `PUT /users/{id}/invite/email` (proposed, §1.11) | build |
 | «Деактивувати» / «Активувати знову» | `settings.users.manage` | `POST /users/{id}/deactivate`, `/reactivate` | build |
 | «Скинути 2FA» | `settings.users.manage` (server refuses self: 403) | `POST /users/{id}/mfa-reset` | ✔ `resetUserMfa` |
 | Drawer «Пріоритет тімліда» + link | `settings.priorities.manage` (block hidden without it) | from `GET /users/{id}` | build |
@@ -808,10 +898,10 @@ Derived UI rules (server enforces the same; UI only explains): self → no deact
 ---
 
 ## ⚠ OPEN / gaps
-- **U1** Admin email change (PRD ROLE-05, D44: «Admin changes a user's email, audited») has no Phase 1 story, API, or defined consequences (sessions ended? Google link re-check? pending invite re-sent to the new address?). Shown only as a ⋯ placeholder; not built until clarified.
+- ~~**U1** Admin email change~~ — **resolved by D69** (owner 2026-11-01, Q-153): Phase 1 only for not-activated users (revoke invite + new 72 h invite to the corrected address, current roles); activated users → Phase 5 (ends sessions). Design: §1.3 (menu visibility) + §1.11 (dialog, states, strings).
 - **U2** «Не доставлено» status (ROLE-05-1 edge case) needs a stored delivery status; `createInvite` only returns `delivered` at send time and `user_invite` has no delivery column. Glossary already defines «Надіслано / Доставлено / Не доставлено». Decide: persist send result (and later provider webhooks) or show only the toast.
 - **U3** The 409 `USER_DEACTIVATED` from `POST /invites` carries no user id, so «Активувати знову» from the invite dialog cannot open the right user. API should return `userId` in the conflict details (Admin-only endpoint, no enumeration risk).
-- **U4** Re-inviting after «Відкликати» is undefined: the user row stays (not activated, active), so `createInvite` answers `INVITE_PENDING` («Запрошення вже надіслано») — wrong message, and no path exists. Options: allow «Надіслати повторно» on Відкликано, or let a new invite replace the revoked one. Owner/BA decision.
+- ~~**U4** Re-inviting after «Відкликати»~~ — resolved by D70: «Запросити знову» (§1.7), dialog answers `INVITE_REVOKED`.
 - **U5** 2FA column in a 10k-user list needs factor counts without one Supabase Admin API call per row (e.g. SQL join on `auth.mfa_factors` or a cached counter) — architect/perf decision; otherwise drop the column from the list and keep it in the drawer.
 - **U6** Deactivation reason length limit is not specified (story: «reason optional»). Wireframe assumes 500 to match the 2FA reason; confirm.
 - **L1** Audit PII separation: STORY-AUD-1 says PII in before/after is stored separately for purge, but `audit_log` has no PII side table and `resetUserMfa` writes the free-text reason into `audit_log.after`. Security/DB to resolve before the viewer shows `after` as-is.

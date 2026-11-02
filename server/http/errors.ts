@@ -49,8 +49,15 @@ export class NotFoundError extends DomainError {
   }
 }
 
+/** `errors` names the input field behind the conflict when the same code can also describe the target itself. */
 export class ConflictError extends DomainError {
   readonly status = 409;
+  constructor(
+    code: string,
+    readonly errors: readonly FieldError[] = [],
+  ) {
+    super(code);
+  }
 }
 
 export class InvalidTransitionError extends DomainError {

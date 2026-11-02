@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { BUILTIN_ROLE_CODES } from '../../server/authz/types';
 import { timeIdCursorSchema } from './cursor';
+import { emailAddressSchema } from './email';
 import {
   GLOBAL_VERTICAL,
   USER_EVENTS_PAGE,
@@ -131,6 +132,10 @@ export const userDetailSchema = z
     mfa: userMfaSchema,
     /** True when one of the roles (Адміністратор, Фінансист) makes 2FA mandatory. */
     mfaRequired: z.boolean(),
+    version: z.number().int().positive().meta({
+      description:
+        'Optimistic-concurrency version; send back as `expectedVersion` (ADR-006).',
+    }),
   })
   .meta({ id: 'UserDetail' });
 export type UserDetail = z.infer<typeof userDetailSchema>;
@@ -184,11 +189,9 @@ export const userInviteSentSchema = z
   .object({
     inviteId: z.uuid(),
     expiresAt: z.iso.datetime(),
-    delivered: z
-      .boolean()
-      .meta({
-        description: 'False when the email provider refused the message.',
-      }),
+    delivered: z.boolean().meta({
+      description: 'False when the email provider refused the message.',
+    }),
   })
   .strict()
   .meta({ id: 'UserInviteSent' });
@@ -199,3 +202,13 @@ export const userInviteRevokedSchema = z
   .strict()
   .meta({ id: 'UserInviteRevoked' });
 export type UserInviteRevoked = z.infer<typeof userInviteRevokedSchema>;
+
+/** «Змінити email» (STORY-ROLE-05-7, D69): the new address and the card version; roles and invite come from the server. */
+export const changeUserEmailSchema = z
+  .object({
+    email: emailAddressSchema,
+    expectedVersion: z.number().int().positive(),
+  })
+  .strict()
+  .meta({ id: 'ChangeUserEmail' });
+export type ChangeUserEmailInput = z.input<typeof changeUserEmailSchema>;

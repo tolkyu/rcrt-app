@@ -838,6 +838,46 @@
           "version"
         ]
       },
+      "UserInviteSent": {
+        "type": "object",
+        "properties": {
+          "inviteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "delivered": {
+            "type": "boolean",
+            "description": "False when the email provider refused the message."
+          }
+        },
+        "required": [
+          "inviteId",
+          "expiresAt",
+          "delivered"
+        ],
+        "additionalProperties": false
+      },
+      "ChangeUserEmail": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          }
+        },
+        "required": [
+          "email",
+          "expectedVersion"
+        ],
+        "additionalProperties": false
+      },
       "UserEventPage": {
         "type": "object",
         "properties": {
@@ -969,29 +1009,6 @@
           "roles",
           "fields"
         ]
-      },
-      "UserInviteSent": {
-        "type": "object",
-        "properties": {
-          "inviteId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "delivered": {
-            "type": "boolean",
-            "description": "False when the email provider refused the message."
-          }
-        },
-        "required": [
-          "inviteId",
-          "expiresAt",
-          "delivered"
-        ],
-        "additionalProperties": false
       },
       "UserInviteRevoked": {
         "type": "object",
@@ -1220,6 +1237,11 @@
           },
           "mfaRequired": {
             "type": "boolean"
+          },
+          "version": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "description": "Optimistic-concurrency version; send back as `expectedVersion` (ADR-006)."
           }
         },
         "required": [
@@ -1235,7 +1257,8 @@
           "teamLeadPriorities",
           "invitation",
           "mfa",
-          "mfaRequired"
+          "mfaRequired",
+          "version"
         ]
       },
       "UserPage": {
@@ -3284,6 +3307,131 @@
           },
           "404": {
             "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userId}/email": {
+      "put": {
+        "operationId": "changeUserEmail",
+        "summary": "Change the email of a never-activated user: the current link stops working, a new 72 h invite goes to the new address (Admin with aal2, D69)",
+        "tags": [
+          "Users"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "description": "User id (uuid)."
+            },
+            "required": true,
+            "description": "User id (uuid).",
+            "name": "userId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            },
+            "required": true,
+            "name": "X-CSRF-Protection",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeUserEmail"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInviteSent"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
                 "schema": {

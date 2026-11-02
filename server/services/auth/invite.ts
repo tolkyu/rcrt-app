@@ -118,6 +118,17 @@ export async function sendInviteEmail(
   }
 }
 
+/** Why an email cannot be given to a new or renamed invitee: the holder's state picks the invite-dialog answer (D42, D44). */
+export async function emailTakenCode(db: DbExecutor, email: string) {
+  const existing = await findUserByEmail(db, email);
+  if (!existing) return null;
+  if (!existing.isActive) return 'USER_DEACTIVATED';
+  if (existing.activatedAt) return 'USER_EXISTS';
+  const latest = await findLatestInviteStatus(db, existing.id);
+  // D70: a revoked invitee is re-invited from the user card, not by a second invite.
+  return latest === 'REVOKED' ? 'INVITE_REVOKED' : 'INVITE_PENDING';
+}
+
 /**
  * Admin-only (aal2 via `settings.users.manage`, T4-E01). Creates the pending user, the roles and a
  * hashed 72 h token; the token travels only in the email fragment and is never returned (T4-E02/E03).
@@ -137,16 +148,8 @@ export async function createInvite(
   const fullName = normalizeFullName(input.fullName);
   if (!(await rolesAreValid(ctx.db, input.roles)))
     throw new ValidationError([{ path: 'body.roles', code: 'invalid_roles' }]);
-  const existing = await findUserByEmail(ctx.db, email);
-  if (existing) {
-    if (!existing.isActive) throw new ConflictError('USER_DEACTIVATED');
-    if (existing.activatedAt) throw new ConflictError('USER_EXISTS');
-    const latest = await findLatestInviteStatus(ctx.db, existing.id);
-    // D70: a revoked invitee is re-invited from the user card, not by a second invite.
-    throw new ConflictError(
-      latest === 'REVOKED' ? 'INVITE_REVOKED' : 'INVITE_PENDING',
-    );
-  }
+  const taken = await emailTakenCode(ctx.db, email);
+  if (taken) throw new ConflictError(taken);
   const now = ctx.clock.now();
   const expiresAt = new Date(now.getTime() + INVITE_TTL_MS);
   const { token, hash } = generateInviteToken();

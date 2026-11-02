@@ -116,10 +116,36 @@ describe('User timeline view [HIST-03, STORY-ROLE-05-4 AC2]', () => {
     expect(view.roles).toBeNull();
   });
 
+  it('shows an email change with the roles of the new invite, never addresses or invite ids (D72)', () => {
+    const view = userEventView(
+      row({
+        type: 'user.email_changed',
+        actorKind: 'USER',
+        payload: {
+          v: 1,
+          inviteId: ACTOR,
+          revokedInviteId: null,
+          roles: [{ role: 'RECRUITER', verticalId: VERTICAL }],
+        },
+        verticalNames: { [VERTICAL]: 'Гемблінг' },
+      }),
+    );
+    expect(view).toMatchObject({
+      type: 'user.email_changed',
+      roles: [
+        { role: 'RECRUITER', vertical: { id: VERTICAL, name: 'Гемблінг' } },
+      ],
+      fields: null,
+    });
+    expect(JSON.stringify(view)).not.toContain(ACTOR);
+    expect(JSON.stringify(view)).not.toContain('@');
+  });
+
   it.each([
     ['user.role_assigned', { role: 'ADMIN', verticalId: null, note: 'текст' }],
     ['user.invited', { roles: [{ role: 'ADMIN', verticalId: null }] }],
     ['user.reinvited', { inviteId: ACTOR, roles: [] }],
+    ['user.email_changed', { inviteId: ACTOR, email: 'a@b.ua', roles: [] }],
     ['user.profile_updated', { fields: ['phone'] }],
     ['user.reactivated', { restoredRoles: 'ADMIN' }],
   ])('drops a %s payload that fails the write allowlist', (type, payload) => {

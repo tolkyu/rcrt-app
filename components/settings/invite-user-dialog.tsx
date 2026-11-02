@@ -31,6 +31,7 @@ import {
   createInviteResponseSchema,
   createInviteSchema,
 } from '@/lib/schemas/auth';
+import { EMAIL_MAX_LENGTH } from '@/lib/schemas/email';
 import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
 
@@ -40,7 +41,6 @@ const isGlobal = (role: string) =>
 const VERTICAL_ROLES = ROLE_DISPLAY_ORDER.filter((role) => !isGlobal(role));
 /** Pasted names often carry stray spaces; the schema collapses them, so allow some slack before the cap. */
 const NAME_INPUT_MAX = FULL_NAME_MAX + 20;
-const EMAIL_INPUT_MAX = 254;
 const CONFLICTS = {
   USER_EXISTS: 'userExists',
   INVITE_PENDING: 'invitePending',
@@ -349,7 +349,7 @@ export function InviteUserDialog({
                         inputMode="email"
                         autoComplete="off"
                         value={email}
-                        maxLength={EMAIL_INPUT_MAX}
+                        maxLength={EMAIL_MAX_LENGTH}
                         placeholder={t('emailPlaceholder')}
                         className="pl-9"
                         aria-invalid={errors.email ? true : undefined}

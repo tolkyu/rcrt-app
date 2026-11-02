@@ -63,6 +63,25 @@ describe('Domain errors → RFC 9457 problem+json [API, ADR-006]', () => {
     ).toBe('42');
   });
 
+  it('names the input field of a conflict only when the service marks it [STORY-ROLE-05-7]', async () => {
+    const taken = mapError(
+      new ConflictError('USER_DEACTIVATED', [
+        { path: 'body.email', code: 'taken' },
+      ]),
+      requestId,
+    )!;
+    expect(await taken.json()).toMatchObject({
+      status: 409,
+      code: 'USER_DEACTIVATED',
+      errors: [{ path: 'body.email', code: 'taken' }],
+    });
+    const plain = await mapError(
+      new ConflictError('USER_DEACTIVATED'),
+      requestId,
+    )!.json();
+    expect(plain).not.toHaveProperty('errors');
+  });
+
   it('maps database invariants by SQLSTATE; other unique violations go to the logged 500 path [SEC-CORE-06, CR-P1-01]', async () => {
     const trigger = mapError(
       postgresError('P0001', 'PROBATION_EXTENSION_FORBIDDEN'),

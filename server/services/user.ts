@@ -158,6 +158,7 @@ export async function getUserDetail(
         : null,
     mfa: mfaOf(row, now),
     mfaRequired: requiresMfa(row.roles),
+    version: row.version,
   };
 }
 

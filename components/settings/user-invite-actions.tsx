@@ -1,13 +1,8 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useIsMutating, useMutation } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
-import {
-  useId,
-  useRef,
-  useState,
-  type KeyboardEvent as ReactKeyboardEvent,
-} from 'react';
+import { useId, useState } from 'react';
 import { useRoleLabel } from '@/components/auth/use-role-label';
 import {
   AlertDialog,
@@ -19,11 +14,14 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
-import { ApiError } from '@/lib/api-client';
-import { userInviteRequests } from '@/lib/queries/user-detail';
-import { queryKeys } from '@/lib/query-keys';
+import {
+  useRefreshUserCard,
+  userInviteMutationKey,
+  userInviteRequests,
+} from '@/lib/queries/user-detail';
 import type { UserDetail } from '@/lib/schemas/user';
 import { toast } from '@/lib/toast';
+import { useInviteFailure, useNestedDialog } from './invite-dialog-behaviour';
 
 type Confirm = 'revoke' | 'reinvite';
 
@@ -43,46 +41,35 @@ export function UserInviteActions({
   const tUsers = useTranslations('settings.users');
   const tCommon = useTranslations('settings.common');
   const roleLabel = useRoleLabel();
-  const queryClient = useQueryClient();
   const reasonId = useId();
   const [confirm, setConfirm] = useState<Confirm | null>(null);
-  const focusHeadingOnClose = useRef(false);
   const userId = detail.id;
-
-  const refresh = () =>
-    Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.settingsUser(userId),
-      }),
-      queryClient.invalidateQueries({ queryKey: ['settings', 'users'] }),
-      queryClient.invalidateQueries({ queryKey: ['settings', 'audit'] }),
-    ]);
+  const mutationKey = userInviteMutationKey(userId);
+  const busy = useIsMutating({ mutationKey }) > 0;
+  const refresh = useRefreshUserCard(userId);
+  const inviteFailure = useInviteFailure();
+  const { focusHeadingRef, contentProps } = useNestedDialog({
+    busy,
+    close: () => setConfirm(null),
+    onFocusHeading,
+  });
 
   const onError = async (error: Error) => {
-    if (error instanceof ApiError && error.code === 'INVITE_ROLES_INVALID') {
-      toast.error(t('rolesInvalid'));
-    } else if (
-      error instanceof ApiError &&
-      (error.status === 409 || error.status === 404)
-    ) {
-      toast.error(tCommon('conflict'));
-      focusHeadingOnClose.current = true;
-    } else {
-      toast.error(tCommon('saveFailed'));
-      return;
-    }
+    if (!inviteFailure(error)) return;
+    focusHeadingRef.current = true;
     setConfirm(null);
     await refresh();
-    if (focusHeadingOnClose.current) onFocusHeading();
+    onFocusHeading();
   };
 
   const closeAfterSuccess = () => {
-    focusHeadingOnClose.current = true;
+    focusHeadingRef.current = true;
     setConfirm(null);
     return refresh();
   };
 
   const resend = useMutation({
+    mutationKey,
     mutationFn: () => userInviteRequests.resend(userId),
     onSuccess: async (sent) => {
       if (sent.delivered)
@@ -93,6 +80,7 @@ export function UserInviteActions({
     onError,
   });
   const revoke = useMutation({
+    mutationKey,
     mutationFn: () => userInviteRequests.revoke(userId),
     onSuccess: async () => {
       toast.success(t('revokeDialog.toast'));
@@ -101,6 +89,7 @@ export function UserInviteActions({
     onError,
   });
   const reinvite = useMutation({
+    mutationKey,
     mutationFn: () => userInviteRequests.reinvite(userId),
     onSuccess: async (sent) => {
       if (sent.delivered)
@@ -113,7 +102,6 @@ export function UserInviteActions({
     onError,
   });
 
-  const busy = resend.isPending || revoke.isPending || reinvite.isPending;
   const noRoles = detail.roles.length === 0;
   const submitting = tUsers('inviteDialog.submitting');
   const pending =
@@ -124,24 +112,10 @@ export function UserInviteActions({
     open: confirm === kind,
     onOpenChange: (open: boolean) => {
       if (busy) return;
-      focusHeadingOnClose.current = false;
+      focusHeadingRef.current = false;
       setConfirm(open ? kind : null);
     },
   });
-  const contentProps = {
-    onEscapeKeyDown: (event: KeyboardEvent) => event.preventDefault(),
-    // Radix attaches its Escape listener to a new layer only after a re-render, so a fast Escape would be lost.
-    onKeyDown: (event: ReactKeyboardEvent) => {
-      if (event.key !== 'Escape' || busy) return;
-      focusHeadingOnClose.current = false;
-      setConfirm(null);
-    },
-    onCloseAutoFocus: (event: Event) => {
-      if (!focusHeadingOnClose.current) return;
-      event.preventDefault();
-      onFocusHeading();
-    },
-  };
   const roles = detail.roles
     .map((r) => roleLabel(r.role, r.vertical?.name ?? null))
     .join(', ');

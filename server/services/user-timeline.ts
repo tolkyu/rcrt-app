@@ -13,7 +13,8 @@ function rolesOf(row: UserEventRow): RoleRef[] | null {
   const payload = withoutVersion(row.payload);
   switch (row.type) {
     case 'user.invited':
-    case 'user.reinvited': {
+    case 'user.reinvited':
+    case 'user.email_changed': {
       const parsed = EVENT_PAYLOADS[row.type].safeParse(payload);
       return parsed.success ? parsed.data.roles : null;
     }

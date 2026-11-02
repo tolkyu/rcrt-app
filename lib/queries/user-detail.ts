@@ -1,4 +1,8 @@
-import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
+import {
+  infiniteQueryOptions,
+  queryOptions,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { ApiError, apiRequest } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
 
@@ -54,4 +58,25 @@ export const userInviteRequests = {
       method: 'POST',
       schema: async () => (await userSchemas()).userInviteSentSchema,
     }),
+  changeEmail: (id: string, email: string, expectedVersion: number) =>
+    apiRequest(`/users/${id}/email`, {
+      method: 'PUT',
+      body: { email, expectedVersion },
+      schema: async () => (await userSchemas()).userInviteSentSchema,
+    }),
 };
+
+/** Shared by every invite mutation of one user, so the card can disable all of them while any runs (wireframe §1.3). */
+export const userInviteMutationKey = (id: string) =>
+  [...queryKeys.settingsUser(id), 'invite'] as const;
+
+/** After an invite action: the card, the users list and the audit log all show the new state. */
+export function useRefreshUserCard(id: string) {
+  const queryClient = useQueryClient();
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.settingsUser(id) }),
+      queryClient.invalidateQueries({ queryKey: ['settings', 'users'] }),
+      queryClient.invalidateQueries({ queryKey: ['settings', 'audit'] }),
+    ]);
+}

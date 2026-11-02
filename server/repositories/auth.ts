@@ -445,11 +445,39 @@ export async function lockInvitee(db: DbExecutor, userId: string) {
       fullName: appUser.fullName,
       isActive: appUser.isActive,
       activatedAt: appUser.activatedAt,
+      version: appUser.version,
     })
     .from(appUser)
     .where(eq(appUser.id, userId))
     .for('update');
   return row ?? null;
+}
+
+/**
+ * Locks the pending invite before the user row — the order acceptance uses (invite joined to user,
+ * FOR UPDATE) — so an email change and an acceptance of the old link serialise instead of deadlocking.
+ */
+export async function lockPendingInvite(
+  db: DbExecutor,
+  userId: string,
+): Promise<void> {
+  await db
+    .select({ id: userInvite.id })
+    .from(userInvite)
+    .where(and(eq(userInvite.userId, userId), eq(userInvite.status, 'PENDING')))
+    .for('update');
+}
+
+export async function updateUserEmail(
+  db: DbExecutor,
+  userId: string,
+  email: string,
+  now: Date,
+): Promise<void> {
+  await db
+    .update(appUser)
+    .set({ email, updatedAt: now, version: sql`${appUser.version} + 1` })
+    .where(eq(appUser.id, userId));
 }
 
 const inviteeStillPending = sql`exists (select 1 from ${appUser} u where u.id = ${userInvite.userId} and u.is_active and u.activated_at is null)`;

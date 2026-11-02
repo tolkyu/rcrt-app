@@ -183,6 +183,51 @@ As an **Admin**, I want to resend or revoke invites, so that I control pending a
 **Events:** `user.invite_resent`, `user.invite_revoked`.
 **Edge cases:** resend and accept at the same moment → whichever commits first wins; the other gets a clear error.
 
+### STORY-ROLE-05-7: Change the email of a not-yet-activated user
+As an **Admin**, I want to correct the email of a person who has not accepted their invite yet, so that a typo does not force me to create the user again (ROLE-05, D44, D69).
+
+**Acceptance criteria**
+- Given an active user who has never activated, with status «Запрошено» (pending or expired) or «Відкликано», When I open the user card → `⋯` → «Змінити email», enter the new address and confirm, Then in one step: the email is replaced, the current link (if any) stops working, a new 72 h invite with the user's current roles is sent to the new address, and the status becomes «Запрошено» with a new «Діє до» (D69, D70).
+- Given the change succeeded, Then list and card show the new email; search finds the user by the new email only; the old address is free for a new invite.
+- Given the email provider fails after the change, Then the change stays saved, the user stays «Запрошено», toast «Email змінено, але лист не надіслано. Спробуйте «Надіслати повторно».»; «Надіслати повторно» sends to the new address.
+- Given the old link, When opened or completed after the change, Then «Запрошення недійсне.»
+- Given the new link, When the person continues with Google, Then the Google verified email must equal the new email exactly; magic-link acceptance creates the account for the new email only (D33).
+- (negative) User who has ever activated («Активний», or activated and later deactivated) → item not shown; API → 409 `USER_ACTIVATED`, nothing changes. Activated-user email change is Phase 5 and will end all their sessions (D69).
+- (negative) Deactivated never-activated user → item not shown; API → 409 `USER_DEACTIVATED`.
+- (negative) Non-Admin of any role/vertical (incl. Head Recruiter, Finance) → no menu item, API 404; unknown user id → 404; Admin without verified 2FA (aal1) → `MFA_REQUIRED`, nothing changes.
+- (negative) New email equal to the current one after normalisation (incl. case-only difference) → «Новий email збігається з поточним.»; nothing sent.
+- (negative) New email belongs to another user in any status → 409 with the invite-dialog messages (STORY-ROLE-05-1): «Користувач з таким email уже існує.» / «Запрошення на цей email уже надіслано.» / «Цей користувач деактивований…» / «Запрошення на цей email відкликано…» + «Показати в списку»; nothing changes.
+- (negative) User has no valid roles → item disabled with reason «Спершу призначте ролі — без ролей запрошення недійсне.»; API 409 `INVITE_ROLES_INVALID`; email unchanged, old link (if any) keeps working.
+
+**Data:** user id, new email (required, valid format, ≤ 254 chars), user version.
+**Validation:** normalisation per Conventions; uniqueness on the normalised value across all users; eligibility (active, never activated, valid current roles) re-checked inside the write transaction.
+**Effect (one transaction):** set email → old pending invite (fresh or expired) becomes `REVOKED` (revoked by/at = Admin/now) → new pending invite, current roles, `sentAt` = now, expiry = now + 72 h → event + audit. Email is sent after commit.
+**Notifications:** invite email in Ukrainian (STORY-ROLE-05-1 template) to the new address only. Nothing to the old address (same as «Відкликати»; it may belong to a stranger).
+**Events / audit (same transaction):**
+
+| Record | Content |
+|---|---|
+| Event `user.email_changed` (user «Історія») | Payload: new `inviteId`, `revokedInviteId` (empty when status was «Відкликано»), roles — ids/enums only. Old→new email only in the purgeable PII side row (D18). «Історія» shows «Змінено email» without values (D72) |
+| Audit `user.email_changed` | before/after email (purgeable, Admin-only «Журнал дій»); details: `inviteId`, `revokedInviteId` |
+| Logs / Sentry | No email values (SEC P1-12) |
+
+No separate `user.invite_revoked` / `user.reinvited` events; the single event covers both.
+**Statistics:** none.
+**UI (proposed copy; UX finalises, glossary to add):** menu «Змінити email» (wireframe settings-admin §1.3, closes U1); dialog «Змінити email: {ПІБ}» — read-only «Поточний email», field «Новий email», «Ролі після прийняття: …», note «Поточне посилання перестане діяти. На нову адресу надішлемо нове запрошення, яке діятиме 72 години.», [Скасувати] [Змінити і надіслати]; toast «Email змінено. Запрошення надіслано на {email} · діє до {dd.MM.yyyy HH:mm}». No optimistic update.
+**Edge cases:**
+- Old link accepted vs email change at the same moment → user row lock; first commit wins: acceptance first → change gets 409 «Користувач уже прийняв запрошення — змінити email поки неможливо.»; change first → acceptance «Запрошення недійсне.»
+- Person mid-acceptance (acceptance page or Google consent open) when the change commits → refused at completion; any sign-in identity left for the old address is never linked and gives no access.
+- Two Admins change the same user at once → version check; second gets «Дані вже змінено іншим користувачем. Оновили сторінку.»; one email, one invite.
+- Change to X while another Admin invites X as a new user → one succeeds, the other gets the duplicate message.
+- Change racing «Надіслати повторно» / «Відкликати» → serialised; the later action applies to the new state (resend goes to the new address; revoke kills the new invite).
+- Status «Не доставлено» (bounce) → this action is the fix; the new invite has its own delivery status.
+- «Відкликано» user → change and «Запросити знову» in one step (D70); all older links stay dead.
+- New invite starts with «Надсилалося повторно: 0»; «Надіслано» = change time.
+- Expiry is exactly 72 h, shown in Kyiv time: changed 24.10.2026 12:00 Kyiv (09:00 UTC, UTC+3) → «Діє до: 27.10.2026, 11:00» (UTC+2 after DST ends 25.10.2026).
+- Repeated corrections A→B→C → only C's link works; «Історія» shows each change. Changing back C→A allowed if A is not used by another user.
+- Sign-in page before acceptance: magic-link request for old or new address → neutral response (D68).
+- Admin purge (Phase 5) removes the email values from audit before/after and the PII side row.
+
 ### STORY-ROLE-05-4: Users list and user details
 As an **Admin**, I want to see all users with status, roles and last sign-in, so that I manage access.
 
@@ -212,7 +257,7 @@ As **any signed-in user** (including Finance), I want «Профіль» with my
 
 **Acceptance criteria**
 - Given «Профіль», Then I see name, email (read-only), roles as «Роль · Вертикаль», тема (Світла / Темна / Системна), 2FA, active sessions, my recent sign-ins (D25).
-- I can edit my display name; email changes only by Admin, audited (D44).
+- I can edit my display name; email changes only by Admin, audited (D44); in Phase 1 only before activation (STORY-ROLE-05-7, D69).
 - (negative) I cannot view another user's profile via URL → 404 (unless Admin via user details).
 
 **Events:** `user.profile_updated` (old→new name).
@@ -414,7 +459,7 @@ As **QA and the owner**, I want realistic Ukrainian seed data, so that demos and
 As the **owner**, I want screenshots of every screen for review without running the app (SHOT-01).
 
 **Acceptance criteria**
-- `pnpm test:screens` captures Phase 1 screens and dialogs: Вхід (default, link sent, error, expired invite, deactivated), Прийняти запрошення, TOTP enrolment/challenge (Admin, Finance), Користувачі та ролі (list, invite dialog, user details, deactivate dialog, role assign dialog), Вертикалі (list, create/rename), Пріоритети тімлідів, Журнал дій (list, record details), Профіль, 404 — for each role that can see them, light + dark, 1440×900 + 390×844.
+- `pnpm test:screens` captures Phase 1 screens and dialogs: Вхід (default, link sent, error, expired invite, deactivated), Прийняти запрошення, TOTP enrolment/challenge (Admin, Finance), Користувачі та ролі (list, invite dialog, user details, change email dialog incl. duplicate-email error, deactivate dialog, role assign dialog), Вертикалі (list, create/rename), Пріоритети тімлідів, Журнал дій (list, record details), Профіль, 404 — for each role that can see them, light + dark, 1440×900 + 390×844.
 - (negative) A screen a role cannot access is not captured as that role (captures 404 instead where meaningful, e.g. Finance → settings).
 
 ### STORY-SHOT-02-1: File naming and gallery
@@ -442,7 +487,7 @@ As the **UX designer**, I want stable diffs between runs (SHOT-03).
 | ROLE-02 | ROLE-02-1 | — |
 | ROLE-03 | ROLE-03-1 (deactivation removed, D34) | — |
 | ROLE-04 | ROLE-04-1 | — |
-| ROLE-05 | ROLE-05-1..6, SEC-AUTH-1, SEC-AUTH-2 | — |
+| ROLE-05 | ROLE-05-1..7 (05-7 = D69 email change), SEC-AUTH-1, SEC-AUTH-2 | — |
 | ROLE-06 | Rule confirmed (D24); dialog checks deferred → STORY-ROLE-06-1 (Phase 2) | — |
 | ROUTE-01 (data only) | ROLE-01-3 | — |
 | VIS-01 | VIS-01-1 | — |

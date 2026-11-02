@@ -3,8 +3,17 @@ import { requirePermission } from '@/server/authz/can';
 import { INVITE_TTL_MS, generateInviteToken } from '@/server/auth/invite-token';
 import type { RequestContext } from '@/server/context/request-context';
 import type { DbExecutor } from '@/server/db';
+import {
+  changeUserEmailSchema,
+  type ChangeUserEmailInput,
+} from '@/lib/schemas/user';
+import { pgErrorInfo } from '@/server/db/errors';
 import { appendEvent, USER_SUBJECT } from '@/server/events';
-import { ConflictError, NotFoundError } from '@/server/http/errors';
+import {
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from '@/server/http/errors';
 import { userIdOf } from '@/server/http/params';
 import {
   findLatestInviteStatus,
@@ -12,11 +21,13 @@ import {
   insertInvite,
   listCurrentRoles,
   lockInvitee,
+  lockPendingInvite,
   revokePendingInvites,
   rotatePendingInvite,
+  updateUserEmail,
 } from '@/server/repositories/auth';
 import type { AuthDependencies } from './deps';
-import { rolesAreValid, sendInviteEmail } from './invite';
+import { emailTakenCode, rolesAreValid, sendInviteEmail } from './invite';
 
 export interface InviteSent {
   inviteId: string;
@@ -172,6 +183,101 @@ export async function reinviteUser(
     return { inviteId, user };
   });
   const delivered = await sendInviteEmail(deps, result.user, token, expiresAt);
+  return {
+    inviteId: result.inviteId,
+    expiresAt: expiresAt.toISOString(),
+    delivered,
+  };
+}
+
+/** Marks the conflict as «address taken» so the UI tells it apart from a change in the user's own state. */
+const emailTaken = (code: string) =>
+  new ConflictError(code, [{ path: 'body.email', code: 'taken' }]);
+
+/**
+ * «Змінити email» (STORY-ROLE-05-7, D69) for an active, never-activated user: in one transaction the
+ * pending invite (fresh or expired) is revoked, the address replaced and a new 72 h invite with the
+ * current roles created; the letter goes to the new address after commit, nothing to the old one.
+ */
+export async function changeInviteeEmail(
+  deps: AuthDependencies,
+  ctx: RequestContext,
+  rawUserId: string,
+  input: ChangeUserEmailInput,
+): Promise<InviteSent> {
+  const userId = targetUserId(ctx, rawUserId);
+  const { email, expectedVersion } = changeUserEmailSchema.parse(input);
+  const now = ctx.clock.now();
+  const expiresAt = new Date(now.getTime() + INVITE_TTL_MS);
+  const { token, hash } = generateInviteToken();
+  const run = () =>
+    ctx.db.transaction(async (tx) => {
+      await lockPendingInvite(tx, userId);
+      const user = await lockInvitee(tx, userId);
+      if (!user) throw new NotFoundError();
+      if (user.activatedAt) throw new ConflictError('USER_ACTIVATED');
+      if (!user.isActive) throw new ConflictError('USER_DEACTIVATED');
+      // A second Admin working from the same card loses instead of overwriting the first change (ADR-006).
+      if (user.version !== expectedVersion)
+        throw new ConflictError('STALE_STATE');
+      if (user.email === email)
+        throw new ValidationError(
+          [{ path: 'body.email', code: 'unchanged' }],
+          'EMAIL_UNCHANGED',
+        );
+      const roles = await currentInviteRoles(tx, userId);
+      const taken = await emailTakenCode(tx, email);
+      if (taken) throw emailTaken(taken);
+      const [revoked] = await revokePendingInvites(
+        tx,
+        userId,
+        ctx.auth.userId,
+        now,
+      );
+      await updateUserEmail(tx, userId, email, now);
+      const inviteId = await insertInvite(tx, {
+        userId,
+        tokenHash: hash,
+        roles,
+        invitedBy: ctx.auth.userId,
+        sentAt: now,
+        expiresAt,
+      });
+      const revokedInviteId = revoked?.id ?? null;
+      const write = { ...ctx, db: tx };
+      await appendEvent(tx, write, {
+        type: 'user.email_changed',
+        subjectType: USER_SUBJECT,
+        subjectId: userId,
+        payload: { inviteId, revokedInviteId, roles },
+        pii: { email: { old: user.email, new: email } },
+      });
+      await writeAudit(tx, write, {
+        action: 'user.email_changed',
+        entityType: 'user',
+        entityId: userId,
+        before: { email: user.email },
+        after: { email },
+        details: { inviteId, revokedInviteId },
+      });
+      return { inviteId, fullName: user.fullName };
+    });
+  let result: Awaited<ReturnType<typeof run>>;
+  try {
+    result = await run();
+  } catch (error) {
+    // Someone took the address between our check and the write (e.g. a parallel invite): same answer as a sequential retry.
+    const pg = pgErrorInfo(error);
+    if (pg?.sqlState === '23505' && pg.constraint === 'app_user_email_uq')
+      throw emailTaken('INVITE_PENDING');
+    throw error;
+  }
+  const delivered = await sendInviteEmail(
+    deps,
+    { email, fullName: result.fullName },
+    token,
+    expiresAt,
+  );
   return {
     inviteId: result.inviteId,
     expiresAt: expiresAt.toISOString(),

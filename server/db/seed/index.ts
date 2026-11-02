@@ -30,6 +30,7 @@ export const DEMO_USERS: {
   fullName: string;
   roles: SeedRole[];
   inactive?: boolean;
+  pendingInvite?: boolean;
 }[] = [
   {
     email: 'admin@demo',
@@ -101,6 +102,7 @@ export const DEMO_USERS: {
   {
     email: 'expired.invite@demo',
     fullName: 'Богдан Поліщук',
+    pendingInvite: true,
     roles: [{ role: 'RECRUITER', verticalId: g }],
   },
 ];
@@ -172,7 +174,6 @@ export async function seedDemo(
           );
       }
       const adminId = demoId('user:admin@demo');
-      const invitee = 'expired.invite@demo';
       const expiredSentAt = new Date('2020-01-10T08:00:00.000Z');
       for (const user of DEMO_USERS) {
         const id = demoId(`user:${user.email}`);
@@ -204,7 +205,7 @@ export async function seedDemo(
           .onConflictDoNothing();
         if (!rows.length) continue;
         // Every demo user came in by invite, so `user.invited` points at a real row; only the invitee's is still pending.
-        const pending = user.email === invitee;
+        const pending = user.pendingInvite === true;
         const sentAt = pending ? expiredSentAt : DEMO_CLOCK;
         const invited = await tx
           .insert(schema.userInvite)

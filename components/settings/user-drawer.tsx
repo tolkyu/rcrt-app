@@ -1,15 +1,26 @@
 'use client';
 
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { SearchX } from 'lucide-react';
+import {
+  useInfiniteQuery,
+  useIsMutating,
+  useQuery,
+} from '@tanstack/react-query';
+import { MoreHorizontal, SearchX } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useRef, useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode } from 'react';
 import { useRoleLabel } from '@/components/auth/use-role-label';
 import { EmptyState } from '@/components/states/empty-state';
 import { SectionError } from '@/components/states/section-error';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import {
   Sheet,
   SheetContent,
@@ -19,13 +30,36 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ApiError } from '@/lib/api-client';
-import { userDetailQuery, userEventsQuery } from '@/lib/queries/user-detail';
-import type { UserDetail, UserEvent, UserListItem } from '@/lib/schemas/user';
+import {
+  userDetailQuery,
+  userEventsQuery,
+  userInviteMutationKey,
+} from '@/lib/queries/user-detail';
+import type {
+  UserDetail,
+  UserEvent,
+  UserListItem,
+  UserStatus,
+} from '@/lib/schemas/user';
 import { GLOBAL_VERTICAL } from '@/lib/user-constants';
 import { cn } from '@/lib/utils';
 import { useAuditLabels } from './audit-labels';
 import { UserInviteActions } from './user-invite-actions';
 import { MfaStatus, StatusChip } from './user-status';
+
+const loadChangeEmailDialog = () => import('./change-email-dialog');
+const ChangeEmailDialog = dynamic(() =>
+  loadChangeEmailDialog().then((module) => module.ChangeEmailDialog),
+);
+const preloadChangeEmailDialog = () => {
+  loadChangeEmailDialog().catch(() => undefined);
+};
+/** Email can change only before activation (D69); activated users get it in Phase 5. */
+const EMAIL_EDITABLE = new Set<UserStatus>([
+  'INVITED',
+  'INVITE_EXPIRED',
+  'REVOKED',
+]);
 
 type Head = Pick<
   UserListItem,
@@ -267,6 +301,93 @@ function History({ userId }: { userId: string }) {
   );
 }
 
+/** Header «⋯» (wireframe §1.3): only «Змінити email» in Phase 1, so the trigger renders only when that item applies. */
+function MoreActions({
+  detail,
+  onFocusHeading,
+  onShowUser,
+}: {
+  detail: UserDetail;
+  onFocusHeading: () => void;
+  onShowUser: (email: string) => void;
+}) {
+  const t = useTranslations('settings.users.drawer');
+  const itemId = useId();
+  const labelId = `${itemId}-label`;
+  const reasonId = `${itemId}-reason`;
+  const trigger = useRef<HTMLButtonElement>(null);
+  const opening = useRef(false);
+  const [changing, setChanging] = useState(false);
+  const busy =
+    useIsMutating({ mutationKey: userInviteMutationKey(detail.id) }) > 0;
+  if (!EMAIL_EDITABLE.has(detail.status)) return null;
+  const noRoles = detail.roles.length === 0;
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            ref={trigger}
+            variant="ghost"
+            size="icon"
+            className="size-11 shrink-0 md:size-9"
+            aria-label={t('moreActions')}
+            disabled={busy}
+            onPointerEnter={preloadChangeEmailDialog}
+            onFocus={preloadChangeEmailDialog}
+          >
+            <MoreHorizontal className="size-5" aria-hidden="true" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          align="end"
+          // Above the Sheet (z-40) that hosts the trigger; shell menus stay at z-30.
+          className="z-50 max-w-72"
+          onCloseAutoFocus={() => {
+            // The dialog opens only once the menu has returned focus to its trigger (Radix menu→dialog focus fight).
+            if (!opening.current) return;
+            opening.current = false;
+            setChanging(true);
+          }}
+        >
+          <DropdownMenuItem
+            aria-disabled={noRoles || undefined}
+            aria-labelledby={labelId}
+            aria-describedby={noRoles ? reasonId : undefined}
+            className="aria-disabled:text-muted-foreground py-2"
+            onSelect={(event) => {
+              // aria-disabled instead of Radix `disabled`: disabled items are skipped by arrow keys, hiding the reason.
+              if (noRoles) return event.preventDefault();
+              opening.current = true;
+            }}
+          >
+            <span className="flex flex-col gap-0.5">
+              <span id={labelId}>{t('changeEmail.menuItem')}</span>
+              {noRoles && (
+                <span
+                  id={reasonId}
+                  className="text-muted-foreground text-xs whitespace-normal"
+                >
+                  {t('noRolesReason')}
+                </span>
+              )}
+            </span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {changing && (
+        <ChangeEmailDialog
+          detail={detail}
+          onClose={() => setChanging(false)}
+          onFocusHeading={onFocusHeading}
+          onFocusTrigger={() => trigger.current?.focus()}
+          onShowUser={onShowUser}
+        />
+      )}
+    </>
+  );
+}
+
 /** «Картка користувача» (STORY-ROLE-05-4 AC2, wireframe §1.3): header from the list cache, details stream in; invite actions in the footer (ROLE-05-3). */
 export function UserDrawer({
   userId,
@@ -275,12 +396,15 @@ export function UserDrawer({
   canReadAudit,
   onClose,
   onRestoreFocus,
+  onShowUser,
 }: {
   userId: string;
   cached: UserListItem | undefined;
   currentUserId: string;
   canReadAudit: boolean;
   onClose: () => void;
+  /** «Показати в списку» for an address that belongs to someone else: closes the card and searches the list. */
+  onShowUser: (email: string) => void;
   /** Radix returns focus only to a Dialog.Trigger; the list knows which row opened the drawer. */
   onRestoreFocus: () => void;
 }) {
@@ -310,7 +434,7 @@ export function UserDrawer({
       <>
         <div className="flex items-start gap-3 pr-10">
           <Avatar name={head.fullName} className="size-12 text-base" />
-          <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
             <SheetTitle
               ref={heading}
               tabIndex={-1}
@@ -352,6 +476,13 @@ export function UserDrawer({
               </Link>
             )}
           </div>
+          {detail.data && (
+            <MoreActions
+              detail={detail.data}
+              onFocusHeading={() => heading.current?.focus()}
+              onShowUser={onShowUser}
+            />
+          )}
         </div>
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList aria-label={t('tabsLabel')}>
