@@ -16,6 +16,7 @@ import {
   vertical,
 } from '../db/schema';
 import { USER_SUBJECT } from '../events';
+import { otherActiveAdminExists } from './user-roles';
 
 export async function findUserProfile(db: DbExecutor, userId: string) {
   const [row] = await db
@@ -241,6 +242,7 @@ const userDetailRowSchema = userListRowSchema.extend({
   inviteRevokedById: z.uuid().nullable(),
   inviteRevokedByName: z.string().nullable(),
   inviteRevokedByActive: z.boolean().nullable(),
+  lastActiveAdmin: z.boolean(),
   version: z.number().int().positive(),
 });
 export type UserDetailRow = z.infer<typeof userDetailRowSchema>;
@@ -279,7 +281,10 @@ export async function findUserDetail(
       li.revoked_at as "inviteRevokedAt",
       rb.id as "inviteRevokedById",
       rb.full_name as "inviteRevokedByName",
-      rb.is_active as "inviteRevokedByActive"
+      rb.is_active as "inviteRevokedByActive",
+      (u.is_active and u.activated_at is not null
+        and exists (select 1 from ${userRole} ar where ar.user_id = u.id and ar.role = 'ADMIN')
+        and not ${otherActiveAdminExists(sql`u.id`)}) as "lastActiveAdmin"
     ${fromUsers}
     left join lateral (
       select x.sent_at, x.expires_at, x.resend_count, x.revoked_at, x.revoked_by

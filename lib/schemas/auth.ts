@@ -45,8 +45,13 @@ export const inviteInspectResponseSchema = z
   .meta({ id: 'InviteInspection' });
 
 export const roleAssignmentInputSchema = z
-  .object({ role: z.string().min(1).max(64), verticalId: z.uuid().nullable() })
+  .object({
+    role: z.string().min(1).max(64),
+    verticalId: z.uuid().toLowerCase().nullable(),
+  })
   .strict();
+/** A role set as the invite dialog and «Змінити ролі» send it; scope rules are checked by the service (D40). */
+export const roleAssignmentsSchema = z.array(roleAssignmentInputSchema).max(50);
 export const createInviteSchema = z
   .object({
     email: emailAddressSchema,

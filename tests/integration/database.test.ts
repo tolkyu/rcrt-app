@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { migrateDatabase } from '../../server/db/migrate';
-import { seedDemo } from '../../server/db/seed/index';
+import { DEMO_USERS, seedDemo } from '../../server/db/seed/index';
 import {
   connectTestDatabase,
   phaseOneTables,
@@ -1045,11 +1045,15 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       { email: 'vasyl.tl@demo', priority: 0 },
     ]);
     const [inactive] =
-      await runtime`select count(*)::int as count from app.app_user where not is_active and deactivated_at is not null`;
+      await runtime`select count(*)::int as count from app.app_user
+        where email in ${runtime(DEMO_USERS.map((user) => user.email))}
+          and not is_active and deactivated_at is not null`;
     expect(inactive?.count).toBe(1);
     const [expired] =
-      await runtime`select count(*)::int as count from app.user_invite
-      where status = 'PENDING' and expires_at < now() and expires_at = sent_at + interval '72 hours' and octet_length(token_hash) = 32`;
+      await runtime`select count(*)::int as count from app.user_invite i
+      join app.app_user u on u.id = i.user_id
+      where u.email in ${runtime(DEMO_USERS.map((user) => user.email))}
+        and i.status = 'PENDING' and i.expires_at < now() and i.expires_at = i.sent_at + interval '72 hours' and octet_length(i.token_hash) = 32`;
     expect(expired?.count).toBe(1);
     const [auth] = await admin`select to_regclass('auth.users') as users,
         (select count(*)::int from auth.mfa_factors) as factors`;

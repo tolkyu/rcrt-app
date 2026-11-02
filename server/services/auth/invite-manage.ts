@@ -20,7 +20,7 @@ import {
   findUserById,
   insertInvite,
   listCurrentRoles,
-  lockInvitee,
+  lockUser,
   lockPendingInvite,
   revokePendingInvites,
   rotatePendingInvite,
@@ -150,7 +150,7 @@ export async function reinviteUser(
   const expiresAt = new Date(now.getTime() + INVITE_TTL_MS);
   const { token, hash } = generateInviteToken();
   const result = await ctx.db.transaction(async (tx) => {
-    const user = await lockInvitee(tx, userId);
+    const user = await lockUser(tx, userId);
     if (!user) throw new NotFoundError();
     if (!user.isActive) throw new ConflictError('USER_DEACTIVATED');
     if (user.activatedAt) throw new ConflictError('USER_EXISTS');
@@ -213,7 +213,7 @@ export async function changeInviteeEmail(
   const run = () =>
     ctx.db.transaction(async (tx) => {
       await lockPendingInvite(tx, userId);
-      const user = await lockInvitee(tx, userId);
+      const user = await lockUser(tx, userId);
       if (!user) throw new NotFoundError();
       if (user.activatedAt) throw new ConflictError('USER_ACTIVATED');
       if (!user.isActive) throw new ConflictError('USER_DEACTIVATED');

@@ -4,6 +4,7 @@ import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import { E2E_ORIGIN, sessionFile } from '../support/e2e-session';
 import { userInvitePage } from '../support/user-invite-page';
+import { userRolesPage } from '../support/user-roles-page';
 
 const t = messages.settings.users;
 const roles = messages.common.roles;
@@ -295,7 +296,9 @@ test('a sent invite closes the dialog, confirms with a toast and refreshes the l
   await dialog.getByLabel(inviteT.nameLabel).fill('  Андрій   Мельник ');
   await dialog.getByLabel(inviteT.emailLabel).fill('Andrii.Melnyk@Company.com');
   await dialog.getByLabel(`${roles.TEAM_LEAD} · Крипто`).check();
-  await dialog.getByLabel(`${roles.ADMIN} · ${inviteT.allVerticals}`).check();
+  await dialog
+    .getByLabel(`${roles.ADMIN} · ${t.roleMatrix.allVerticals}`)
+    .check();
   await expect(dialog.getByText(inviteT.summaryMfa)).toBeVisible();
   const refetch = page.waitForResponse(
     (response) =>
@@ -491,7 +494,7 @@ test('a deep link opens the card on load with the heading focused; Esc focuses t
   ).toBeFocused();
 });
 
-test('Team Lead card: roles, TL priority, sign-in security and the audit link; read-only [STORY-ROLE-05-4]', async ({
+test('Team Lead card: roles with «Змінити ролі», TL priority, sign-in security and the audit link [STORY-ROLE-05-4]', async ({
   page,
   isMobile,
 }) => {
@@ -530,8 +533,11 @@ test('Team Lead card: roles, TL priority, sign-in security and the audit link; r
     `/settings/audit?entityType=user&entityId=${id}&period=365d`,
   );
   await expect(card.getByRole('tab')).toHaveCount(2);
-  await expect(card.getByRole('button')).toHaveCount(1);
+  await expect(card.getByRole('button')).toHaveCount(2);
   await expect(card.getByRole('button', { name: drawerT.close })).toBeVisible();
+  await expect(
+    card.getByRole('button', { name: drawerT.editRoles }),
+  ).toBeVisible();
 });
 
 test('expired invitee card shows the invitation block and no sign-in security [STORY-ROLE-05-4]', async ({
@@ -599,6 +605,9 @@ test('deactivated and self cards: «(деактивовано)» with inactive r
   await expect(
     card.getByText(drawerT.rolesInactive, { exact: true }),
   ).toBeVisible();
+  await expect(
+    card.getByRole('button', { name: drawerT.editRoles }),
+  ).toHaveCount(0);
   await expect(
     card.getByRole('heading', { name: drawerT.securityTitle }),
   ).toHaveCount(0);
@@ -1156,6 +1165,338 @@ test('change email: without roles the item stays readable but inert, with the re
   await expect(item).toHaveCount(0);
   await expect(userCard(page, name)).toBeVisible();
   expect(fixture.emails).toEqual([]);
+});
+
+const rolesT = drawerT.rolesDialog;
+const matrixT = t.roleMatrix;
+const rolesDialog = (page: Page, name: string) =>
+  page.getByRole('dialog', { name: rolesT.title.replace('{name}', name) });
+const problem = (status: number, code: string) => ({
+  status,
+  contentType: 'application/problem+json',
+  json: { status, code, title: code, type: 'about:blank' },
+});
+
+async function openRoles(page: Page, isMobile: boolean, name: string) {
+  await page.goto(`/settings/users?q=${encodeURIComponent(name)}`);
+  await listedUser(page, isMobile, name).click();
+  const card = page.getByRole('dialog').filter({
+    has: page.getByRole('button', { name: drawerT.close, exact: true }),
+  });
+  const trigger = card.getByRole('button', { name: drawerT.editRoles });
+  await trigger.click();
+  const dialog = rolesDialog(page, name);
+  await expect(dialog).toBeVisible();
+  return { card, trigger, dialog };
+}
+
+test('change roles: prefilled matrix, live «Буде додано», Escape closes only the dialog, adds save without confirmation [STORY-ROLE-01-1]', async ({
+  page,
+  isMobile,
+}) => {
+  const fixture = await userRolesPage(page, 'Василь Мороз');
+  const crypto = fixture.verticalId('Крипто');
+  const gambling = fixture.verticalId('Гемблінг');
+  const { card, trigger, dialog } = await openRoles(
+    page,
+    isMobile,
+    'Василь Мороз',
+  );
+  const lead = dialog.getByLabel(`${roles.TEAM_LEAD} · Гемблінг`, {
+    exact: true,
+  });
+  const submit = dialog.getByRole('button', { name: rolesT.submit });
+  await expect(dialog.getByText(rolesT.description)).toBeVisible();
+  await expect(lead).toBeChecked();
+  await expect(
+    dialog.getByLabel(`${roles.ADMIN} · ${matrixT.allVerticals}`),
+  ).not.toBeChecked();
+  await expect(dialog.getByText(rolesT.noChanges)).toBeVisible();
+  await expect(submit).toBeDisabled();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(card).toBeVisible();
+  await expect(trigger).toBeFocused();
+
+  await trigger.click();
+  const recruiter = dialog.getByLabel(`${roles.RECRUITER} · Крипто`, {
+    exact: true,
+  });
+  await recruiter.check();
+  await expect(dialog.getByText(rolesT.added, { exact: true })).toBeVisible();
+  await expect(
+    dialog
+      .getByRole('listitem')
+      .filter({ hasText: `${roles.RECRUITER} · Крипто` }),
+  ).toBeVisible();
+  await expect(dialog.getByText(rolesT.removed, { exact: true })).toHaveCount(
+    0,
+  );
+  await recruiter.uncheck();
+  await expect(submit).toBeDisabled();
+  await recruiter.check();
+  await submit.click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  await expect(page.getByText(rolesT.toast, { exact: true })).toBeVisible();
+  expect(fixture.saves).toHaveLength(1);
+  expect(fixture.saves[0]!.expectedVersion).toBe(fixture.detail.version - 1);
+  expect(fixture.saves[0]!.roles).toHaveLength(2);
+  expect(fixture.saves[0]!.roles).toEqual(
+    expect.arrayContaining([
+      { role: 'TEAM_LEAD', verticalId: gambling },
+      { role: 'RECRUITER', verticalId: crypto },
+    ]),
+  );
+  await expect(
+    card.getByRole('heading', { name: 'Василь Мороз' }),
+  ).toBeFocused();
+  await expect(
+    card.getByText(`${roles.RECRUITER} · Крипто`, { exact: true }),
+  ).toBeVisible();
+  await card.getByRole('tab', { name: drawerT.tabHistory }).click();
+  await expect(
+    card
+      .getByRole('list', { name: drawerT.historyTitle })
+      .getByText(messages.settings.audit.actions.user.role_assigned, {
+        exact: true,
+      }),
+  ).toBeVisible();
+});
+
+test('change roles: removals need «Зняти ролі?»; cancelling returns to the dialog; no roles left warns [STORY-ROLE-01-2]', async ({
+  page,
+  isMobile,
+}) => {
+  const fixture = await userRolesPage(page, 'Василь Мороз');
+  const { card, dialog } = await openRoles(page, isMobile, 'Василь Мороз');
+  const submit = dialog.getByRole('button', { name: rolesT.submit });
+  await dialog
+    .getByLabel(`${roles.TEAM_LEAD} · Гемблінг`, { exact: true })
+    .uncheck();
+  await expect(dialog.getByText(rolesT.removed, { exact: true })).toBeVisible();
+  await expect(
+    dialog.getByText(rolesT.lastRoleWarning, { exact: true }),
+  ).toBeVisible();
+  await submit.click();
+  const confirm = page.getByRole('alertdialog', { name: rolesT.confirmTitle });
+  await expect(confirm).toBeVisible();
+  await expect(
+    confirm.getByText(rolesT.confirmBody.replace('{name}', 'Василь Мороз')),
+  ).toBeVisible();
+  await expect(
+    confirm.getByText(`${roles.TEAM_LEAD} · Гемблінг`, { exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(confirm).toHaveCount(0);
+  await expect(dialog).toBeVisible();
+  await expect(submit).toBeFocused();
+  expect(fixture.saves).toEqual([]);
+
+  await submit.click();
+  await confirm
+    .getByRole('button', { name: messages.settings.common.cancel })
+    .click();
+  await expect(confirm).toHaveCount(0);
+  await expect(dialog).toBeVisible();
+  await submit.click();
+  await confirm.getByRole('button', { name: rolesT.confirmSubmit }).click();
+  await expect(dialog).toHaveCount(0);
+  expect(fixture.saves.map((save) => save.roles)).toEqual([[]]);
+  await expect(card.getByText(drawerT.noRoles, { exact: true })).toBeVisible();
+  await expect(
+    card.getByRole('heading', { name: 'Василь Мороз' }),
+  ).toBeFocused();
+});
+
+test('change roles: own card locks ADMIN with the reason; so does the last Admin; an invitee without roles is warned [D45, ROLE-05-2]', async ({
+  page,
+  isMobile,
+}) => {
+  const self = await openRoles(page, isMobile, 'Іван Коваленко');
+  const adminCell = self.dialog.getByLabel(
+    `${roles.ADMIN} · ${matrixT.allVerticals}`,
+  );
+  await expect(adminCell).toBeChecked();
+  await expect(adminCell).toHaveAttribute('aria-disabled', 'true');
+  await expect(adminCell).toHaveAccessibleDescription(matrixT.selfAdminLocked);
+  await adminCell.click({ force: true });
+  await expect(adminCell).toBeChecked();
+  await expect(
+    self.dialog.getByRole('button', { name: rolesT.submit }),
+  ).toBeDisabled();
+  await self.dialog
+    .getByRole('button', { name: messages.settings.common.cancel })
+    .click();
+  await expect(self.dialog).toHaveCount(0);
+  await expect(self.trigger).toBeFocused();
+
+  await userRolesPage(page, 'Василь Мороз', (detail) => {
+    detail.roles = [...detail.roles, { role: 'ADMIN', vertical: null }];
+    detail.lastActiveAdmin = true;
+  });
+  const last = await openRoles(page, isMobile, 'Василь Мороз');
+  await expect(
+    last.dialog.getByLabel(`${roles.ADMIN} · ${matrixT.allVerticals}`),
+  ).toHaveAccessibleDescription(matrixT.lastAdminLocked);
+  await page.keyboard.press('Escape');
+  await expect(last.dialog).toHaveCount(0);
+
+  const invite = await userInvitePage(page);
+  const invited = await openRoles(page, isMobile, invite.detail.fullName);
+  await invited.dialog
+    .getByLabel(`${roles.RECRUITER} · Гемблінг`, { exact: true })
+    .uncheck();
+  await expect(
+    invited.dialog.getByText(rolesT.invitedNoRoles, { exact: true }),
+  ).toBeVisible();
+  await expect(invited.dialog.getByText(rolesT.lastRoleWarning)).toHaveCount(0);
+});
+
+test('change roles: a server error keeps the selection; a version conflict or D45 refusal closes, rolls the card back and refreshes [ADR-006, D45]', async ({
+  page,
+  isMobile,
+}) => {
+  const fixture = await userRolesPage(page, 'Василь Мороз');
+  const first = await openRoles(page, isMobile, 'Василь Мороз');
+  const recruiter = first.dialog.getByLabel(`${roles.RECRUITER} · Крипто`, {
+    exact: true,
+  });
+  fixture.answerNextSave(problem(400, 'VALIDATION_FAILED'));
+  await recruiter.check();
+  await first.dialog.getByRole('button', { name: rolesT.submit }).click();
+  await expect(first.dialog.getByRole('alert')).toHaveText(
+    rolesT.errors.rolesInvalid,
+  );
+  await expect(recruiter).toBeChecked();
+  await recruiter.uncheck();
+  await expect(first.dialog.getByRole('alert')).toHaveCount(0);
+  await recruiter.check();
+  fixture.answerNextSave(problem(500, 'INTERNAL'));
+  await first.dialog.getByRole('button', { name: rolesT.submit }).click();
+  await expect(
+    page.getByText(messages.settings.common.saveFailed, { exact: true }),
+  ).toBeVisible();
+  await expect(first.dialog).toBeVisible();
+  await expect(recruiter).toBeChecked();
+
+  fixture.answerNextSave(problem(409, 'STALE_STATE'));
+  await first.dialog.getByRole('button', { name: rolesT.submit }).click();
+  await expect(first.dialog).toHaveCount(0);
+  await expect(
+    page.getByText(messages.settings.common.conflict, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    first.card.getByRole('heading', { name: 'Василь Мороз' }),
+  ).toBeFocused();
+  await expect(
+    first.card.getByText(`${roles.RECRUITER} · Крипто`, { exact: true }),
+  ).toHaveCount(0);
+  expect(fixture.saves).toHaveLength(3);
+
+  await first.trigger.click();
+  fixture.answerNextSave(problem(409, 'LAST_ADMIN'));
+  await first.dialog
+    .getByLabel(`${roles.HR} · Крипто`, { exact: true })
+    .check();
+  await first.dialog.getByRole('button', { name: rolesT.submit }).click();
+  await expect(
+    page.getByText(rolesT.errors.lastAdmin, { exact: true }),
+  ).toBeVisible();
+  await expect(first.dialog).toHaveCount(0);
+});
+
+test('change roles: pending additions appear in the users list and a failed save rolls them back [ADR-006, STORY-ROLE-01-1]', async ({
+  page,
+  isMobile,
+}) => {
+  const fixture = await userRolesPage(page, 'Василь Мороз');
+  const { dialog } = await openRoles(page, isMobile, 'Василь Мороз');
+  const listEntry = isMobile
+    ? page
+        .getByRole('list', { name: t.caption, includeHidden: true })
+        .locator('> li')
+        .filter({ hasText: 'Василь Мороз' })
+    : page.locator('tbody tr').filter({ hasText: 'Василь Мороз' });
+  const originalRole = `${roles.TEAM_LEAD} · Гемблінг`;
+  const addedRole = `${roles.RECRUITER} · Крипто`;
+  const pause = fixture.pauseNextSave();
+  fixture.answerNextSave(problem(500, 'INTERNAL'));
+  await dialog.getByLabel(addedRole, { exact: true }).check();
+  await dialog.getByRole('button', { name: rolesT.submit }).click();
+  await pause.started;
+  try {
+    await expect(listEntry).toContainText(originalRole);
+    await expect(listEntry).toContainText(addedRole);
+    await expect(
+      dialog.getByRole('button', { name: messages.settings.common.saving }),
+    ).toBeDisabled();
+  } finally {
+    pause.release();
+  }
+  await expect(
+    page.getByText(messages.settings.common.saveFailed, { exact: true }),
+  ).toBeVisible();
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByLabel(addedRole, { exact: true })).toBeChecked();
+  await expect(listEntry).toContainText(originalRole);
+  await expect(listEntry).not.toContainText(addedRole);
+});
+
+test('captures role changes and removal confirmation with deterministic state [SHOT-01..03]', async ({
+  page,
+  isMobile,
+}, testInfo) => {
+  await userRolesPage(page, 'Василь Мороз');
+  await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  mkdirSync('screenshots/phase-1', { recursive: true });
+  mkdirSync('screenshots/latest', { recursive: true });
+  const capture = async (state: string, theme: string) => {
+    await page.evaluate(() => document.fonts.ready);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    const file = `12-admin-user-roles-${state}-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
+    const path = `screenshots/phase-1/${file}`;
+    await page.screenshot({
+      path,
+      animations: 'disabled',
+      scale: 'css',
+      fullPage: true,
+    });
+    copyFileSync(path, `screenshots/latest/${file}`);
+    await testInfo.attach(file, { path, contentType: 'image/png' });
+  };
+  for (const theme of ['light', 'dark'] as const) {
+    await page
+      .context()
+      .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
+    const { dialog } = await openRoles(page, isMobile, 'Василь Мороз');
+    await dialog
+      .getByLabel(`${roles.TEAM_LEAD} · Гемблінг`, { exact: true })
+      .uncheck();
+    await dialog
+      .getByLabel(`${roles.RECRUITER} · Крипто`, { exact: true })
+      .check();
+    await expect(dialog.getByText(rolesT.added, { exact: true })).toBeVisible();
+    await expect(
+      dialog.getByText(rolesT.removed, { exact: true }),
+    ).toBeVisible();
+    await capture('dialog', theme);
+    await dialog.getByRole('button', { name: rolesT.submit }).click();
+    const confirm = page.getByRole('alertdialog', {
+      name: rolesT.confirmTitle,
+    });
+    await expect(confirm).toBeVisible();
+    await capture('remove', theme);
+    await page.keyboard.press('Escape');
+    await expect(confirm).toHaveCount(0);
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+  }
 });
 
 test('captures invitation actions, revoke confirmation and change email with deterministic state [SHOT-01..03]', async ({

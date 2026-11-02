@@ -590,6 +590,7 @@ export function UsersView({
           cached={items.find((user) => user.id === drawerUser)}
           currentUserId={currentUserId}
           canReadAudit={canReadAudit}
+          canListVerticals={canListVerticals}
           onClose={() => openUser(undefined)}
           onRestoreFocus={() => restoreFocus(drawerUser)}
           onShowUser={showUser}

@@ -6,6 +6,7 @@ export const AUDIT_ACTION_GROUPS = {
     'user.invite_revoked',
     'user.reinvited',
     'user.email_changed',
+    'user.roles_changed',
     'user.invite_accepted',
     'user.profile_updated',
     'user.mfa_enrolled',

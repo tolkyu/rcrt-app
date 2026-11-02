@@ -1,5 +1,5 @@
 import type { BuiltinRole } from '@/server/authz/types';
-export { GLOBAL_ROLE_CODES } from '@/server/authz/types';
+export { GLOBAL_ROLE_CODES, isAdminAssignment } from '@/server/authz/types';
 
 /** Display order: widest role first, so the top-bar summary shows the most relevant one (D64). */
 export const ROLE_DISPLAY_ORDER: readonly BuiltinRole[] = [

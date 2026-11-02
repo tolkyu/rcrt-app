@@ -66,6 +66,21 @@ export const userInviteRequests = {
     }),
 };
 
+/** «Змінити ролі»: the full new set and the card version (STORY-ROLE-01-1/01-2). */
+export const updateUserRolesRequest = (
+  id: string,
+  roles: readonly { role: string; verticalId: string | null }[],
+  expectedVersion: number,
+) =>
+  apiRequest(`/users/${id}/roles`, {
+    method: 'PUT',
+    body: { roles, expectedVersion },
+    schema: async () => (await userSchemas()).userRolesUpdatedSchema,
+  });
+
+export const userRolesMutationKey = (id: string) =>
+  [...queryKeys.settingsUser(id), 'roles'] as const;
+
 /** Shared by every invite mutation of one user, so the card can disable all of them while any runs (wireframe §1.3). */
 export const userInviteMutationKey = (id: string) =>
   [...queryKeys.settingsUser(id), 'invite'] as const;

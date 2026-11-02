@@ -436,8 +436,11 @@ export async function findLatestInviteStatus(db: DbExecutor, userId: string) {
   return row?.status ?? null;
 }
 
-/** The invitee, locked so a re-invite serialises with any other write to the same user (D70). */
-export async function lockInvitee(db: DbExecutor, userId: string) {
+/**
+ * The user row, locked so invite, email and role writes to the same user serialise (D70, ADR-006).
+ * NO KEY UPDATE leaves FK checks free: two Admins editing each other must not deadlock on `created_by`/`actor_id`.
+ */
+export async function lockUser(db: DbExecutor, userId: string) {
   const [row] = await db
     .select({
       id: appUser.id,
@@ -449,7 +452,7 @@ export async function lockInvitee(db: DbExecutor, userId: string) {
     })
     .from(appUser)
     .where(eq(appUser.id, userId))
-    .for('update');
+    .for('no key update');
   return row ?? null;
 }
 

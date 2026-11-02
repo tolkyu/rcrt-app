@@ -60,6 +60,13 @@ const screens = [
       variants.map((variant) => `${state}-${variant}`),
     ),
   ],
+  [
+    '12-admin-user-roles',
+    'Змінити ролі — матриця доступу та підтвердження зняття',
+    ['dialog', 'remove'].flatMap((state) =>
+      variants.map((variant) => `${state}-${variant}`),
+    ),
+  ],
 ];
 mkdirSync('screenshots/latest', { recursive: true });
 const sections = screens.map(([id, title, screenVariants = variants]) => {

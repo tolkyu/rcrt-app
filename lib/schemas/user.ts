@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { BUILTIN_ROLE_CODES } from '../../server/authz/types';
+import { roleAssignmentInputSchema, roleAssignmentsSchema } from './auth';
 import { timeIdCursorSchema } from './cursor';
 import { emailAddressSchema } from './email';
 import {
@@ -132,6 +133,10 @@ export const userDetailSchema = z
     mfa: userMfaSchema,
     /** True when one of the roles (Адміністратор, Фінансист) makes 2FA mandatory. */
     mfaRequired: z.boolean(),
+    lastActiveAdmin: z.boolean().meta({
+      description:
+        'True when this user is the only active Admin: the ADMIN role cannot be removed (D45).',
+    }),
     version: z.number().int().positive().meta({
       description:
         'Optimistic-concurrency version; send back as `expectedVersion` (ADR-006).',
@@ -212,3 +217,23 @@ export const changeUserEmailSchema = z
   .strict()
   .meta({ id: 'ChangeUserEmail' });
 export type ChangeUserEmailInput = z.input<typeof changeUserEmailSchema>;
+
+/** «Змінити ролі» (STORY-ROLE-01-1/01-2): the complete new set and the card version; the server stores the difference. */
+export const updateUserRolesSchema = z
+  .object({
+    roles: roleAssignmentsSchema,
+    expectedVersion: z.number().int().positive(),
+  })
+  .strict()
+  .meta({ id: 'UpdateUserRoles' });
+export type UpdateUserRolesInput = z.input<typeof updateUserRolesSchema>;
+
+export const userRolesUpdatedSchema = z
+  .object({
+    version: z.number().int().positive(),
+    added: z.array(roleAssignmentInputSchema),
+    removed: z.array(roleAssignmentInputSchema),
+  })
+  .strict()
+  .meta({ id: 'UserRolesUpdated' });
+export type UserRolesUpdated = z.infer<typeof userRolesUpdatedSchema>;

@@ -54,6 +54,13 @@ const ChangeEmailDialog = dynamic(() =>
 const preloadChangeEmailDialog = () => {
   loadChangeEmailDialog().catch(() => undefined);
 };
+const loadEditRolesDialog = () => import('./edit-roles-dialog');
+const EditRolesDialog = dynamic(() =>
+  loadEditRolesDialog().then((module) => module.EditRolesDialog),
+);
+const preloadEditRolesDialog = () => {
+  loadEditRolesDialog().catch(() => undefined);
+};
 /** Email can change only before activation (D69); activated users get it in Phase 5. */
 const EMAIL_EDITABLE = new Set<UserStatus>([
   'INVITED',
@@ -85,35 +92,88 @@ function SectionSkeleton() {
   );
 }
 
-function RolesSection({ head }: { head: Head }) {
+function RolesSection({ head, action }: { head: Head; action?: ReactNode }) {
   const t = useTranslations('settings.users.drawer');
   const roleLabel = useRoleLabel();
   const inactive = head.status === 'DEACTIVATED';
   return (
-    <Section title={t('rolesTitle')}>
-      {head.roles.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{t('noRoles')}</p>
-      ) : (
-        <ul className="flex flex-wrap gap-1">
-          {head.roles.map((assignment) => (
-            <li
-              key={`${assignment.role}:${assignment.vertical?.id ?? GLOBAL_VERTICAL}`}
-              className={cn(
-                'max-w-full rounded-full px-2 py-0.5 text-xs font-medium [overflow-wrap:anywhere]',
-                inactive
-                  ? 'bg-surface-muted text-muted-foreground'
-                  : 'bg-primary-subtle text-link',
-              )}
-            >
-              {roleLabel(assignment.role, assignment.vertical?.name ?? null)}
-            </li>
-          ))}
-        </ul>
+    <section className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+      <h3 className="text-foreground text-sm font-semibold">
+        {t('rolesTitle')}
+      </h3>
+      <div className="col-span-2 flex flex-col gap-2">
+        {head.roles.length === 0 ? (
+          <p className="text-muted-foreground text-sm">{t('noRoles')}</p>
+        ) : (
+          <ul className="flex flex-wrap gap-1">
+            {head.roles.map((assignment) => (
+              <li
+                key={`${assignment.role}:${assignment.vertical?.id ?? GLOBAL_VERTICAL}`}
+                className={cn(
+                  'max-w-full rounded-full px-2 py-0.5 text-xs font-medium [overflow-wrap:anywhere]',
+                  inactive
+                    ? 'bg-surface-muted text-muted-foreground'
+                    : 'bg-primary-subtle text-link',
+                )}
+              >
+                {roleLabel(assignment.role, assignment.vertical?.name ?? null)}
+              </li>
+            ))}
+          </ul>
+        )}
+        {inactive && head.roles.length > 0 && (
+          <p className="text-muted-foreground text-xs">{t('rolesInactive')}</p>
+        )}
+      </div>
+      {action && (
+        // Mobile: below the chips; desktop: beside the heading (wireframe §1.3, §1.9).
+        <div className="col-span-2 md:col-span-1 md:col-start-2 md:row-start-1">
+          {action}
+        </div>
       )}
-      {inactive && head.roles.length > 0 && (
-        <p className="text-muted-foreground text-xs">{t('rolesInactive')}</p>
+    </section>
+  );
+}
+
+/** «Змінити ролі» (wireframe §1.3): deactivated users keep their roles frozen until «Активувати знову» (ROLE-05-5). */
+function EditRoles({
+  detail,
+  isSelf,
+  canListVerticals,
+  onFocusHeading,
+}: {
+  detail: UserDetail;
+  isSelf: boolean;
+  canListVerticals: boolean;
+  onFocusHeading: () => void;
+}) {
+  const t = useTranslations('settings.users.drawer');
+  const trigger = useRef<HTMLButtonElement>(null);
+  const [editing, setEditing] = useState(false);
+  return (
+    <>
+      <Button
+        ref={trigger}
+        variant="outline"
+        size="sm"
+        className="h-11 md:h-9"
+        onPointerEnter={preloadEditRolesDialog}
+        onFocus={preloadEditRolesDialog}
+        onClick={() => setEditing(true)}
+      >
+        {t('editRoles')}
+      </Button>
+      {editing && (
+        <EditRolesDialog
+          detail={detail}
+          isSelf={isSelf}
+          canListVerticals={canListVerticals}
+          onClose={() => setEditing(false)}
+          onFocusHeading={onFocusHeading}
+          onFocusTrigger={() => trigger.current?.focus()}
+        />
       )}
-    </Section>
+    </>
   );
 }
 
@@ -394,6 +454,7 @@ export function UserDrawer({
   cached,
   currentUserId,
   canReadAudit,
+  canListVerticals,
   onClose,
   onRestoreFocus,
   onShowUser,
@@ -402,6 +463,7 @@ export function UserDrawer({
   cached: UserListItem | undefined;
   currentUserId: string;
   canReadAudit: boolean;
+  canListVerticals: boolean;
   onClose: () => void;
   /** «Показати в списку» for an address that belongs to someone else: closes the card and searches the list. */
   onShowUser: (email: string) => void;
@@ -490,7 +552,19 @@ export function UserDrawer({
             <TabsTrigger value="history">{t('tabHistory')}</TabsTrigger>
           </TabsList>
           <TabsContent value="profile" className="flex flex-col gap-6">
-            <RolesSection head={head} />
+            <RolesSection
+              head={head}
+              action={
+                detail.data && detail.data.status !== 'DEACTIVATED' ? (
+                  <EditRoles
+                    detail={detail.data}
+                    isSelf={userId === currentUserId}
+                    canListVerticals={canListVerticals}
+                    onFocusHeading={() => heading.current?.focus()}
+                  />
+                ) : undefined
+              }
+            />
             {detail.data ? (
               <DetailSections detail={detail.data} />
             ) : detail.isError ? (

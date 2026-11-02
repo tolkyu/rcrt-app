@@ -64,12 +64,11 @@ interface RoleInput {
 const isBuiltin = (role: string): role is BuiltinRole =>
   (BUILTIN_ROLE_CODES as readonly string[]).includes(role);
 
-/** Global roles carry no vertical, vertical roles need an existing one (D40, T4-E07). */
-export async function rolesAreValid(
+/** Global roles carry no vertical, vertical roles need an existing one, no duplicates (D40, T4-E07); empty is a valid set. */
+export async function roleSetIsValid(
   db: DbExecutor,
   roles: readonly RoleInput[],
 ) {
-  if (roles.length === 0) return false;
   const keys = new Set(roles.map((r) => `${r.role}|${r.verticalId}`));
   if (keys.size !== roles.length) return false;
   for (const { role, verticalId } of roles) {
@@ -80,6 +79,14 @@ export async function rolesAreValid(
     ...new Set(roles.flatMap((r) => (r.verticalId ? [r.verticalId] : []))),
   ];
   return (await findVerticalIds(db, verticalIds)).length === verticalIds.length;
+}
+
+/** An invite needs at least one valid role to be sent or accepted (ROLE-05-2). */
+export async function rolesAreValid(
+  db: DbExecutor,
+  roles: readonly RoleInput[],
+) {
+  return roles.length > 0 && (await roleSetIsValid(db, roles));
 }
 
 export function inviteUrl(appUrl: string, token: string) {

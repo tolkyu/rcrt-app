@@ -80,7 +80,12 @@ export function AuditRecordSheet({
       : null;
 
   const value = (raw: Json | undefined): string => {
-    if (raw === undefined || raw === null || raw === '')
+    if (
+      raw === undefined ||
+      raw === null ||
+      raw === '' ||
+      (Array.isArray(raw) && raw.length === 0)
+    )
       return t('detail.emptyValue');
     if (isRoleList(raw))
       return raw

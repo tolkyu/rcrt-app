@@ -10,7 +10,6 @@ import {
   UserRound,
   XCircle,
 } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRoleLabel } from '@/components/auth/use-role-label';
@@ -26,19 +25,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiError, apiRequest, type ApiFieldError } from '@/lib/api-client';
 import { FULL_NAME_MAX } from '@/lib/profile-name';
-import { GLOBAL_ROLE_CODES, ROLE_DISPLAY_ORDER, sortRoles } from '@/lib/roles';
+import { sortRoles } from '@/lib/roles';
 import {
   createInviteResponseSchema,
   createInviteSchema,
 } from '@/lib/schemas/auth';
 import { EMAIL_MAX_LENGTH } from '@/lib/schemas/email';
-import { cn } from '@/lib/utils';
 import { toast } from '@/lib/toast';
+import { RoleMatrix, isGlobalRole, parseRoleKey, roleKey } from './role-matrix';
 
-/** D40: only these are global; every other built-in role needs a vertical. */
-const isGlobal = (role: string) =>
-  (GLOBAL_ROLE_CODES as readonly string[]).includes(role);
-const VERTICAL_ROLES = ROLE_DISPLAY_ORDER.filter((role) => !isGlobal(role));
 /** Pasted names often carry stray spaces; the schema collapses them, so allow some slack before the cap. */
 const NAME_INPUT_MAX = FULL_NAME_MAX + 20;
 const CONFLICTS = {
@@ -71,9 +66,6 @@ const without = (errors: Errors, field: Field): Errors => {
   delete next[field];
   return next;
 };
-
-const roleKey = (role: string, verticalId: string | null) =>
-  `${role}|${verticalId ?? ''}`;
 
 function clientErrors(
   fullName: string,
@@ -112,39 +104,6 @@ function serverFieldErrors(fields: readonly ApiFieldError[]): Errors {
   return errors;
 }
 
-function MatrixCell({
-  checked,
-  label,
-  onChange,
-}: {
-  checked: boolean;
-  label: string;
-  onChange: (checked: boolean) => void;
-}) {
-  return (
-    <label className="relative mx-auto flex size-11 cursor-pointer items-center justify-center md:size-9">
-      <input
-        type="checkbox"
-        aria-label={label}
-        checked={checked}
-        onChange={(event) => onChange(event.target.checked)}
-        className="peer absolute inset-0 z-10 cursor-pointer opacity-0"
-      />
-      <span
-        aria-hidden="true"
-        className={cn(
-          'peer-focus-visible:ring-ring flex size-8 items-center justify-center rounded-lg border transition-colors duration-120 peer-focus-visible:ring-2',
-          checked
-            ? 'border-success bg-success/15 text-success-text'
-            : 'border-border bg-surface text-muted-foreground hover:bg-surface-muted',
-        )}
-      >
-        {checked && <Check className="size-4" strokeWidth={3} />}
-      </span>
-    </label>
-  );
-}
-
 /** «Запросити користувача» (STORY-ROLE-05-1, wireframe §1.2, designer mockup Q-155): roles × verticals, summary, 409s in place. */
 export function InviteUserDialog({
   verticals,
@@ -164,7 +123,6 @@ export function InviteUserDialog({
 }) {
   const t = useTranslations('settings.users.inviteDialog');
   const tCommon = useTranslations('settings.common');
-  const tRoles = useTranslations('common.roles');
   const tClose = useTranslations('common');
   const roleLabel = useRoleLabel();
   const queryClient = useQueryClient();
@@ -177,24 +135,20 @@ export function InviteUserDialog({
   const rolesRef = useRef<HTMLDivElement>(null);
   /** Inputs are disabled while sending, so focus moves only after the request settles. */
   const refocus = useRef<HTMLElement | null>(null);
-  const columns = [...verticals].sort((a, b) =>
-    a.name.localeCompare(b.name, 'uk'),
-  );
-  const verticalName = new Map(columns.map((v) => [v.id, v.name]));
+  const verticalName = new Map(verticals.map((v) => [v.id, v.name]));
 
   const assignments = sortRoles(
     [...selected].map((key) => {
-      const [role = '', verticalId = ''] = key.split('|');
-      const name = verticalName.get(verticalId);
+      const { role, verticalId } = parseRoleKey(key);
+      const name = verticalId ? verticalName.get(verticalId) : undefined;
       return {
         role,
-        verticalId: verticalId || null,
-        vertical: name ? { id: verticalId, name } : null,
+        verticalId,
+        vertical: verticalId && name ? { id: verticalId, name } : null,
       };
     }),
   );
-  const needsMfa = assignments.some((a) => isGlobal(a.role));
-  const span = Math.max(columns.length, 1);
+  const needsMfa = assignments.some((a) => isGlobalRole(a.role));
 
   const toggle = (key: string, on: boolean) => {
     setSelected((current) => {
@@ -412,151 +366,16 @@ export function InviteUserDialog({
                   >
                     {t('rolesHint')}
                   </p>
-                  <div
+                  <RoleMatrix
                     ref={rolesRef}
-                    className={cn(
-                      'border-border overflow-x-auto rounded-xl border',
-                      errors.roles && 'border-error',
-                    )}
-                  >
-                    <table className="w-full text-sm">
-                      <caption className="sr-only">
-                        {t('matrixCaption')}
-                      </caption>
-                      <thead>
-                        <tr className="bg-surface-muted text-muted-foreground text-xs">
-                          <th
-                            scope="col"
-                            className="bg-surface-muted sticky left-0 px-3 py-2 text-left font-medium"
-                          >
-                            {t('roleColumn')}
-                          </th>
-                          {columns.length === 0 && <td aria-hidden="true" />}
-                          {columns.map((vertical) => (
-                            <th
-                              key={vertical.id}
-                              scope="col"
-                              className="min-w-20 px-2 py-2 text-center font-medium [overflow-wrap:anywhere]"
-                            >
-                              {vertical.name}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {verticalsState !== 'success' ||
-                        columns.length === 0 ? (
-                          <tr>
-                            <td
-                              colSpan={span + 1}
-                              className="text-muted-foreground px-3 py-3 text-sm"
-                            >
-                              {verticalsState === 'pending' ? (
-                                <span className="skeleton-delayed bg-surface-muted block h-8 w-full animate-pulse rounded-lg" />
-                              ) : verticalsState === 'error' ? (
-                                <span className="flex flex-wrap items-center gap-2">
-                                  {t('verticalsFailed')}
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={onRetryVerticals}
-                                  >
-                                    {tClose('retry')}
-                                  </Button>
-                                </span>
-                              ) : (
-                                <>
-                                  {t('noVerticals')}{' '}
-                                  {canManageVerticals && (
-                                    <Link
-                                      href="/settings/verticals"
-                                      className="text-link font-medium hover:underline"
-                                    >
-                                      {t('toVerticals')}
-                                    </Link>
-                                  )}
-                                </>
-                              )}
-                            </td>
-                          </tr>
-                        ) : (
-                          VERTICAL_ROLES.map((role) => (
-                            <tr key={role} className="border-border border-t">
-                              <th
-                                scope="row"
-                                className="bg-surface text-foreground sticky left-0 px-3 py-1 text-left font-medium whitespace-nowrap"
-                              >
-                                {tRoles(role)}
-                              </th>
-                              {columns.map((vertical) => {
-                                const key = roleKey(role, vertical.id);
-                                return (
-                                  <td key={vertical.id} className="px-2 py-1">
-                                    <MatrixCell
-                                      checked={selected.has(key)}
-                                      label={roleLabel(role, vertical.name)}
-                                      onChange={(on) => toggle(key, on)}
-                                    />
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          ))
-                        )}
-                        <tr className="border-border bg-surface-muted border-t">
-                          <th
-                            scope="colgroup"
-                            colSpan={span + 1}
-                            className="text-muted-foreground px-3 py-2 text-left text-xs font-medium"
-                          >
-                            {t('globalGroup')}
-                          </th>
-                        </tr>
-                        {GLOBAL_ROLE_CODES.map((role) => {
-                          const key = roleKey(role, null);
-                          return (
-                            <tr key={role} className="border-border border-t">
-                              <th
-                                scope="row"
-                                className="bg-surface text-foreground sticky left-0 px-3 py-1 text-left font-medium whitespace-nowrap"
-                              >
-                                {tRoles(role)}
-                              </th>
-                              <td colSpan={span} className="px-2 py-1">
-                                <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                                  <span className="flex items-center">
-                                    <MatrixCell
-                                      checked={selected.has(key)}
-                                      label={roleLabel(role, t('allVerticals'))}
-                                      onChange={(on) => toggle(key, on)}
-                                    />
-                                    <span className="text-foreground text-sm">
-                                      {t('allVerticals')}
-                                    </span>
-                                  </span>
-                                  <span
-                                    className="text-muted-foreground inline-flex items-center gap-1 text-xs"
-                                    title={t('mfaNoteHint')}
-                                  >
-                                    <ShieldCheck
-                                      className="size-4"
-                                      aria-hidden="true"
-                                    />
-                                    {t('mfaNote')}
-                                    <span className="sr-only">
-                                      {' '}
-                                      {t('mfaNoteHint')}
-                                    </span>
-                                  </span>
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                    verticals={verticals}
+                    verticalsState={verticalsState}
+                    onRetryVerticals={onRetryVerticals}
+                    canManageVerticals={canManageVerticals}
+                    selected={selected}
+                    onToggle={toggle}
+                    invalid={Boolean(errors.roles)}
+                  />
                   {errors.roles && (
                     <p
                       id="invite-roles-error"
