@@ -125,14 +125,24 @@ function statusExpr(at: string) {
 const fromUsers = sql`from ${appUser} u
   left join ${userInvite} i on i.user_id = u.id and i.status = 'PENDING'`;
 
+/** «Пошук за ПІБ або email» over `app_user u`; LIKE wildcards in the input are literal. */
+function userSearchMatch(search: string): SQL {
+  const pattern = `%${search.replace(/[\\%_]/g, '\\$&')}%`;
+  return sql`(u.full_name ilike ${pattern} or u.email ilike ${pattern})`;
+}
+
+/** Keyset after a row in list order on `app_user_list_idx`; the sort key is read from the row itself. */
+function afterUser(afterId: string): SQL {
+  return sql`(not u.is_active, u.full_name collate "uk-UA-x-icu", u.id) >
+    (select not c.is_active, c.full_name collate "uk-UA-x-icu", c.id
+      from ${appUser} c where c.id = ${afterId}::uuid)`;
+}
+
+const userListOrder = sql`order by not u.is_active, u.full_name collate "uk-UA-x-icu", u.id`;
+
 function whereFilters(filters: UserListFilters, at: string): SQL[] {
   const conditions: SQL[] = [];
-  if (filters.search) {
-    const pattern = `%${filters.search.replace(/[\\%_]/g, '\\$&')}%`;
-    conditions.push(
-      sql`(u.full_name ilike ${pattern} or u.email ilike ${pattern})`,
-    );
-  }
+  if (filters.search) conditions.push(userSearchMatch(filters.search));
   if (filters.statuses?.length)
     conditions.push(
       sql`(${statusExpr(at)}) in (${sql.join(
@@ -186,12 +196,7 @@ export async function listUsers(
 ): Promise<UserListRow[]> {
   const at = now.toISOString();
   const conditions = whereFilters(filters, at);
-  if (afterId)
-    conditions.push(
-      sql`(not u.is_active, u.full_name collate "uk-UA-x-icu", u.id) >
-        (select not c.is_active, c.full_name collate "uk-UA-x-icu", c.id
-          from ${appUser} c where c.id = ${afterId}::uuid)`,
-    );
+  if (afterId) conditions.push(afterUser(afterId));
   const rows = await db.execute(sql`
     select u.id, u.full_name as "fullName", u.email,
       ${statusExpr(at)} as status,
@@ -206,10 +211,38 @@ export async function listUsers(
       ), '[]'::json) as roles
     ${fromUsers}
     ${whereClause(conditions)}
-    order by not u.is_active, u.full_name collate "uk-UA-x-icu", u.id
+    ${userListOrder}
     limit ${limit + 1}
   `);
   return z.array(userListRowSchema).parse([...rows]);
+}
+
+const userOptionRowSchema = z.object({
+  id: z.uuid(),
+  fullName: z.string(),
+  isActive: z.boolean(),
+});
+
+/** Users who ever activated (only they can act), in users-list order: same search, keyset and index; `limit + 1` rows. */
+export async function listUserOptions(
+  db: DbExecutor,
+  search: string | undefined,
+  afterId: string | null,
+  limit: number,
+) {
+  const conditions = [
+    sql`u.activated_at is not null`,
+    ...(search ? [userSearchMatch(search)] : []),
+    ...(afterId ? [afterUser(afterId)] : []),
+  ];
+  const rows = await db.execute(sql`
+    select u.id, u.full_name as "fullName", u.is_active as "isActive"
+    from ${appUser} u
+    ${whereClause(conditions)}
+    ${userListOrder}
+    limit ${limit + 1}
+  `);
+  return z.array(userOptionRowSchema).parse([...rows]);
 }
 
 export async function countUsers(

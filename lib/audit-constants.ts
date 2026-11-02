@@ -33,3 +33,8 @@ export const AUDIT_ENTITY_TYPES = ['user', 'vertical'] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 export const AUDIT_PERIOD_MAX_DAYS = 366;
 export const AUDIT_PAGE = 50;
+/** URL/API value of the «Хто» filter for «Система»: system rows except unknown-user sign-in failures. */
+export const AUDIT_SYSTEM_ACTOR = 'system';
+/** Without an entity this action has no known user and is labelled «Невідомий користувач», not «Система» (T4-K02). */
+export const AUDIT_UNKNOWN_ACTOR_ACTION = 'auth.login_failed';
+export const AUDIT_ACTORS_PAGE = 20;

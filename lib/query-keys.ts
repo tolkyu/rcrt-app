@@ -9,6 +9,7 @@ export const queryKeys = {
     ['settings', 'audit', filters] as const,
   settingsUsers: (filters: Readonly<Record<string, string | undefined>>) =>
     ['settings', 'users', filters] as const,
+  settingsAuditActors: (q: string) => ['settings', 'audit-actors', q] as const,
   settingsAuditRecord: (id: string) =>
     ['settings', 'audit-record', id] as const,
   settingsUser: (id: string) => ['settings', 'user', id] as const,

@@ -1,7 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import type { AuditEntry } from '@/lib/schemas/audit';
+import { AUDIT_UNKNOWN_ACTOR_ACTION } from '@/lib/audit-constants';
+import type { AuditActor, AuditEntry } from '@/lib/schemas/audit';
 import type messages from '@/messages/uk.json';
 
 type AuditMessages = typeof messages.settings.audit;
@@ -20,14 +21,13 @@ export function useAuditLabels() {
     const key = `actions.${code}` as `actions.${ActionCode}`;
     return t.has(key) ? t(key) : t('actionUnknown', { code });
   };
+  const actorName = ({ fullName, isActive }: Omit<AuditActor, 'id'>) =>
+    isActive ? fullName : `${fullName} ${t('deactivatedSuffix')}`;
   const actor = (
     entry: Pick<AuditEntry, 'actor' | 'actorKind' | 'action' | 'entity'>,
   ) => {
-    if (entry.actor)
-      return entry.actor.isActive
-        ? entry.actor.fullName
-        : `${entry.actor.fullName} ${t('deactivatedSuffix')}`;
-    return entry.action === 'auth.login_failed' && !entry.entity
+    if (entry.actor) return actorName(entry.actor);
+    return entry.action === AUDIT_UNKNOWN_ACTOR_ACTION && !entry.entity
       ? t('actorUnknown')
       : t('system');
   };
@@ -52,5 +52,14 @@ export function useAuditLabels() {
     const key = `fields.${name}` as `fields.${keyof AuditMessages['fields']}`;
     return t.has(key) ? t(key) : name;
   };
-  return { action, actor, entity, entityType, reason, field, shortId };
+  return {
+    action,
+    actor,
+    actorName,
+    entity,
+    entityType,
+    reason,
+    field,
+    shortId,
+  };
 }

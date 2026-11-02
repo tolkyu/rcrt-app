@@ -4,7 +4,12 @@ import { auditEntrySchema, auditRecordSchema } from '../../lib/schemas/audit';
 import { writeAudit } from '../../server/audit';
 import { loadAuthContext } from '../../server/context/request-context';
 import * as schema from '../../server/db/schema';
-import { getAuditRecord, listAudit } from '../../server/services/audit';
+import {
+  getAuditActor,
+  getAuditRecord,
+  listAudit,
+  listAuditActors,
+} from '../../server/services/audit';
 import { createVertical, renameVertical } from '../../server/services/vertical';
 import { createAuthFixture } from '../support/auth-fixture';
 import { startJwksFixture } from '../unit/auth/jwks-fixture';
@@ -237,6 +242,230 @@ describe('«Журнал дій» viewer [STORY-AUD-2, AUD, D25]', () => {
         status,
         code,
       });
+      await expect(listAuditActors(ctx, {})).rejects.toMatchObject({
+        status,
+        code,
+      });
+      await expect(getAuditActor(ctx, args.user.id)).rejects.toMatchObject({
+        status,
+        code,
+      });
+    });
+  });
+});
+
+/** Users whose emails share `marker`, so `q` isolates them from other rows in the test database. */
+async function seedActors(args: FixtureArgs, marker: string) {
+  const now = args.ctx.clock.now();
+  const users = {
+    bohdan: {
+      id: randomUUID(),
+      email: `bohdan.${marker}@fixture.test`,
+      fullName: `Богдан ${marker}`,
+      activatedAt: now,
+    },
+    agata: {
+      id: randomUUID(),
+      email: `agata.${marker}@fixture.test`,
+      fullName: `Агата ${marker}`,
+      isActive: false,
+      activatedAt: now,
+      deactivatedAt: now,
+    },
+    yevhen: {
+      id: randomUUID(),
+      email: `yevhen.${marker}@fixture.test`,
+      fullName: `Євген ${marker}`,
+    },
+    hanna: {
+      id: randomUUID(),
+      email: `hanna.${marker}@fixture.test`,
+      fullName: `Ганна ${marker}`,
+      activatedAt: now,
+    },
+  };
+  await args.ctx.db.insert(schema.appUser).values(Object.values(users));
+  return users;
+}
+
+describe('«Хто» actor lookup [STORY-AUD-2, wireframe settings-admin §3.1]', () => {
+  it.each(['HEAD_RECRUITER', 'HEAD_HR', 'HR', 'TEAM_LEAD', 'FINANCE'] as const)(
+    'denies actor lookup to %s even with verified MFA [VIS-01..03]',
+    async (role) => {
+      await fixture.run(async (args) => {
+        await args.ctx.db.insert(schema.userRole).values({
+          userId: args.user.id,
+          role,
+          verticalId: role === 'FINANCE' ? null : args.user.verticalId,
+        });
+        const ctx = await request(args, {
+          admin: false,
+          aal: 'aal2',
+          verified: true,
+        });
+        for (const lookup of [
+          () => listAuditActors(ctx, {}),
+          () => getAuditActor(ctx, args.user.id),
+        ])
+          await expect(lookup()).rejects.toMatchObject({
+            status: 404,
+            code: 'NOT_FOUND',
+          });
+      });
+    },
+  );
+
+  it('lists users who ever activated by name or email, active first in Ukrainian order, with isActive', async () => {
+    await fixture.run(async (args) => {
+      const ctx = await adminRequest(args);
+      const marker = randomUUID().slice(0, 8);
+      const users = await seedActors(args, marker);
+      const option = (
+        user: { id: string; fullName: string },
+        isActive = true,
+      ) => ({
+        id: user.id,
+        fullName: user.fullName,
+        isActive,
+      });
+
+      const page = await listAuditActors(ctx, { q: marker });
+      expect(page.items).toEqual([
+        option(users.bohdan),
+        option(users.hanna),
+        option(users.agata, false),
+      ]);
+      expect(page.nextCursor).toBeNull();
+      expect(Object.keys(page.items[0]!).sort()).toEqual([
+        'fullName',
+        'id',
+        'isActive',
+      ]);
+
+      const byEmail = await listAuditActors(ctx, { q: `hanna.${marker}` });
+      expect(byEmail.items.map((item) => item.id)).toEqual([users.hanna.id]);
+      const byName = await listAuditActors(ctx, { q: `  агата ${marker} ` });
+      expect(byName.items.map((item) => item.id)).toEqual([users.agata.id]);
+      const neverActivated = await listAuditActors(ctx, {
+        q: `yevhen.${marker}`,
+      });
+      expect(neverActivated.items).toEqual([]);
+      const wildcard = await listAuditActors(ctx, { q: `%_${marker}` });
+      expect(wildcard.items).toEqual([]);
+    });
+  });
+
+  it('pages by keyset without overlap and starts from the first users when there is no search', async () => {
+    await fixture.run(async (args) => {
+      const ctx = await adminRequest(args);
+      const marker = randomUUID().slice(0, 8);
+      await seedActors(args, marker);
+      const first = await listAuditActors(ctx, { q: marker, limit: 2 });
+      expect(first.items).toHaveLength(2);
+      const second = await listAuditActors(ctx, {
+        q: marker,
+        limit: 2,
+        cursor: first.nextCursor!,
+      });
+      expect(second.items).toHaveLength(1);
+      expect(second.nextCursor).toBeNull();
+      expect(
+        new Set([...first.items, ...second.items].map((item) => item.id)).size,
+      ).toBe(3);
+
+      const unfiltered = await listAuditActors(ctx, {});
+      expect(unfiltered.items.length).toBeGreaterThan(0);
+      expect(unfiltered.items.length).toBeLessThanOrEqual(20);
+    });
+  });
+
+  it('rejects a one-letter search, unknown params and a malformed cursor', async () => {
+    await fixture.run(async (args) => {
+      const ctx = await adminRequest(args);
+      for (const input of [
+        { q: 'а' },
+        { q: 'x'.repeat(101) },
+        { cursor: 'Богдан' },
+        { limit: 51 },
+        { email: 'x' },
+      ])
+        await expect(
+          listAuditActors(ctx, input as never),
+        ).rejects.toMatchObject({ name: 'ZodError' });
+    });
+  });
+
+  it('resolves a deep-linked actor label, including deactivated users; unknown or malformed ids are null', async () => {
+    await fixture.run(async (args) => {
+      const ctx = await adminRequest(args);
+      const users = await seedActors(args, randomUUID().slice(0, 8));
+      expect(await getAuditActor(ctx, users.agata.id)).toEqual({
+        id: users.agata.id,
+        fullName: users.agata.fullName,
+        isActive: false,
+      });
+      expect(await getAuditActor(ctx, randomUUID())).toBeNull();
+      expect(await getAuditActor(ctx, 'system')).toBeNull();
+    });
+  });
+
+  it('filters by «Система»: system rows except unknown-user sign-in failures (T4-K02); other non-uuid actors are rejected', async () => {
+    await fixture.run(async (args) => {
+      const ctx = await adminRequest(args);
+      const system = { ...ctx, auth: null };
+      args.at(new Date('2031-03-07T10:00:00Z'));
+      await writeAudit(ctx.db, ctx, {
+        action: 'vertical.created',
+        entityType: 'vertical',
+        entityId: args.user.verticalId,
+      });
+      await writeAudit(ctx.db, system, {
+        action: 'vertical.renamed',
+        entityType: 'vertical',
+        entityId: args.user.verticalId,
+      });
+      await writeAudit(ctx.db, system, {
+        action: 'auth.login_failed',
+        result: 'DENIED',
+      });
+      await writeAudit(ctx.db, system, {
+        action: 'auth.login_failed',
+        result: 'DENIED',
+        entityType: 'user',
+        entityId: args.user.id,
+      });
+      const unfiltered = await listAudit(ctx, {
+        from: '2031-03-07',
+        to: '2031-03-07',
+      });
+      expect(unfiltered.items).toHaveLength(4);
+      expect(
+        unfiltered.items.some(
+          (item) => item.action === 'auth.login_failed' && !item.entity,
+        ),
+      ).toBe(true);
+      const page = await listAudit(ctx, {
+        actorId: 'system',
+        from: '2031-03-07',
+        to: '2031-03-07',
+      });
+      expect(
+        page.items.map((item) => [item.action, item.entity?.id ?? null]),
+      ).toEqual(
+        expect.arrayContaining([
+          ['vertical.renamed', args.user.verticalId],
+          ['auth.login_failed', args.user.id],
+        ]),
+      );
+      expect(page.items).toHaveLength(2);
+      expect(
+        page.items.every(
+          (item) => item.actorKind === 'SYSTEM' && item.actor === null,
+        ),
+      ).toBe(true);
+      await expect(listAudit(ctx, { actorId: 'SYSTEM' })).rejects.toMatchObject(
+        { name: 'ZodError' },
+      );
     });
   });
 });

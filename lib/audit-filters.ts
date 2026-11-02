@@ -8,6 +8,7 @@ import {
   AUDIT_ACTION_GROUPS,
   AUDIT_ENTITY_TYPES,
   AUDIT_PERIOD_MAX_DAYS,
+  AUDIT_SYSTEM_ACTOR,
   type AuditEntityType,
 } from './audit-constants';
 
@@ -19,6 +20,7 @@ export interface AuditSearch {
   readonly action?: string | undefined;
   readonly entityType?: AuditEntityType | undefined;
   readonly entityId?: string | undefined;
+  /** User id or `AUDIT_SYSTEM_ACTOR`. */
   readonly actorId?: string | undefined;
   readonly result?: 'SUCCESS' | 'DENIED' | undefined;
   readonly record?: string | undefined;
@@ -59,7 +61,10 @@ export function parseAuditSearch(source: SearchSource): AuditSearch {
     action: action && KNOWN_ACTIONS.has(action) ? action : undefined,
     entityType: type,
     entityId: type && entityId && UUID.test(entityId) ? entityId : undefined,
-    actorId: actorId && UUID.test(actorId) ? actorId : undefined,
+    actorId:
+      actorId && (actorId === AUDIT_SYSTEM_ACTOR || UUID.test(actorId))
+        ? actorId.toLowerCase()
+        : undefined,
     result: result === 'SUCCESS' || result === 'DENIED' ? result : undefined,
     record: record && /^\d{1,19}$/.test(record) ? record : undefined,
   };

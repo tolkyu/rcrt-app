@@ -97,4 +97,27 @@ describe('Audit shareable filter state [STORY-AUD-2, VIS-01]', () => {
       parseAuditSearch({ entityType: 'vertical', entityId: 'bad' }).entityId,
     ).toBeUndefined();
   });
+
+  it('keeps the «Система» actor in the URL and the API filters; other words are dropped', () => {
+    const search = parseAuditSearch({ actorId: 'system' });
+    expect(search.actorId).toBe('system');
+    expect(auditSearchParams(search).toString()).toBe('actorId=system');
+    expect(
+      auditApiFilters(search, new Date('2026-11-16T08:00:00Z')),
+    ).toMatchObject({
+      actorId: 'system',
+    });
+    expect(parseAuditSearch({ actorId: 'SYSTEM' }).actorId).toBeUndefined();
+  });
+
+  it('canonicalises UUID actor links so the selected option matches the returned user id', () => {
+    const actorId = 'ABCDEF01-2345-4678-9ABC-ABCDEF012345';
+    const expected = actorId.toLowerCase();
+    const search = parseAuditSearch({ actorId });
+    expect(search.actorId).toBe(expected);
+    expect(auditSearchParams(search).get('actorId')).toBe(expected);
+    expect(
+      auditApiFilters(search, new Date('2026-11-16T08:00:00Z')).actorId,
+    ).toBe(expected);
+  });
 });

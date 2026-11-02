@@ -8,10 +8,11 @@ import {
   auditSearchParams,
   parseAuditSearch,
 } from '@/lib/audit-filters';
+import { AUDIT_SYSTEM_ACTOR } from '@/lib/audit-constants';
 import { queryKeys } from '@/lib/query-keys';
 import { hasAnyGrant } from '@/server/authz/can';
 import { getQueryClient } from '@/server/query/query-client';
-import { listAudit } from '@/server/services/audit';
+import { getAuditActor, listAudit } from '@/server/services/audit';
 import { requirePrivilegedSession } from '../../_lib/session';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -33,11 +34,16 @@ export default async function SettingsAuditPage({
   const search = parseAuditSearch(params);
   const filters = auditApiFilters(search, ctx.clock.now());
   const queryClient = getQueryClient();
-  await queryClient.prefetchInfiniteQuery({
-    queryKey: queryKeys.settingsAudit(filters),
-    initialPageParam: null as string | null,
-    queryFn: () => listAudit(ctx, filters),
-  });
+  const [, initialActor] = await Promise.all([
+    queryClient.prefetchInfiniteQuery({
+      queryKey: queryKeys.settingsAudit(filters),
+      initialPageParam: null as string | null,
+      queryFn: () => listAudit(ctx, filters),
+    }),
+    search.actorId && search.actorId !== AUDIT_SYSTEM_ACTOR
+      ? getAuditActor(ctx, search.actorId)
+      : null,
+  ]);
   return (
     <HydrationBoundary
       state={dehydrate(queryClient, {
@@ -49,6 +55,7 @@ export default async function SettingsAuditPage({
         key={auditSearchParams(search).toString()}
         initialSearch={search}
         initialFilters={filters}
+        initialActor={initialActor}
       />
     </HydrationBoundary>
   );

@@ -1,12 +1,20 @@
 import { z } from 'zod';
 import { timeIdCursorSchema } from './cursor';
-import { AUDIT_ENTITY_TYPES, AUDIT_PAGE } from '../audit-constants';
+import {
+  AUDIT_ACTORS_PAGE,
+  AUDIT_ENTITY_TYPES,
+  AUDIT_PAGE,
+  AUDIT_SYSTEM_ACTOR,
+  AUDIT_UNKNOWN_ACTOR_ACTION,
+} from '../audit-constants';
+import { USER_SEARCH_MAX, USER_SEARCH_MIN } from '../user-constants';
 export {
   AUDIT_ACTION_GROUPS,
   AUDIT_ENTITY_TYPES,
   AUDIT_PERIOD_MAX_DAYS,
   AUDIT_PAGE,
   type AuditActionGroup,
+  AUDIT_SYSTEM_ACTOR,
   type AuditEntityType,
 } from '../audit-constants';
 
@@ -16,7 +24,12 @@ export const auditQuerySchema = z
   .object({
     from: kyivDate.optional(),
     to: kyivDate.optional(),
-    actorId: z.uuid().optional(),
+    actorId: z
+      .union([z.uuid(), z.literal(AUDIT_SYSTEM_ACTOR)])
+      .optional()
+      .meta({
+        description: `User id, or \`${AUDIT_SYSTEM_ACTOR}\` for system rows (\`actorKind = SYSTEM\`) except \`${AUDIT_UNKNOWN_ACTOR_ACTION}\` without an entity (unknown user).`,
+      }),
     action: z
       .string()
       .regex(/^[a-z_]+\.[a-z_]+$/)
@@ -96,3 +109,39 @@ export const auditRecordSchema = auditEntrySchema
   })
   .meta({ id: 'AuditRecord' });
 export type AuditRecord = z.infer<typeof auditRecordSchema>;
+
+export const auditActorQuerySchema = z
+  .object({
+    q: z
+      .string()
+      .trim()
+      .min(USER_SEARCH_MIN)
+      .max(USER_SEARCH_MAX)
+      .optional()
+      .meta({ description: 'Part of the full name or email.' }),
+    /** Last row's id only, like the users list: names never travel in URLs or logs. */
+    cursor: z
+      .uuid()
+      .optional()
+      .meta({ description: 'Opaque `nextCursor` from the previous page.' }),
+    limit: z.coerce.number().int().min(1).max(50).default(AUDIT_ACTORS_PAGE),
+  })
+  .strict();
+export type AuditActorQuery = z.input<typeof auditActorQuerySchema>;
+
+export const auditActorSchema = z
+  .object({
+    id: z.uuid(),
+    fullName: z.string(),
+    isActive: z.boolean(),
+  })
+  .meta({ id: 'AuditActor' });
+export type AuditActor = z.infer<typeof auditActorSchema>;
+
+export const auditActorPageSchema = z
+  .object({
+    items: z.array(auditActorSchema),
+    nextCursor: z.uuid().nullable(),
+  })
+  .meta({ id: 'AuditActorPage' });
+export type AuditActorPage = z.infer<typeof auditActorPageSchema>;

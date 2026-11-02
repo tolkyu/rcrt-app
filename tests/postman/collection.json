@@ -329,7 +329,8 @@
                 {
                   "disabled": false,
                   "key": "actorId",
-                  "value": "<uuid>"
+                  "value": "<uuid>",
+                  "description": "User id, or `system` for system rows (`actorKind = SYSTEM`) except `auth.login_failed` without an entity (unknown user)."
                 },
                 {
                   "disabled": false,
@@ -832,6 +833,402 @@
                 }
               ],
               "body": "{\n  \"type\": \"string\",\n  \"status\": 1625,\n  \"code\": \"string\",\n  \"requestId\": \"6a9fe2b1-44d5-b712-c618-bfdd98c19685\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ],\n  \"details\": {\n    \"key_0\": \"string\",\n    \"key_1\": \"string\",\n    \"key_2\": \"string\",\n    \"key_3\": \"string\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            }
+          ],
+          "event": [],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          }
+        },
+        {
+          "id": "a19fecdc-fb9f-4c0b-b430-5e70336b3954",
+          "name": "Users for the audit «Хто» filter by full name or email, active first (Admin)",
+          "request": {
+            "name": "Users for the audit «Хто» filter by full name or email, active first (Admin)",
+            "description": {},
+            "url": {
+              "path": [
+                "audit",
+                "actors"
+              ],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "query": [
+                {
+                  "disabled": false,
+                  "key": "q",
+                  "value": "<string>",
+                  "description": "Part of the full name or email."
+                },
+                {
+                  "disabled": false,
+                  "key": "cursor",
+                  "value": "<uuid>",
+                  "description": "Opaque `nextCursor` from the previous page."
+                },
+                {
+                  "disabled": false,
+                  "key": "limit",
+                  "value": "20"
+                }
+              ],
+              "variable": [
+                {
+                  "description": {
+                    "content": "",
+                    "type": "text/plain"
+                  },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "method": "GET",
+            "auth": null
+          },
+          "response": [
+            {
+              "id": "58c03fc1-58f9-4fe0-ba4f-0c13c8bf8579",
+              "name": "Success",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "audit",
+                    "actors"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "<string>"
+                    },
+                    {
+                      "key": "cursor",
+                      "value": "<uuid>"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{origin}}",
+                      "key": "origin"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: bearer",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"items\": [\n    {\n      \"id\": \"703dc701-517a-494a-4249-42fb809060fb\",\n      \"fullName\": \"string\",\n      \"isActive\": false\n    },\n    {\n      \"id\": \"8734ad73-a7b2-7a90-2c55-f26f94801e20\",\n      \"fullName\": \"string\",\n      \"isActive\": true\n    }\n  ],\n  \"nextCursor\": \"6cf396bc-4157-6aad-85cc-4584a35c7cc6\"\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "a5fed984-4401-476f-a533-6c86262a2224",
+              "name": "Validation failed",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "audit",
+                    "actors"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "<string>"
+                    },
+                    {
+                      "key": "cursor",
+                      "value": "<uuid>"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{origin}}",
+                      "key": "origin"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: bearer",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/problem+json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 2844,\n  \"code\": \"string\",\n  \"requestId\": \"c629310b-b2bb-f110-db71-bb6a29f0ccf8\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ],\n  \"details\": {\n    \"key_0\": \"string\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "a2fac83b-45d6-4bfe-8c91-f45c7613e687",
+              "name": "Unauthenticated, session expired, user deactivated or MFA required",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "audit",
+                    "actors"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "<string>"
+                    },
+                    {
+                      "key": "cursor",
+                      "value": "<uuid>"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{origin}}",
+                      "key": "origin"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: bearer",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/problem+json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 2844,\n  \"code\": \"string\",\n  \"requestId\": \"c629310b-b2bb-f110-db71-bb6a29f0ccf8\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ],\n  \"details\": {\n    \"key_0\": \"string\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "f065acbb-6f86-4a52-93c0-2e0bb06add12",
+              "name": "Not found or out of scope",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "audit",
+                    "actors"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "<string>"
+                    },
+                    {
+                      "key": "cursor",
+                      "value": "<uuid>"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{origin}}",
+                      "key": "origin"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: bearer",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/problem+json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 2844,\n  \"code\": \"string\",\n  \"requestId\": \"c629310b-b2bb-f110-db71-bb6a29f0ccf8\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ],\n  \"details\": {\n    \"key_0\": \"string\"\n  }\n}",
+              "cookie": [],
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "id": "93e0c617-5f31-4522-8491-c3843588d397",
+              "name": "Unexpected error",
+              "originalRequest": {
+                "url": {
+                  "path": [
+                    "audit",
+                    "actors"
+                  ],
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "<string>"
+                    },
+                    {
+                      "key": "cursor",
+                      "value": "<uuid>"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ],
+                  "variable": [
+                    {
+                      "description": {
+                        "content": "",
+                        "type": "text/plain"
+                      },
+                      "type": "any",
+                      "value": "{{origin}}",
+                      "key": "origin"
+                    }
+                  ]
+                },
+                "header": [
+                  {
+                    "description": {
+                      "content": "Added as a part of security scheme: bearer",
+                      "type": "text/plain"
+                    },
+                    "key": "Authorization",
+                    "value": "Bearer <token>"
+                  },
+                  {
+                    "key": "Accept",
+                    "value": "application/problem+json"
+                  }
+                ],
+                "method": "GET",
+                "body": {}
+              },
+              "status": "Internal Server Error",
+              "code": 500,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/problem+json"
+                }
+              ],
+              "body": "{\n  \"type\": \"string\",\n  \"status\": 2844,\n  \"code\": \"string\",\n  \"requestId\": \"c629310b-b2bb-f110-db71-bb6a29f0ccf8\",\n  \"errors\": [\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    },\n    {\n      \"path\": \"string\",\n      \"code\": \"string\"\n    }\n  ],\n  \"details\": {\n    \"key_0\": \"string\"\n  }\n}",
               "cookie": [],
               "_postman_previewlanguage": "json"
             }

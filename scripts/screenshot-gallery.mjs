@@ -32,6 +32,7 @@ const screens = [
   ['05-public-session-expired', 'Завершена сесія'],
   ['06-admin-audit-list', 'Журнал дій — Адміністратор'],
   ['06-admin-audit-detail', 'Журнал дій — деталі запису'],
+  ['06-admin-audit-actors', 'Журнал дій — пошук автора'],
   [
     '07-admin-navigation-open',
     'Навігація — Адміністратор',

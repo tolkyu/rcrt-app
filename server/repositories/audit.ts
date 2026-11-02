@@ -4,6 +4,7 @@ import {
   eq,
   gte,
   inArray,
+  isNull,
   lt,
   or,
   sql,
@@ -11,12 +12,14 @@ import {
 } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { DbExecutor } from '../db';
+import { AUDIT_UNKNOWN_ACTOR_ACTION } from '../../lib/audit-constants';
 import { appUser, auditLog, vertical } from '../db/schema';
 
 export interface AuditFilters {
   readonly from?: Date | undefined;
   readonly to?: Date | undefined;
-  readonly actorId?: string | undefined;
+  /** `null` = «Система»: SYSTEM rows minus unknown-user sign-in failures (T4-K02); both forms use `audit_log_actor_idx`. */
+  readonly actorId?: string | null | undefined;
   readonly action?: string | undefined;
   readonly entityType?: string | undefined;
   readonly entityId?: string | undefined;
@@ -71,7 +74,14 @@ export function listAuditEntries(
   const conditions: (SQL | undefined)[] = [
     filters.from ? gte(auditLog.occurredAt, filters.from) : undefined,
     filters.to ? lt(auditLog.occurredAt, filters.to) : undefined,
-    filters.actorId ? eq(auditLog.actorId, filters.actorId) : undefined,
+    filters.actorId === null
+      ? and(
+          isNull(auditLog.actorId),
+          sql`not (${auditLog.action} = ${AUDIT_UNKNOWN_ACTOR_ACTION} and ${auditLog.entityId} is null)`,
+        )
+      : filters.actorId
+        ? eq(auditLog.actorId, filters.actorId)
+        : undefined,
     filters.action ? eq(auditLog.action, filters.action) : undefined,
     filters.entityType
       ? eq(auditLog.entityType, filters.entityType)
@@ -94,10 +104,14 @@ export function listAuditEntries(
     .limit(limit + 1);
 }
 
-/** Current names of users referenced from audit details; same source as entity labels (wireframe §3.1). */
+/** Current names of users referenced from audit details or the «Хто» filter; same source as entity labels (wireframe §3.1). */
 export function findUserNames(db: DbExecutor, ids: readonly string[]) {
   return db
-    .select({ id: appUser.id, fullName: appUser.fullName })
+    .select({
+      id: appUser.id,
+      fullName: appUser.fullName,
+      isActive: appUser.isActive,
+    })
     .from(appUser)
     .where(inArray(appUser.id, [...ids]));
 }

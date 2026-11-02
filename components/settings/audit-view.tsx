@@ -4,7 +4,8 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { Ban, ScrollText, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
-import { useId, useMemo, useState, type ReactNode } from 'react';
+import dynamic from 'next/dynamic';
+import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
 import { PageHeader } from '@/components/shell/page-header';
 import { EmptyState } from '@/components/states/empty-state';
 import { SectionError } from '@/components/states/section-error';
@@ -25,12 +26,30 @@ import { auditQuery, type AuditFilterValues } from '@/lib/queries/settings';
 import {
   AUDIT_ACTION_GROUPS,
   AUDIT_ENTITY_TYPES,
+  AUDIT_SYSTEM_ACTOR,
   type AuditActionGroup,
 } from '@/lib/audit-constants';
-import type { AuditEntry } from '@/lib/schemas/audit';
+import type { AuditActor, AuditEntry } from '@/lib/schemas/audit';
+import { loadOrReload } from '@/lib/load-or-reload';
 import { cn } from '@/lib/utils';
+import { AuditActorFilter } from './audit-actor-filter';
 import { useAuditLabels } from './audit-labels';
-import { AuditRecordSheet } from './audit-record-sheet';
+
+const loadRecordSheet = () => import('./audit-record-sheet');
+/** The record sheet is its own chunk (PERF-04 budget); it is fetched right after hydration so opening a row stays instant. */
+const AuditRecordSheet = dynamic(
+  () => loadOrReload(loadRecordSheet).then((module) => module.AuditRecordSheet),
+  {
+    loading: () => (
+      <div className="bg-surface border-border fixed inset-y-0 right-0 z-40 flex w-full flex-col gap-4 p-6 shadow-lg sm:w-[30rem] sm:border-l">
+        <Skeleton className="h-7 w-2/3" />
+        {Array.from({ length: 6 }, (_, index) => (
+          <Skeleton key={index} className="h-5 w-full" />
+        ))}
+      </div>
+    ),
+  },
+);
 
 const selectClass =
   'border-input bg-surface text-foreground h-11 w-full rounded-lg border px-3 text-base md:h-10 md:text-sm';
@@ -88,9 +107,12 @@ function ResultChip({ result }: { result: AuditEntry['result'] }) {
 export function AuditView({
   initialSearch,
   initialFilters,
+  initialActor,
 }: {
   initialSearch: AuditSearch;
   initialFilters: AuditFilterValues;
+  /** Deep-linked «Хто» user, resolved on the server: it may not be on the picker's first page. */
+  initialActor: AuditActor | null;
 }) {
   const t = useTranslations('settings.audit');
   const labels = useAuditLabels();
@@ -113,16 +135,11 @@ export function AuditView({
   );
   const [to, setTo] = useState(initialSearch.to ?? initialFilters.to ?? '');
   const [dateError, setDateError] = useState(false);
+  const [pickedActor, setPickedActor] = useState(initialActor);
   const query = useInfiniteQuery(auditQuery(filters));
+  useEffect(() => void loadRecordSheet().catch(() => undefined), []);
 
   const items = query.data?.pages.flatMap((page) => page.items) ?? [];
-  const actors = [
-    ...new Map(
-      items.flatMap((entry) =>
-        entry.actor ? [[entry.actor.id, entry.actor] as const] : [],
-      ),
-    ).values(),
-  ];
 
   const sync = (next: AuditSearch, mode: 'push' | 'replace' = 'replace') => {
     const params = auditSearchParams(next).toString();
@@ -171,11 +188,14 @@ export function AuditView({
   const actorEntry = search.actorId
     ? items.find((item) => item.actor?.id === search.actorId)
     : undefined;
-  const actorChip = search.actorId
-    ? actorEntry
+  let actorChip: string | null = null;
+  if (search.actorId === AUDIT_SYSTEM_ACTOR) actorChip = t('system');
+  else if (pickedActor && search.actorId === pickedActor.id)
+    actorChip = labels.actorName(pickedActor);
+  else if (search.actorId)
+    actorChip = actorEntry
       ? labels.actor(actorEntry)
-      : labels.shortId(search.actorId)
-    : null;
+      : labels.shortId(search.actorId);
 
   let body: ReactNode;
   if (!query.data) {
@@ -357,22 +377,15 @@ export function AuditView({
             </option>
           ))}
         </FilterSelect>
-        <FilterSelect
-          label={t('columns.actor')}
-          value={search.actorId ?? ''}
-          onChange={(value) => applyFilters({ actorId: value || undefined })}
-        >
-          <option value="">{t('filters.all')}</option>
-          {search.actorId &&
-            !actors.some((actor) => actor.id === search.actorId) && (
-              <option value={search.actorId}>{actorChip}</option>
-            )}
-          {actors.map((actor) => (
-            <option key={actor.id} value={actor.id}>
-              {actor.fullName}
-            </option>
-          ))}
-        </FilterSelect>
+        <AuditActorFilter
+          value={search.actorId}
+          label={actorChip}
+          className={selectClass}
+          onSelect={(actorId, actor) => {
+            if (actor) setPickedActor(actor);
+            applyFilters({ actorId });
+          }}
+        />
         <FilterSelect
           label={t('filters.action')}
           value={search.action ?? ''}

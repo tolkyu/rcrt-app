@@ -49,6 +49,13 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 | T8 | Perf seed + perf:check | performance-engineer | 🔄 Initial-JS gate (PERF-04) green 2026-11-01 (`e251de6`, `5be02ea`): all routes ≤ 180 kB. Pending: API P95, Web Vitals/Lighthouse, perf seed (Phase 2) |
 | T9 | Security review, code review, fixes, verify | security-engineer, code-reviewer | ⏳ Carry-over from foundation review: route framework validates query/body before `requirePermission` → non-admin gets 400 instead of 404 for malformed input (add `permission` to `RouteSpec`, SEC review of users list S2); deploy smoke `set role app_rw; select count(*) from app.auth_mfa_totp` and runbook note that GoTrue tables must exist before app migrations (0002/0007 skip silently otherwise); CI action SHA pins, `pnpm audit` gate, Drizzle drift check, `format:check`, `NEXT_PUBLIC_`/static secret grep; DG-03 storage policy test on local Supabase; AGENTS.md/.codex duplication (owner call) |
 
+## Implementation checkpoint — 2026-11-02 (Codex, audit actor filter)
+
+- Resumed T6 slice 11 [STORY-AUD-2]: searchable «Хто» filter, `GET /api/v1/audit/actors`, Admin aal2 only. Picker includes accepted users (active and deactivated), with bounded keyset paging, escaped name/email search and a fixed «Система» option. Anonymous failed sign-ins remain visible in the unfiltered journal but are excluded from «Система».
+- Closed review findings: the reload timestamp survives unrelated successful chunk loads; persistent failures reach the error boundary after one reload per 30 seconds. Stale search options cannot be selected while debounce/fetch is pending. Selected actor is announced, mobile clear target is 44 px, and actor UUIDs normalize before URL/state comparisons.
+- Independent code and security reviews approved. Verification: full Vitest 2,122 passed plus the UUID regression in focused checks; production build/typecheck and lint passed; full browser run 155 passed + 2 existing mobile-shell skips. Twelve audit list/detail/picker screenshots visually reviewed. OpenAPI/Postman updated while preserving unrelated generated IDs/examples. Final actor-build size is recorded in `docs/perf/report-phase-1-audit-actor-filter.md`; endpoint P95/Web Vitals remain T8.
+- Next authorized slice: settings UX polish P1–P5, specified in `docs/ux/wireframes/settings-admin.md` §8. Phase 1 remains in progress.
+
 ## Implementation checkpoint — 2026-11-02 (Codex, T6 role editing)
 
 - Resumed Claude's interrupted roles editor [STORY-ROLE-01-1/01-2, ROLE-01, D35/D40/D45]. Shared role matrix with invitations; lazy «Змінити ролі» dialog, separate additions/removals, removal confirmation, zero-role warnings, loading/error/focus states and optimistic drawer/list chips with rollback.

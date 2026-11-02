@@ -144,7 +144,7 @@ Chip = pill, tinted bg + stage text + lucide icon + label. **Colour is never the
 | `text-sm` | 14 / 20 | 400 / 500 / 600 | 0 | Default desktop UI: tables, cards, nav, buttons, inputs, filters, tabs |
 | `text-xs` | 12 / 16 | 400 / 500 | 0 | Chips, captions, timestamps, filter labels, table headers, KPI footnotes |
 
-Ukrainian text rules: labels run ~25–35 % longer than English. Chips, tabs and nav use `whitespace-nowrap` + `max-w` + ellipsis + tooltip. Emails and URLs use `overflow-wrap:anywhere`. Set `lang="uk"` and `hyphens:auto` on paragraphs. No uppercase labels. Apostrophe is `ʼ`. Test strings at 390 px: «Випробувальний термін», «Співбесіда з тімлідом», «Невідповідність зарплатних очікувань».
+Ukrainian text rules: labels run ~25–35 % longer than English. Chips, tabs and nav use `whitespace-nowrap` + `max-w` + ellipsis + tooltip. Emails and URLs use `overflow-wrap:anywhere`. Set `lang="uk"`; **no automatic hyphenation** (`hyphens:auto` breaks Ukrainian wrongly, e.g. «блокува-ння»), so words wrap whole. Emails break before «@» (`EmailText`, `<wbr>`), never truncated. No uppercase labels. Apostrophe is `ʼ`. Test strings at 390 px: «Випробувальний термін», «Співбесіда з тімлідом», «Невідповідність зарплатних очікувань».
 
 ## 3. Space, radius, border, shadow, grid, size
 

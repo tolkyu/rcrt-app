@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { kyivDateBounds, periodDays } from '../../lib/audit-period';
 import type {
+  AuditActor,
+  AuditActorPage,
+  AuditActorQuery,
   AuditEntry,
   AuditPage,
   AuditQuery,
@@ -8,6 +11,8 @@ import type {
 } from '../../lib/schemas/audit';
 import {
   AUDIT_PERIOD_MAX_DAYS,
+  AUDIT_SYSTEM_ACTOR,
+  auditActorQuerySchema,
   auditQuerySchema,
 } from '../../lib/schemas/audit';
 import {
@@ -23,6 +28,7 @@ import {
   findUserNames,
   listAuditEntries,
 } from '../repositories/audit';
+import { listUserOptions } from '../repositories/user';
 
 /** Detail keys whose value is a user id that the record view names (`vertical.tl_priority_changed`). */
 const USER_DETAIL_KEYS = ['teamLead'] as const;
@@ -71,9 +77,10 @@ export async function listAudit(
     throw new ValidationError([{ path: 'query.to', code: 'period_too_long' }]);
   const cursor = query.cursor ? decodeTimeIdCursor(query.cursor) : null;
   const bounds = kyivDateBounds(query.from, query.to);
+  const actorId = query.actorId === AUDIT_SYSTEM_ACTOR ? null : query.actorId;
   const rows = await listAuditEntries(
     ctx.db,
-    { ...query, ...bounds },
+    { ...query, ...bounds, actorId },
     cursor,
     query.limit,
   );
@@ -114,4 +121,42 @@ export async function getAuditRecord(
       names.map((user) => [user.id, user.fullName]),
     ),
   };
+}
+
+/** «Хто» picker (wireframe settings-admin §3.1): every user who ever activated, by ПІБ or email, active first; «Система» is a fixed client option. */
+export async function listAuditActors(
+  ctx: RequestContext,
+  input: AuditActorQuery,
+): Promise<AuditActorPage> {
+  requirePermission(ctx.auth, 'audit.read');
+  const query = auditActorQuerySchema.parse(input);
+  const rows = await listUserOptions(
+    ctx.db,
+    query.q,
+    query.cursor ?? null,
+    query.limit,
+  );
+  const page = rows.slice(0, query.limit);
+  const last = page.at(-1);
+  return {
+    items: page.map(({ id, fullName, isActive }) => ({
+      id,
+      fullName,
+      isActive,
+    })),
+    nextCursor: rows.length > query.limit && last ? last.id : null,
+  };
+}
+
+/** Label of a deep-linked «Хто» filter that may not be on the picker's first page; unknown ids → null. */
+export async function getAuditActor(
+  ctx: RequestContext,
+  actorId: string,
+): Promise<AuditActor | null> {
+  requirePermission(ctx.auth, 'audit.read');
+  if (!uuid.safeParse(actorId).success) return null;
+  const [row] = await findUserNames(ctx.db, [actorId]);
+  return row
+    ? { id: row.id, fullName: row.fullName, isActive: row.isActive }
+    : null;
 }
