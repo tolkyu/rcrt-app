@@ -14,6 +14,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { EmailText } from '@/components/ui/email-text';
 import {
   Dialog,
   DialogContent,
@@ -432,7 +433,7 @@ export function InviteUserDialog({
                     </p>
                     {email.trim() && (
                       <p className="text-muted-foreground text-xs [overflow-wrap:anywhere]">
-                        {email.trim().toLowerCase()}
+                        <EmailText email={email.trim().toLowerCase()} />
                       </p>
                     )}
                     <span className="bg-warning/15 text-warning-text mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium">
@@ -480,7 +481,7 @@ export function InviteUserDialog({
             </div>
           </fieldset>
 
-          <div className="border-border flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-between">
+          <div className="border-border flex flex-col gap-2 border-t pt-4 sm:flex-row sm:justify-between [&>button]:h-12 sm:[&>button]:h-10">
             <Button
               type="button"
               variant="outline"

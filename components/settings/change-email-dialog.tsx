@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useId, useRef, useState, type FormEvent } from 'react';
 import { useRoleLabel } from '@/components/auth/use-role-label';
 import { Button } from '@/components/ui/button';
+import { EmailText } from '@/components/ui/email-text';
 import {
   Dialog,
   DialogContent,
@@ -172,7 +173,7 @@ export function ChangeEmailDialog({
               {t('changeEmail.currentLabel')}
             </dt>
             <dd className="text-foreground text-sm [overflow-wrap:anywhere]">
-              {detail.email}
+              <EmailText email={detail.email} />
             </dd>
           </dl>
           <div className="flex flex-col gap-2">

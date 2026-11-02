@@ -1,11 +1,4 @@
-import { copyFileSync, mkdirSync } from 'node:fs';
-import {
-  devices,
-  expect,
-  test,
-  type Page,
-  type TestInfo,
-} from '@playwright/test';
+import { devices, expect, test, type Page } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import {
@@ -13,6 +6,7 @@ import {
   MUTATION_HEADERS,
   sessionFile,
 } from '../support/e2e-session';
+import { captureScreen } from './screens';
 
 const t = messages.settings.priorities;
 const nav = messages.settings.nav;
@@ -450,37 +444,11 @@ const SHOT_ITEMS: Item[] = [
   },
 ];
 
-async function capturePriorities(page: Page, testInfo: TestInfo, file: string) {
-  await page.mouse.move(0, 0);
-  await page.evaluate(() => document.fonts.ready);
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= window.innerWidth,
-    ),
-  ).toBe(true);
-  const size = page.viewportSize()!;
-  const height = await page.evaluate(
-    () => document.documentElement.scrollHeight,
-  );
-  // Full-page capture keeps fixed/sticky bars at the first viewport, over the cards; a page-tall viewport shows them where they end up.
-  await page.setViewportSize({
-    width: size.width,
-    height: Math.max(size.height, height),
-  });
-  const path = `screenshots/phase-1/${file}`;
-  await page.screenshot({ path, animations: 'disabled', scale: 'css' });
-  await page.setViewportSize(size);
-  copyFileSync(path, `screenshots/latest/${file}`);
-  await testInfo.attach(file, { path, contentType: 'image/png' });
-}
-
 test('captures the priorities list, unsaved changes, conflict and empty vertical [SHOT-01..03]', async ({
   browser,
   page: adminPage,
 }, testInfo) => {
   const { Гемблінг: gambling, Крипто: crypto } = await verticals(adminPage);
-  mkdirSync('screenshots/phase-1', { recursive: true });
-  mkdirSync('screenshots/latest', { recursive: true });
   const viewports = {
     desktop: {
       ...devices['Desktop Chrome'],
@@ -550,7 +518,7 @@ test('captures the priorities list, unsaved changes, conflict and empty vertical
           ),
         ).toBeVisible();
         await expect(footer(page)).toHaveCount(0);
-        await capturePriorities(page, testInfo, name('list'));
+        await captureScreen(page, testInfo, name('list'));
 
         await field(page, TARAS).fill('0');
         await field(page, TARAS).blur();
@@ -561,7 +529,7 @@ test('captures the priorities list, unsaved changes, conflict and empty vertical
         await expect(
           page.getByText(fill(t.was, { value: 'П1' }), { exact: true }),
         ).toBeVisible();
-        await capturePriorities(page, testInfo, name('edited'));
+        await captureScreen(page, testInfo, name('edited'));
 
         await save(page).click();
         const conflict = page
@@ -569,7 +537,7 @@ test('captures the priorities list, unsaved changes, conflict and empty vertical
           .filter({ hasText: t.conflictTitle });
         await expect(conflict).toContainText(t.conflictBody);
         await expect(save(page)).toBeDisabled();
-        await capturePriorities(page, testInfo, name('conflict'));
+        await captureScreen(page, testInfo, name('conflict'));
 
         await page.goto(`/settings/priorities?vertical=${gambling!.id}`);
         await page.getByRole('tab', { name: 'Крипто' }).click();
@@ -578,7 +546,7 @@ test('captures the priorities list, unsaved changes, conflict and empty vertical
             fill(t.empty.noTeamLeadsTitle, { vertical: 'Крипто' }),
           ),
         ).toBeVisible();
-        await capturePriorities(page, testInfo, name('empty'));
+        await captureScreen(page, testInfo, name('empty'));
       } finally {
         await context.close();
       }

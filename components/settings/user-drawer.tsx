@@ -9,12 +9,20 @@ import { MoreHorizontal, SearchX } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import { useRoleLabel } from '@/components/auth/use-role-label';
 import { EmptyState } from '@/components/states/empty-state';
 import { SectionError } from '@/components/states/section-error';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { EmailText } from '@/components/ui/email-text';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -383,10 +391,12 @@ function History({ userId }: { userId: string }) {
 /** Header «⋯» (wireframe §1.3): only «Змінити email» in Phase 1, so the trigger renders only when that item applies. */
 function MoreActions({
   detail,
+  anchorRef,
   onFocusHeading,
   onShowUser,
 }: {
   detail: UserDetail;
+  anchorRef: RefObject<HTMLDivElement | null>;
   onFocusHeading: () => void;
   onShowUser: (email: string) => void;
 }) {
@@ -397,13 +407,27 @@ function MoreActions({
   const trigger = useRef<HTMLButtonElement>(null);
   const opening = useRef(false);
   const [changing, setChanging] = useState(false);
+  const [offset, setOffset] = useState(6);
   const busy =
     useIsMutating({ mutationKey: userCardMutationKey(detail.id) }) > 0;
   if (!EMAIL_EDITABLE.has(detail.status)) return null;
   const noRoles = detail.roles.length === 0;
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu
+        onOpenChange={(open) => {
+          if (open && anchorRef.current && trigger.current)
+            setOffset(
+              Math.max(
+                6,
+                Math.round(
+                  anchorRef.current.getBoundingClientRect().bottom -
+                    trigger.current.getBoundingClientRect().bottom,
+                ) + 8,
+              ),
+            );
+        }}
+      >
         <DropdownMenuTrigger asChild>
           <Button
             ref={trigger}
@@ -419,7 +443,9 @@ function MoreActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
+          side="bottom"
           align="end"
+          sideOffset={offset}
           // Above the Sheet (z-40) that hosts the trigger; shell menus stay at z-30.
           className="z-50 max-w-72"
           onCloseAutoFocus={() => {
@@ -493,6 +519,7 @@ export function UserDrawer({
   const tUsers = useTranslations('settings.users');
   const [tab, setTab] = useState('profile');
   const heading = useRef<HTMLHeadingElement>(null);
+  const identity = useRef<HTMLDivElement>(null);
   const detail = useQuery(userDetailQuery(userId));
   const head: Head | undefined = detail.data ?? cached;
   const notFound =
@@ -525,7 +552,7 @@ export function UserDrawer({
   } else {
     body = (
       <>
-        <div className="flex items-start gap-3 pr-10">
+        <div ref={identity} className="flex items-start gap-3 pr-10">
           <Avatar name={head.fullName} className="size-12 text-base" />
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <SheetTitle
@@ -548,7 +575,7 @@ export function UserDrawer({
               )}
             </SheetTitle>
             <SheetDescription className="[overflow-wrap:anywhere]">
-              {head.email}
+              <EmailText email={head.email} />
             </SheetDescription>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <StatusChip
@@ -572,6 +599,7 @@ export function UserDrawer({
           {detail.data && (
             <MoreActions
               detail={detail.data}
+              anchorRef={identity}
               onFocusHeading={() => heading.current?.focus()}
               onShowUser={onShowUser}
             />

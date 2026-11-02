@@ -901,7 +901,8 @@ Derived UI rules (server enforces the same; UI only explains): self → no deact
 
 ---
 
-## 8. UX polish backlog (T6 close-out)
+## 8. UX polish acceptance (T6 slice 12 — completed)
+Implemented and accepted: [UX review](../review-phase-1-settings-polish.md). P1–P5 descriptions below retain the original issues and their acceptance criteria.
 UI fixes P1–P4 are code-only. P5 changes tests only. In `settings-audit.spec.ts`, apply P5 after the audit actor picker merges because that task edits the same file.
 
 | # | Issue | Decision | File / component | Acceptance (screenshot) |
@@ -913,6 +914,8 @@ UI fixes P1–P4 are code-only. P5 changes tests only. In `settings-audit.spec.t
 | P5 | Full-page mobile shots (06, 08, 11, 12, 13) show the bottom «Ще» nav in the middle of the content, and the fixed drawers end above a 58–94 px blank band. The `08` desktop sidebar also stops at 900 px. | Every settings and shell capture uses the 14-* method: stretch the viewport height to `max(viewport, scrollHeight)`, capture without `fullPage`, then restore the viewport. This is a test-only change. | New `tests/e2e/screens.ts`: `captureScreen(page, testInfo, file)`. Move it from `capturePriorities` in `settings-priorities.spec.ts` (l.453–475) and import it there. It does the mouse reset, `fonts.ready`, the no-horizontal-scroll `expect`, stretch, `screenshot({ animations: 'disabled', scale: 'css' })`, restore, copy to `latest/` and attach. Replace the inline captures in `settings-users.spec.ts` (08 ≈l.197–212, 09 ≈l.421–426, 12 ≈l.1856–1873, 13 ≈l.1905–1925, 11 ≈l.2015–2030, 10 ≈l.2106–2117) and `shell-navigation.spec.ts` (07 l.61–76). Replace `settings-audit.spec.ts` (06 l.272–288) after the actor picker merges. Leave the public 01–05 shots as they are (no fixed bars). | Every mobile shot: «Ще» appears only at the very bottom edge, and no card is hidden behind it. Drawers and bottom sheets reach the bottom of the image, with no blank band. `08` desktop: the sidebar spans the full height. `09` mobile shows the dialog footer. |
 | — | «Деактивувати» failed state. | Fine as it is. The only defect, the hyphenation, is covered by P4. | — | — |
 | — | Empty priorities; active item in the mobile settings nav. | Done. | — | — |
+
+Capture detail for P5: a fixed dialog can overflow internally even when the background page is short. The helper also considers each visible overflowing dialog/sheet's intrinsic border-box height and its computed maximum-height fraction (for example, `85dvh`). It stretches only the test viewport enough to include that content, checks horizontal overflow before/after resizing, and restores the original viewport in `finally`. Functional geometry assertions still run at 390×844 before capture.
 
 ---
 

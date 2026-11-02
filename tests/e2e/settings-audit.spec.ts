@@ -1,4 +1,3 @@
-import { copyFileSync, mkdirSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import type {
@@ -12,6 +11,7 @@ import {
   MUTATION_HEADERS,
   sessionFile,
 } from '../support/e2e-session';
+import { captureScreen } from './screens';
 
 const t = messages.settings.audit;
 
@@ -419,8 +419,6 @@ test('audit list and detail render without overflow in both themes [SHOT-01..03,
   );
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  mkdirSync('screenshots/phase-1', { recursive: true });
-  mkdirSync('screenshots/latest', { recursive: true });
   for (const theme of ['light', 'dark'] as const) {
     await page
       .context()
@@ -439,23 +437,9 @@ test('audit list and detail render without overflow in both themes [SHOT-01..03,
     await expect(
       page.getByRole('button', { name: /^Відкрити запис:/ }).first(),
     ).toBeVisible();
-    await page.evaluate(() => document.fonts.ready);
     const capture = async (state: string) => {
-      expect(
-        await page.evaluate(
-          () => document.documentElement.scrollWidth <= window.innerWidth,
-        ),
-      ).toBe(true);
       const file = `06-admin-audit-${state}-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
-      const path = `screenshots/phase-1/${file}`;
-      await page.screenshot({
-        path,
-        fullPage: true,
-        animations: 'disabled',
-        scale: 'css',
-      });
-      copyFileSync(path, `screenshots/latest/${file}`);
-      await testInfo.attach(file, { path, contentType: 'image/png' });
+      await captureScreen(page, testInfo, file);
     };
     await capture('list');
     await page

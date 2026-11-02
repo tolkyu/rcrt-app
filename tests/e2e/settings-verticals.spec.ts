@@ -177,8 +177,24 @@ test('mobile: card list without horizontal scroll and the dialog as a bottom she
     ),
   ).toBe(true);
   await page.getByRole('button', { name: t.verticals.create }).click();
-  const box = await openDialog(page).boundingBox();
+  const dialog = openDialog(page);
+  const box = await dialog.boundingBox();
   expect(box && Math.round(box.y + box.height)).toBe(844);
+  const cancel = dialog.getByRole('button', {
+    name: t.common.cancel,
+    exact: true,
+  });
+  const submit = dialog.getByRole('button', {
+    name: t.verticals.dialog.createSubmit,
+    exact: true,
+  });
+  await expect(cancel).toBeInViewport({ ratio: 1 });
+  await expect(submit).toBeInViewport({ ratio: 1 });
+  const cancelBox = (await cancel.boundingBox())!;
+  const submitBox = (await submit.boundingBox())!;
+  expect(cancelBox.height).toBeGreaterThanOrEqual(48);
+  expect(submitBox.height).toBeGreaterThanOrEqual(48);
+  expect(cancelBox.y + cancelBox.height).toBeLessThanOrEqual(submitBox.y);
 });
 
 test('roles without settings permissions get the not-found page and 404 from the API [VIS-02, STORY-ROLE-03-1]', async ({

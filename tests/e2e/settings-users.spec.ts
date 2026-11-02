@@ -1,4 +1,3 @@
-import { copyFileSync, mkdirSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
@@ -6,6 +5,7 @@ import { E2E_ORIGIN, sessionFile } from '../support/e2e-session';
 import { userActivationPage } from '../support/user-activation-page';
 import { userInvitePage } from '../support/user-invite-page';
 import { userRolesPage } from '../support/user-roles-page';
+import { captureScreen } from './screens';
 
 const t = messages.settings.users;
 const roles = messages.common.roles;
@@ -66,6 +66,33 @@ test('Admin lands on «Користувачі та ролі»: active first in U
     `${roles.TEAM_LEAD} · `,
   );
   await expect(page.getByText(/^Показано 13 з 13$/)).toBeVisible();
+  const address = 'head.recruiter.gambling@demo';
+  const email = items.getByText(address, { exact: true });
+  await expect(email).toBeVisible();
+  expect(await email.textContent()).toBe(address);
+  if (!isMobile) {
+    await page.evaluate(() => document.fonts.ready);
+    const lines = await email.evaluate((element) => {
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+      const byLine = new Map<number, string>();
+      let node = walker.nextNode();
+      while (node) {
+        const text = node.textContent ?? '';
+        for (let index = 0; index < text.length; index++) {
+          const range = document.createRange();
+          range.setStart(node, index);
+          range.setEnd(node, index + 1);
+          const top = Math.round(range.getBoundingClientRect().top);
+          byLine.set(top, (byLine.get(top) ?? '') + text[index]);
+        }
+        node = walker.nextNode();
+      }
+      return [...byLine.values()];
+    });
+    expect(lines.join('')).toBe(address);
+    expect(lines.every((line) => line.length > 2)).toBe(true);
+    if (lines.length > 1) expect(lines.at(-1)).toBe('@demo');
+  }
 });
 
 test('search and filters live in the URL and narrow the list; reset brings everyone back [STORY-ROLE-05-4]', async ({
@@ -181,8 +208,6 @@ test('captures the users list screenshots with fixed sign-in times [SHOT-01..03]
   });
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  mkdirSync('screenshots/phase-1', { recursive: true });
-  mkdirSync('screenshots/latest', { recursive: true });
   for (const theme of ['light', 'dark'] as const) {
     await page
       .context()
@@ -194,22 +219,8 @@ test('captures the users list screenshots with fixed sign-in times [SHOT-01..03]
     await page.getByLabel(t.filterStatus, { exact: true }).selectOption('');
     await refetched;
     await expect(listed(page, isMobile)).toHaveCount(13);
-    await page.evaluate(() => document.fonts.ready);
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
     const file = `08-admin-users-list-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
-    const path = `screenshots/phase-1/${file}`;
-    await page.screenshot({
-      path,
-      fullPage: true,
-      animations: 'disabled',
-      scale: 'css',
-    });
-    copyFileSync(path, `screenshots/latest/${file}`);
-    await testInfo.attach(file, { path, contentType: 'image/png' });
+    await captureScreen(page, testInfo, file);
   }
 });
 
@@ -224,6 +235,21 @@ test('invite dialog validates in place and shows server conflicts with a way to 
   const dialog = page.getByRole('dialog', { name: inviteT.title });
   await expect(dialog).toBeVisible();
   const submit = dialog.getByRole('button', { name: inviteT.submit });
+  if (isMobile) {
+    expect(page.viewportSize()).toEqual({ width: 390, height: 844 });
+    const cancel = dialog.getByRole('button', {
+      name: messages.settings.common.cancel,
+      exact: true,
+    });
+    await submit.scrollIntoViewIfNeeded();
+    await expect(cancel).toBeInViewport({ ratio: 1 });
+    await expect(submit).toBeInViewport({ ratio: 1 });
+    const cancelBox = (await cancel.boundingBox())!;
+    const submitBox = (await submit.boundingBox())!;
+    expect(cancelBox.height).toBeGreaterThanOrEqual(48);
+    expect(submitBox.height).toBeGreaterThanOrEqual(48);
+    expect(cancelBox.y + cancelBox.height).toBeLessThanOrEqual(submitBox.y);
+  }
   await submit.click();
   for (const message of [
     inviteT.errors.nameRequired,
@@ -418,12 +444,8 @@ test('captures the invite dialog screenshots [SHOT-01..03]', async ({
     await dialog.getByLabel(`${roles.RECRUITER} · Гемблінг`).check();
     await dialog.getByLabel(`${roles.RECRUITER} · Крипто`).check();
     await dialog.getByLabel(`${roles.TEAM_LEAD} · Гемблінг`).check();
-    await page.evaluate(() => document.fonts.ready);
     const file = `09-admin-invite-dialog-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
-    const path = `screenshots/phase-1/${file}`;
-    await page.screenshot({ path, animations: 'disabled', scale: 'css' });
-    copyFileSync(path, `screenshots/latest/${file}`);
-    await testInfo.attach(file, { path, contentType: 'image/png' });
+    await captureScreen(page, testInfo, file);
   }
 });
 
@@ -927,9 +949,33 @@ const changeDialog = (page: Page, name: string) =>
   page.getByRole('dialog', { name: changeT.title.replace('{name}', name) });
 
 async function openChangeEmail(page: Page, name: string) {
-  await userCard(page, name)
-    .getByRole('button', { name: drawerT.moreActions })
-    .click();
+  const card = page.getByRole('dialog', {
+    name,
+    exact: true,
+    includeHidden: true,
+  });
+  const trigger = card.getByRole('button', {
+    name: drawerT.moreActions,
+    includeHidden: true,
+  });
+  await trigger.click();
+  const menu = page.getByRole('menu');
+  await expect(menu).toBeVisible();
+  await expect(async () => {
+    const journal = (await card
+      .getByRole('link', {
+        name: drawerT.auditLink,
+        exact: true,
+        includeHidden: true,
+      })
+      .boundingBox())!;
+    const button = (await trigger.boundingBox())!;
+    const position = (await menu.boundingBox())!;
+    expect(position.y).toBeGreaterThanOrEqual(journal.y + journal.height + 6);
+    expect(
+      Math.abs(position.x + position.width - (button.x + button.width)),
+    ).toBeLessThanOrEqual(1);
+  }).toPass();
   await page.getByRole('menuitem', { name: changeT.menuItem }).click();
   const dialog = changeDialog(page, name);
   await expect(dialog).toBeVisible();
@@ -1851,25 +1897,9 @@ test('captures role changes and removal confirmation with deterministic state [S
   await userRolesPage(page, 'Василь Мороз');
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  mkdirSync('screenshots/phase-1', { recursive: true });
-  mkdirSync('screenshots/latest', { recursive: true });
   const capture = async (state: string, theme: string) => {
-    await page.evaluate(() => document.fonts.ready);
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
     const file = `12-admin-user-roles-${state}-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
-    const path = `screenshots/phase-1/${file}`;
-    await page.screenshot({
-      path,
-      animations: 'disabled',
-      scale: 'css',
-      fullPage: true,
-    });
-    copyFileSync(path, `screenshots/latest/${file}`);
-    await testInfo.attach(file, { path, contentType: 'image/png' });
+    await captureScreen(page, testInfo, file);
   };
   for (const theme of ['light', 'dark'] as const) {
     await page
@@ -1907,22 +1937,8 @@ test('captures deactivation, its unconfirmed provider ban and reactivation with 
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const capture = async (state: string, theme: string) => {
-    await page.evaluate(() => document.fonts.ready);
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
     const file = `13-admin-user-${state}-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
-    const path = `screenshots/phase-1/${file}`;
-    await page.screenshot({
-      path,
-      animations: 'disabled',
-      scale: 'css',
-      fullPage: true,
-    });
-    copyFileSync(path, `screenshots/latest/${file}`);
-    await testInfo.attach(file, { path, contentType: 'image/png' });
+    await captureScreen(page, testInfo, file);
   };
   for (const theme of ['light', 'dark'] as const) {
     await page
@@ -1945,6 +1961,13 @@ test('captures deactivation, its unconfirmed provider ban and reactivation with 
     await expect(deactivate.getByRole('alert')).toHaveText(
       activationT.deactivateIncomplete,
     );
+    expect(
+      await deactivate
+        .locator('p')
+        .evaluateAll((paragraphs) =>
+          paragraphs.map((paragraph) => getComputedStyle(paragraph).hyphens),
+        ),
+    ).not.toContain('auto');
     await expect(
       deactivate.getByRole('button', { name: activationT.retryDeactivate }),
     ).toBeFocused();
@@ -2011,22 +2034,8 @@ test('captures invitation actions, revoke confirmation and change email with det
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const capture = async (state: string, theme: string) => {
-    await page.evaluate(() => document.fonts.ready);
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
     const file = `11-admin-user-${state}-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
-    const path = `screenshots/phase-1/${file}`;
-    await page.screenshot({
-      path,
-      animations: 'disabled',
-      scale: 'css',
-      fullPage: true,
-    });
-    copyFileSync(path, `screenshots/latest/${file}`);
-    await testInfo.attach(file, { path, contentType: 'image/png' });
+    await captureScreen(page, testInfo, file);
   };
   for (const theme of ['light', 'dark'] as const) {
     await page
@@ -2103,18 +2112,7 @@ test('captures the user card screenshots with fixed sign-in times [SHOT-01..03]'
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const viewport = isMobile ? 'mobile' : 'desktop';
-  const capture = async (file: string) => {
-    await page.evaluate(() => document.fonts.ready);
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
-    const path = `screenshots/phase-1/${file}`;
-    await page.screenshot({ path, animations: 'disabled', scale: 'css' });
-    copyFileSync(path, `screenshots/latest/${file}`);
-    await testInfo.attach(file, { path, contentType: 'image/png' });
-  };
+  const capture = (file: string) => captureScreen(page, testInfo, file);
   for (const theme of ['light', 'dark'] as const) {
     await page
       .context()

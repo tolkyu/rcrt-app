@@ -194,7 +194,7 @@ export function VerticalNameDialog({
               {target ? t('dialog.renameNote') : t('dialog.nameHint')}
             </p>
           </div>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end [&>button]:h-12 sm:[&>button]:h-10">
             <Button
               type="button"
               variant="outline"

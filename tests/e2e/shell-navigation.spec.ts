@@ -1,8 +1,8 @@
-import { copyFileSync, mkdirSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import { E2E_ORIGIN, sessionFile } from '../support/e2e-session';
+import { captureScreen } from './screens';
 
 const t = messages.shell;
 
@@ -48,8 +48,6 @@ test('keyboard opening moves focus into navigation, Escape restores its trigger,
 
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  mkdirSync('screenshots/phase-1', { recursive: true });
-  mkdirSync('screenshots/latest', { recursive: true });
   for (const theme of ['light', 'dark'] as const) {
     await page
       .context()
@@ -58,22 +56,8 @@ test('keyboard opening moves focus into navigation, Escape restores its trigger,
     await trigger.click();
     await expect(dialog).toBeVisible();
     await expect(dialog.locator(':focus')).toHaveCount(1);
-    await page.evaluate(() => document.fonts.ready);
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= window.innerWidth,
-      ),
-    ).toBe(true);
     const file = `07-admin-navigation-open-${isMobile ? 'mobile' : 'tablet'}-${theme}.png`;
-    const path = `screenshots/phase-1/${file}`;
-    await page.screenshot({
-      path,
-      fullPage: true,
-      animations: 'disabled',
-      scale: 'css',
-    });
-    copyFileSync(path, `screenshots/latest/${file}`);
-    await testInfo.attach(file, { path, contentType: 'image/png' });
+    await captureScreen(page, testInfo, file);
     await page.keyboard.press('Escape');
     await expect(trigger).toBeFocused();
   }

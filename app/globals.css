@@ -219,10 +219,6 @@
     outline-offset: 2px;
   }
 
-  p {
-    hyphens: auto;
-  }
-
   @media (prefers-reduced-motion: reduce) {
     *,
     ::before,

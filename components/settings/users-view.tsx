@@ -20,6 +20,7 @@ import { SectionError } from '@/components/states/section-error';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { EmailText } from '@/components/ui/email-text';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -170,7 +171,11 @@ function UserName({ user, self }: { user: UserListItem; self: boolean }) {
           )}
         </span>
         <span className="text-muted-foreground block text-xs [overflow-wrap:anywhere]">
-          {user.status === 'DEACTIVATED' ? t('deactivatedSuffix') : user.email}
+          {user.status === 'DEACTIVATED' ? (
+            t('deactivatedSuffix')
+          ) : (
+            <EmailText email={user.email} />
+          )}
         </span>
       </span>
     </span>
