@@ -2,7 +2,7 @@
 
 import { X } from 'lucide-react';
 import { Dialog as SheetPrimitive } from 'radix-ui';
-import type { ComponentProps } from 'react';
+import { useCallback, useRef, type ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
 
 export const Sheet = SheetPrimitive.Root;
@@ -22,11 +22,23 @@ export function SheetContent({
   children,
   side = 'left',
   closeLabel,
+  ref,
+  onEscapeKeyDown,
   ...props
 }: ComponentProps<typeof SheetPrimitive.Content> & {
   side?: keyof typeof sideClass;
   closeLabel: string;
 }) {
+  const content = useRef<HTMLDivElement | null>(null);
+  // Stable: a new callback ref each render would detach and re-register the Radix layer.
+  const setContent = useCallback(
+    (node: HTMLDivElement | null) => {
+      content.current = node;
+      if (typeof ref === 'function') ref(node);
+      else if (ref) ref.current = node;
+    },
+    [ref],
+  );
   return (
     <SheetPrimitive.Portal>
       <SheetPrimitive.Overlay className="data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 fixed inset-0 z-40 bg-black/40" />
@@ -38,6 +50,20 @@ export function SheetContent({
           className,
         )}
         {...props}
+        ref={setContent}
+        onEscapeKeyDown={(event) => {
+          const target = event.target;
+          // Radix moves the Escape listener to a nested dialog only after a re-render; until then its keys arrive here.
+          if (
+            target instanceof Element &&
+            target !== target.ownerDocument.body &&
+            !content.current?.contains(target)
+          ) {
+            event.preventDefault();
+            return;
+          }
+          onEscapeKeyDown?.(event);
+        }}
       >
         {children}
         <SheetPrimitive.Close

@@ -24,6 +24,7 @@ import type { UserDetail, UserEvent, UserListItem } from '@/lib/schemas/user';
 import { GLOBAL_VERTICAL } from '@/lib/user-constants';
 import { cn } from '@/lib/utils';
 import { useAuditLabels } from './audit-labels';
+import { UserInviteActions } from './user-invite-actions';
 import { MfaStatus, StatusChip } from './user-status';
 
 type Head = Pick<
@@ -266,7 +267,7 @@ function History({ userId }: { userId: string }) {
   );
 }
 
-/** «Картка користувача» (STORY-ROLE-05-4 AC2, wireframe §1.3): read-only; header from the list cache, details stream in. */
+/** «Картка користувача» (STORY-ROLE-05-4 AC2, wireframe §1.3): header from the list cache, details stream in; invite actions in the footer (ROLE-05-3). */
 export function UserDrawer({
   userId,
   cached,
@@ -374,6 +375,12 @@ export function UserDrawer({
             <History userId={userId} />
           </TabsContent>
         </Tabs>
+        {detail.data && (
+          <UserInviteActions
+            detail={detail.data}
+            onFocusHeading={() => heading.current?.focus()}
+          />
+        )}
       </>
     );
   }
@@ -396,7 +403,9 @@ export function UserDrawer({
       >
         {!head || notFound ? (
           <>
-            <SheetTitle className="pr-10">{t('title')}</SheetTitle>
+            <SheetTitle ref={heading} tabIndex={-1} className="pr-10">
+              {t('title')}
+            </SheetTitle>
             <SheetDescription className="sr-only">
               {t('title')}
             </SheetDescription>

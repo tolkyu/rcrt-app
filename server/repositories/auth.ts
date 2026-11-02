@@ -421,11 +421,74 @@ export async function findVerticalIds(db: DbExecutor, ids: readonly string[]) {
     .where(inArray(vertical.id, [...ids]));
 }
 
+/** Status of the invite that defines the user's state: the pending one if any, else the newest (ROLE-05-3, D70). */
+export async function findLatestInviteStatus(db: DbExecutor, userId: string) {
+  const [row] = await db
+    .select({ status: userInvite.status })
+    .from(userInvite)
+    .where(eq(userInvite.userId, userId))
+    .orderBy(
+      desc(sql`${userInvite.status} = 'PENDING'`),
+      desc(userInvite.createdAt),
+      desc(userInvite.id),
+    )
+    .limit(1);
+  return row?.status ?? null;
+}
+
+/** The invitee, locked so a re-invite serialises with any other write to the same user (D70). */
+export async function lockInvitee(db: DbExecutor, userId: string) {
+  const [row] = await db
+    .select({
+      id: appUser.id,
+      email: appUser.email,
+      fullName: appUser.fullName,
+      isActive: appUser.isActive,
+      activatedAt: appUser.activatedAt,
+    })
+    .from(appUser)
+    .where(eq(appUser.id, userId))
+    .for('update');
+  return row ?? null;
+}
+
+const inviteeStillPending = sql`exists (select 1 from ${appUser} u where u.id = ${userInvite.userId} and u.is_active and u.activated_at is null)`;
+
+/**
+ * Replaces the token of the one pending invite (fresh or expired) for an active, never-activated user.
+ * Guarded by `status = 'PENDING'`: a concurrent accept or revoke that commits first leaves nothing to
+ * update, and an accept still holding the old hash finds no row once this commits (ROLE-05-3).
+ */
+export async function rotatePendingInvite(
+  db: DbExecutor,
+  input: { userId: string; tokenHash: Buffer; sentAt: Date; expiresAt: Date },
+) {
+  const [row] = await db
+    .update(userInvite)
+    .set({
+      tokenHash: input.tokenHash,
+      sentAt: input.sentAt,
+      expiresAt: input.expiresAt,
+      resendCount: sql`${userInvite.resendCount} + 1`,
+      version: sql`${userInvite.version} + 1`,
+    })
+    .where(
+      and(
+        eq(userInvite.userId, input.userId),
+        eq(userInvite.status, 'PENDING'),
+        inviteeStillPending,
+      ),
+    )
+    .returning({ id: userInvite.id, resendCount: userInvite.resendCount });
+  return row ?? null;
+}
+
 export async function revokePendingInvites(
   db: DbExecutor,
   userId: string,
   revokedBy: string,
   now: Date,
+  options: { activeInviteeOnly?: boolean } = {},
 ) {
   return db
     .update(userInvite)
@@ -435,7 +498,13 @@ export async function revokePendingInvites(
       revokedBy,
       version: sql`${userInvite.version} + 1`,
     })
-    .where(and(eq(userInvite.userId, userId), eq(userInvite.status, 'PENDING')))
+    .where(
+      and(
+        eq(userInvite.userId, userId),
+        eq(userInvite.status, 'PENDING'),
+        options.activeInviteeOnly ? inviteeStillPending : undefined,
+      ),
+    )
     .returning({ id: userInvite.id });
 }
 

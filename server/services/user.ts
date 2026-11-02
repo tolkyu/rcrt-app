@@ -1,4 +1,3 @@
-import { z } from 'zod';
 import { sortRoles } from '../../lib/roles';
 import {
   decodeTimeIdCursor,
@@ -18,6 +17,7 @@ import { hasAnyGrant, requirePermission } from '../authz/can';
 import { GLOBAL_ROLES } from '../authz/roles';
 import type { BuiltinRole } from '../authz/types';
 import type { RequestContext } from '../context/request-context';
+import { userIdOf } from '@/server/http/params';
 import { NotFoundError } from '../http/errors';
 import {
   countUsers,
@@ -109,13 +109,6 @@ export async function listUserPage(
 }
 
 const INVITE_STATUSES = new Set(['INVITED', 'INVITE_EXPIRED', 'REVOKED']);
-const uuid = z.uuid();
-
-/** Lower-case uuid or null: subject ids are stored lower-case text, and malformed ids must look unknown (404). */
-function userIdOf(value: string): string | null {
-  return uuid.safeParse(value).success ? value.toLowerCase() : null;
-}
-
 /** «Картка користувача» (STORY-ROLE-05-4 AC2): Admin only (aal2); unknown or malformed id → 404. */
 export async function getUserDetail(
   ctx: RequestContext,

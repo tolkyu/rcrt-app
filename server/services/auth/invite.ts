@@ -25,10 +25,13 @@ import {
   ValidationError,
 } from '@/server/http/errors';
 import { inviteEmail } from '@/server/integrations/email/templates';
+import { EmailConfigurationError } from '@/server/integrations/email/transport';
+import { describeError, logger } from '@/server/observability/logger';
 import {
   activateInvitedUser,
   consumeInvite,
   findInviteByHash,
+  findLatestInviteStatus,
   findUserByEmail,
   findVerticalIds,
   insertInvite,
@@ -62,7 +65,10 @@ const isBuiltin = (role: string): role is BuiltinRole =>
   (BUILTIN_ROLE_CODES as readonly string[]).includes(role);
 
 /** Global roles carry no vertical, vertical roles need an existing one (D40, T4-E07). */
-async function rolesAreValid(db: DbExecutor, roles: readonly RoleInput[]) {
+export async function rolesAreValid(
+  db: DbExecutor,
+  roles: readonly RoleInput[],
+) {
   if (roles.length === 0) return false;
   const keys = new Set(roles.map((r) => `${r.role}|${r.verticalId}`));
   if (keys.size !== roles.length) return false;
@@ -76,8 +82,40 @@ async function rolesAreValid(db: DbExecutor, roles: readonly RoleInput[]) {
   return (await findVerticalIds(db, verticalIds)).length === verticalIds.length;
 }
 
-function inviteUrl(appUrl: string, token: string) {
+export function inviteUrl(appUrl: string, token: string) {
   return `${new URL('/invite', appUrl).href}#t=${token}`;
+}
+
+/** Runs after the invite committed, so a failure must not fail the request: it reports `delivered: false` (SEC-INV-02). */
+export async function sendInviteEmail(
+  deps: AuthDependencies,
+  invitee: { email: string; fullName: string },
+  token: string,
+  expiresAt: Date,
+): Promise<boolean> {
+  try {
+    return await deps.sendEmail(
+      inviteEmail(invitee.email, {
+        fullName: invitee.fullName,
+        url: inviteUrl(deps.appUrl(), token),
+        expiresAt,
+      }),
+    );
+  } catch (error) {
+    logger.error(
+      {
+        operation: 'invite.send_email',
+        err: {
+          ...describeError(error),
+          ...(error instanceof EmailConfigurationError
+            ? { code: error.code }
+            : {}),
+        },
+      },
+      'invite email not sent',
+    );
+    return false;
+  }
 }
 
 /**
@@ -102,8 +140,11 @@ export async function createInvite(
   const existing = await findUserByEmail(ctx.db, email);
   if (existing) {
     if (!existing.isActive) throw new ConflictError('USER_DEACTIVATED');
+    if (existing.activatedAt) throw new ConflictError('USER_EXISTS');
+    const latest = await findLatestInviteStatus(ctx.db, existing.id);
+    // D70: a revoked invitee is re-invited from the user card, not by a second invite.
     throw new ConflictError(
-      existing.activatedAt ? 'USER_EXISTS' : 'INVITE_PENDING',
+      latest === 'REVOKED' ? 'INVITE_REVOKED' : 'INVITE_PENDING',
     );
   }
   const now = ctx.clock.now();
@@ -146,12 +187,11 @@ export async function createInvite(
     });
     return { userId, inviteId };
   });
-  const delivered = await deps.sendEmail(
-    inviteEmail(email, {
-      fullName,
-      url: inviteUrl(deps.appUrl(), token),
-      expiresAt,
-    }),
+  const delivered = await sendInviteEmail(
+    deps,
+    { email, fullName },
+    token,
+    expiresAt,
   );
   return { ...created, expiresAt: expiresAt.toISOString(), delivered };
 }

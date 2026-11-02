@@ -814,7 +814,7 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
 
   it('builds timeline, audit viewer and cleanup indexes with their predicates [ERD §5, PERF-05]', async () => {
     const rows = await admin`select indexname, indexdef from pg_indexes
-      where schemaname = 'app' and tablename in ('entity_event', 'audit_log', 'file_object', 'user_role')`;
+      where schemaname = 'app' and tablename in ('entity_event', 'audit_log', 'file_object', 'user_role', 'user_invite')`;
     const definitions = Object.fromEntries(
       rows.map((row) => [row.indexname as string, row.indexdef as string]),
     );
@@ -854,6 +854,13 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
     }
     expect(definitions.user_role_user_idx).toBeUndefined();
     expect(definitions.user_role_uq).toContain('(user_id, role, vertical_id)');
+    expect(definitions.user_invite_latest_idx).toContain(
+      "(user_id, ((status = 'PENDING'::text)) DESC, created_at DESC, id DESC)",
+    );
+    expect(definitions.user_invite_latest_idx).not.toContain('WHERE');
+    expect(definitions.user_invite_pending_uq).toContain(
+      "(user_id) WHERE (status = 'PENDING'::text)",
+    );
 
     const id = randomUUID();
     const timelines: [string, string][] = [
@@ -892,6 +899,10 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
         [
           'audit_log_entity_type_idx',
           "select id from app.audit_log where entity_type = 'vertical' order by occurred_at desc, id desc limit 51",
+        ],
+        [
+          'user_invite_latest_idx',
+          `select status from app.user_invite where user_id = '${id}' order by status = 'PENDING' desc, created_at desc, id desc limit 1`,
         ],
       ];
       for (const [index, query] of plans) {

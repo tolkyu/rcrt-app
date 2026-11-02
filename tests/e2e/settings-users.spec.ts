@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import { E2E_ORIGIN, sessionFile } from '../support/e2e-session';
+import { userInvitePage } from '../support/user-invite-page';
 
 const t = messages.settings.users;
 const roles = messages.common.roles;
@@ -16,6 +17,14 @@ const cards = (page: Page) =>
   page.getByRole('list', { name: t.caption }).locator('> li');
 const listed = (page: Page, isMobile: boolean) =>
   isMobile ? cards(page) : rows(page);
+
+function deferred() {
+  let resolve!: () => void;
+  const promise = new Promise<void>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
 
 test('Admin lands on «Користувачі та ролі»: active first in Ukrainian order, statuses, roles and 2FA [UI-04-1, STORY-ROLE-05-4]', async ({
   page,
@@ -695,6 +704,245 @@ test('an unknown ?user= shows the not-found state inside the card [STORY-ROLE-05
   await page.keyboard.press('Escape');
   await expect(card).toHaveCount(0);
   await expect(page).toHaveURL(/\/settings\/users$/);
+});
+
+test('invitation actions update the card, list and cached history; confirmations protect cancellation and focus [STORY-ROLE-05-3, D70]', async ({
+  page,
+  isMobile,
+}) => {
+  const fixture = await userInvitePage(page);
+  await page.goto('/settings/users?q=Богдан');
+  await listedUser(page, isMobile, fixture.detail.fullName).click();
+  const card = drawer(page);
+  const actions = card.getByRole('group', { name: drawerT.actionsLabel });
+  await expect(
+    actions.getByRole('button', { name: drawerT.resend, exact: true }),
+  ).toBeVisible();
+  await card.getByRole('tab', { name: drawerT.tabHistory }).click();
+  const history = card.getByRole('list', { name: drawerT.historyTitle });
+  await expect(
+    history.getByText(messages.settings.audit.actions.user.invited, {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await card.getByRole('tab', { name: drawerT.tabProfile }).click();
+  await actions
+    .getByRole('button', { name: drawerT.resend, exact: true })
+    .click();
+  await expect(card.getByText(t.status.INVITED, { exact: true })).toBeVisible();
+  await expect(
+    card.getByText('Надсилалося повторно: 1', { exact: true }),
+  ).toBeVisible();
+  await card.getByRole('tab', { name: drawerT.tabHistory }).click();
+  await expect(
+    history.getByText(messages.settings.audit.actions.user.invite_resent, {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await card.getByRole('tab', { name: drawerT.tabProfile }).click();
+
+  const revoke = actions.getByRole('button', {
+    name: drawerT.revoke,
+    exact: true,
+  });
+  await revoke.click();
+  const confirm = page.getByRole('alertdialog');
+  const cancel = confirm.getByRole('button', {
+    name: messages.settings.common.cancel,
+    exact: true,
+  });
+  await expect(cancel).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(confirm).toHaveCount(0);
+  await expect(revoke).toBeFocused();
+  expect(fixture.posts).toHaveLength(1);
+
+  const release = deferred();
+  const received = deferred();
+  await page.route(
+    `**/api/v1/users/${fixture.detail.id}/invite/revoke`,
+    async (route) => {
+      received.resolve();
+      await release.promise;
+      await route.fallback();
+    },
+  );
+  try {
+    await revoke.click();
+    await confirm
+      .getByRole('button', { name: drawerT.revokeDialog.submit, exact: true })
+      .click();
+    await received.promise;
+    await expect(cancel).toBeDisabled();
+    await page.keyboard.press('Escape');
+    await expect(confirm).toBeVisible();
+    release.resolve();
+    await expect(confirm).toHaveCount(0);
+    await expect(
+      card.getByText(t.status.REVOKED, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      card.getByRole('heading', { name: fixture.detail.fullName }),
+    ).toBeFocused();
+  } finally {
+    release.resolve();
+  }
+  await card.getByRole('button', { name: drawerT.close }).click();
+  await expect(card).toHaveCount(0);
+  await expect(
+    listedUser(page, isMobile, fixture.detail.fullName),
+  ).toContainText(t.status.REVOKED);
+  await listedUser(page, isMobile, fixture.detail.fullName).click();
+  await actions
+    .getByRole('button', { name: drawerT.reinvite, exact: true })
+    .click();
+  await expect(confirm).toContainText(fixture.detail.email);
+  await expect(confirm).toContainText(`${roles.RECRUITER} · Гемблінг`);
+  await page.keyboard.press('Escape');
+  await expect(confirm).toHaveCount(0);
+  await expect(card).toBeVisible();
+  const reinvite = actions.getByRole('button', {
+    name: drawerT.reinvite,
+    exact: true,
+  });
+  await expect(reinvite).toBeFocused();
+  expect(fixture.posts).toHaveLength(2);
+  await reinvite.click();
+  await confirm
+    .getByRole('button', { name: drawerT.reinviteDialog.submit, exact: true })
+    .click();
+  await expect(confirm).toHaveCount(0);
+  await expect(card.getByText(t.status.INVITED, { exact: true })).toBeVisible();
+  await expect(
+    card.getByRole('heading', { name: fixture.detail.fullName }),
+  ).toBeFocused();
+  expect(fixture.posts.map((path) => path.split('/').at(-1))).toEqual([
+    'resend',
+    'revoke',
+    'invite',
+  ]);
+});
+
+test('undelivered resend warns that the old link is invalid; a stale invite refreshes to active without actions [STORY-ROLE-05-3]', async ({
+  page,
+  isMobile,
+}) => {
+  const fixture = await userInvitePage(page, { delivered: false });
+  await page.goto('/settings/users?q=Богдан');
+  await listedUser(page, isMobile, fixture.detail.fullName).click();
+  const card = drawer(page);
+  await card.getByRole('button', { name: drawerT.resend, exact: true }).click();
+  await expect(
+    page.getByText(drawerT.resendNotDelivered, { exact: true }),
+  ).toBeVisible();
+  await expect(card.getByText(t.status.INVITED, { exact: true })).toBeVisible();
+  await page.route(
+    `**/api/v1/users/${fixture.detail.id}/invite/revoke`,
+    async (route) => {
+      fixture.detail.status = 'ACTIVE';
+      fixture.detail.activatedAt = FIXED_CLOCK_ISO;
+      fixture.detail.invitation = null;
+      await route.fulfill({
+        status: 409,
+        contentType: 'application/problem+json',
+        json: { code: 'INVITE_NOT_PENDING', status: 409 },
+      });
+    },
+  );
+  await card.getByRole('button', { name: drawerT.revoke, exact: true }).click();
+  await page
+    .getByRole('alertdialog')
+    .getByRole('button', { name: drawerT.revokeDialog.submit, exact: true })
+    .click();
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  await expect(
+    page.getByText(messages.settings.common.conflict, { exact: true }),
+  ).toBeVisible();
+  await expect(card.getByText(t.status.ACTIVE, { exact: true })).toBeVisible();
+  await expect(
+    card.getByRole('group', { name: drawerT.actionsLabel }),
+  ).toHaveCount(0);
+  await expect(
+    card.getByRole('heading', { name: fixture.detail.fullName }),
+  ).toBeFocused();
+});
+
+test('an invitee without roles can revoke but cannot receive another link [ROLE-05-2]', async ({
+  page,
+  isMobile,
+}) => {
+  const fixture = await userInvitePage(page, { noRoles: true });
+  await page.goto('/settings/users?q=Богдан');
+  await listedUser(page, isMobile, fixture.detail.fullName).click();
+  const card = drawer(page);
+  await expect(
+    card.getByRole('button', { name: drawerT.resend, exact: true }),
+  ).toBeDisabled();
+  await expect(
+    card.getByRole('button', { name: drawerT.revoke, exact: true }),
+  ).toBeEnabled();
+  await expect(
+    card.getByText(drawerT.noRolesReason, { exact: true }),
+  ).toBeVisible();
+  expect(fixture.posts).toHaveLength(0);
+  await card.getByRole('button', { name: drawerT.revoke, exact: true }).click();
+  await page
+    .getByRole('alertdialog')
+    .getByRole('button', { name: drawerT.revokeDialog.submit, exact: true })
+    .click();
+  await expect(card.getByText(t.status.REVOKED, { exact: true })).toBeVisible();
+  await expect(
+    card.getByRole('button', { name: drawerT.reinvite, exact: true }),
+  ).toBeDisabled();
+  expect(fixture.posts).toEqual([
+    `/api/v1/users/${fixture.detail.id}/invite/revoke`,
+  ]);
+});
+
+test('captures invitation actions and revoke confirmation with deterministic state [SHOT-01..03]', async ({
+  page,
+  isMobile,
+}, testInfo) => {
+  const fixture = await userInvitePage(page);
+  await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const capture = async (state: string, theme: string) => {
+    await page.evaluate(() => document.fonts.ready);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    const file = `11-admin-user-invite-${state}-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
+    const path = `screenshots/phase-1/${file}`;
+    await page.screenshot({
+      path,
+      animations: 'disabled',
+      scale: 'css',
+      fullPage: true,
+    });
+    copyFileSync(path, `screenshots/latest/${file}`);
+    await testInfo.attach(file, { path, contentType: 'image/png' });
+  };
+  for (const theme of ['light', 'dark'] as const) {
+    await page
+      .context()
+      .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
+    await page.goto('/settings/users?q=Богдан');
+    await listedUser(page, isMobile, fixture.detail.fullName).click();
+    const card = drawer(page);
+    await expect(
+      card.getByText('Прострочене з 16.11.2026, 09:00', { exact: true }),
+    ).toBeVisible();
+    await capture('actions', theme);
+    await card
+      .getByRole('button', { name: drawerT.revoke, exact: true })
+      .click();
+    await expect(page.getByRole('alertdialog')).toBeVisible();
+    await capture('revoke', theme);
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  }
 });
 
 test('captures the user card screenshots with fixed sign-in times [SHOT-01..03]', async ({

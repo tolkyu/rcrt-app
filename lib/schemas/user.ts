@@ -176,3 +176,26 @@ export const userEventPageSchema = z
   })
   .meta({ id: 'UserEventPage' });
 export type UserEventPage = z.infer<typeof userEventPageSchema>;
+
+/** Invite actions in «Картка користувача» carry no input: the target is the path, the roles are the user's current ones. */
+export const userInviteActionSchema = z.object({}).strict();
+
+export const userInviteSentSchema = z
+  .object({
+    inviteId: z.uuid(),
+    expiresAt: z.iso.datetime(),
+    delivered: z
+      .boolean()
+      .meta({
+        description: 'False when the email provider refused the message.',
+      }),
+  })
+  .strict()
+  .meta({ id: 'UserInviteSent' });
+export type UserInviteSent = z.infer<typeof userInviteSentSchema>;
+
+export const userInviteRevokedSchema = z
+  .object({ inviteId: z.uuid(), revokedAt: z.iso.datetime() })
+  .strict()
+  .meta({ id: 'UserInviteRevoked' });
+export type UserInviteRevoked = z.infer<typeof userInviteRevokedSchema>;

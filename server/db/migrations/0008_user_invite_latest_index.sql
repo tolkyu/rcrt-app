@@ -1,0 +1,1 @@
+CREATE INDEX "user_invite_latest_idx" ON "app"."user_invite" USING btree ("user_id",("status" = 'PENDING') DESC,"created_at" DESC NULLS FIRST,"id" DESC NULLS FIRST);

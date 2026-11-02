@@ -12,8 +12,9 @@ const withoutVersion = (payload: Record<string, unknown>) =>
 function rolesOf(row: UserEventRow): RoleRef[] | null {
   const payload = withoutVersion(row.payload);
   switch (row.type) {
-    case 'user.invited': {
-      const parsed = EVENT_PAYLOADS['user.invited'].safeParse(payload);
+    case 'user.invited':
+    case 'user.reinvited': {
+      const parsed = EVENT_PAYLOADS[row.type].safeParse(payload);
       return parsed.success ? parsed.data.roles : null;
     }
     case 'user.reactivated': {

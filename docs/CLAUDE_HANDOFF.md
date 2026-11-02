@@ -3,10 +3,13 @@
 > Read order: `CLAUDE.md` → this file → `docs/PROGRESS.md` → `docs/PRD.md` §14 (owner decisions D1–D70).
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
-## State — 2026-11-01 (evening)
+## State — 2026-11-02
 
 - **Working mode (owner):** one small slice end-to-end → commit → report → wait for «далі».
 - **Working mode:** owner wants the team agents used (engineer → QA → code-reviewer + security → engineer fixes); orchestrator verifies, commits, reports in Ukrainian only.
+- **T6 slice 6 done — invitation actions in the drawer** (resend / revoke / re-invite, D70; `components/settings/user-invite-actions.tsx`, `server/services/auth/invite-manage.ts`, POST `/api/v1/users/{id}/invite[/resend|/revoke]`, migration `0008_user_invite_latest_index`). Security approved, code review approved (nits fixed), perf: users 177.79 kB, **audit 179.59 kB (0.41 kB headroom)**.
+- **Local demo DB blocked for migrations:** its ledger contains an old, since-removed `0008_user_event_subject.sql` → `pnpm db:migrate` refuses; new `0008` not applied locally. Needs owner OK to reset the local demo DB (see PROGRESS → Gaps). Never edit hashes / replay the old SQL.
+- Docker Desktop must be started before tests (`pnpm test:db:up`); vitest crashes with `code.charCodeAt` stack noise when the test DB is down.
 - **T6 slice 5 done — read-only user drawer** (`components/settings/user-drawer.tsx`, `user-status.tsx`, `components/ui/tabs.tsx`, APIs `GET /api/v1/users/{id}` and `/events`). Timeline reads `subject_type in ('app_user','user')` and `type like 'user.%'`, allowlist re-validation; no migration touches append-only rows. Local demo DB still has old seeded events (`user_role` subject) — only a fresh seed shows the new invite-based history (owner OK needed to reset). Perf users 177.78 kB, audit 179.57 kB.
 - **T6 slice 4 done — «Запросити користувача» dialog** (lazy chunk, `components/settings/invite-user-dialog.tsx`): mockup look (`docs/ux/reference/settings/01-invite-user-dialog.webp`), PRD content; owner question **Q-155** (mockup extras: «Посада», «Базова роль», extra permissions, temp password — recommended: no). `app_user_email_uq` race → 409 `INVITE_PENDING`; `GLOBAL_ROLE_CODES` shared in `server/authz/types.ts`. Audit page now 179.47 kB (0.5 kB headroom) — T8 must free space before any audit-page addition.
 - **T6 slice 3 done — «Користувачі та ролі» list** (`/settings/users`, `GET /api/v1/users`): search + single-select filters in the URL (API accepts multi), derived status (deactivated > activated > pending invite valid/expired > revoked), roles via shared `sortRoles`/`useRoleLabel`, 2FA from view `app.auth_mfa_totp` (migration `0007`, also `app_user_list_idx` uk-collation keyset), id-only cursor, total only on the first page. Admin now lands on Users. Vertical «Користувачі» count = status «Активний» only (invitees excluded) and links to `/settings/users?status=ACTIVE&vertical=…`. Seed: expired invitee now has its RECRUITER · Гемблінг role (run `pnpm db:seed`). Verified: lint, typecheck, 1874 vitest, E2E 72 + 2 skips, perf users 175.5 kB / audit 179.07 kB. Screenshots `08-admin-users-list-*` (sign-in times rewritten to fixed values in the spec).
@@ -33,7 +36,7 @@
 
 ## Next steps (in order)
 
-1. **Next small slice: T6** drawer actions — resend/revoke/re-invite (D70, server currently says INVITE_PENDING for revoked), D69 email change for invitees, roles edit, deactivate/reactivate + R04; then TL priorities, audit polish → user drawer actions → TL priorities, followed by audit polish. Settings per `docs/ux/wireframes/settings-admin.md` (resend/revoke/re-invite D70, invited-user email change D69, roles × verticals, deactivation + SEC-AUTH-R04). Settings nav and Admin landing are already built. Team defaults for wireframe gaps U2/U3/U5/U6/L1–L3.
+1. **Next small slice: T6** drawer actions — D69 email change for invitees (revoke + new invite), then roles × verticals edit, then deactivate/reactivate + SEC-AUTH-R04; then TL priorities (+ D73 event), audit polish. Settings per `docs/ux/wireframes/settings-admin.md`; team defaults for wireframe gaps U2/U3/U5/U6/L1–L3.
 2. **T7** QA: full phase-1 E2E, Newman, screenshots → `screenshots/phase-1/` + `index.html` + `screenshots/latest/`.
 3. **T8** perf gates for phase-1 screens.
 4. **T9** carry-overs: CI Supabase job, CI SHA pins, `pnpm audit`, Drizzle drift, `format:check`, secret grep, DG-03 storage test, hosted Supabase config drift (A04, B06, C06, D03, H04, I03, R03), SEC-CORE-13/14.

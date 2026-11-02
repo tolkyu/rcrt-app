@@ -169,6 +169,12 @@ export const userInvite = app.table(
     uniqueIndex('user_invite_pending_uq')
       .on(t.userId)
       .where(sql`${t.status} = 'PENDING'`),
+    index('user_invite_latest_idx').on(
+      t.userId,
+      sql`(${t.status} = 'PENDING') DESC`,
+      t.createdAt.desc().nullsFirst(),
+      t.id.desc().nullsFirst(),
+    ),
     check('user_invite_hash_chk', sql`octet_length(${t.tokenHash}) = 32`),
     check(
       'user_invite_roles_chk',

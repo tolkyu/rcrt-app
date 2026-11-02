@@ -46,6 +46,7 @@ const CONFLICTS = {
   INVITE_PENDING: 'invitePending',
   INVITE_ALREADY_PENDING: 'invitePending',
   USER_DEACTIVATED: 'userDeactivated',
+  INVITE_REVOKED: 'inviteRevoked',
 } as const;
 
 interface InvitePayload {
@@ -277,7 +278,8 @@ export function InviteUserDialog({
   const emailConflict =
     errors.email === 'userExists' ||
     errors.email === 'invitePending' ||
-    errors.email === 'userDeactivated';
+    errors.email === 'userDeactivated' ||
+    errors.email === 'inviteRevoked';
 
   return (
     <Dialog

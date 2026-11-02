@@ -34,3 +34,24 @@ export const userEventsQuery = (id: string) =>
       ),
     getNextPageParam: (page) => page.nextCursor,
   });
+
+const userSchemas = () => import('@/lib/schemas/user');
+
+/** Invite actions in «Картка користувача» (STORY-ROLE-05-3, D70); the server decides what is allowed. */
+export const userInviteRequests = {
+  resend: (id: string) =>
+    apiRequest(`/users/${id}/invite/resend`, {
+      method: 'POST',
+      schema: async () => (await userSchemas()).userInviteSentSchema,
+    }),
+  revoke: (id: string) =>
+    apiRequest(`/users/${id}/invite/revoke`, {
+      method: 'POST',
+      schema: async () => (await userSchemas()).userInviteRevokedSchema,
+    }),
+  reinvite: (id: string) =>
+    apiRequest(`/users/${id}/invite`, {
+      method: 'POST',
+      schema: async () => (await userSchemas()).userInviteSentSchema,
+    }),
+};

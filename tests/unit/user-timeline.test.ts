@@ -56,6 +56,16 @@ describe('User timeline view [HIST-03, STORY-ROLE-05-4 AC2]', () => {
       },
     ],
     [
+      'user.reinvited',
+      {
+        inviteId: ACTOR,
+        roles: [
+          { role: 'RECRUITER', verticalId: VERTICAL },
+          { role: 'ADMIN', verticalId: null },
+        ],
+      },
+    ],
+    [
       'user.reactivated',
       {
         restoredRoles: [
@@ -109,6 +119,7 @@ describe('User timeline view [HIST-03, STORY-ROLE-05-4 AC2]', () => {
   it.each([
     ['user.role_assigned', { role: 'ADMIN', verticalId: null, note: 'текст' }],
     ['user.invited', { roles: [{ role: 'ADMIN', verticalId: null }] }],
+    ['user.reinvited', { inviteId: ACTOR, roles: [] }],
     ['user.profile_updated', { fields: ['phone'] }],
     ['user.reactivated', { restoredRoles: 'ADMIN' }],
   ])('drops a %s payload that fails the write allowlist', (type, payload) => {

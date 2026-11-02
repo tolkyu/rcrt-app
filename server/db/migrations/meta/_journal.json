@@ -57,6 +57,13 @@
       "when": 1793553205837,
       "tag": "0007_user_list",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793564636726,
+      "tag": "0008_user_invite_latest_index",
+      "breakpoints": true
     }
   ]
 }

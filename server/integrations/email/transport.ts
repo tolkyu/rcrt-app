@@ -10,13 +10,22 @@ export interface EmailMessage {
 /** Returns false on any delivery failure; callers show a neutral retry message (SEC-AUTH-1). */
 export type SendEmail = (message: EmailMessage) => Promise<boolean>;
 
+type EmailSetting = 'EMAIL_FROM' | 'MAILPIT_URL' | 'RESEND_API_KEY';
+
+export class EmailConfigurationError extends Error {
+  override readonly name = 'EmailConfigurationError';
+  constructor(readonly code: EmailSetting) {
+    super(`Invalid email configuration: ${code}`);
+  }
+}
+
 const TIMEOUT_MS = 10_000;
 const loopback = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 function sender(): { email: string; name: string } {
   const from = process.env.EMAIL_FROM;
   if (!from || !/^[^\s@<>]+@[^\s@<>]+$/.test(from))
-    throw new Error('Invalid email configuration: EMAIL_FROM');
+    throw new EmailConfigurationError('EMAIL_FROM');
   return { email: from, name: 'Hiring' };
 }
 
@@ -75,11 +84,11 @@ export function createEmailTransport(
   const mailpit = env.MAILPIT_URL;
   if (mailpit && (env.APP_ENV === 'local' || env.APP_ENV === 'test')) {
     if (!loopback.has(new URL(mailpit).hostname))
-      throw new Error('Invalid email configuration: MAILPIT_URL');
+      throw new EmailConfigurationError('MAILPIT_URL');
     return mailpitTransport(mailpit);
   }
   const apiKey = env.RESEND_API_KEY;
-  if (!apiKey) throw new Error('Invalid email configuration: RESEND_API_KEY');
+  if (!apiKey) throw new EmailConfigurationError('RESEND_API_KEY');
   return resendTransport(apiKey);
 }
 

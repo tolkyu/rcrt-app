@@ -46,6 +46,13 @@ const screens = [
       variants.map((variant) => `${tab}-${variant}`),
     ),
   ],
+  [
+    '11-admin-user-invite',
+    'Запрошення — дії та підтвердження відкликання',
+    ['actions', 'revoke'].flatMap((state) =>
+      variants.map((variant) => `${state}-${variant}`),
+    ),
+  ],
 ];
 mkdirSync('screenshots/latest', { recursive: true });
 const sections = screens.map(([id, title, screenVariants = variants]) => {

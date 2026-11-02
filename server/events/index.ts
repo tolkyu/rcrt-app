@@ -34,6 +34,9 @@ export const EVENT_PAYLOADS = {
     .strict(),
   'user.invite_resent': z.object({ inviteId: id }).strict(),
   'user.invite_revoked': z.object({ inviteId: id }).strict(),
+  'user.reinvited': z
+    .object({ inviteId: id, roles: z.array(roleRef).min(1) })
+    .strict(),
   'user.invite_accepted': z.object({ inviteId: id }).strict(),
   'user.activated': empty,
   'user.deactivated': empty,
