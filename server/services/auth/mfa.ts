@@ -28,7 +28,7 @@ import {
   reserveMfaAttempt,
 } from '@/server/security/rate-limit';
 import type { AuthDependencies } from './deps';
-import { revokeUserAccess } from './session';
+import { revokeMfaResetSessions } from './session';
 
 /** D22: up to two verified TOTP devices (main + backup); no recovery codes. */
 export const MAX_VERIFIED_FACTORS = 2;
@@ -282,7 +282,7 @@ export async function resetUserMfa(
   }
   let sessionsRevoked = false;
   try {
-    await revokeUserAccess(deps, ctx, target.id, 'MFA_RESET');
+    await revokeMfaResetSessions(ctx, target.id);
     sessionsRevoked = true;
   } catch {
     incomplete = true;

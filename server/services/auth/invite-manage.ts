@@ -27,7 +27,7 @@ import {
   updateUserEmail,
 } from '@/server/repositories/auth';
 import type { AuthDependencies } from './deps';
-import { emailTakenCode, rolesAreValid, sendInviteEmail } from './invite';
+import { emailTakenBy, rolesAreValid, sendInviteEmail } from './invite';
 
 export interface InviteSent {
   inviteId: string;
@@ -226,8 +226,8 @@ export async function changeInviteeEmail(
           'EMAIL_UNCHANGED',
         );
       const roles = await currentInviteRoles(tx, userId);
-      const taken = await emailTakenCode(tx, email);
-      if (taken) throw emailTaken(taken);
+      const taken = await emailTakenBy(tx, email);
+      if (taken) throw emailTaken(taken.code);
       const [revoked] = await revokePendingInvites(
         tx,
         userId,

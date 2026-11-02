@@ -31,7 +31,6 @@ import {
   listOpenSessions,
   type LOGIN_HISTORY_ACTIONS,
   recordAuthLogin,
-  revokePendingInvites,
   type SessionEndReason,
   type SessionMethod,
 } from '@/server/repositories/auth';
@@ -239,41 +238,46 @@ export async function endOtherSessions(
   });
 }
 
-/**
- * Deactivation and MFA reset end every session at once: Supabase rows deleted (refresh tokens die),
- * app sessions closed, and for deactivation the auth user banned and pending invites revoked (T4-G02).
- */
-export async function revokeUserAccess(
-  deps: AuthDependencies,
+/** MFA reset only (SEC-ACT-02): deactivation must go through the user-lock-serialized user-activation service. */
+export async function revokeMfaResetSessions(
   ctx: WriteContext,
   userId: string,
-  reason: Extract<SessionEndReason, 'DEACTIVATED' | 'MFA_RESET'>,
 ): Promise<{ count: number }> {
   const user = await findUserById(ctx.db, userId);
   if (!user) return { count: 0 };
-  const now = ctx.clock.now();
   const count = await ctx.db.transaction(async (tx) => {
-    const ended = user.authUserId
-      ? await endAuthSessions(tx, user.authUserId)
-      : 0;
-    await endUserSessions(tx, userId, reason, now);
-    if (reason === 'DEACTIVATED' && ctx.auth)
-      await revokePendingInvites(tx, userId, ctx.auth.userId, now);
-    await writeAudit(
-      tx,
-      { ...ctx, db: tx },
-      {
-        action: 'auth.session_revoked',
-        entityType: 'user',
-        entityId: userId,
-        details: { reason, count: ended },
-      },
-    );
-    return ended;
+    const write = { ...ctx, db: tx };
+    return revokeUserSessions(write, user, 'MFA_RESET');
   });
-  if (reason === 'DEACTIVATED' && user.authUserId)
-    await deps.admin().setBanned(user.authUserId, true);
   return { count };
+}
+
+/**
+ * Local revocation stays in the caller's transaction; lifecycle callers contact GoTrue before deleting Auth rows.
+ * No audit row when nothing was open (reactivation, deactivation retry), so the log records real revocations only.
+ */
+export async function revokeUserSessions(
+  ctx: WriteContext,
+  user: { id: string; authUserId: string | null },
+  reason: Extract<SessionEndReason, 'DEACTIVATED' | 'MFA_RESET'>,
+): Promise<number> {
+  const ended = user.authUserId
+    ? await endAuthSessions(ctx.db, user.authUserId)
+    : 0;
+  const closed = await endUserSessions(
+    ctx.db,
+    user.id,
+    reason,
+    ctx.clock.now(),
+  );
+  if (ended > 0 || closed > 0)
+    await writeAudit(ctx.db, ctx, {
+      action: 'auth.session_revoked',
+      entityType: 'user',
+      entityId: user.id,
+      details: { reason, count: ended },
+    });
+  return ended;
 }
 
 export async function listMySessions(ctx: RequestContext) {

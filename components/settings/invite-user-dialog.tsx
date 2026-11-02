@@ -112,6 +112,7 @@ export function InviteUserDialog({
   canManageVerticals,
   onClose,
   onShowUser,
+  onOpenUser,
 }: {
   verticals: readonly { id: string; name: string }[];
   /** «No verticals» is shown only for a loaded empty list, never while loading or after a failed fetch. */
@@ -120,6 +121,8 @@ export function InviteUserDialog({
   canManageVerticals: boolean;
   onClose: () => void;
   onShowUser: (email: string) => void;
+  /** The deactivated holder of the address: its card offers «Активувати знову» (D42, wireframe §1.2). */
+  onOpenUser: (email: string, userId: string) => void;
 }) {
   const t = useTranslations('settings.users.inviteDialog');
   const tCommon = useTranslations('settings.common');
@@ -130,6 +133,9 @@ export function InviteUserDialog({
   const [email, setEmail] = useState('');
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
   const [errors, setErrors] = useState<Errors>({});
+  const [deactivatedUserId, setDeactivatedUserId] = useState<string | null>(
+    null,
+  );
   const nameRef = useRef<HTMLInputElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const rolesRef = useRef<HTMLDivElement>(null);
@@ -186,6 +192,7 @@ export function InviteUserDialog({
           : undefined;
         if (conflict) {
           setErrors({ email: conflict });
+          setDeactivatedUserId(failure.details.userId ?? null);
           refocus.current = emailRef.current;
           return;
         }
@@ -234,6 +241,8 @@ export function InviteUserDialog({
     errors.email === 'invitePending' ||
     errors.email === 'userDeactivated' ||
     errors.email === 'inviteRevoked';
+  const reactivateId =
+    errors.email === 'userDeactivated' ? deactivatedUserId : null;
 
   return (
     <Dialog
@@ -332,10 +341,19 @@ export function InviteUserDialog({
                             type="button"
                             className="text-link self-start text-sm font-medium hover:underline"
                             onClick={() =>
-                              onShowUser(email.trim().toLowerCase())
+                              reactivateId
+                                ? onOpenUser(
+                                    email.trim().toLowerCase(),
+                                    reactivateId,
+                                  )
+                                : onShowUser(email.trim().toLowerCase())
                             }
                           >
-                            {t('errors.showInList')}
+                            {t(
+                              reactivateId
+                                ? 'errors.reactivateInstead'
+                                : 'errors.showInList',
+                            )}
                           </button>
                         )}
                       </div>

@@ -103,7 +103,7 @@ Reference: `reference/00-foundations.webp`, `reference/01-components.webp` (§02
 - Server conflicts (409) shown under the email field:
   - `USER_EXISTS` → «Користувач з таким email уже існує.» + link «Відкрити користувача».
   - `INVITE_PENDING` → «Запрошення вже надіслано.» + button «Надіслати повторно».
-  - `USER_DEACTIVATED` → Alert «Цей користувач деактивований. Його можна активувати знову з попередніми ролями.» + «Активувати знову» (opens §1.6 for that user) (D42). ⚠ OPEN-U3.
+  - `USER_DEACTIVATED` → «Цей користувач деактивований. Його можна активувати знову в його картці.» + «Активувати знову»: closes the dialog, puts the address into the list search and opens that user's card (`?user=<id>` from the 409 `details.userId`), where «Активувати знову» (§1.6) lives; focus → card heading, on close → list search (D42, U3 resolved).
 - Success → dialog closes, row appears optimistically at its sorted place with «Запрошено», toast «Запрошення надіслано · {email} · діє до {date}». `delivered: false` → warning toast «Запрошення створено, але лист не надіслано» + «Спробуйте «Надіслати повторно» в картці користувача.» ⚠ OPEN-U2.
 
 ### 1.3 User drawer (Sheet right, 400; `?user=<id>`)
@@ -191,9 +191,12 @@ Variants of the drawer body/footer (only allowed actions render; blocked ones ar
 ```
 - Ukrainian names decline; all titles put «{name}» after a colon (nominative) to avoid case forms.
 - Phase 2–3 adds the open-work reassignment section (D24, STORY-ROLE-06-1).
+- 503 `DEACTIVATION_INCOMPLETE` (provider ban not confirmed; app access is already closed, ADR-011) → inline `role="alert"` `activation.deactivateIncomplete`, dialog stays with the reason kept, card refetched; confirm becomes «Завершити блокування» (primary) and retries with the refreshed version; the secondary button reads «Закрити» (not «Скасувати»), because local deactivation has already happened. 409 → conflict toast, dialog closes, card refreshes.
 
 ### 1.6 «Активувати знову» (Dialog)
 - Title «Активувати знову: {name}?», body «Користувач зможе входити. Оберіть ролі, які відновити.» + checkbox list of previous roles (all checked) → [Скасувати] [Активувати]. No previous roles → «Попередніх ролей немає — призначте ролі після активації.» (D44)
+- All unchecked is allowed: warning «Без ролей користувач бачитиме лише «Профіль».» Old sessions stay ended — the user signs in afresh.
+- 503 `REACTIVATION_INCOMPLETE` → inline `activation.reactivateIncomplete`; user stays deactivated, selection kept, retry allowed.
 
 ### 1.7 «Відкликати запрошення» (AlertDialog) / «Надіслати повторно» (no dialog)
 - Revoke: «Відкликати запрошення: {name}?» — «Посилання з листа перестане діяти, і користувач не зможе прийняти запрошення.» → [Скасувати] [Відкликати].
@@ -900,10 +903,10 @@ Derived UI rules (server enforces the same; UI only explains): self → no deact
 ## ⚠ OPEN / gaps
 - ~~**U1** Admin email change~~ — **resolved by D69** (owner 2026-11-01, Q-153): Phase 1 only for not-activated users (revoke invite + new 72 h invite to the corrected address, current roles); activated users → Phase 5 (ends sessions). Design: §1.3 (menu visibility) + §1.11 (dialog, states, strings).
 - **U2** «Не доставлено» status (ROLE-05-1 edge case) needs a stored delivery status; `createInvite` only returns `delivered` at send time and `user_invite` has no delivery column. Glossary already defines «Надіслано / Доставлено / Не доставлено». Decide: persist send result (and later provider webhooks) or show only the toast.
-- **U3** The 409 `USER_DEACTIVATED` from `POST /invites` carries no user id, so «Активувати знову» from the invite dialog cannot open the right user. API should return `userId` in the conflict details (Admin-only endpoint, no enumeration risk).
+- ~~**U3** «Активувати знову» from the invite dialog~~ — resolved (owner-agreed, T6 slice 9): `POST /invites` 409 `USER_DEACTIVATED` returns `details.userId` (Admin-only endpoint, no enumeration risk); the dialog opens that user's card (§1.2).
 - ~~**U4** Re-inviting after «Відкликати»~~ — resolved by D70: «Запросити знову» (§1.7), dialog answers `INVITE_REVOKED`.
 - **U5** 2FA column in a 10k-user list needs factor counts without one Supabase Admin API call per row (e.g. SQL join on `auth.mfa_factors` or a cached counter) — architect/perf decision; otherwise drop the column from the list and keep it in the drawer.
-- **U6** Deactivation reason length limit is not specified (story: «reason optional»). Wireframe assumes 500 to match the 2FA reason; confirm.
+- ~~**U6** Deactivation reason length~~ — resolved by the refined STORY-ROLE-05-5: optional, ≤ 500, Admin audit only.
 - **L1** Audit PII separation: STORY-AUD-1 says PII in before/after is stored separately for purge, but `audit_log` has no PII side table and `resetUserMfa` writes the free-text reason into `audit_log.after`. Security/DB to resolve before the viewer shows `after` as-is.
 - **L2** Entity labels in the audit viewer: resolving current user/vertical names is assumed fine for Admin; for Phase 2+ candidate entities, showing names would surface PII that purge must also hide — confirm «ID only» rule.
 - **L3** No maximum audit period in the stories; the 1-year cap is a perf guard only (index on `occurred_at`). Confirm or remove.

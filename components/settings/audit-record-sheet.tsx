@@ -80,12 +80,7 @@ export function AuditRecordSheet({
       : null;
 
   const value = (raw: Json | undefined): string => {
-    if (
-      raw === undefined ||
-      raw === null ||
-      raw === '' ||
-      (Array.isArray(raw) && raw.length === 0)
-    )
+    if (raw == null || raw === '' || (Array.isArray(raw) && raw.length === 0))
       return t('detail.emptyValue');
     if (isRoleList(raw))
       return raw
@@ -96,6 +91,7 @@ export function AuditRecordSheet({
         )
         .join(', ');
     if (typeof raw === 'object') return JSON.stringify(raw);
+    if (typeof raw === 'boolean') return t(`detail.${raw}`);
     return String(raw);
   };
 
@@ -123,10 +119,8 @@ export function AuditRecordSheet({
     const changed = [
       ...new Set([...Object.keys(before), ...Object.keys(after)]),
     ];
-    const details = Object.entries(asObject(data.details)).filter(
-      ([key]) => key !== 'reason',
-    );
-    const reason = asObject(data.details).reason;
+    const { reason, ...rest } = asObject(data.details);
+    const details = Object.entries(rest);
     const occurredAt = new Date(data.occurredAt);
     body = (
       <>

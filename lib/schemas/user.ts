@@ -237,3 +237,30 @@ export const userRolesUpdatedSchema = z
   .strict()
   .meta({ id: 'UserRolesUpdated' });
 export type UserRolesUpdated = z.infer<typeof userRolesUpdatedSchema>;
+
+export const deactivateUserSchema = z
+  .object({
+    expectedVersion: z.number().int().positive(),
+    reason: z.string().trim().max(500).optional(),
+  })
+  .strict()
+  .meta({ id: 'DeactivateUser' });
+export type DeactivateUserInput = z.input<typeof deactivateUserSchema>;
+
+export const reactivateUserSchema = z
+  .object({
+    expectedVersion: z.number().int().positive(),
+    roles: roleAssignmentsSchema,
+  })
+  .strict()
+  .meta({ id: 'ReactivateUser' });
+export type ReactivateUserInput = z.input<typeof reactivateUserSchema>;
+
+export const userActivationUpdatedSchema = z
+  .object({
+    version: z.number().int().positive(),
+    status: z.enum(['ACTIVE', 'DEACTIVATED']),
+  })
+  .strict()
+  .meta({ id: 'UserActivationUpdated' });
+export type UserActivationUpdated = z.infer<typeof userActivationUpdatedSchema>;

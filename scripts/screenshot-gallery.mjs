@@ -67,6 +67,20 @@ const screens = [
       variants.map((variant) => `${state}-${variant}`),
     ),
   ],
+  [
+    '13-admin-user-deactivate',
+    'Деактивувати — підтвердження з причиною та незавершене блокування входу',
+    ['dialog', 'failed'].flatMap((state) =>
+      variants.map((variant) => `${state}-${variant}`),
+    ),
+  ],
+  [
+    '13-admin-user-reactivate',
+    'Активувати знову — картка деактивованого користувача та вибір попередніх ролей',
+    ['card', 'dialog'].flatMap((state) =>
+      variants.map((variant) => `${state}-${variant}`),
+    ),
+  ],
 ];
 mkdirSync('screenshots/latest', { recursive: true });
 const sections = screens.map(([id, title, screenVariants = variants]) => {

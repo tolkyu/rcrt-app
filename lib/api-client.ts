@@ -11,6 +11,7 @@ export class ApiError extends Error {
     readonly status: number,
     readonly code: string,
     readonly fieldErrors: readonly ApiFieldError[] = [],
+    readonly details: Readonly<Record<string, string>> = {},
   ) {
     super(code);
     this.name = 'ApiError';
@@ -26,15 +27,12 @@ interface RequestOptions<S extends z.ZodType> {
   readonly background?: boolean;
 }
 
-function isProblem(
-  value: unknown,
-): value is { code: string; errors?: ApiFieldError[] } {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    typeof (value as { code?: unknown }).code === 'string'
-  );
-}
+/** problem+json body; any other error body has no string `code`. */
+type ProblemBody = {
+  code?: unknown;
+  errors?: ApiFieldError[];
+  details?: Record<string, string>;
+} | null;
 
 /** Same-origin fetch for /api/v1: cookies carry the session; mutations add the CSRF transport header (FND-5). */
 export async function apiRequest<S extends z.ZodType>(
@@ -55,10 +53,15 @@ export async function apiRequest<S extends z.ZodType>(
     ...(mutation ? { body: JSON.stringify(body ?? {}) } : {}),
     ...(signal ? { signal } : {}),
   });
-  const payload: unknown = await response.json().catch(() => null);
+  const payload = (await response.json().catch(() => null)) as ProblemBody;
   if (!response.ok) {
-    throw isProblem(payload)
-      ? new ApiError(response.status, payload.code, payload.errors ?? [])
+    throw typeof payload?.code === 'string'
+      ? new ApiError(
+          response.status,
+          payload.code,
+          payload.errors ?? [],
+          payload.details ?? {},
+        )
       : new ApiError(response.status, 'INTERNAL');
   }
   const validator = typeof schema === 'function' ? await schema() : schema;

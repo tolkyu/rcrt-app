@@ -49,12 +49,16 @@ export class NotFoundError extends DomainError {
   }
 }
 
-/** `errors` names the input field behind the conflict when the same code can also describe the target itself. */
+/**
+ * `errors` names the input field behind the conflict when the same code can also describe the target itself;
+ * `details` carries ids the Admin-only caller may act on next (e.g. the deactivated holder of an address, D42).
+ */
 export class ConflictError extends DomainError {
   readonly status = 409;
   constructor(
     code: string,
     readonly errors: readonly FieldError[] = [],
+    readonly details: Readonly<Record<string, string>> = {},
   ) {
     super(code);
   }
@@ -89,5 +93,12 @@ export class MfaResetIncompleteError extends DomainError {
   readonly status = 503;
   constructor() {
     super('MFA_RESET_INCOMPLETE');
+  }
+}
+
+export class UserActivationIncompleteError extends DomainError {
+  readonly status = 503;
+  constructor(code: 'DEACTIVATION_INCOMPLETE' | 'REACTIVATION_INCOMPLETE') {
+    super(code);
   }
 }

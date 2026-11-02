@@ -80,6 +80,20 @@ describe('Domain errors → RFC 9457 problem+json [API, ADR-006]', () => {
       requestId,
     )!.json();
     expect(plain).not.toHaveProperty('errors');
+    expect(plain).not.toHaveProperty('details');
+  });
+
+  it('passes the ids a conflict offers to act on next [D42, wireframe §1.2 U3]', async () => {
+    const userId = '00000000-0000-4000-8000-000000000042';
+    const body = await mapError(
+      new ConflictError('USER_DEACTIVATED', [], { userId }),
+      requestId,
+    )!.json();
+    expect(body).toMatchObject({
+      code: 'USER_DEACTIVATED',
+      details: { userId },
+    });
+    expect(body).not.toHaveProperty('errors');
   });
 
   it('maps database invariants by SQLSTATE; other unique violations go to the logged 500 path [SEC-CORE-06, CR-P1-01]', async () => {

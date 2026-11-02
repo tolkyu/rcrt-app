@@ -507,14 +507,18 @@ describe('Creating invites: aal2 Admin only, token never stored or echoed [ROLE-
         const { ctx, user } = args;
         const post = await asAdmin(args, { aal: 'aal2', verified: true });
         let email = user.email;
+        let holderId: string | null = null;
         if (code === 'INVITE_PENDING')
           email = (await pendingInvite(ctx, user)).email;
         if (code === 'USER_DEACTIVATED') {
           email = `${randomUUID()}@fixture.test`;
+          holderId = randomUUID();
           await ctx.db.insert(schema.appUser).values({
+            id: holderId,
             email,
             fullName: 'Деактивований користувач',
             isActive: false,
+            activatedAt: ctx.clock.now(),
             deactivatedAt: ctx.clock.now(),
           });
         }
@@ -524,7 +528,11 @@ describe('Creating invites: aal2 Admin only, token never stored or echoed [ROLE-
           roles: [{ role: 'RECRUITER', verticalId: user.verticalId }],
         });
         expect(response.status).toBe(409);
-        expect((await response.json()).code).toBe(code);
+        const body = await response.json();
+        expect(body.code).toBe(code);
+        // Only the deactivated holder is named, so the dialog can open its card for «Активувати знову» (D42, U3).
+        if (holderId) expect(body.details).toEqual({ userId: holderId });
+        else expect(body).not.toHaveProperty('details');
         expect(args.provider.sentEmails).toHaveLength(0);
       });
     },

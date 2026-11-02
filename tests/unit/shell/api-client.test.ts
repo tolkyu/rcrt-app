@@ -134,8 +134,24 @@ describe('apiRequest: problem+json → ApiError', () => {
         status: 401,
         code: 'SESSION_EXPIRED',
         fieldErrors: [],
+        details: {},
       },
     );
+  });
+
+  it('passes conflict details through [D42, U3]', async () => {
+    stubFetch(
+      problem(
+        { status: 409, code: 'USER_DEACTIVATED', details: { userId: 'u-1' } },
+        409,
+      ),
+    );
+    await expect(
+      apiRequest('/invites', { method: 'POST', schema: okSchema }),
+    ).rejects.toMatchObject({
+      code: 'USER_DEACTIVATED',
+      details: { userId: 'u-1' },
+    });
   });
 
   it.each([

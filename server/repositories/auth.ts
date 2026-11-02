@@ -446,6 +446,7 @@ export async function lockUser(db: DbExecutor, userId: string) {
       id: appUser.id,
       email: appUser.email,
       fullName: appUser.fullName,
+      authUserId: appUser.authUserId,
       isActive: appUser.isActive,
       activatedAt: appUser.activatedAt,
       version: appUser.version,

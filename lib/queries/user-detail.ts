@@ -81,6 +81,28 @@ export const updateUserRolesRequest = (
 export const userRolesMutationKey = (id: string) =>
   [...queryKeys.settingsUser(id), 'roles'] as const;
 
+export const userActivationMutationKey = (id: string) =>
+  [...queryKeys.settingsUser(id), 'activation'] as const;
+
+export const userActivationRequests = {
+  deactivate: (id: string, expectedVersion: number, reason: string) =>
+    apiRequest(`/users/${id}/deactivate`, {
+      method: 'POST',
+      body: { expectedVersion, reason },
+      schema: async () => (await userSchemas()).userActivationUpdatedSchema,
+    }),
+  reactivate: (
+    id: string,
+    expectedVersion: number,
+    roles: readonly { role: string; verticalId: string | null }[],
+  ) =>
+    apiRequest(`/users/${id}/reactivate`, {
+      method: 'POST',
+      body: { expectedVersion, roles },
+      schema: async () => (await userSchemas()).userActivationUpdatedSchema,
+    }),
+};
+
 /** Shared by every invite mutation of one user, so the card can disable all of them while any runs (wireframe §1.3). */
 export const userInviteMutationKey = (id: string) =>
   [...queryKeys.settingsUser(id), 'invite'] as const;

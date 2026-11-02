@@ -3,6 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import { E2E_ORIGIN, sessionFile } from '../support/e2e-session';
+import { userActivationPage } from '../support/user-activation-page';
 import { userInvitePage } from '../support/user-invite-page';
 import { userRolesPage } from '../support/user-roles-page';
 
@@ -11,6 +12,9 @@ const roles = messages.common.roles;
 
 /** Read-only screen; runs in `e2e-admin-desktop` and `e2e-admin-mobile` after the vertical-mutating specs. */
 test.use({ storageState: sessionFile('admin@demo') });
+
+/** Background list refetches can still be inside a mocked route when a test ends. */
+test.afterEach(({ page }) => page.unrouteAll({ behavior: 'ignoreErrors' }));
 
 const rows = (page: Page) =>
   page.getByRole('row').filter({ has: page.getByRole('rowheader') });
@@ -533,7 +537,10 @@ test('Team Lead card: roles with «Змінити ролі», TL priority, sign-
     `/settings/audit?entityType=user&entityId=${id}&period=365d`,
   );
   await expect(card.getByRole('tab')).toHaveCount(2);
-  await expect(card.getByRole('button')).toHaveCount(2);
+  await expect(card.getByRole('button')).toHaveCount(3);
+  await expect(
+    card.getByRole('button', { name: drawerT.activation.deactivate }),
+  ).toBeVisible();
   await expect(card.getByRole('button', { name: drawerT.close })).toBeVisible();
   await expect(
     card.getByRole('button', { name: drawerT.editRoles }),
@@ -1443,6 +1450,362 @@ test('change roles: pending additions appear in the users list and a failed save
   await expect(listEntry).not.toContainText(addedRole);
 });
 
+const activationT = drawerT.activation;
+const userCardDialog = (page: Page) =>
+  page.getByRole('dialog').filter({
+    has: page.getByRole('button', { name: drawerT.close, exact: true }),
+  });
+const deactivateDialog = (page: Page, name: string) =>
+  page.getByRole('alertdialog', {
+    name: activationT.deactivateTitle.replace('{name}', name),
+  });
+const reactivateDialog = (page: Page, name: string) =>
+  page.getByRole('dialog', {
+    name: activationT.reactivateTitle.replace('{name}', name),
+  });
+
+async function openCard(page: Page, isMobile: boolean, name: string) {
+  await page.goto(`/settings/users?q=${encodeURIComponent(name)}`);
+  await listedUser(page, isMobile, name).click();
+  const card = userCardDialog(page);
+  await expect(card).toBeVisible();
+  return card;
+}
+
+test('deactivate: confirmation with an optional reason up to 500, Escape closes only the dialog, success updates card, list and history [STORY-ROLE-05-5]', async ({
+  page,
+  isMobile,
+}) => {
+  const fixture = await userActivationPage(page, 'Василь Мороз');
+  const version = fixture.detail.version;
+  const card = await openCard(page, isMobile, 'Василь Мороз');
+  const trigger = card.getByRole('button', { name: activationT.deactivate });
+  await expect(
+    card.getByRole('group', { name: activationT.actionsLabel }),
+  ).toBeVisible();
+  await trigger.click();
+  const dialog = deactivateDialog(page, 'Василь Мороз');
+  await expect(dialog).toBeVisible();
+  for (const text of [
+    activationT.deactivateBody,
+    activationT.sessions,
+    activationT.roles,
+    activationT.reasonHint,
+  ])
+    await expect(dialog.getByText(text, { exact: true })).toBeVisible();
+  const reason = dialog.getByLabel(activationT.reasonLabel);
+  await reason.fill('ж'.repeat(510));
+  await expect(reason).toHaveValue('ж'.repeat(500));
+  await expect(dialog.getByText('500/500', { exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(card).toBeVisible();
+  await expect(trigger).toBeFocused();
+  expect(fixture.posts).toEqual([]);
+
+  await trigger.click();
+  await expect(reason).toHaveValue('');
+  await reason.fill('Завершив співпрацю');
+  await dialog.getByRole('button', { name: activationT.deactivate }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByText(
+      activationT.deactivateToast.replace('{name}', 'Василь Мороз'),
+      { exact: true },
+    ),
+  ).toBeVisible();
+  expect(fixture.posts).toEqual([
+    {
+      action: 'deactivate',
+      expectedVersion: version,
+      reason: 'Завершив співпрацю',
+    },
+  ]);
+  await expect(
+    card.getByRole('heading', {
+      name: `Василь Мороз ${t.deactivatedSuffix}`,
+    }),
+  ).toBeFocused();
+  await expect(
+    card.getByText(t.status.DEACTIVATED, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    card.getByText(drawerT.rolesInactive, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    card.getByRole('button', { name: activationT.reactivate }),
+  ).toBeVisible();
+  await expect(
+    card.getByRole('button', { name: drawerT.editRoles }),
+  ).toHaveCount(0);
+  await card.getByRole('tab', { name: drawerT.tabHistory }).click();
+  await expect(
+    card
+      .getByRole('list', { name: drawerT.historyTitle })
+      .getByText(messages.settings.audit.actions.user.deactivated, {
+        exact: true,
+      }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(card).toHaveCount(0);
+  await expect(listedUser(page, isMobile, 'Василь Мороз')).toContainText(
+    t.status.DEACTIVATED,
+  );
+});
+
+test('deactivate: own card and the last active Admin stay disabled with the reason [D45]', async ({
+  page,
+  isMobile,
+}) => {
+  const self = await openCard(page, isMobile, 'Іван Коваленко');
+  const own = self.getByRole('button', { name: activationT.deactivate });
+  await expect(own).toHaveAttribute('aria-disabled', 'true');
+  await expect(own).toHaveAccessibleDescription(activationT.selfReason);
+  // aria-disabled keeps the reason reachable; Playwright treats it as disabled, so force the click.
+  await own.click({ force: true });
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(self).toHaveCount(0);
+
+  await userActivationPage(page, 'Василь Мороз', (detail) => {
+    detail.roles = [...detail.roles, { role: 'ADMIN', vertical: null }];
+    detail.lastActiveAdmin = true;
+  });
+  const last = await openCard(page, isMobile, 'Василь Мороз');
+  const button = last.getByRole('button', { name: activationT.deactivate });
+  await expect(button).toHaveAccessibleDescription(activationT.lastAdminReason);
+  await button.click({ force: true });
+  await expect(page.getByRole('alertdialog')).toHaveCount(0);
+});
+
+test('deactivate: an unconfirmed provider ban keeps the dialog and reason, refreshes the version and retries [SEC-AUTH-R04, ADR-011]', async ({
+  page,
+  isMobile,
+}) => {
+  const fixture = await userActivationPage(page, 'Василь Мороз');
+  const version = fixture.detail.version;
+  fixture.answerNext(problem(400, 'VALIDATION_FAILED'));
+  fixture.answerNext(problem(503, 'DEACTIVATION_INCOMPLETE'));
+  const card = await openCard(page, isMobile, 'Василь Мороз');
+  await card.getByRole('button', { name: activationT.deactivate }).click();
+  const dialog = deactivateDialog(page, 'Василь Мороз');
+  const reason = dialog.getByLabel(activationT.reasonLabel);
+  await reason.fill('Звільнення');
+  const submit = dialog.getByRole('button', { name: activationT.deactivate });
+  await submit.click();
+  await expect(dialog.getByRole('alert')).toHaveText(
+    activationT.deactivateInvalid,
+  );
+  await expect(reason).toHaveValue('Звільнення');
+  await expect(
+    dialog.getByRole('button', { name: messages.settings.common.cancel }),
+  ).toBeVisible();
+
+  await submit.click();
+  await expect(dialog.getByRole('alert')).toHaveText(
+    activationT.deactivateIncomplete,
+  );
+  await expect(dialog).toBeVisible();
+  await expect(reason).toHaveValue('Звільнення');
+  const retry = dialog.getByRole('button', {
+    name: activationT.retryDeactivate,
+  });
+  await expect(retry).toBeFocused();
+  // Local deactivation already committed: leaving is «Закрити», not «Скасувати».
+  await expect(
+    dialog.getByRole('button', { name: messages.common.close, exact: true }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole('button', { name: messages.settings.common.cancel }),
+  ).toHaveCount(0);
+  await retry.click();
+  await expect(dialog).toHaveCount(0);
+  expect(fixture.posts.map((post) => post.expectedVersion)).toEqual([
+    version,
+    version,
+    version + 1,
+  ]);
+  expect(fixture.posts[2]).toMatchObject({ reason: 'Звільнення' });
+  await expect(
+    page.getByText(
+      activationT.deactivateToast.replace('{name}', 'Василь Мороз'),
+      { exact: true },
+    ),
+  ).toBeVisible();
+});
+
+test('reactivate: previous roles start checked, all may be unchecked, Escape closes only the dialog, 503 keeps the selection, success restores the chosen roles [D44, STORY-ROLE-05-5]', async ({
+  page,
+  isMobile,
+}) => {
+  const fixture = await userActivationPage(page, 'Юлія Петренко', (detail) => {
+    detail.roles = [
+      ...detail.roles,
+      { role: 'HR', vertical: detail.roles[0]!.vertical },
+    ];
+  });
+  const version = fixture.detail.version;
+  const gambling = fixture.detail.roles[0]!.vertical!.id;
+  const card = await openCard(page, isMobile, 'Юлія Петренко');
+  const trigger = card.getByRole('button', { name: activationT.reactivate });
+  await trigger.click();
+  const dialog = reactivateDialog(page, 'Юлія Петренко');
+  await expect(dialog.getByText(activationT.reactivateBody)).toBeVisible();
+  const recruiter = dialog.getByLabel(`${roles.RECRUITER} · Гемблінг`, {
+    exact: true,
+  });
+  const hr = dialog.getByLabel(`${roles.HR} · Гемблінг`, { exact: true });
+  await expect(recruiter).toBeChecked();
+  await expect(hr).toBeChecked();
+  await expect(dialog.getByRole('checkbox')).toHaveCount(2);
+  await recruiter.uncheck();
+  await hr.uncheck();
+  await expect(
+    dialog.getByText(activationT.noRolesWarning, { exact: true }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(card).toBeVisible();
+  await expect(trigger).toBeFocused();
+
+  await trigger.click();
+  await expect(recruiter).toBeChecked();
+  await expect(hr).toBeChecked();
+  await hr.uncheck();
+  fixture.answerNext(problem(503, 'REACTIVATION_INCOMPLETE'));
+  const submit = dialog.getByRole('button', {
+    name: activationT.reactivateSubmit,
+  });
+  await submit.click();
+  await expect(dialog.getByRole('alert')).toHaveText(
+    activationT.reactivateIncomplete,
+  );
+  await expect(recruiter).toBeChecked();
+  await expect(hr).not.toBeChecked();
+  await expect(submit).toBeFocused();
+
+  await submit.click();
+  await expect(dialog).toHaveCount(0);
+  const restored = [{ role: 'RECRUITER', verticalId: gambling }];
+  expect(fixture.posts).toEqual([
+    { action: 'reactivate', expectedVersion: version, roles: restored },
+    { action: 'reactivate', expectedVersion: version, roles: restored },
+  ]);
+  await expect(
+    page.getByText(
+      activationT.reactivateToast.replace('{name}', 'Юлія Петренко'),
+      { exact: true },
+    ),
+  ).toBeVisible();
+  await expect(
+    card.getByRole('heading', { name: 'Юлія Петренко' }),
+  ).toBeFocused();
+  await expect(card.getByText(t.status.ACTIVE, { exact: true })).toBeVisible();
+  await expect(
+    card.getByText(`${roles.RECRUITER} · Гемблінг`, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    card.getByText(`${roles.HR} · Гемблінг`, { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    card.getByRole('button', { name: activationT.deactivate }),
+  ).toBeVisible();
+});
+
+test('reactivate: without previous roles explains and sends none; a version conflict closes and refreshes [D44, ADR-006]', async ({
+  page,
+  isMobile,
+}) => {
+  const fixture = await userActivationPage(page, 'Юлія Петренко', (detail) => {
+    detail.roles = [];
+  });
+  const card = await openCard(page, isMobile, 'Юлія Петренко');
+  const trigger = card.getByRole('button', { name: activationT.reactivate });
+  await trigger.click();
+  const dialog = reactivateDialog(page, 'Юлія Петренко');
+  await expect(
+    dialog.getByText(activationT.noPreviousRoles, { exact: true }),
+  ).toBeVisible();
+  await expect(dialog.getByRole('checkbox')).toHaveCount(0);
+  fixture.answerNext(problem(409, 'STALE_STATE'));
+  await dialog
+    .getByRole('button', { name: activationT.reactivateSubmit })
+    .click();
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByText(messages.settings.common.conflict, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    card.getByRole('heading', {
+      name: `Юлія Петренко ${t.deactivatedSuffix}`,
+    }),
+  ).toBeFocused();
+
+  await trigger.click();
+  await dialog
+    .getByRole('button', { name: activationT.reactivateSubmit })
+    .click();
+  await expect(dialog).toHaveCount(0);
+  expect(
+    fixture.posts.map((post) => post.action === 'reactivate' && post.roles),
+  ).toEqual([[], []]);
+  await expect(card.getByText(drawerT.noRoles, { exact: true })).toBeVisible();
+});
+
+test('invite dialog: an address of a deactivated user offers «Активувати знову» and opens that card [D42, STORY-ROLE-05-1]', async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto('/settings/users');
+  const id = await userIdOf(page, isMobile, 'Юлія Петренко');
+  await page.route('**/api/v1/invites', (route) =>
+    route.fulfill({
+      status: 409,
+      contentType: 'application/problem+json',
+      json: {
+        status: 409,
+        code: 'USER_DEACTIVATED',
+        type: 'about:blank',
+        details: { userId: id },
+      },
+    }),
+  );
+  await page.getByRole('button', { name: t.invite }).click();
+  const dialog = page.getByRole('dialog', { name: inviteT.title });
+  await dialog.getByLabel(inviteT.nameLabel).fill('Юлія Петренко');
+  await dialog
+    .getByLabel(inviteT.emailLabel)
+    .fill('Yulia.Petrenko@Company.com');
+  await dialog.getByLabel(`${roles.RECRUITER} · Гемблінг`).check();
+  await dialog.getByRole('button', { name: inviteT.submit }).click();
+  await expect(
+    dialog.getByText(inviteT.errors.userDeactivated, { exact: true }),
+  ).toBeVisible();
+  await expect(
+    dialog.getByRole('button', { name: inviteT.errors.showInList }),
+  ).toHaveCount(0);
+  await dialog
+    .getByRole('button', { name: inviteT.errors.reactivateInstead })
+    .click();
+  await expect(dialog).toHaveCount(0);
+  await expect(page).toHaveURL(withUser(id));
+  const card = userCardDialog(page);
+  await expect(
+    card.getByRole('heading', {
+      name: `Юлія Петренко ${t.deactivatedSuffix}`,
+    }),
+  ).toBeFocused();
+  await expect(
+    card.getByRole('button', { name: activationT.reactivate }),
+  ).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(card).toHaveCount(0);
+  await expect(page.getByLabel(t.searchLabel, { exact: true })).toBeFocused();
+  await expect(page.getByLabel(t.searchLabel, { exact: true })).toHaveValue(
+    'yulia.petrenko@company.com',
+  );
+});
+
 test('captures role changes and removal confirmation with deterministic state [SHOT-01..03]', async ({
   page,
   isMobile,
@@ -1496,6 +1859,97 @@ test('captures role changes and removal confirmation with deterministic state [S
     await expect(confirm).toHaveCount(0);
     await page.keyboard.press('Escape');
     await expect(dialog).toHaveCount(0);
+  }
+});
+
+test('captures deactivation, its unconfirmed provider ban and reactivation with deterministic state [SHOT-01..03]', async ({
+  page,
+  isMobile,
+}, testInfo) => {
+  await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const capture = async (state: string, theme: string) => {
+    await page.evaluate(() => document.fonts.ready);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    const file = `13-admin-user-${state}-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
+    const path = `screenshots/phase-1/${file}`;
+    await page.screenshot({
+      path,
+      animations: 'disabled',
+      scale: 'css',
+      fullPage: true,
+    });
+    copyFileSync(path, `screenshots/latest/${file}`);
+    await testInfo.attach(file, { path, contentType: 'image/png' });
+  };
+  for (const theme of ['light', 'dark'] as const) {
+    await page
+      .context()
+      .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
+    await page.unrouteAll({ behavior: 'wait' });
+    const active = await userActivationPage(page, 'Василь Мороз');
+    const card = await openCard(page, isMobile, 'Василь Мороз');
+    await card.getByRole('button', { name: activationT.deactivate }).click();
+    const deactivate = deactivateDialog(page, 'Василь Мороз');
+    await deactivate
+      .getByLabel(activationT.reasonLabel)
+      .fill('Завершив співпрацю з компанією');
+    await expect(deactivate.getByText('30/500', { exact: true })).toBeVisible();
+    await capture('deactivate-dialog', theme);
+    active.answerNext(problem(503, 'DEACTIVATION_INCOMPLETE'));
+    await deactivate
+      .getByRole('button', { name: activationT.deactivate })
+      .click();
+    await expect(deactivate.getByRole('alert')).toHaveText(
+      activationT.deactivateIncomplete,
+    );
+    await expect(
+      deactivate.getByRole('button', { name: activationT.retryDeactivate }),
+    ).toBeFocused();
+    await expect(
+      page.getByRole('heading', {
+        name: `Василь Мороз ${t.deactivatedSuffix}`,
+        includeHidden: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      isMobile
+        ? page
+            .getByRole('list', { name: t.caption, includeHidden: true })
+            .locator('> li')
+        : page.locator('tbody tr'),
+    ).toContainText([t.status.DEACTIVATED]);
+    await capture('deactivate-failed', theme);
+    await page.keyboard.press('Escape');
+    await expect(deactivate).toHaveCount(0);
+
+    await userActivationPage(page, 'Юлія Петренко');
+    const deactivated = await openCard(page, isMobile, 'Юлія Петренко');
+    await expect(
+      deactivated.getByRole('heading', {
+        name: `Юлія Петренко ${t.deactivatedSuffix}`,
+      }),
+    ).toBeVisible();
+    await expect(
+      deactivated.getByText(drawerT.rolesInactive, { exact: true }),
+    ).toBeVisible();
+    const trigger = deactivated.getByRole('button', {
+      name: activationT.reactivate,
+    });
+    await expect(trigger).toBeVisible();
+    await capture('reactivate-card', theme);
+    await trigger.click();
+    const reactivate = reactivateDialog(page, 'Юлія Петренко');
+    await expect(
+      reactivate.getByLabel(`${roles.RECRUITER} · Гемблінг`, { exact: true }),
+    ).toBeChecked();
+    await capture('reactivate-dialog', theme);
+    await page.keyboard.press('Escape');
+    await expect(reactivate).toHaveCount(0);
   }
 });
 

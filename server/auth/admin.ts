@@ -23,14 +23,27 @@ const BAN_FOREVER = '876000h';
 
 export function createAuthAdmin(): AuthAdmin {
   const { url } = supabaseAuthConfig();
-  const client = createClient(url, supabaseSecretKey(), {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    },
-  });
+  const key = supabaseSecretKey();
+  const auth = {
+    persistSession: false,
+    autoRefreshToken: false,
+    detectSessionInUrl: false,
+  };
+  const client = createClient(url, key, { auth });
   const admin = client.auth.admin;
+  // Ban/unban runs while the user lock is held (ADR-011): abort the request itself so a hung GoTrue cannot pin the lock.
+  const lifecycleAdmin = createClient(url, key, {
+    auth,
+    global: {
+      fetch: (input, init) =>
+        fetch(input, {
+          ...init,
+          signal: init?.signal
+            ? AbortSignal.any([init.signal, AbortSignal.timeout(10_000)])
+            : AbortSignal.timeout(10_000),
+        }),
+    },
+  }).auth.admin;
   return {
     async magicLinkTokenHash(email, expectedAuthUserId) {
       if (expectedAuthUserId) {
@@ -65,7 +78,7 @@ export function createAuthAdmin(): AuthAdmin {
       return !error && data.user ? data.user.id : null;
     },
     async setBanned(authUserId, banned) {
-      const { error } = await admin.updateUserById(authUserId, {
+      const { error } = await lifecycleAdmin.updateUserById(authUserId, {
         ban_duration: banned ? BAN_FOREVER : 'none',
       });
       return error === null;

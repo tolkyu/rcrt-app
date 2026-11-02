@@ -31,6 +31,9 @@ export function mapError(error: unknown, requestId: string): Response | null {
       (error instanceof ConflictError && error.errors.length > 0)
         ? { errors: error.errors }
         : {}),
+      ...(error instanceof ConflictError && Object.keys(error.details).length
+        ? { details: error.details }
+        : {}),
       ...(error instanceof RateLimitedError
         ? { headers: { 'Retry-After': String(error.retryAfterSeconds) } }
         : {}),

@@ -290,6 +290,18 @@ export function UsersView({
       () => undefined,
     );
   };
+  /** «Активувати знову» from the invite dialog: the list shows that address and its card opens over it (D42). */
+  const openDeactivatedUser = (email: string, user: string) => {
+    clearTimeout(timer.current);
+    setInviting(false);
+    setText(email);
+    opener.current = searchInput.current;
+    navigate(
+      { q: email, status: undefined, role: undefined, vertical: undefined },
+      () => user,
+      'pushState',
+    );
+  };
   const reset = () => {
     clearTimeout(timer.current);
     setText('');
@@ -582,6 +594,7 @@ export function UsersView({
           canManageVerticals={canListVerticals}
           onClose={() => setInviting(false)}
           onShowUser={showUser}
+          onOpenUser={openDeactivatedUser}
         />
       )}
       {drawerUser && (

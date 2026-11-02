@@ -242,15 +242,23 @@ As an **Admin**, I want to see all users with status, roles and last sign-in, so
 As an **Admin**, I want to deactivate a user who left, so that they can't sign in while their history stays (ROLE-05, ROLE-06).
 
 **Acceptance criteria**
-- Given an active user, When I click «Деактивувати» and confirm («Користувач не зможе увійти. Історія залишиться.»), Then status becomes «Деактивовано», sessions are revoked (STORY-SEC-AUTH-4), role assignments are kept but inactive.
-- Given a deactivated user, When I click «Активувати знову», Then status becomes «Активний» and previous roles are offered for restoration with confirmation (D44).
+- Given an activated, active user, When an Admin with verified 2FA confirms «Деактивувати» («Користувач не зможе увійти. Історія залишиться.»), Then status becomes «Деактивовано», all app and provider sessions are revoked, pending invitations are revoked, and the provider account is banned (D23, STORY-SEC-AUTH-4, T4-G02).
+- Given a deactivation dialog, When the Admin optionally enters a reason, Then at most 500 characters are accepted; the reason is visible only in the Admin audit log, never in the user timeline (wireframe §1.5). A validation failure keeps the dialog and entered reason.
+- Given deactivation, When it completes, Then assignments stay stored but inactive, and the user's history and previous authorship remain intact (D44).
+- Given a deactivated user, When I open «Активувати знову», Then the dialog offers their previous assignments, all initially checked, and no arbitrary new assignments. When I confirm, Then only the selected assignments are restored, the provider ban is lifted and status becomes «Активний» (D44, T4-G03, wireframe §1.6).
+- Given no previous roles, or all previous roles unchecked, When reactivation is confirmed, Then zero roles is allowed; the user can sign in to «Профіль» and an Admin can assign roles separately. Reactivation never reopens old sessions or old invitation links.
+- Given a committed deactivation, When the next request arrives from any old session, Then the app refuses it immediately, including when the provider ban fails (≤ 1 min, STORY-SEC-AUTH-4). A failed provider operation must not be silently reported as complete: retry it or return 503 and record a DENIED audit (SEC-AUTH-R04). Reactivation must not report success while the provider remains banned.
+- Given a successful state change, When the card, users list, vertical active-user count and audit/history are refreshed, Then each reflects the saved state. A failed optimistic UI change is reconciled with the actual server state.
+- Given a never-activated user (pending, expired or revoked invitation), Then deactivation is unavailable; invitation actions remain the appropriate path (wireframe §1.3).
 - (negative) An Admin cannot deactivate themselves; the last active Admin cannot be deactivated (D45).
+- (negative) Deactivation racing with ADMIN-role removal must still leave at least one accepted, active Admin; pending invitees and deactivated Admins do not count (SEC-ROL-02).
+- (negative) Both operations require the current card version; a competing edit returns 409 and refreshes the stale card. State/version refusals leave user assignments and history unchanged.
 - (negative) There is no action to delete a user, in UI or API (D44).
-- (negative) Non-Admin → 404.
+- (negative) Non-Admin → 404; Admin without verified 2FA → `MFA_REQUIRED`.
 - **Deferred (rule confirmed, D24):** the dialog section listing open work of any role (owned applications, Team Lead vacancies, assigned polygraphs, offers) with mandatory reassignment is added in Phase 2–3 as those objects ship (`STORY-ROLE-06-1`, to be written in Phase 2). In Phase 1 no such objects exist, so the dialog has no reassignment section.
 
-**Events:** `user.deactivated` (reason optional), `user.reactivated`.
-**Edge cases:** two Admins deactivate/reactivate simultaneously → version conflict 409; deactivated user still appears as actor in all history; their name shows «(деактивовано)».
+**Data / events:** current card version; optional deactivation reason (≤500, audit only); selected subset of previous assignments for reactivation. `user.deactivated` (no free text), `user.reactivated` (`restoredRoles`), `auth.session_revoked` and corresponding audit records. State changes and their events/audit are atomic; provider failure handling is checked separately. No new notification email is specified for this story.
+**Edge cases:** two Admins deactivate/reactivate simultaneously → version conflict 409; deactivation versus invite acceptance/email change uses the same invite-first lock order (SEC-EML-03); deactivated user still appears as actor in all history, their name shows «(деактивовано)»; old sessions stay revoked after reactivation. Inviting their email offers «Активувати знову» (STORY-ROLE-05-1, D42).
 
 ### STORY-ROLE-05-6: My profile
 As **any signed-in user** (including Finance), I want «Профіль» with my roles, theme and security settings, so that I know my access and control my sessions.
@@ -488,7 +496,7 @@ As the **UX designer**, I want stable diffs between runs (SHOT-03).
 | ROLE-03 | ROLE-03-1 (deactivation removed, D34) | — |
 | ROLE-04 | ROLE-04-1 | — |
 | ROLE-05 | ROLE-05-1..7 (05-7 = D69 email change), SEC-AUTH-1, SEC-AUTH-2 | — |
-| ROLE-06 | Rule confirmed (D24); dialog checks deferred → STORY-ROLE-06-1 (Phase 2) | — |
+| ROLE-06 | ROLE-05-5; open-work reassignment deferred (D24) → STORY-ROLE-06-1 (Phase 2) | — |
 | ROUTE-01 (data only) | ROLE-01-3 | — |
 | VIS-01 | VIS-01-1 | — |
 | VIS-02 | VIS-02-1 | — |

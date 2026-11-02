@@ -9,7 +9,7 @@ import { MoreHorizontal, SearchX } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useRoleLabel } from '@/components/auth/use-role-label';
 import { EmptyState } from '@/components/states/empty-state';
 import { SectionError } from '@/components/states/section-error';
@@ -30,6 +30,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ApiError } from '@/lib/api-client';
+import { queryKeys } from '@/lib/query-keys';
 import {
   userDetailQuery,
   userEventsQuery,
@@ -45,6 +46,7 @@ import { GLOBAL_VERTICAL } from '@/lib/user-constants';
 import { cn } from '@/lib/utils';
 import { useAuditLabels } from './audit-labels';
 import { UserInviteActions } from './user-invite-actions';
+import { UserActivationActions } from './user-activation-actions';
 import { MfaStatus, StatusChip } from './user-status';
 
 const loadChangeEmailDialog = () => import('./change-email-dialog');
@@ -150,6 +152,8 @@ function EditRoles({
   const t = useTranslations('settings.users.drawer');
   const trigger = useRef<HTMLButtonElement>(null);
   const [editing, setEditing] = useState(false);
+  const busy =
+    useIsMutating({ mutationKey: queryKeys.settingsUser(detail.id) }) > 0;
   return (
     <>
       <Button
@@ -160,6 +164,7 @@ function EditRoles({
         onPointerEnter={preloadEditRolesDialog}
         onFocus={preloadEditRolesDialog}
         onClick={() => setEditing(true)}
+        disabled={busy}
       >
         {t('editRoles')}
       </Button>
@@ -478,6 +483,18 @@ export function UserDrawer({
   const head: Head | undefined = detail.data ?? cached;
   const notFound =
     detail.error instanceof ApiError && detail.error.status === 404;
+  const content = useRef<HTMLDivElement>(null);
+  const loaded = Boolean(head) && !notFound;
+  useEffect(() => {
+    if (!loaded) return;
+    const active = document.activeElement;
+    const inside = Boolean(active && content.current?.contains(active));
+    // Never pull focus out of a dialog opened over the card.
+    if (!inside && active?.closest('[role="dialog"],[role="alertdialog"]'))
+      return;
+    // A card opened before the user was cached focused the loading heading, which is now replaced.
+    if (!inside || active === content.current) heading.current?.focus();
+  }, [loaded]);
 
   let body: ReactNode;
   if (notFound) {
@@ -581,6 +598,13 @@ export function UserDrawer({
           </TabsContent>
         </Tabs>
         {detail.data && (
+          <UserActivationActions
+            detail={detail.data}
+            isSelf={userId === currentUserId}
+            onFocusHeading={() => heading.current?.focus()}
+          />
+        )}
+        {detail.data && (
           <UserInviteActions
             detail={detail.data}
             onFocusHeading={() => heading.current?.focus()}
@@ -593,6 +617,7 @@ export function UserDrawer({
   return (
     <Sheet open onOpenChange={(open) => !open && onClose()}>
       <SheetContent
+        ref={content}
         side="right"
         closeLabel={t('close')}
         className="gap-5 p-6 sm:w-[25rem]"

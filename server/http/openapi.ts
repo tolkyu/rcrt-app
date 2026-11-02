@@ -15,6 +15,10 @@ export const problemSchema = z
     errors: z
       .array(z.object({ path: z.string(), code: z.string() }))
       .optional(),
+    details: z.record(z.string(), z.string()).optional().meta({
+      description:
+        'Ids the caller may act on next, e.g. `userId` of the deactivated holder of an invited address.',
+    }),
   })
   .meta({
     id: 'Problem',

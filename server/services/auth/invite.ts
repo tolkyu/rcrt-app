@@ -126,14 +126,21 @@ export async function sendInviteEmail(
 }
 
 /** Why an email cannot be given to a new or renamed invitee: the holder's state picks the invite-dialog answer (D42, D44). */
-export async function emailTakenCode(db: DbExecutor, email: string) {
+export async function emailTakenBy(
+  db: DbExecutor,
+  email: string,
+): Promise<{ code: string; userId: string } | null> {
   const existing = await findUserByEmail(db, email);
   if (!existing) return null;
-  if (!existing.isActive) return 'USER_DEACTIVATED';
-  if (existing.activatedAt) return 'USER_EXISTS';
+  const userId = existing.id;
+  if (!existing.isActive) return { code: 'USER_DEACTIVATED', userId };
+  if (existing.activatedAt) return { code: 'USER_EXISTS', userId };
   const latest = await findLatestInviteStatus(db, existing.id);
   // D70: a revoked invitee is re-invited from the user card, not by a second invite.
-  return latest === 'REVOKED' ? 'INVITE_REVOKED' : 'INVITE_PENDING';
+  return {
+    code: latest === 'REVOKED' ? 'INVITE_REVOKED' : 'INVITE_PENDING',
+    userId,
+  };
 }
 
 /**
@@ -155,8 +162,14 @@ export async function createInvite(
   const fullName = normalizeFullName(input.fullName);
   if (!(await rolesAreValid(ctx.db, input.roles)))
     throw new ValidationError([{ path: 'body.roles', code: 'invalid_roles' }]);
-  const taken = await emailTakenCode(ctx.db, email);
-  if (taken) throw new ConflictError(taken);
+  const taken = await emailTakenBy(ctx.db, email);
+  // «Активувати знову» in the invite dialog opens that user's card (D42, wireframe §1.2).
+  if (taken)
+    throw new ConflictError(
+      taken.code,
+      [],
+      taken.code === 'USER_DEACTIVATED' ? { userId: taken.userId } : {},
+    );
   const now = ctx.clock.now();
   const expiresAt = new Date(now.getTime() + INVITE_TTL_MS);
   const { token, hash } = generateInviteToken();
