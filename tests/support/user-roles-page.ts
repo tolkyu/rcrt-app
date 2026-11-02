@@ -114,6 +114,7 @@ export async function userRolesPage(
             actor: null,
             roles: [view(role)],
             fields: null,
+            priorityChange: null,
           });
       detail.roles = body.roles.map(view);
       detail.version += 1;

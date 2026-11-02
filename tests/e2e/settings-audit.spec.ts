@@ -238,6 +238,7 @@ test('audit list and detail render without overflow in both themes [SHOT-01..03,
     details: null,
     userAgent: 'Playwright — Chromium',
     requestId: '00000000-0000-4000-8000-000000000003',
+    detailLabels: {},
   };
   await page.route('**/api/v1/audit?*', (route) =>
     route.fulfill({ json: { items: [fixture], nextCursor: null } }),

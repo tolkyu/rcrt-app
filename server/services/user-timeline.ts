@@ -39,6 +39,24 @@ function fieldsOf(row: UserEventRow): UserEvent['fields'] {
   return parsed.success ? parsed.data.fields : null;
 }
 
+/** D73: a priority event lives on the Team Lead's own subject; the vertical is the envelope column. */
+function priorityChangeOf(row: UserEventRow): UserEvent['priorityChange'] {
+  if (row.type !== 'vertical.tl_priority_changed' || !row.verticalId)
+    return null;
+  const parsed = EVENT_PAYLOADS['vertical.tl_priority_changed'].safeParse(
+    withoutVersion(row.payload),
+  );
+  if (!parsed.success) return null;
+  return {
+    vertical: {
+      id: row.verticalId,
+      name: row.verticalNames[row.verticalId] ?? null,
+    },
+    old: parsed.data.old,
+    new: parsed.data.new,
+  };
+}
+
 /** Timeline item for «Історія»: actor, type and allowlisted role/field summary; payload itself is never returned. */
 export function userEventView(row: UserEventRow): UserEvent {
   return {
@@ -62,5 +80,6 @@ export function userEventView(row: UserEventRow): UserEvent {
           : null,
       })) ?? null,
     fields: fieldsOf(row),
+    priorityChange: priorityChangeOf(row),
   };
 }

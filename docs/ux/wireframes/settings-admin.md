@@ -120,7 +120,7 @@ Reference: `reference/00-foundations.webp`, `reference/01-components.webp` (§02
 │ (Тімлід · Гемблінг)                          │
 │                                              │
 │ Пріоритет тімліда                            │
-│ Гемблінг: (П0)        Пріоритети тімлідів →  │
+│ Гемблінг: (П0)                      Змінити  │
 │                                              │
 │ Безпека входу                                │
 │ Двофакторна автентифікація                   │
@@ -153,6 +153,7 @@ Variants of the drawer body/footer (only allowed actions render; blocked ones ar
 | same, but 0 roles | shown, **disabled**: second line in the item `text-xs` muted = `drawer.noRolesReason` «Спершу призначте ролі — без ролей запрошення недійсне.» (same reason as resend / re-invite). Use `aria-disabled="true"` + `onSelect` → `preventDefault()`, **not** Radix `disabled` (Radix skips disabled items in arrow navigation, so the reason would never be read) |
 | same, while a resend / revoke / re-invite / change-email mutation is pending | trigger disabled (shared `mutationKey` `['settings','user',id,'invite']` → `useIsMutating`) |
 | Активний · Деактивовано | **hidden** (no Phase 1 action; activated-user email change = Phase 5, ends sessions — D69) |
+- «Пріоритет тімліда»: one line per TEAM_LEAD vertical («Гемблінг: П0» / «Гемблінг: пріоритет не задано») with its own link «Змінити» → `/settings/priorities?vertical=<id>` (`aria-label` «Змінити пріоритет у вертикалі «{vertical}»»); replaces the single «Пріоритети тімлідів →» link (settings-tl-priorities P1.1 #18).
 - **Історія** tab: user timeline from `entity_event` (append-only, HIST-03) via compact `Timeline`: icon, action label (same labels as Журнал дій §3.4), actor, `dd.MM.yyyy HH:mm`, old→new for roles/name. Cursor «Показати ще». No IP/UA here (that is Журнал дій).
 - Drawer opens instantly from the list row cache (name/status/roles), details stream in (skeleton for Безпека/Історія only).
 

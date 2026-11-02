@@ -89,6 +89,10 @@ export const auditRecordSchema = auditEntrySchema
     details: auditJsonSchema,
     userAgent: z.string().nullable(),
     requestId: z.uuid().nullable(),
+    detailLabels: z.record(z.string(), z.string()).meta({
+      description:
+        'Current names for user ids in `details` (e.g. `teamLead`), Admin-only like entity labels.',
+    }),
   })
   .meta({ id: 'AuditRecord' });
 export type AuditRecord = z.infer<typeof auditRecordSchema>;

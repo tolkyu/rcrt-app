@@ -18,7 +18,15 @@ import {
 import { requirePermission } from '../authz/can';
 import type { RequestContext } from '../context/request-context';
 import { NotFoundError, ValidationError } from '../http/errors';
-import { findAuditRecord, listAuditEntries } from '../repositories/audit';
+import {
+  findAuditRecord,
+  findUserNames,
+  listAuditEntries,
+} from '../repositories/audit';
+
+/** Detail keys whose value is a user id that the record view names (`vertical.tl_priority_changed`). */
+const USER_DETAIL_KEYS = ['teamLead'] as const;
+const uuid = z.uuid();
 
 /** jsonb comes back untyped; the column only ever stores JSON written by `writeAudit`. */
 const storedJson = z.json().nullable();
@@ -87,12 +95,23 @@ export async function getAuditRecord(
   if (id > MAX_BIGINT_ID) throw new NotFoundError();
   const row = await findAuditRecord(ctx.db, id);
   if (!row) throw new NotFoundError();
+  const details = storedJson.parse(row.details ?? null);
+  const userIds =
+    details && typeof details === 'object' && !Array.isArray(details)
+      ? USER_DETAIL_KEYS.map((key) => details[key]).filter(
+          (value): value is string => uuid.safeParse(value).success,
+        )
+      : [];
+  const names = userIds.length ? await findUserNames(ctx.db, userIds) : [];
   return {
     ...toEntry(row),
     before: storedJson.parse(row.before ?? null),
     after: storedJson.parse(row.after ?? null),
-    details: storedJson.parse(row.details ?? null),
+    details,
     userAgent: row.userAgent,
     requestId: row.requestId,
+    detailLabels: Object.fromEntries(
+      names.map((user) => [user.id, user.fullName]),
+    ),
   };
 }

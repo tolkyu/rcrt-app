@@ -66,6 +66,8 @@ Per route: `{ method, path, operationId, summary, tags, params?, query?, body?, 
 `POST /api/webhooks/resend` — signature verified (Svix headers) with 5-min timestamp tolerance; `svix-id` deduplicated (replays ignored); status-only updates of `notification_delivery` / `offer.email_status` (OFFER-02) (DG-04).
 Admin job re-run: `POST /api/v1/admin/jobs/{job}/runs` (ADR-004, DG-04).
 
+- **Team Lead priorities (T6 slice 10, SEC-TLP-02):** a priority row's version is taken from the Team Lead's `app_user.version`, so every priority change also bumps that user's card version. Another Admin with that card open gets 409 `STALE_STATE` on roles / email / deactivate and refreshes — fail-safe, no lost update; accepted. A dedicated sequence would remove the coupling if it ever matters.
+
 ## Hot path & budget
 - Wrapper overhead (JWT verify + context query + Zod) target ≤ 5 ms of the PERF-02 budget.
 

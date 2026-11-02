@@ -14,6 +14,7 @@ const row = (overrides: Partial<UserEventRow>): UserEventRow => ({
   actorName: null,
   actorActive: null,
   payload: { v: 1 },
+  verticalId: null,
   verticalNames: {},
   ...overrides,
 });
@@ -28,6 +29,7 @@ describe('User timeline view [HIST-03, STORY-ROLE-05-4 AC2]', () => {
       actor: null,
       roles: null,
       fields: null,
+      priorityChange: null,
     });
   });
 
@@ -153,4 +155,36 @@ describe('User timeline view [HIST-03, STORY-ROLE-05-4 AC2]', () => {
     expect(view.roles).toBeNull();
     expect(view.fields).toBeNull();
   });
+
+  it('shows a Team Lead priority change as vertical old → new from the envelope vertical [D73]', () => {
+    const view = userEventView(
+      row({
+        type: 'vertical.tl_priority_changed',
+        verticalId: VERTICAL,
+        payload: { v: 1, userId: ACTOR, old: null, new: 2 },
+        verticalNames: { [VERTICAL]: 'Крипто' },
+      }),
+    );
+    expect(view.priorityChange).toEqual({
+      vertical: { id: VERTICAL, name: 'Крипто' },
+      old: null,
+      new: 2,
+    });
+    expect(view.roles).toBeNull();
+  });
+
+  it.each([
+    [{ v: 1, userId: ACTOR, old: 1, new: -1 }, VERTICAL],
+    [{ v: 1, userId: ACTOR, old: 1, new: 2, note: 'текст' }, VERTICAL],
+    [{ v: 1, userId: ACTOR, old: 1, new: 2 }, null],
+  ])(
+    'drops a priority change that fails the allowlist or has no vertical',
+    (payload, verticalId) => {
+      expect(
+        userEventView(
+          row({ type: 'vertical.tl_priority_changed', payload, verticalId }),
+        ).priorityChange,
+      ).toBeNull();
+    },
+  );
 });

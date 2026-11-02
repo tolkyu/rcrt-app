@@ -181,10 +181,26 @@ function DetailSections({ detail }: { detail: UserDetail }) {
         <Section title={t('priorityTitle')}>
           <ul className="text-foreground flex flex-col gap-1 text-sm">
             {detail.teamLeadPriorities.map(({ vertical, priority }) => (
-              <li key={vertical.id}>
-                {priority === null
-                  ? t('priorityNotSet', { vertical: vertical.name })
-                  : t('priorityValue', { vertical: vertical.name, priority })}
+              <li
+                key={vertical.id}
+                className="flex flex-wrap items-center gap-x-3"
+              >
+                <span>
+                  {priority === null
+                    ? t('priorityNotSet', { vertical: vertical.name })
+                    : t('priorityValue', { vertical: vertical.name, priority })}
+                </span>
+                {detail.status === 'ACTIVE' && (
+                  <Link
+                    href={`/settings/priorities?vertical=${vertical.id}`}
+                    className="text-link inline-flex min-h-11 items-center hover:underline md:min-h-0"
+                    aria-label={t('priorityEditLabel', {
+                      vertical: vertical.name,
+                    })}
+                  >
+                    {t('priorityEdit')}
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
@@ -241,9 +257,24 @@ function DetailSections({ detail }: { detail: UserDetail }) {
 
 function useEventDetails() {
   const t = useTranslations('settings.users.drawer');
+  const tPriority = useTranslations('settings.priorities');
   const labels = useAuditLabels();
   const roleLabel = useRoleLabel();
   return (event: UserEvent) => {
+    if (event.priorityChange) {
+      const change = event.priorityChange;
+      const value = (priority: number | null) =>
+        priority === null
+          ? tPriority('valueNone')
+          : tPriority('valueShort', { priority });
+      return t('historyPriority', {
+        vertical:
+          change.vertical.name ??
+          t('unknownVertical', { id: labels.shortId(change.vertical.id) }),
+        from: value(change.old),
+        to: value(change.new),
+      });
+    }
     if (event.roles)
       return event.roles
         .map(({ role, vertical }) =>

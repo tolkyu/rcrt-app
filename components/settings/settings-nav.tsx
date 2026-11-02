@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { isActivePath } from '@/lib/nav';
+import { useEffect, useRef } from 'react';
+import { isActivePath } from '@/lib/active-path';
 import { cn } from '@/lib/utils';
 
 /** Settings sub-menu: 220 px column on desktop, horizontal scroller on mobile (wireframe settings-admin §0). */
@@ -14,9 +15,16 @@ export function SettingsNav({
   items: readonly { href: string; label: string }[];
 }) {
   const pathname = usePathname();
+  const list = useRef<HTMLUListElement>(null);
+  /** On the mobile scroller the active section may start off-screen (e.g. «Пріоритети тімлідів»). */
+  useEffect(() => {
+    list.current
+      ?.querySelector('[aria-current="page"]')
+      ?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  }, [pathname]);
   return (
     <nav aria-label={label} className="md:w-55 md:shrink-0">
-      <ul className="flex gap-1 overflow-x-auto md:flex-col">
+      <ul ref={list} className="flex gap-1 overflow-x-auto md:flex-col">
         {items.map((item) => {
           const active = isActivePath(pathname, item.href);
           return (

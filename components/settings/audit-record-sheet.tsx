@@ -69,6 +69,7 @@ export function AuditRecordSheet({
 }) {
   const t = useTranslations('settings.audit');
   const tRoles = useTranslations('common.roles');
+  const tPriority = useTranslations('settings.priorities');
   const labels = useAuditLabels();
   const record = useQuery(auditRecordQuery(recordId));
   const verticals = useQuery(settingsVerticalsQuery());
@@ -94,6 +95,13 @@ export function AuditRecordSheet({
     if (typeof raw === 'boolean') return t(`detail.${raw}`);
     return String(raw);
   };
+  /** Team Lead priority reads «П1» / «не задано» like the priorities screen (wireframe P1.5). */
+  const change = (key: string, raw: Json | undefined) =>
+    key === 'priority' && (raw === null || typeof raw === 'number')
+      ? raw === null
+        ? tPriority('valueNone')
+        : tPriority('valueShort', { priority: raw })
+      : value(raw);
 
   let body: ReactNode;
   const data = record.data;
@@ -200,9 +208,11 @@ export function AuditRecordSheet({
                       {labels.field(key)}
                     </th>
                     <td className="py-2 pr-2 break-words">
-                      {value(before[key])}
+                      {change(key, before[key])}
                     </td>
-                    <td className="py-2 break-words">{value(after[key])}</td>
+                    <td className="py-2 break-words">
+                      {change(key, after[key])}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -217,7 +227,8 @@ export function AuditRecordSheet({
             <dl className="divide-border divide-y">
               {details.map(([key, raw]) => (
                 <Row key={key} label={labels.field(key)}>
-                  {value(raw)}
+                  {(typeof raw === 'string' && data.detailLabels[raw]) ||
+                    value(raw)}
                 </Row>
               ))}
             </dl>

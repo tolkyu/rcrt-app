@@ -128,6 +128,9 @@ export const userRole = app.table(
     unique('user_role_uq')
       .on(t.userId, t.role, t.verticalId)
       .nullsNotDistinct(),
+    index('user_role_team_lead_idx')
+      .on(t.verticalId, t.userId)
+      .where(sql`${t.role} = 'TEAM_LEAD'`),
     check(
       'user_role_scope_chk',
       sql`(${t.role} IN ('ADMIN','FINANCE') AND ${t.verticalId} IS NULL) OR (${t.role} IN ('HEAD_RECRUITER','RECRUITER','HEAD_HR','HR','TEAM_LEAD') AND ${t.verticalId} IS NOT NULL) OR ${t.role} ~ '^custom:[a-z0-9_]+$'`,
@@ -211,7 +214,10 @@ export const teamLeadPriority = app.table(
   },
   (t) => [
     primaryKey({ columns: [t.verticalId, t.userId] }),
-    check('team_lead_priority_priority_chk', sql`${t.priority} >= 0`),
+    check(
+      'team_lead_priority_priority_chk',
+      sql`${t.priority} BETWEEN 0 AND 99`,
+    ),
     check('team_lead_priority_version_chk', sql`${t.version} > 0`),
   ],
 );

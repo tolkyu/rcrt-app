@@ -17,7 +17,7 @@ import { hasAnyGrant, requirePermission } from '../authz/can';
 import { GLOBAL_ROLES } from '../authz/roles';
 import type { BuiltinRole } from '../authz/types';
 import type { RequestContext } from '../context/request-context';
-import { userIdOf } from '@/server/http/params';
+import { uuidOf } from '@/server/http/params';
 import { NotFoundError } from '../http/errors';
 import {
   countUsers,
@@ -115,7 +115,7 @@ export async function getUserDetail(
   rawUserId: string,
 ): Promise<UserDetail> {
   requirePermission(ctx.auth, 'settings.users.manage');
-  const userId = userIdOf(rawUserId);
+  const userId = uuidOf(rawUserId);
   if (!userId) throw new NotFoundError();
   const now = ctx.clock.now();
   const row = await findUserDetail(ctx.db, userId, now);
@@ -171,7 +171,7 @@ export async function listUserEventPage(
 ): Promise<UserEventPage> {
   requirePermission(ctx.auth, 'settings.users.manage');
   const query = userEventsQuerySchema.parse(input);
-  const userId = userIdOf(rawUserId);
+  const userId = uuidOf(rawUserId);
   if (!userId) throw new NotFoundError();
   const cursor = query.cursor ? decodeTimeIdCursor(query.cursor) : null;
   const [exists, rows] = await Promise.all([

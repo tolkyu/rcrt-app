@@ -22,7 +22,11 @@ export const AUDIT_ACTION_GROUPS = {
     'auth.mfa_challenge_failed',
     'auth.mfa_locked',
   ],
-  verticals: ['vertical.created', 'vertical.renamed'],
+  verticals: [
+    'vertical.created',
+    'vertical.renamed',
+    'vertical.tl_priority_changed',
+  ],
 } as const;
 export type AuditActionGroup = keyof typeof AUDIT_ACTION_GROUPS;
 export const AUDIT_ENTITY_TYPES = ['user', 'vertical'] as const;

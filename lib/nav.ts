@@ -17,7 +17,7 @@ export interface NavItem {
   readonly landingRank?: number;
 }
 
-export type SettingsSectionId = 'users' | 'verticals' | 'audit';
+export type SettingsSectionId = 'users' | 'verticals' | 'priorities' | 'audit';
 
 /** «Налаштування» sub-sections in display order; only built ones are listed (D28). */
 export const SETTINGS_SECTIONS: readonly {
@@ -34,6 +34,11 @@ export const SETTINGS_SECTIONS: readonly {
     id: 'verticals',
     href: '/settings/verticals',
     permission: 'settings.verticals.manage',
+  },
+  {
+    id: 'priorities',
+    href: '/settings/priorities',
+    permission: 'settings.priorities.manage',
   },
   { id: 'audit', href: '/settings/audit', permission: 'audit.read' },
 ];
@@ -118,6 +123,4 @@ export function mobileNav(items: readonly NavItem[]): MobileNav | null {
   };
 }
 
-export function isActivePath(pathname: string, href: string): boolean {
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
+export { isActivePath } from './active-path';

@@ -1,4 +1,14 @@
-import { and, desc, eq, gte, lt, or, sql, type SQL } from 'drizzle-orm';
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  inArray,
+  lt,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { DbExecutor } from '../db';
 import { appUser, auditLog, vertical } from '../db/schema';
@@ -82,6 +92,14 @@ export function listAuditEntries(
     .where(and(...conditions))
     .orderBy(desc(auditLog.occurredAt), desc(auditLog.id))
     .limit(limit + 1);
+}
+
+/** Current names of users referenced from audit details; same source as entity labels (wireframe §3.1). */
+export function findUserNames(db: DbExecutor, ids: readonly string[]) {
+  return db
+    .select({ id: appUser.id, fullName: appUser.fullName })
+    .from(appUser)
+    .where(inArray(appUser.id, [...ids]));
 }
 
 export async function findAuditRecord(db: DbExecutor, id: bigint) {

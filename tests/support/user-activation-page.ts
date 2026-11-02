@@ -117,6 +117,7 @@ export async function userActivationPage(
           actor: null,
           roles: null,
           fields: null,
+          priorityChange: null,
         });
       await route.fulfill({
         json: {

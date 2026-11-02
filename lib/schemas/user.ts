@@ -175,6 +175,17 @@ export const userEventSchema = z
     fields: z.array(z.enum(USER_PROFILE_FIELDS)).nullable().meta({
       description: 'Changed profile fields; values are never exposed.',
     }),
+    priorityChange: z
+      .object({
+        vertical: z.object({ id: z.uuid(), name: z.string().nullable() }),
+        old: z.number().int().nonnegative().nullable(),
+        new: z.number().int().nonnegative().nullable(),
+      })
+      .nullable()
+      .meta({
+        description:
+          'Team Lead priority old → new in one vertical (null = not set, D47, D73).',
+      }),
   })
   .meta({ id: 'UserEvent' });
 export type UserEvent = z.infer<typeof userEventSchema>;

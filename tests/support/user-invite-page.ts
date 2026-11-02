@@ -42,6 +42,7 @@ export async function userInvitePage(
       actor: null,
       roles: null,
       fields: null,
+      priorityChange: null,
     },
   ];
   await page.route(
@@ -83,6 +84,7 @@ export async function userInvitePage(
           actor: null,
           roles: null,
           fields: null,
+          priorityChange: null,
         });
         detail.status = 'REVOKED';
         detail.invitation!.revokedAt = FIXED_CLOCK_ISO;
@@ -108,6 +110,7 @@ export async function userInvitePage(
         actor: null,
         roles: null,
         fields: null,
+        priorityChange: null,
       });
       detail.status = 'INVITED';
       detail.invitation = {
@@ -145,6 +148,7 @@ export async function userInvitePage(
         actor: null,
         roles: null,
         fields: null,
+        priorityChange: null,
       });
       detail.email = email;
       detail.version += 1;

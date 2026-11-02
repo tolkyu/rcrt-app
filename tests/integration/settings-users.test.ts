@@ -685,6 +685,7 @@ describe('Settings → Картка користувача: «Історія» [
           'fields',
           'id',
           'occurredAt',
+          'priorityChange',
           'roles',
           'type',
         ].sort(),

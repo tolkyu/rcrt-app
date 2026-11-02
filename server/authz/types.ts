@@ -20,6 +20,9 @@ export type RoleCode = BuiltinRole | `custom:${string}`;
 /** The role that must always keep at least one active holder and cannot be removed from oneself (D45). */
 export const isAdminAssignment = (assignment: { readonly role: string }) =>
   assignment.role === 'ADMIN';
+/** The role whose holders are ordered by «Пріоритети тімлідів» per vertical (ROUTE-01). */
+export const isTeamLeadAssignment = (assignment: { readonly role: string }) =>
+  assignment.role === 'TEAM_LEAD';
 
 /** Ordinal order of pipeline stages; `max_stage_reached` comparisons use these positions. */
 export const STAGES = [

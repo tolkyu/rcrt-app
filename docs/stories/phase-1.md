@@ -322,11 +322,11 @@ As an **Admin**, I want to set each Team Lead's priority per vertical, so that r
 - Given «Пріоритети тімлідів», When I set Vasyl = 0 and Taras = 1 in Гемблінг, Then badges «П0», «П1» show with tooltip «Пріоритет 0 — найвищий».
 - Equal priorities are allowed (tie-break: oldest vacancy, D5).
 - A Team Lead without a priority is ranked after all prioritised Team Leads, with the marker «Пріоритет не задано», until Admin sets it (D47).
-- (negative) Priority for a user without TEAM_LEAD in that vertical, negative or non-integer → validation error. Non-Admin → 404.
+- (negative) Negative, non-integer or > 99 priority → 400 `VALIDATION_FAILED`. A batch containing a user who is not (or no longer) an active, accepted TEAM_LEAD in that vertical, or a stale row version → 409 `STALE_STATE` for the whole batch, nothing saved (the screen lists only eligible Team Leads, so this only happens after a concurrent change; wireframe P1.1 #12). Non-Admin → 404.
 - Per-vacancy override is out of scope until Phase 2 (vacancies).
 
 **Events:** `vertical.tl_priority_changed` (old→new).
-**Edge cases:** removing TEAM_LEAD role removes the priority from active ordering (kept in history).
+**Edge cases:** removing TEAM_LEAD, including omission during reactivation, deletes its priority row in the same transaction and records old→null in the Team Lead's history (D73). Deactivation keeps the priority row but excludes the user from active ordering. Reassigning TEAM_LEAD starts without a priority. Confirmed in the owner's resume request, 2026-11-02.
 
 ### STORY-ROLE-04-1: Permissions as a role → permission map
 As the **architect**, I want permissions defined once as a map from role to permissions, so that UI and API derive from the same source and custom roles can be added later (ROLE-04).

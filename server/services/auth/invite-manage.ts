@@ -14,7 +14,7 @@ import {
   NotFoundError,
   ValidationError,
 } from '@/server/http/errors';
-import { userIdOf } from '@/server/http/params';
+import { uuidOf } from '@/server/http/params';
 import {
   findLatestInviteStatus,
   findUserById,
@@ -41,7 +41,7 @@ export interface EmailChanged extends InviteSent {
 
 function targetUserId(ctx: RequestContext, rawUserId: string): string {
   requirePermission(ctx.auth, 'settings.users.manage');
-  const userId = userIdOf(rawUserId);
+  const userId = uuidOf(rawUserId);
   if (!userId) throw new NotFoundError();
   return userId;
 }

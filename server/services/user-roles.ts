@@ -14,7 +14,7 @@ import { isAdminAssignment } from '../authz/types';
 import type { RequestContext } from '../context/request-context';
 import { appendEvent, USER_SUBJECT } from '../events';
 import { ConflictError, NotFoundError, ValidationError } from '../http/errors';
-import { userIdOf } from '../http/params';
+import { uuidOf } from '../http/params';
 import {
   insertUserRoles,
   lockCurrentRoles,
@@ -28,6 +28,7 @@ import {
   lockAdminMembership,
 } from '../repositories/user-roles';
 import { roleSetIsValid } from './auth/invite';
+import { removeTeamLeadPriorities } from './team-lead-priority';
 
 const pick = ({ role, verticalId }: RoleAssignmentRef) => ({
   role,
@@ -53,7 +54,7 @@ export async function updateUserRoles(
   input: UpdateUserRolesInput,
 ): Promise<UserRolesUpdated> {
   requirePermission(ctx.auth, 'settings.users.manage');
-  const userId = userIdOf(rawUserId);
+  const userId = uuidOf(rawUserId);
   if (!userId) throw new NotFoundError();
   const { roles, expectedVersion } = updateUserRolesSchema.parse(input);
   if (!(await roleSetIsValid(ctx.db, roles)))
@@ -93,6 +94,7 @@ export async function updateUserRoles(
         subjectId: userId,
         payload: role,
       });
+    await removeTeamLeadPriorities(write, userId, removed);
     for (const role of added)
       await appendEvent(tx, write, {
         type: 'user.role_assigned',

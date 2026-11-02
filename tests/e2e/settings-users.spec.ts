@@ -522,6 +522,11 @@ test('Team Lead card: roles with «Змінити ролі», TL priority, sign-
   ).toBeVisible();
   await expect(card.getByText('Гемблінг: П0', { exact: true })).toBeVisible();
   await expect(
+    card.getByRole('link', {
+      name: drawerT.priorityEditLabel.replace('{vertical}', 'Гемблінг'),
+    }),
+  ).toHaveAttribute('href', /^\/settings\/priorities\?vertical=[0-9a-f-]{36}$/);
+  await expect(
     card.getByRole('heading', { name: drawerT.securityTitle }),
   ).toBeVisible();
   await expect(

@@ -17,7 +17,7 @@ import {
   UserActivationIncompleteError,
   ValidationError,
 } from '../http/errors';
-import { userIdOf } from '../http/params';
+import { uuidOf } from '../http/params';
 import {
   lockCurrentRoles,
   lockPendingInvite,
@@ -33,6 +33,7 @@ import {
 import type { AuthDependencies } from './auth/deps';
 import { roleSetIsValid } from './auth/invite';
 import { revokeUserSessions } from './auth/session';
+import { removeTeamLeadPriorities } from './team-lead-priority';
 
 async function setBanned(
   deps: AuthDependencies,
@@ -55,7 +56,7 @@ export async function deactivateUser(
   input: DeactivateUserInput,
 ): Promise<UserActivationUpdated> {
   requirePermission(ctx.auth, 'settings.users.manage');
-  const userId = userIdOf(rawUserId);
+  const userId = uuidOf(rawUserId);
   if (!userId) throw new NotFoundError();
   const { expectedVersion, reason } = deactivateUserSchema.parse(input);
   if (userId === ctx.auth.userId) throw new ConflictError('SELF_DEACTIVATION');
@@ -117,7 +118,7 @@ export async function reactivateUser(
   input: ReactivateUserInput,
 ): Promise<UserActivationUpdated> {
   requirePermission(ctx.auth, 'settings.users.manage');
-  const userId = userIdOf(rawUserId);
+  const userId = uuidOf(rawUserId);
   if (!userId) throw new NotFoundError();
   const { expectedVersion, roles } = reactivateUserSchema.parse(input);
   if (!(await roleSetIsValid(ctx.db, roles)))
@@ -162,6 +163,7 @@ export async function reactivateUser(
         subjectId: userId,
         payload: role,
       });
+    await removeTeamLeadPriorities(write, userId, removed);
     await appendEvent(tx, write, {
       type: 'user.reactivated',
       subjectType: USER_SUBJECT,

@@ -468,13 +468,16 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       values (${userId}, 'custom:qa_reader', ${verticalId})`;
   });
 
-  it('allows zero and tied priorities but rejects negative priorities [ROUTE-01]', async () => {
+  it('allows zero and tied priorities but rejects priorities outside 0–99 [ROUTE-01, STORY-ROLE-01-3]', async () => {
     await runtime`insert into app.team_lead_priority (vertical_id, user_id, priority) values
       (${verticalId}, ${userId}, 0), (${verticalId}, ${anotherUserId}, 0)`;
-    await expect(runtime`update app.team_lead_priority set priority = -1
-      where vertical_id = ${verticalId} and user_id = ${userId}`).rejects.toMatchObject(
-      { code: '23514' },
-    );
+    for (const priority of [-1, 100])
+      await expect(runtime`update app.team_lead_priority set priority = ${priority}
+        where vertical_id = ${verticalId} and user_id = ${userId}`).rejects.toMatchObject(
+        { code: '23514' },
+      );
+    await runtime`update app.team_lead_priority set priority = 99
+      where vertical_id = ${verticalId} and user_id = ${userId}`;
   });
 
   it('enforces invite hashing, 72-hour expiry and a single pending invite [ROLE-05]', async () => {
@@ -854,6 +857,9 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
     }
     expect(definitions.user_role_user_idx).toBeUndefined();
     expect(definitions.user_role_uq).toContain('(user_id, role, vertical_id)');
+    expect(definitions.user_role_team_lead_idx).toContain(
+      "(vertical_id, user_id) WHERE (role = 'TEAM_LEAD'::text)",
+    );
     expect(definitions.user_invite_latest_idx).toContain(
       "(user_id, ((status = 'PENDING'::text)) DESC, created_at DESC, id DESC)",
     );

@@ -254,13 +254,27 @@ export async function seedDemo(
           })
           .onConflictDoNothing()
           .returning({ userId: schema.teamLeadPriority.userId });
-        if (rows.length)
-          await record(
-            'vertical.tl_priority_changed',
-            'team_lead_priority',
-            `${verticalId}:${userId}`,
-            verticalId,
-          );
+        if (!rows.length) continue;
+        // Same shapes as the priorities service: event on the Team Lead's own timeline (D73), audit on the vertical.
+        await tx.insert(schema.entityEvent).values({
+          occurredAt: DEMO_CLOCK,
+          actorKind: 'SYSTEM',
+          type: 'vertical.tl_priority_changed',
+          subjectType: 'app_user',
+          subjectId: userId,
+          verticalId,
+          payload: { v: 1, userId, old: null, new: priority },
+        });
+        await tx.insert(schema.auditLog).values({
+          occurredAt: DEMO_CLOCK,
+          actorKind: 'SYSTEM',
+          action: 'vertical.tl_priority_changed',
+          entityType: 'vertical',
+          entityId: verticalId,
+          before: { priority: null },
+          after: { priority },
+          details: { teamLead: userId },
+        });
       }
       for (const [email, name, filters] of [
         ['admin@demo', 'Усі напрями', {}],

@@ -81,6 +81,20 @@ const screens = [
       variants.map((variant) => `${state}-${variant}`),
     ),
   ],
+  [
+    '14-admin-priorities',
+    'Пріоритети тімлідів — рівні пріоритети, група «Без пріоритету» та незбережені зміни',
+    ['list', 'edited'].flatMap((state) =>
+      variants.map((variant) => `${state}-${variant}`),
+    ),
+  ],
+  [
+    '14-admin-priorities',
+    'Пріоритети тімлідів — зміни іншого адміністратора та вертикаль без тімлідів',
+    ['conflict', 'empty'].flatMap((state) =>
+      variants.map((variant) => `${state}-${variant}`),
+    ),
+  ],
 ];
 mkdirSync('screenshots/latest', { recursive: true });
 const sections = screens.map(([id, title, screenVariants = variants]) => {
@@ -98,7 +112,7 @@ const gallery = `<!doctype html>
 <title>Hiring — фаза 1</title>
 <style>body{margin:32px;background:#f8fafc;color:#0f172a;font:16px/1.5 system-ui}section{margin:32px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px}figure{margin:0}img{width:100%;border:1px solid #94a3b8;border-radius:12px}figcaption{padding:8px 0}</style>
 <h1>Hiring — фаза 1</h1>
-<p>Вхід і журнал дій: світла й темна теми, комп’ютер 1440×900 та телефон 390×844. Навігація: планшет 900×900 та телефон 390×844. Для скриншотів журналу використано фіксовані тестові записи; перевірки реальних змін і доступу виконуються окремо. Повна галерея фази 1 ще в роботі.</p>
+<p>Вхід і журнал дій: світла й темна теми, комп’ютер 1440×900 та телефон 390×844. Навігація: планшет 900×900 та телефон 390×844. Для скриншотів журналу використано фіксовані тестові записи, для пріоритетів — фіксований список із чотирьох тімлідів Гемблінгу; перевірки реальних змін і доступу виконуються окремо. Повна галерея фази 1 ще в роботі.</p>
 ${sections.join('\n')}</html>\n`;
 writeFileSync('screenshots/phase-1/index.html', gallery);
 writeFileSync('screenshots/latest/index.html', gallery);

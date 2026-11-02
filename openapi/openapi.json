@@ -154,6 +154,13 @@
               "null"
             ],
             "format": "uuid"
+          },
+          "detailLabels": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Current names for user ids in `details` (e.g. `teamLead`), Admin-only like entity labels."
           }
         },
         "required": [
@@ -169,7 +176,8 @@
           "after",
           "details",
           "userAgent",
-          "requestId"
+          "requestId",
+          "detailLabels"
         ]
       },
       "Problem": {
@@ -800,6 +808,33 @@
         ],
         "additionalProperties": false
       },
+      "TeamLeadPriorityVerticals": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ]
+            }
+          }
+        },
+        "required": [
+          "items"
+        ]
+      },
       "SettingsVerticalList": {
         "type": "object",
         "properties": {
@@ -1048,6 +1083,53 @@
               ]
             },
             "description": "Changed profile fields; values are never exposed."
+          },
+          "priorityChange": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "vertical": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ]
+              },
+              "old": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "new": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              }
+            },
+            "required": [
+              "vertical",
+              "old",
+              "new"
+            ],
+            "description": "Team Lead priority old → new in one vertical (null = not set, D47, D73)."
           }
         },
         "required": [
@@ -1057,7 +1139,8 @@
           "actorKind",
           "actor",
           "roles",
-          "fields"
+          "fields",
+          "priorityChange"
         ]
       },
       "UserInviteSent": {
@@ -1644,6 +1727,119 @@
         "required": [
           "name",
           "expectedVersion"
+        ],
+        "additionalProperties": false
+      },
+      "VerticalTeamLeadPriorities": {
+        "type": "object",
+        "properties": {
+          "vertical": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "userId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "fullName": {
+                  "type": "string"
+                },
+                "priority": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "version": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "exclusiveMinimum": 0,
+                  "description": "Send back as `version` with a change; null = no priority row yet."
+                }
+              },
+              "required": [
+                "userId",
+                "fullName",
+                "priority",
+                "version"
+              ]
+            }
+          },
+          "pendingInvites": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Team Leads in this vertical who have not accepted their invite yet."
+          }
+        },
+        "required": [
+          "vertical",
+          "items",
+          "pendingInvites"
+        ]
+      },
+      "UpdateTeamLeadPriorities": {
+        "type": "object",
+        "properties": {
+          "changes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "userId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "priority": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 99,
+                  "description": "New priority; null clears it («Пріоритет не задано», D47)."
+                },
+                "version": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "exclusiveMinimum": 0,
+                  "description": "Version of the stored priority row the edit started from; null when the Team Lead had no priority."
+                }
+              },
+              "required": [
+                "userId",
+                "priority",
+                "version"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 200
+          }
+        },
+        "required": [
+          "changes"
         ],
         "additionalProperties": false
       },
@@ -3500,6 +3696,57 @@
         }
       }
     },
+    "/settings/priorities/verticals": {
+      "get": {
+        "operationId": "listTeamLeadPriorityVerticals",
+        "summary": "Vertical tabs for Team Lead priority settings (Admin aal2)",
+        "tags": [
+          "Priorities"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamLeadPriorityVerticals"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/settings/verticals": {
       "get": {
         "operationId": "listSettingsVerticals",
@@ -5006,6 +5253,193 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SettingsVertical"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 1 MiB",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/verticals/{verticalId}/team-lead-priorities": {
+      "get": {
+        "operationId": "getVerticalTeamLeadPriorities",
+        "summary": "Active accepted Team Leads and their priorities (Admin aal2)",
+        "tags": [
+          "Priorities"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "description": "Vertical id (uuid)."
+            },
+            "required": true,
+            "description": "Vertical id (uuid).",
+            "name": "verticalId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerticalTeamLeadPriorities"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateTeamLeadPriorities",
+        "summary": "Atomically change Team Lead priorities with per-row versions (Admin aal2, D73)",
+        "tags": [
+          "Priorities"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "description": "Vertical id (uuid)."
+            },
+            "required": true,
+            "description": "Vertical id (uuid).",
+            "name": "verticalId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1"
+              ]
+            },
+            "required": true,
+            "name": "X-CSRF-Protection",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTeamLeadPriorities"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerticalTeamLeadPriorities"
                 }
               }
             }

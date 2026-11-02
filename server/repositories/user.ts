@@ -319,13 +319,14 @@ const userEventRowSchema = z.object({
   actorName: z.string().nullable(),
   actorActive: z.boolean().nullable(),
   payload: z.record(z.string(), z.unknown()),
+  verticalId: z.uuid().nullable(),
   verticalNames: z.record(z.string(), z.string()),
 });
 export type UserEventRow = z.infer<typeof userEventRowSchema>;
 
 /**
  * User timeline, newest first, on `entity_event_subject_idx`; `limit + 1` rows signal a next page.
- * Only `user.*` types (the allowlisted user events), and never `entity_event_pii`: no names or free text.
+ * Only `user.*` types and the Team Lead's own `vertical.tl_priority_changed` (D73), never `entity_event_pii`: no names or free text.
  * Legacy profile events were written as subject 'user' before unification; append-only rows are never relabelled (CLAUDE.md §3.5).
  */
 export async function listUserEvents(
@@ -337,14 +338,14 @@ export async function listUserEvents(
   const rows = await db.execute(sql`
     select e.id::text as id, e.occurred_at as "occurredAt", e.type,
       e.actor_kind as "actorKind", a.id as "actorId", a.full_name as "actorName",
-      a.is_active as "actorActive", e.payload,
+      a.is_active as "actorActive", e.payload, e.vertical_id as "verticalId",
       (select coalesce(jsonb_object_agg(v.id, v.name), '{}'::jsonb) from ${vertical} v
-        where to_jsonb(v.id::text) in (select jsonb_path_query(e.payload, 'lax $.**.verticalId'))
+        where v.id = e.vertical_id or to_jsonb(v.id::text) in (select jsonb_path_query(e.payload, 'lax $.**.verticalId'))
       ) as "verticalNames"
     from ${entityEvent} e
     left join ${appUser} a on a.id = e.actor_id
     where e.subject_type in (${USER_SUBJECT}, 'user') and e.subject_id = ${userId}
-      and e.type like 'user.%'
+      and (e.type like 'user.%' or e.type = 'vertical.tl_priority_changed')
     ${
       cursor
         ? sql`and (e.occurred_at, e.id) < (${cursor.occurredAt.toISOString()}::timestamptz, ${cursor.id.toString()}::bigint)`
