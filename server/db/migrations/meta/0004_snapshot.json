@@ -70,12 +70,8 @@
           "tableFrom": "app_setting",
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -207,12 +203,8 @@
           "tableFrom": "app_user",
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsFrom": [
-            "deactivated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["deactivated_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -221,12 +213,8 @@
           "tableFrom": "app_user",
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -236,16 +224,12 @@
         "app_user_auth_user_id_uq": {
           "name": "app_user_auth_user_id_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "auth_user_id"
-          ]
+          "columns": ["auth_user_id"]
         },
         "app_user_email_uq": {
           "name": "app_user_email_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
+          "columns": ["email"]
         }
       },
       "policies": {},
@@ -479,12 +463,8 @@
           "tableFrom": "audit_log",
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsFrom": [
-            "actor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["actor_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -596,12 +576,8 @@
           "tableFrom": "change_feed",
           "tableTo": "vertical",
           "schemaTo": "app",
-          "columnsFrom": [
-            "vertical_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vertical_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -610,12 +586,8 @@
           "tableFrom": "change_feed",
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -878,12 +850,8 @@
           "tableFrom": "entity_event",
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsFrom": [
-            "actor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["actor_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -892,12 +860,8 @@
           "tableFrom": "entity_event",
           "tableTo": "vertical",
           "schemaTo": "app",
-          "columnsFrom": [
-            "vertical_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vertical_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -949,12 +913,8 @@
           "tableFrom": "entity_event_pii",
           "tableTo": "entity_event",
           "schemaTo": "app",
-          "columnsFrom": [
-            "event_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1124,12 +1084,8 @@
           "tableFrom": "file_object",
           "tableTo": "vertical",
           "schemaTo": "app",
-          "columnsFrom": [
-            "vertical_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vertical_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1138,12 +1094,8 @@
           "tableFrom": "file_object",
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsFrom": [
-            "uploaded_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["uploaded_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1153,9 +1105,7 @@
         "file_object_storage_key_uq": {
           "name": "file_object_storage_key_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "storage_key"
-          ]
+          "columns": ["storage_key"]
         }
       },
       "policies": {},
@@ -1285,10 +1235,7 @@
         "job_run_key_uq": {
           "name": "job_run_key_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "job_name",
-            "run_key"
-          ]
+          "columns": ["job_name", "run_key"]
         }
       },
       "policies": {},
@@ -1353,10 +1300,7 @@
       "compositePrimaryKeys": {
         "rate_limit_bucket_key_window_start_pk": {
           "name": "rate_limit_bucket_key_window_start_pk",
-          "columns": [
-            "key",
-            "window_start"
-          ]
+          "columns": ["key", "window_start"]
         }
       },
       "uniqueConstraints": {},
@@ -1462,12 +1406,8 @@
           "tableFrom": "saved_filter",
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1545,12 +1485,8 @@
           "tableFrom": "team_lead_priority",
           "tableTo": "vertical",
           "schemaTo": "app",
-          "columnsFrom": [
-            "vertical_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vertical_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1559,12 +1495,8 @@
           "tableFrom": "team_lead_priority",
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1573,12 +1505,8 @@
           "tableFrom": "team_lead_priority",
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsFrom": [
-            "updated_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["updated_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1586,10 +1514,7 @@
       "compositePrimaryKeys": {
         "team_lead_priority_vertical_id_user_id_pk": {
           "name": "team_lead_priority_vertical_id_user_id_pk",
-          "columns": [
-            "vertical_id",
-            "user_id"
-          ]
+          "columns": ["vertical_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1724,12 +1649,8 @@
           "tableFrom": "user_invite",
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1738,12 +1659,8 @@
           "tableFrom": "user_invite",
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsFrom": [
-            "invited_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["invited_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1752,12 +1669,8 @@
           "tableFrom": "user_invite",
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsFrom": [
-            "revoked_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["revoked_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1767,9 +1680,7 @@
         "user_invite_token_hash_uq": {
           "name": "user_invite_token_hash_uq",
           "nullsNotDistinct": false,
-          "columns": [
-            "token_hash"
-          ]
+          "columns": ["token_hash"]
         }
       },
       "policies": {},
@@ -1851,12 +1762,8 @@
           "tableFrom": "user_role",
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1865,12 +1772,8 @@
           "tableFrom": "user_role",
           "tableTo": "vertical",
           "schemaTo": "app",
-          "columnsFrom": [
-            "vertical_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["vertical_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         },
@@ -1879,12 +1782,8 @@
           "tableFrom": "user_role",
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }
@@ -1894,11 +1793,7 @@
         "user_role_uq": {
           "name": "user_role_uq",
           "nullsNotDistinct": true,
-          "columns": [
-            "user_id",
-            "role",
-            "vertical_id"
-          ]
+          "columns": ["user_id", "role", "vertical_id"]
         }
       },
       "policies": {},
@@ -1999,12 +1894,8 @@
           "tableFrom": "user_session",
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "restrict",
           "onUpdate": "no action"
         }

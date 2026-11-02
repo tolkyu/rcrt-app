@@ -29,7 +29,9 @@ function expiresAt(serialized: string | null): number | null {
       : serialized;
     const value: unknown = JSON.parse(json);
     const at =
-      value && typeof value === 'object' ? Reflect.get(value, 'expires_at') : null;
+      value && typeof value === 'object'
+        ? Reflect.get(value, 'expires_at')
+        : null;
     return typeof at === 'number' ? at : null;
   } catch {
     return null;
@@ -43,13 +45,18 @@ function remainingLifetime(accessToken: string | undefined, now: number) {
     const amr = decodeJwt(accessToken).amr;
     const stamps = Array.isArray(amr)
       ? amr.flatMap((entry) =>
-          entry && typeof entry === 'object' && typeof Reflect.get(entry, 'timestamp') === 'number'
+          entry &&
+          typeof entry === 'object' &&
+          typeof Reflect.get(entry, 'timestamp') === 'number'
             ? [Reflect.get(entry, 'timestamp') as number]
             : [],
         )
       : [];
     if (stamps.length === 0) return SESSION_MAX_AGE;
-    return Math.max(0, Math.min(SESSION_MAX_AGE, Math.min(...stamps) + SESSION_MAX_AGE - now));
+    return Math.max(
+      0,
+      Math.min(SESSION_MAX_AGE, Math.min(...stamps) + SESSION_MAX_AGE - now),
+    );
   } catch {
     return SESSION_MAX_AGE;
   }
@@ -68,7 +75,9 @@ export async function refreshSessionCookies(
   const key = storageKey(env.supabaseUrl);
   const cookies = parseCookieHeader(cookieHeader);
   const jar = new Map(cookies.map(({ name, value }) => [name, value]));
-  if (![...jar.keys()].some((name) => name === key || name.startsWith(`${key}.`)))
+  if (
+    ![...jar.keys()].some((name) => name === key || name.startsWith(`${key}.`))
+  )
     return null;
   const expiry = expiresAt(await combineChunks(key, (name) => jar.get(name)));
   if (expiry !== null && expiry - now > REFRESH_MARGIN_SECONDS) return null;
@@ -92,7 +101,9 @@ export async function refreshSessionCookies(
   if (writes.length === 0) return null;
   const maxAge = remainingLifetime(accessToken, now);
   return {
-    requestCookie: [...jar].map(([name, value]) => `${name}=${value}`).join('; '),
+    requestCookie: [...jar]
+      .map(([name, value]) => `${name}=${value}`)
+      .join('; '),
     setCookies: writes.map(({ name, value, options }) =>
       serializeCookieHeader(name, value, {
         path: '/',

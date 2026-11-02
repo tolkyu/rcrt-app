@@ -100,7 +100,11 @@ export function createAuthClient(cookies: AuthCookieStore): AuthClient {
         issuer: 'Hiring',
       });
       return !error && data
-        ? { factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret }
+        ? {
+            factorId: data.id,
+            qrCode: data.totp.qr_code,
+            secret: data.totp.secret,
+          }
         : null;
     },
     async verifyTotp(factorId, code) {

@@ -44,7 +44,9 @@ export async function requirePageSession(
   const pending = ctx.auth.mfaRequired && !options.allowMfaPending;
   if (pending && (options.privileged || ctx.auth.grants.size === 0)) {
     const next = safeNextPath(options.next, '');
-    redirect(next ? `/mfa/verify?next=${encodeURIComponent(next)}` : '/mfa/verify');
+    redirect(
+      next ? `/mfa/verify?next=${encodeURIComponent(next)}` : '/mfa/verify',
+    );
   }
   return ctx;
 }

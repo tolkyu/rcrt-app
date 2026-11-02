@@ -4,12 +4,7 @@ export const SESSION_ABSOLUTE_MS = 7 * 24 * 60 * 60 * 1000;
 export const SESSION_TOUCH_INTERVAL_MS = 60 * 1000;
 
 export type SessionEndReason =
-  | 'LOGOUT'
-  | 'IDLE'
-  | 'ABSOLUTE'
-  | 'DEACTIVATED'
-  | 'USER'
-  | 'MFA_RESET';
+  'LOGOUT' | 'IDLE' | 'ABSOLUTE' | 'DEACTIVATED' | 'USER' | 'MFA_RESET';
 
 export type SessionVerdict =
   | { readonly state: 'ACTIVE' }
