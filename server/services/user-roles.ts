@@ -1,5 +1,6 @@
 import {
   diffRoleAssignments,
+  roleAssignmentKey,
   type RoleAssignmentRef,
 } from '../../lib/role-diff';
 import {
@@ -32,6 +33,12 @@ const pick = ({ role, verticalId }: RoleAssignmentRef) => ({
   role,
   verticalId,
 });
+/** Audit before/after in key order, so the stored diff does not depend on the order roles were sent or read. */
+const sorted = <T extends RoleAssignmentRef>(roles: readonly T[]) =>
+  roles
+    .map((role) => [roleAssignmentKey(role), role] as const)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([, role]) => role);
 
 /**
  * «Змінити ролі» (STORY-ROLE-01-1/01-2): Admin with aal2 replaces the user's role set; the difference is
@@ -98,8 +105,8 @@ export async function updateUserRoles(
       action: 'user.roles_changed',
       entityType: 'user',
       entityId: userId,
-      before: { roles: current },
-      after: { roles: after },
+      before: { roles: sorted(current) },
+      after: { roles: sorted(after) },
     });
     return { version, added, removed };
   });

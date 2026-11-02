@@ -202,6 +202,14 @@ export const userInviteSentSchema = z
   .meta({ id: 'UserInviteSent' });
 export type UserInviteSent = z.infer<typeof userInviteSentSchema>;
 
+export const userEmailChangedSchema = z
+  .object({
+    ...userInviteSentSchema.shape,
+    version: z.number().int().positive(),
+  })
+  .strict()
+  .meta({ id: 'UserEmailChanged' });
+
 export const userInviteRevokedSchema = z
   .object({ inviteId: z.uuid(), revokedAt: z.iso.datetime() })
   .strict()

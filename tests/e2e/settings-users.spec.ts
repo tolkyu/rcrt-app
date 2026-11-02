@@ -1450,6 +1450,39 @@ test('change roles: pending additions appear in the users list and a failed save
   await expect(listEntry).not.toContainText(addedRole);
 });
 
+test('change roles: a save hands its new version to the card, so reopening before the refetch lands saves again without 409 [STORY-ROLE-01-1, ADR-006]', async ({
+  page,
+  isMobile,
+}) => {
+  const fixture = await userRolesPage(page, 'Василь Мороз');
+  const opened = fixture.detail.version;
+  const { trigger, dialog } = await openRoles(page, isMobile, 'Василь Мороз');
+  const refetch = fixture.holdNextDetailFetch();
+  await dialog
+    .getByLabel(`${roles.RECRUITER} · Крипто`, { exact: true })
+    .check();
+  await dialog.getByRole('button', { name: rolesT.submit }).click();
+  await expect(dialog).toHaveCount(0);
+  await refetch.started;
+  await expect(trigger).toBeDisabled();
+  // The refetch fails, so the only source of the new version is the save response.
+  refetch.answer(problem(429, 'RATE_LIMITED'));
+  await expect(trigger).toBeEnabled();
+  await trigger.click();
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel(`${roles.HR} · Крипто`, { exact: true }).check();
+  await dialog.getByRole('button', { name: rolesT.submit }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByText(messages.settings.common.conflict, { exact: true }),
+  ).toHaveCount(0);
+  expect(fixture.saves.map((save) => save.expectedVersion)).toEqual([
+    opened,
+    opened + 1,
+  ]);
+  expect(fixture.detail.version).toBe(opened + 2);
+});
+
 const activationT = drawerT.activation;
 const userCardDialog = (page: Page) =>
   page.getByRole('dialog').filter({

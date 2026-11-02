@@ -30,11 +30,10 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ApiError } from '@/lib/api-client';
-import { queryKeys } from '@/lib/query-keys';
 import {
+  userCardMutationKey,
   userDetailQuery,
   userEventsQuery,
-  userInviteMutationKey,
 } from '@/lib/queries/user-detail';
 import type {
   UserDetail,
@@ -42,11 +41,10 @@ import type {
   UserListItem,
   UserStatus,
 } from '@/lib/schemas/user';
-import { GLOBAL_VERTICAL } from '@/lib/user-constants';
-import { cn } from '@/lib/utils';
 import { useAuditLabels } from './audit-labels';
 import { UserInviteActions } from './user-invite-actions';
 import { UserActivationActions } from './user-activation-actions';
+import { RoleChips } from './role-chips';
 import { MfaStatus, StatusChip } from './user-status';
 
 const loadChangeEmailDialog = () => import('./change-email-dialog');
@@ -96,7 +94,6 @@ function SectionSkeleton() {
 
 function RolesSection({ head, action }: { head: Head; action?: ReactNode }) {
   const t = useTranslations('settings.users.drawer');
-  const roleLabel = useRoleLabel();
   const inactive = head.status === 'DEACTIVATED';
   return (
     <section className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
@@ -107,21 +104,7 @@ function RolesSection({ head, action }: { head: Head; action?: ReactNode }) {
         {head.roles.length === 0 ? (
           <p className="text-muted-foreground text-sm">{t('noRoles')}</p>
         ) : (
-          <ul className="flex flex-wrap gap-1">
-            {head.roles.map((assignment) => (
-              <li
-                key={`${assignment.role}:${assignment.vertical?.id ?? GLOBAL_VERTICAL}`}
-                className={cn(
-                  'max-w-full rounded-full px-2 py-0.5 text-xs font-medium [overflow-wrap:anywhere]',
-                  inactive
-                    ? 'bg-surface-muted text-muted-foreground'
-                    : 'bg-primary-subtle text-link',
-                )}
-              >
-                {roleLabel(assignment.role, assignment.vertical?.name ?? null)}
-              </li>
-            ))}
-          </ul>
+          <RoleChips roles={head.roles} tone={inactive ? 'muted' : 'active'} />
         )}
         {inactive && head.roles.length > 0 && (
           <p className="text-muted-foreground text-xs">{t('rolesInactive')}</p>
@@ -153,7 +136,7 @@ function EditRoles({
   const trigger = useRef<HTMLButtonElement>(null);
   const [editing, setEditing] = useState(false);
   const busy =
-    useIsMutating({ mutationKey: queryKeys.settingsUser(detail.id) }) > 0;
+    useIsMutating({ mutationKey: userCardMutationKey(detail.id) }) > 0;
   return (
     <>
       <Button
@@ -384,7 +367,7 @@ function MoreActions({
   const opening = useRef(false);
   const [changing, setChanging] = useState(false);
   const busy =
-    useIsMutating({ mutationKey: userInviteMutationKey(detail.id) }) > 0;
+    useIsMutating({ mutationKey: userCardMutationKey(detail.id) }) > 0;
   if (!EMAIL_EDITABLE.has(detail.status)) return null;
   const noRoles = detail.roles.length === 0;
   return (

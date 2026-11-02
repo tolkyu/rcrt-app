@@ -5,6 +5,7 @@ import {
 } from '@tanstack/react-query';
 import { ApiError, apiRequest } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
+import type { UserDetail } from '@/lib/schemas/user';
 
 /** Imported only by the lazy user drawer, so these queries and their schemas stay out of the list bundle. */
 const noRetryOnClientError = (count: number, error: Error) =>
@@ -41,6 +42,9 @@ export const userEventsQuery = (id: string) =>
 
 const userSchemas = () => import('@/lib/schemas/user');
 
+/** Prefix of every `queryKeys.settingsUsers` list; lives here because query-keys ships with every route (PERF-04). */
+export const settingsUsersKey = ['settings', 'users'] as const;
+
 /** Invite actions in «Картка користувача» (STORY-ROLE-05-3, D70); the server decides what is allowed. */
 export const userInviteRequests = {
   resend: (id: string) =>
@@ -62,7 +66,7 @@ export const userInviteRequests = {
     apiRequest(`/users/${id}/email`, {
       method: 'PUT',
       body: { email, expectedVersion },
-      schema: async () => (await userSchemas()).userInviteSentSchema,
+      schema: async () => (await userSchemas()).userEmailChangedSchema,
     }),
 };
 
@@ -78,11 +82,14 @@ export const updateUserRolesRequest = (
     schema: async () => (await userSchemas()).userRolesUpdatedSchema,
   });
 
+/** Prefix of every mutation on one user card, so the card disables all its actions while any runs (wireframe §1.3). */
+export const userCardMutationKey = (id: string) => queryKeys.settingsUser(id);
+
 export const userRolesMutationKey = (id: string) =>
-  [...queryKeys.settingsUser(id), 'roles'] as const;
+  [...userCardMutationKey(id), 'roles'] as const;
 
 export const userActivationMutationKey = (id: string) =>
-  [...queryKeys.settingsUser(id), 'activation'] as const;
+  [...userCardMutationKey(id), 'activation'] as const;
 
 export const userActivationRequests = {
   deactivate: (id: string, expectedVersion: number, reason: string) =>
@@ -103,9 +110,24 @@ export const userActivationRequests = {
     }),
 };
 
-/** Shared by every invite mutation of one user, so the card can disable all of them while any runs (wireframe §1.3). */
 export const userInviteMutationKey = (id: string) =>
-  [...queryKeys.settingsUser(id), 'invite'] as const;
+  [...userCardMutationKey(id), 'invite'] as const;
+
+/**
+ * After a save, the card takes the server's new version together with the state it stands for, so a dialog
+ * opened before the refetch lands neither 409s nor overwrites that save; a newer cached version always wins.
+ */
+export function useAdoptUserVersion(id: string) {
+  const queryClient = useQueryClient();
+  return (version: number, patch: Partial<UserDetail> = {}) =>
+    queryClient.setQueryData<UserDetail>(
+      queryKeys.settingsUser(id),
+      (current) =>
+        current && current.version < version
+          ? { ...current, ...patch, version }
+          : current,
+    );
+}
 
 /** After an invite action: the card, the users list and the audit log all show the new state. */
 export function useRefreshUserCard(id: string) {
@@ -113,7 +135,7 @@ export function useRefreshUserCard(id: string) {
   return () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.settingsUser(id) }),
-      queryClient.invalidateQueries({ queryKey: ['settings', 'users'] }),
+      queryClient.invalidateQueries({ queryKey: settingsUsersKey }),
       queryClient.invalidateQueries({ queryKey: ['settings', 'audit'] }),
     ]);
 }

@@ -26,6 +26,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { ApiError } from '@/lib/api-client';
 import {
+  useAdoptUserVersion,
   userActivationMutationKey,
   userActivationRequests,
   useRefreshUserCard,
@@ -55,6 +56,7 @@ export function UserActivationDialog({
   const roleLabel = useRoleLabel();
   const queryClient = useQueryClient();
   const refresh = useRefreshUserCard(detail.id);
+  const adoptVersion = useAdoptUserVersion(detail.id);
   const [version, setVersion] = useState(detail.version);
   const [previous] = useState(() =>
     detail.roles.map((role) => ({
@@ -85,6 +87,9 @@ export function UserActivationDialog({
     focusHeadingRef.current = true;
     onClose();
   };
+  const chosen = previous.filter((role) =>
+    selected.has(roleAssignmentKey(role)),
+  );
   const mutation = useMutation({
     mutationKey,
     mutationFn: () =>
@@ -92,12 +97,16 @@ export function UserActivationDialog({
         ? userActivationRequests.reactivate(
             detail.id,
             version,
-            previous
-              .filter((role) => selected.has(roleAssignmentKey(role)))
-              .map(({ role, verticalId }) => ({ role, verticalId })),
+            chosen.map(({ role, verticalId }) => ({ role, verticalId })),
           )
         : userActivationRequests.deactivate(detail.id, version, reason),
-    onSuccess: () => {
+    onSuccess: (updated) => {
+      adoptVersion(updated.version, {
+        status: updated.status,
+        ...(reactivate && {
+          roles: chosen.map(({ role, vertical }) => ({ role, vertical })),
+        }),
+      });
       toast.success(
         t(reactivate ? 'reactivateToast' : 'deactivateToast', {
           name: detail.fullName,

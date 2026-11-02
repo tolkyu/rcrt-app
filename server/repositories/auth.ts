@@ -477,11 +477,13 @@ export async function updateUserEmail(
   userId: string,
   email: string,
   now: Date,
-): Promise<void> {
-  await db
+): Promise<number> {
+  const [row] = await db
     .update(appUser)
     .set({ email, updatedAt: now, version: sql`${appUser.version} + 1` })
-    .where(eq(appUser.id, userId));
+    .where(eq(appUser.id, userId))
+    .returning({ version: appUser.version });
+  return row!.version;
 }
 
 const inviteeStillPending = sql`exists (select 1 from ${appUser} u where u.id = ${userInvite.userId} and u.is_active and u.activated_at is null)`;

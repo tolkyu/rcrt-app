@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import {
   useRefreshUserCard,
+  userCardMutationKey,
   userInviteMutationKey,
   userInviteRequests,
 } from '@/lib/queries/user-detail';
@@ -45,7 +46,7 @@ export function UserInviteActions({
   const [confirm, setConfirm] = useState<Confirm | null>(null);
   const userId = detail.id;
   const mutationKey = userInviteMutationKey(userId);
-  const busy = useIsMutating({ mutationKey }) > 0;
+  const busy = useIsMutating({ mutationKey: userCardMutationKey(userId) }) > 0;
   const refresh = useRefreshUserCard(userId);
   const inviteFailure = useInviteFailure();
   const { focusHeadingRef, contentProps } = useNestedDialog({

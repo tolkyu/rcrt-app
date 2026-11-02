@@ -1,6 +1,6 @@
 import {
   changeUserEmailSchema,
-  userInviteSentSchema,
+  userEmailChangedSchema,
   userParamsSchema,
 } from '@/lib/schemas/user';
 import { defineRoute } from '@/server/http/route';
@@ -18,7 +18,7 @@ export const PUT = defineRoute(
     tags: ['Users'],
     params: userParamsSchema,
     body: changeUserEmailSchema,
-    response: userInviteSentSchema,
+    response: userEmailChangedSchema,
     errors: [400, 404, 409],
   },
   (ctx, { params, body }) =>

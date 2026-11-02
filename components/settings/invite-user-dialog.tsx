@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { useRoleLabel } from '@/components/auth/use-role-label';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiError, apiRequest, type ApiFieldError } from '@/lib/api-client';
 import { FULL_NAME_MAX } from '@/lib/profile-name';
+import { settingsUsersKey } from '@/lib/queries/user-detail';
 import { sortRoles } from '@/lib/roles';
 import {
   createInviteResponseSchema,
@@ -32,7 +32,8 @@ import {
 } from '@/lib/schemas/auth';
 import { EMAIL_MAX_LENGTH } from '@/lib/schemas/email';
 import { toast } from '@/lib/toast';
-import { RoleMatrix, isGlobalRole, parseRoleKey, roleKey } from './role-matrix';
+import { RoleChips } from './role-chips';
+import { RoleMatrix, isGlobalRole, parseRoleKey } from './role-matrix';
 
 /** Pasted names often carry stray spaces; the schema collapses them, so allow some slack before the cap. */
 const NAME_INPUT_MAX = FULL_NAME_MAX + 20;
@@ -127,7 +128,6 @@ export function InviteUserDialog({
   const t = useTranslations('settings.users.inviteDialog');
   const tCommon = useTranslations('settings.common');
   const tClose = useTranslations('common');
-  const roleLabel = useRoleLabel();
   const queryClient = useQueryClient();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -174,7 +174,7 @@ export function InviteUserDialog({
         schema: createInviteResponseSchema,
       }),
     onSuccess: (created, payload) => {
-      void queryClient.invalidateQueries({ queryKey: ['settings', 'users'] });
+      void queryClient.invalidateQueries({ queryKey: settingsUsersKey });
       if (created.delivered)
         toast.success(
           t('toastSent', {
@@ -453,20 +453,11 @@ export function InviteUserDialog({
                       {t('summaryNoRoles')}
                     </p>
                   ) : (
-                    <ul className="flex flex-wrap gap-1">
-                      {assignments.map((assignment) => (
-                        <li
-                          key={roleKey(assignment.role, assignment.verticalId)}
-                          className="bg-primary-subtle text-link inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-                        >
-                          <Check className="size-3" aria-hidden="true" />
-                          {roleLabel(
-                            assignment.role,
-                            assignment.vertical?.name ?? t('summaryGlobal'),
-                          )}
-                        </li>
-                      ))}
-                    </ul>
+                    <RoleChips
+                      roles={assignments}
+                      namedGlobal
+                      marker={<Check className="size-3" aria-hidden="true" />}
+                    />
                   )}
                   <p
                     className="text-muted-foreground text-xs"

@@ -161,6 +161,7 @@ export async function userInvitePage(
           inviteId: '00000000-0000-4000-8000-000000000114',
           expiresAt: at(72),
           delivered: options.delivered ?? true,
+          version: detail.version,
         },
       });
     },

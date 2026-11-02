@@ -10,7 +10,6 @@ import {
 import { TriangleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useRef, useState, type FormEvent } from 'react';
-import { useRoleLabel } from '@/components/auth/use-role-label';
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -29,7 +28,9 @@ import {
 import { ApiError } from '@/lib/api-client';
 import { settingsVerticalsQuery } from '@/lib/queries/settings';
 import {
+  settingsUsersKey as usersKey,
   updateUserRolesRequest,
+  useAdoptUserVersion,
   useRefreshUserCard,
   userRolesMutationKey,
 } from '@/lib/queries/user-detail';
@@ -43,6 +44,7 @@ import { isAdminAssignment, sortRoles, type RoleView } from '@/lib/roles';
 import type { UserDetail, UserPage, UserStatus } from '@/lib/schemas/user';
 import { toast } from '@/lib/toast';
 import { useNestedDialog } from './invite-dialog-behaviour';
+import { RoleChips } from './role-chips';
 import { RoleMatrix, parseRoleKey, roleKey } from './role-matrix';
 
 /** Without roles a never-activated user's invite cannot be accepted (ROLE-05-2), so the warning differs. */
@@ -51,16 +53,9 @@ const INVITEE_STATUSES = new Set<UserStatus>([
   'INVITE_EXPIRED',
   'REVOKED',
 ]);
-/** D45 refusals and lost races: the card is stale, so the dialog closes and the card refetches. */
-const STATE_ERRORS = {
-  LAST_ADMIN: 'errors.lastAdmin',
-  SELF_ADMIN_REMOVAL: 'errors.selfAdmin',
-} as const;
-
 type InlineError = 'rolesInvalid' | 'unchanged';
 type Assignment = RoleAssignmentRef & RoleView;
 
-const usersKey = ['settings', 'users'] as const;
 const withUserRoles = (
   data: InfiniteData<UserPage> | undefined,
   id: string,
@@ -75,27 +70,6 @@ const withUserRoles = (
       ),
     })),
   };
-
-function Chips({ roles }: { roles: readonly Assignment[] }) {
-  const roleLabel = useRoleLabel();
-  const tMatrix = useTranslations('settings.users.roleMatrix');
-  return (
-    <ul className="flex flex-wrap gap-1">
-      {roles.map((assignment) => (
-        <li
-          key={roleAssignmentKey(assignment)}
-          className="bg-primary-subtle text-link max-w-full rounded-full px-2 py-0.5 text-xs font-medium [overflow-wrap:anywhere]"
-        >
-          {roleLabel(
-            assignment.role,
-            assignment.vertical?.name ??
-              (assignment.verticalId ? null : tMatrix('allVerticals')),
-          )}
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 /**
  * «Змінити ролі» (STORY-ROLE-01-1/01-2, wireframe §1.4): prefilled matrix, live «Буде додано/знято»,
@@ -123,11 +97,14 @@ export function EditRolesDialog({
   const tClose = useTranslations('common');
   const queryClient = useQueryClient();
   const refresh = useRefreshUserCard(detail.id);
+  const adoptVersion = useAdoptUserVersion(detail.id);
   const verticals = useQuery({
     ...settingsVerticalsQuery(),
     enabled: canListVerticals,
   });
   const errorId = useId();
+  const addedId = `${errorId}-added`;
+  const removedId = `${errorId}-removed`;
   const submitRef = useRef<HTMLButtonElement>(null);
   /** The card behind updates optimistically, so the dialog keeps the set and version it opened with. */
   const [initial] = useState<readonly Assignment[]>(() =>
@@ -236,7 +213,10 @@ export function EditRolesDialog({
       );
       return { previous, lists };
     },
-    onSuccess: () => {
+    onSuccess: (updated, roles) => {
+      adoptVersion(updated.version, {
+        roles: roles.map(({ role, vertical }) => ({ role, vertical })),
+      });
       toast.success(t('toast'));
       finish();
     },
@@ -262,10 +242,13 @@ export function EditRolesDialog({
         failure instanceof ApiError &&
         (failure.status === 409 || failure.status === 404)
       ) {
+        // D45 refusals and lost races: the card is stale, so the dialog closes and the card refetches.
         toast.error(
-          Object.hasOwn(STATE_ERRORS, failure.code)
-            ? t(STATE_ERRORS[failure.code as keyof typeof STATE_ERRORS])
-            : tCommon('conflict'),
+          failure.code === 'SELF_ADMIN_REMOVAL'
+            ? tMatrix('selfAdminLocked')
+            : failure.code === 'LAST_ADMIN'
+              ? t('errors.lastAdmin')
+              : tCommon('conflict'),
         );
         finish();
         return;
@@ -303,7 +286,7 @@ export function EditRolesDialog({
       <Dialog open onOpenChange={(open) => !open && close()}>
         <DialogContent
           closeLabel={tClose('close')}
-          className="md:w-[min(44rem,calc(100vw-2rem))]"
+          className="max-md:scroll-pb-40 md:w-[min(44rem,calc(100vw-2rem))]"
           {...dialogProps}
         >
           <DialogTitle className="[overflow-wrap:anywhere]">
@@ -348,19 +331,24 @@ export function EditRolesDialog({
                 <p className="text-muted-foreground">{t('noChanges')}</p>
               )}
               {added.length > 0 && (
-                <div className="flex flex-col gap-1">
-                  <span className="text-foreground font-medium">
+                <div aria-atomic="true" className="flex flex-col gap-1">
+                  <span id={addedId} className="text-foreground font-medium">
                     {t('added')}
                   </span>
-                  <Chips roles={added} />
+                  <RoleChips roles={added} namedGlobal labelledBy={addedId} />
                 </div>
               )}
               {removed.length > 0 && (
-                <div className="flex flex-col gap-1">
-                  <span className="text-foreground font-medium">
+                <div aria-atomic="true" className="flex flex-col gap-1">
+                  <span id={removedId} className="text-foreground font-medium">
                     {t('removed')}
                   </span>
-                  <Chips roles={removed} />
+                  <RoleChips
+                    roles={removed}
+                    tone="removed"
+                    namedGlobal
+                    labelledBy={removedId}
+                  />
                 </div>
               )}
               {changed && selected.size === 0 && (
@@ -373,7 +361,8 @@ export function EditRolesDialog({
                 </p>
               )}
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            {/* Pinned in the scrolling mobile sheet (wireframe §1.9); the negative offset cancels the sheet's bottom padding so no content shows below. */}
+            <div className="border-border bg-surface sticky -bottom-[max(1.5rem,env(safe-area-inset-bottom))] -mx-6 -mb-[max(1.5rem,env(safe-area-inset-bottom))] flex flex-col gap-2 border-t px-6 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end md:static md:m-0 md:border-t-0 md:p-0">
               <Button
                 type="button"
                 variant="outline"
@@ -417,7 +406,7 @@ export function EditRolesDialog({
           <AlertDialogDescription className="[overflow-wrap:anywhere]">
             {t('confirmBody', { name: detail.fullName })}
           </AlertDialogDescription>
-          <Chips roles={removed} />
+          <RoleChips roles={removed} tone="removed" namedGlobal />
           <AlertDialogFooter>
             <AlertDialogCancel asChild>
               <Button variant="outline" disabled={busy}>

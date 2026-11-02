@@ -15,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiError } from '@/lib/api-client';
 import {
+  useAdoptUserVersion,
   useRefreshUserCard,
   userInviteMutationKey,
   userInviteRequests,
@@ -61,6 +62,7 @@ export function ChangeEmailDialog({
   const tClose = useTranslations('common');
   const roleLabel = useRoleLabel();
   const refresh = useRefreshUserCard(detail.id);
+  const adoptVersion = useAdoptUserVersion(detail.id);
   const inviteFailure = useInviteFailure();
   const mutationKey = userInviteMutationKey(detail.id);
   const busy = useIsMutating({ mutationKey }) > 0;
@@ -90,6 +92,7 @@ export function ChangeEmailDialog({
     mutationFn: (email: string) =>
       userInviteRequests.changeEmail(detail.id, email, detail.version),
     onSuccess: async (sent, email) => {
+      adoptVersion(sent.version, { email });
       if (sent.delivered)
         toast.success(
           t('changeEmail.toast', { email, at: new Date(sent.expiresAt) }),

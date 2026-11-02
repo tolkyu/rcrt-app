@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { queryKeys } from '@/lib/query-keys';
+import { userCardMutationKey } from '@/lib/queries/user-detail';
 import type { UserDetail } from '@/lib/schemas/user';
 
 const loadDialog = () => import('./user-activation-dialog');
@@ -32,7 +32,7 @@ export function UserActivationActions({
     null,
   );
   const busy =
-    useIsMutating({ mutationKey: queryKeys.settingsUser(detail.id) }) > 0;
+    useIsMutating({ mutationKey: userCardMutationKey(detail.id) }) > 0;
   // Only accepted users have a lifecycle; invitees use the invitation actions (wireframe §1.3).
   if (
     !detail.activatedAt ||

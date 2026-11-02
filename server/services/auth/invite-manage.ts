@@ -35,6 +35,10 @@ export interface InviteSent {
   delivered: boolean;
 }
 
+export interface EmailChanged extends InviteSent {
+  version: number;
+}
+
 function targetUserId(ctx: RequestContext, rawUserId: string): string {
   requirePermission(ctx.auth, 'settings.users.manage');
   const userId = userIdOf(rawUserId);
@@ -204,7 +208,7 @@ export async function changeInviteeEmail(
   ctx: RequestContext,
   rawUserId: string,
   input: ChangeUserEmailInput,
-): Promise<InviteSent> {
+): Promise<EmailChanged> {
   const userId = targetUserId(ctx, rawUserId);
   const { email, expectedVersion } = changeUserEmailSchema.parse(input);
   const now = ctx.clock.now();
@@ -234,7 +238,7 @@ export async function changeInviteeEmail(
         ctx.auth.userId,
         now,
       );
-      await updateUserEmail(tx, userId, email, now);
+      const version = await updateUserEmail(tx, userId, email, now);
       const inviteId = await insertInvite(tx, {
         userId,
         tokenHash: hash,
@@ -260,7 +264,7 @@ export async function changeInviteeEmail(
         after: { email },
         details: { inviteId, revokedInviteId },
       });
-      return { inviteId, fullName: user.fullName };
+      return { inviteId, version, fullName: user.fullName };
     });
   let result: Awaited<ReturnType<typeof run>>;
   try {
@@ -282,5 +286,6 @@ export async function changeInviteeEmail(
     inviteId: result.inviteId,
     expiresAt: expiresAt.toISOString(),
     delivered,
+    version: result.version,
   };
 }

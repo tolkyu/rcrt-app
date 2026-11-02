@@ -5,6 +5,7 @@ import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   changeUserEmailSchema,
+  userEmailChangedSchema,
   userInviteActionSchema,
   userInviteSentSchema,
   userParamsSchema,
@@ -84,7 +85,7 @@ function routes({ ctx, provider }: FixtureArgs, identity: VerifiedIdentity) {
       tags: ['Users'],
       params: userParamsSchema,
       body: changeUserEmailSchema,
-      response: userInviteSentSchema,
+      response: userEmailChangedSchema,
       errors: [400, 404, 409],
     },
     (request, { params, body }) =>
@@ -370,6 +371,7 @@ describe('Change email: one step replaces the address and the invite [STORY-ROLE
         inviteId: expect.any(String),
         expiresAt: new Date(now.getTime() + 72 * HOUR).toISOString(),
         delivered: true,
+        version: 2,
       });
       const { user, invites } = await stored(args, target.userId);
       expect(user).toMatchObject({

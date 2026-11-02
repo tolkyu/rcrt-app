@@ -883,7 +883,7 @@
         ],
         "additionalProperties": false
       },
-      "UserInviteSent": {
+      "UserEmailChanged": {
         "type": "object",
         "properties": {
           "inviteId": {
@@ -897,12 +897,17 @@
           "delivered": {
             "type": "boolean",
             "description": "False when the email provider refused the message."
+          },
+          "version": {
+            "type": "integer",
+            "exclusiveMinimum": 0
           }
         },
         "required": [
           "inviteId",
           "expiresAt",
-          "delivered"
+          "delivered",
+          "version"
         ],
         "additionalProperties": false
       },
@@ -1054,6 +1059,29 @@
           "roles",
           "fields"
         ]
+      },
+      "UserInviteSent": {
+        "type": "object",
+        "properties": {
+          "inviteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "delivered": {
+            "type": "boolean",
+            "description": "False when the email provider refused the message."
+          }
+        },
+        "required": [
+          "inviteId",
+          "expiresAt",
+          "delivered"
+        ],
+        "additionalProperties": false
       },
       "UserInviteRevoked": {
         "type": "object",
@@ -3705,7 +3733,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UserInviteSent"
+                  "$ref": "#/components/schemas/UserEmailChanged"
                 }
               }
             }

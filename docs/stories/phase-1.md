@@ -301,7 +301,7 @@ As an **Admin**, I want to give a user a role in one or more verticals, so that 
 - (negative) Non-Admin → 404.
 
 **Events:** `user.role_assigned` (role, vertical) on user timeline + audit.
-**Edge cases:** two Admins add the same role at once → one succeeds, other gets duplicate error; FINANCE granted → TOTP required on next request (STORY-SEC-AUTH-3).
+**Edge cases:** two Admins edit the same user at once → one succeeds, the other gets 409 `STALE_STATE` → conflict toast + refetch (version check, ADR-006); FINANCE granted → TOTP required on next request (STORY-SEC-AUTH-3).
 
 ### STORY-ROLE-01-2: Remove a role assignment
 As an **Admin**, I want to remove a role, so that access shrinks when a job changes.

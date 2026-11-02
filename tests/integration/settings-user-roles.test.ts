@@ -482,7 +482,7 @@ describe('Change roles: stored difference, timeline and audit [STORY-ROLE-01-1/0
           action: 'user.roles_changed',
           actorId: args.user.id,
           before: { roles: [recruiter] },
-          after: { roles: [lead, finance] },
+          after: { roles: [finance, lead] },
         },
       ]);
       const ctx = await request();

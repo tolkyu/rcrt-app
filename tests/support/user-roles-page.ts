@@ -5,10 +5,12 @@ import type { SettingsVerticalList } from '../../lib/schemas/vertical';
 
 type Role = { role: string; verticalId: string | null };
 type Answer = { status: number; json: object } | null;
+type Hold = { received: () => void; answer: Promise<NonNullable<Answer>> };
 
 /**
  * «Змінити ролі» against a browser-side copy of a seeded user: the demo data stays untouched, the
- * service itself has integration coverage. `answer` lets a test return an error for the next save.
+ * service itself has integration coverage. `answer` lets a test return an error for the next save;
+ * `holdNextDetailFetch` keeps the card's next refetch in flight until the test answers it.
  */
 export async function userRolesPage(
   page: Page,
@@ -35,7 +37,8 @@ export async function userRolesPage(
   const state: {
     answer: Answer;
     pause: { received: () => void; released: Promise<void> } | null;
-  } = { answer: null, pause: null };
+    hold: Hold | null;
+  } = { answer: null, pause: null, hold: null };
 
   await page.route(
     (url) => url.pathname === `/api/v1/users/${detail.id}/events`,
@@ -43,7 +46,13 @@ export async function userRolesPage(
   );
   await page.route(
     (url) => url.pathname === `/api/v1/users/${detail.id}`,
-    (route) => route.fulfill({ json: detail }),
+    async (route) => {
+      const hold = state.hold;
+      state.hold = null;
+      if (!hold) return route.fulfill({ json: detail });
+      hold.received();
+      await route.fulfill(await hold.answer);
+    },
   );
   await page.route(
     (url) => url.pathname === '/api/v1/users',
@@ -132,6 +141,20 @@ export async function userRolesPage(
       });
       state.pause = { received, released };
       return { started, release };
+    },
+    holdNextDetailFetch: () => {
+      let received!: () => void;
+      let answer!: (value: NonNullable<Answer>) => void;
+      const started = new Promise<void>((resolve) => {
+        received = resolve;
+      });
+      state.hold = {
+        received,
+        answer: new Promise((resolve) => {
+          answer = resolve;
+        }),
+      };
+      return { started, answer };
     },
   };
 }
