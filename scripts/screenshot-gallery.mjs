@@ -40,6 +40,10 @@ const screens = [
     'Журнал дій — входи та безпека з вибраними діями',
   ],
   [
+    '06-admin-audit-newer',
+    'Журнал дій — «Показати новіші» після переходу до старіших записів',
+  ],
+  [
     '07-admin-navigation-open',
     'Навігація — Адміністратор',
     ['tablet-light', 'tablet-dark', 'mobile-light', 'mobile-dark'],

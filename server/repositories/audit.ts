@@ -1,7 +1,9 @@
 import {
   and,
+  asc,
   desc,
   eq,
+  gt,
   gte,
   inArray,
   isNull,
@@ -13,6 +15,7 @@ import {
 import { alias } from 'drizzle-orm/pg-core';
 import type { DbExecutor } from '../db';
 import { AUDIT_UNKNOWN_ACTOR_ACTION } from '../../lib/audit-constants';
+import type { AuditDirection } from '../../lib/schemas/audit';
 import { appUser, auditLog, vertical } from '../db/schema';
 
 export interface AuditFilters {
@@ -67,12 +70,21 @@ function entryQuery(db: DbExecutor) {
     );
 }
 
+export interface AuditKeyset {
+  readonly occurredAt: Date;
+  readonly id: bigint;
+  readonly direction: AuditDirection;
+}
+
+/** `newer` reads upward from the cursor (ascending, a backward scan of the same DESC indexes); the caller restores newest-first order. */
 export function listAuditEntries(
   db: DbExecutor,
   filters: AuditFilters,
-  cursor: { occurredAt: Date; id: bigint } | null,
+  cursor: AuditKeyset | null,
   limit: number,
 ) {
+  const newer = cursor?.direction === 'newer';
+  const beyond = newer ? gt : lt;
   const conditions: (SQL | undefined)[] = [
     filters.view === 'security'
       ? or(
@@ -101,17 +113,18 @@ export function listAuditEntries(
     filters.result ? eq(auditLog.result, filters.result) : undefined,
     cursor
       ? or(
-          lt(auditLog.occurredAt, cursor.occurredAt),
+          beyond(auditLog.occurredAt, cursor.occurredAt),
           and(
             eq(auditLog.occurredAt, cursor.occurredAt),
-            lt(auditLog.id, cursor.id),
+            beyond(auditLog.id, cursor.id),
           ),
         )
       : undefined,
   ];
+  const order = newer ? asc : desc;
   return entryQuery(db)
     .where(and(...conditions))
-    .orderBy(desc(auditLog.occurredAt), desc(auditLog.id))
+    .orderBy(order(auditLog.occurredAt), order(auditLog.id))
     .limit(limit + 1);
 }
 

@@ -409,7 +409,7 @@ As an **Admin**, I want «Журнал дій» with filters, so that I can inve
 - Given no matching rows, When using several actions, Then the existing empty/reset state is shown. Loading/error handling, Admin-only `audit.read`, non-Admin 404 and insufficient-MFA denial remain unchanged.
 - Given duplicate selections or concurrent read-only viewers, Then rows are not duplicated and no writes, notifications, timeline events or statistics changes are emitted. Deactivated actors and unknown/removed entities retain their existing visibility/labels.
 
-**Scope:** grouped selection and security-view intersection are approved (Q-158, D74, 2026-11-02). Security scope is prefix-based, independent of the current picker catalogue. Custom-date draft synchronization on Back, backward page-window navigation/full virtualization and retention jobs remain separate slices. Preserve existing 366-day explicit-range validation, 50-row default/100-row API maximum and bounded retained output; initial JS must remain ≤180 kB gz.
+**Scope:** grouped selection and security-view intersection are approved (Q-158, D74, 2026-11-02). Security scope is prefix-based, independent of the current picker catalogue. Custom-date draft synchronization on Back, full virtualization and retention jobs remain separate slices; backward page-window navigation → STORY-AUD-4. Preserve existing 366-day explicit-range validation, 50-row default/100-row API maximum and bounded retained output; initial JS must remain ≤180 kB gz.
 
 ### STORY-AUD-3: Login history
 As an **Admin**, I want every sign-in attempt recorded, so that suspicious access is visible (AUD).
@@ -418,6 +418,63 @@ As an **Admin**, I want every sign-in attempt recorded, so that suspicious acces
 - Each attempt: user (if known), method (magic link / Google / dev), result, reason for failure, IP, user agent, time.
 - Admin sees all; users see their own in «Профіль» (D25).
 - (negative) A user cannot see others' login history → 404.
+
+### STORY-AUD-4: Return to newer records in «Журнал дій» (bounded window)
+As an **Admin**, I want «Показати новіші» after paging far back, so that I can return to newer records without reloading or losing filters (AUD, PERF-04/05).
+
+Orchestrator decision within STORY-AUD-2 scope: bidirectional bounded window; no new dependency; full virtualization stays a separate slice. Wireframe settings-admin §3.1.
+
+**Acceptance criteria**
+- Given the newest first page, Then no «Показати новіші» is shown (`prevCursor` = null).
+- Given 3+ «Показати ще» loads (newest page evicted, window = 2 pages / ≤100 rows), Then «Показати новіші» (`settings.audit.loadNewer`) appears **above** the list, same style as «Показати ще»; mobile 390: full width, 44 px.
+- When pressing «Показати новіші», Then the 50 records immediately newer than the first shown row are prepended and the oldest page is evicted (still ≤2 pages / ≤100 rows); «Показати ще» below loads the next older 50 symmetrically.
+- Given repeated «Показати новіші», When the newest records are reached, Then the button disappears.
+- Scroll anchoring: the row that was first stays at the same viewport position (no jump to top). Focus stays on «Показати новіші»; if the button disappears, focus moves to that anchor row. The existing polite live region announces the shown count. While loading: button busy/disabled, no double request.
+- Any filter/view change, «Скинути фільтри», entity-history link or reload → restart at the newest first page (existing behaviour).
+- Record sheet (`?record=`) stays open across loads (detail is fetched by id); row highlight and `j/k` (§3.1) work on retained rows only; `j/k` never triggers a page load.
+- (negative) Non-Admin (incl. Head Recruiter, Finance) → 404; Admin without `aal2` → existing MFA denial; unauthenticated → 401. `direction` does not widen any filter or scope.
+
+**API contract** (`GET /api/v1/audit`, extends ADR-006 `{ items, nextCursor }`)
+
+| Parameter / field | Rule |
+|---|---|
+| `direction` | Optional, `older` (default) \| `newer`; used with `cursor`. Invalid value → 400. `direction=newer` without `cursor` → 400 |
+| `cursor` only | Behaves exactly as today (older) |
+| `items` | Always newest first (`occurred_at DESC, id DESC`), also for `newer` |
+| `prevCursor` | New, nullable. Non-null only when newer matching records exist before the first returned row. Always null for a request without cursor |
+| `nextCursor` | Unchanged semantics: older matching records exist after the last returned row |
+| Filters, limits | Same filters/validation (366-day range, actions/view rules), 50 default / 100 max |
+
+**Edge cases**
+
+| Case | Expected |
+|---|---|
+| Records created after the page opened | May appear when going newer; correct placement, no duplicates, no gaps |
+| Page boundary with equal `occurred_at` | Keyset tie-break by `id DESC` in both directions; no row skipped or repeated |
+| Last (oldest) page reached | «Показати ще» hidden (`nextCursor` null); «Показати новіші» still works |
+| Newest reached via newer loads | Button hidden; newer records arriving later appear only on refetch/reload |
+| Newer page with fewer than 50 rows | Shown as is; button hidden (`prevCursor` null) |
+| Evicted page + filter change | Window resets to newest first page with new filters; no stale pages or buttons from the previous filter |
+| Refetch on window focus / 30 s stale | Retained window re-read from its current first boundary; same window size, no scroll reset, no duplicates; late-committed rows appear at their sorted position |
+| Request error (newer) | Existing inline error + retry next to the button; retained rows and scroll unchanged |
+| Deactivated actor / removed entity in loaded rows | Existing labels («(деактивовано)», type + short ID) |
+| Concurrent Admin viewers | Read-only: no writes, audit records, notifications, timeline events or statistics changes |
+| Mobile 390 | Card list; both buttons full width 44 px; anchoring and announcement as desktop |
+
+**Non-functional**
+- PERF-04: audit route initial JS ≤180 kB gz (current 178.43 kB); no new dependency.
+- PERF-05: one SQL query per page in either direction (limit + 1 probe row), indexed keyset; no count query.
+- PERF-02: list P95 <150 ms applies to `newer` as to `older`.
+- Client retains ≤2 pages / ≤100 rows; DOM ≤100 rows.
+
+**Data / notifications / events / statistics:** no new data; none emitted (read-only screen).
+
+**Test notes**
+- Unit: page-param logic (`getPreviousPageParam` / `getNextPageParam`), window eviction direction, query parsing (`direction` valid/invalid, `newer` without cursor → 400).
+- Integration (API/repository): `newer` returns rows strictly newer than cursor in DESC order; equal-timestamp ties; `prevCursor`/`nextCursor` null/non-null at both ends; filters + `view=security` + `actions` combined; legacy `cursor`-only unchanged; non-Admin 404, no `aal2` denied, unauthenticated 401; inserted-after-open record appears once.
+- E2E: 3× «Показати ще» → «Показати новіші» appears → repeat to newest → button gone; scroll anchor row position unchanged; focus and live-region text; filter change resets window; record sheet stays open; mobile 390 flow.
+- Postman/Newman: `direction` happy path + 400 cases.
+- Screenshots: `06-admin-audit-newer-{desktop,mobile}-{light,dark}` (button visible above list after eviction).
 
 ### STORY-HIST-03-1: Append-only event store from day one
 As the **owner**, I want history that can never be altered, so that every card's timeline is trustworthy (HIST-01, HIST-03).
@@ -514,7 +571,7 @@ As the **UX designer**, I want stable diffs between runs (SHOT-03).
 | VIS-01 | VIS-01-1 | — |
 | VIS-02 | VIS-02-1 | — |
 | VIS-03 | VIS-03-1 | — |
-| AUD | AUD-1, AUD-2, AUD-3 | — |
+| AUD | AUD-1, AUD-2, AUD-3, AUD-4 (newer-window navigation) | — |
 | HIST-01, HIST-03 | HIST-03-1 | — |
 | SEC (auth, sessions, 2FA, rate limit, CSP, PII logs) | SEC-AUTH-1..4, FND-3, FND-5 | — |
 | API | FND-4 | — |

@@ -5,7 +5,15 @@ import { Ban, ScrollText, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { useEffect, useId, useMemo, useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { PageHeader } from '@/components/shell/page-header';
 import { EmptyState } from '@/components/states/empty-state';
 import { SectionError } from '@/components/states/section-error';
@@ -22,7 +30,11 @@ import {
 } from '@/lib/audit-filters';
 import { AUDIT_PERIODS } from '@/lib/audit-period';
 import { auditActionSelection } from '@/lib/audit-actions';
-import { auditQuery, type AuditFilterValues } from '@/lib/queries/settings';
+import {
+  auditQuery,
+  auditWindowMoved,
+  type AuditFilterValues,
+} from '@/lib/queries/settings';
 import { AUDIT_ENTITY_TYPES, AUDIT_SYSTEM_ACTOR } from '@/lib/audit-constants';
 import type { AuditActor, AuditEntry } from '@/lib/schemas/audit';
 import { loadOrReload } from '@/lib/load-or-reload';
@@ -103,6 +115,15 @@ function FilterSelect({
   );
 }
 
+/** Table and cards both render every row; only one of them is displayed per breakpoint. */
+function visibleRow(list: HTMLElement | null, id: string) {
+  return [
+    ...(list?.querySelectorAll<HTMLElement>(
+      `[data-audit-row="${CSS.escape(id)}"]`,
+    ) ?? []),
+  ].find((row) => row.getClientRects().length > 0);
+}
+
 function ResultChip({ result }: { result: AuditEntry['result'] }) {
   const t = useTranslations('settings.audit');
   return result === 'DENIED' ? (
@@ -151,6 +172,67 @@ export function AuditView({
   useEffect(() => void loadRecordSheet().catch(() => undefined), []);
 
   const items = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const listRef = useRef<HTMLElement>(null);
+  const newerRef = useRef<HTMLButtonElement>(null);
+  const moreRef = useRef<HTMLButtonElement>(null);
+  const anchor = useRef<{
+    id: string;
+    top: number;
+    data: unknown;
+    filters: AuditFilterValues;
+    refocus: boolean;
+  } | null>(null);
+  const fetchingPage = query.isFetchingNextPage || query.isFetchingPreviousPage;
+  /** Keeps the edge row in place while the 2-page window grows on one side and evicts the other (STORY-AUD-4). */
+  const loadPage = (newer: boolean) => {
+    if (fetchingPage) return;
+    const edge = newer ? items[0] : items.at(-1);
+    const row = edge && visibleRow(listRef.current, edge.id);
+    if (edge && row) {
+      anchor.current = {
+        id: edge.id,
+        top: row.getBoundingClientRect().top,
+        data: query.data,
+        filters,
+        refocus:
+          document.activeElement === (newer ? newerRef : moreRef).current,
+      };
+      // Native scroll anchoring (absent in Safari) would fight the manual restore below.
+      document.body.style.setProperty('overflow-anchor', 'none');
+    }
+    void (newer
+      ? query.fetchPreviousPage({ cancelRefetch: false })
+      : query.fetchNextPage({ cancelRefetch: false }));
+  };
+  useLayoutEffect(() => {
+    const pending = anchor.current;
+    if (!pending || fetchingPage) return;
+    anchor.current = null;
+    // A filter change mid-load swaps the list; the old anchor must not scroll the new one.
+    const row =
+      query.data !== pending.data && pending.filters === filters
+        ? visibleRow(listRef.current, pending.id)
+        : undefined;
+    if (row) {
+      window.scrollBy({
+        top: row.getBoundingClientRect().top - pending.top,
+        behavior: 'instant',
+      });
+      if (pending.refocus && document.activeElement === document.body)
+        row
+          .querySelector<HTMLElement>('[data-row-open]')
+          ?.focus({ preventScroll: true });
+    }
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() =>
+        document.body.style.removeProperty('overflow-anchor'),
+      ),
+    );
+  }, [fetchingPage, query.data, filters]);
+  useEffect(
+    () => () => void document.body.style.removeProperty('overflow-anchor'),
+    [],
+  );
 
   const sync = (next: AuditSearch, mode: 'push' | 'replace' = 'replace') => {
     const params = auditSearchParams(next).toString();
@@ -171,10 +253,7 @@ export function AuditView({
         resolveFilters(next, initialSearch, initialFilters),
       );
       const cached = queryClient.getQueryData(queryKey);
-      if (
-        cached &&
-        (cached.pageParams.length > 1 || cached.pageParams[0] !== null)
-      )
+      if (cached && auditWindowMoved(cached))
         queryClient.removeQueries({ queryKey, exact: true });
     }
     sync(next);
@@ -284,6 +363,7 @@ export function AuditView({
             {items.map((entry) => (
               <tr
                 key={entry.id}
+                data-audit-row={entry.id}
                 onClick={() => openRecord(entry.id)}
                 className={cn(
                   'border-border hover:bg-surface-muted h-12 cursor-pointer border-b last:border-0',
@@ -312,6 +392,7 @@ export function AuditView({
                 <td className="px-4">
                   <button
                     type="button"
+                    data-row-open
                     aria-label={open(entry)}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -337,9 +418,10 @@ export function AuditView({
         </table>
         <ul className="divide-border divide-y md:hidden">
           {items.map((entry) => (
-            <li key={entry.id}>
+            <li key={entry.id} data-audit-row={entry.id}>
               <button
                 type="button"
+                data-row-open
                 aria-label={open(entry)}
                 onClick={() => openRecord(entry.id)}
                 className="hover:bg-surface-muted flex w-full flex-col gap-1 p-4 text-left"
@@ -534,23 +616,50 @@ export function AuditView({
           {t('filters.periodHint')}
         </span>
       </div>
-      <Card className="overflow-hidden p-0">{body}</Card>
-      {query.isError && query.data && (
+      {query.hasPreviousPage && (
+        <Button
+          ref={newerRef}
+          variant="outline"
+          onClick={() => loadPage(true)}
+          aria-disabled={fetchingPage}
+          aria-busy={query.isFetchingPreviousPage}
+          className="mb-4 h-11 w-full md:h-10 md:w-auto"
+        >
+          {t('loadNewer')}
+        </Button>
+      )}
+      {query.isFetchPreviousPageError && (
+        <SectionError
+          className="mb-4"
+          onRetry={() => loadPage(true)}
+          retrying={fetchingPage}
+        />
+      )}
+      <Card ref={listRef} className="overflow-hidden p-0">
+        {body}
+      </Card>
+      {query.isError && query.data && !query.isFetchPreviousPageError && (
         <SectionError
           onRetry={() => void query.refetch()}
           retrying={query.isFetching}
         />
       )}
       {items.length > 0 && (
-        <div className="mt-4 flex items-center gap-3">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <span className="text-muted-foreground text-sm" aria-live="polite">
-            {t('shown', { shown: items.length })}
+            {/* Remounts per window so a move that keeps the count (100→100) is still announced. */}
+            <span key={items[0]?.id}>
+              {t('shown', { shown: items.length })}
+            </span>
           </span>
           {query.hasNextPage && (
             <Button
+              ref={moreRef}
               variant="outline"
-              onClick={() => void query.fetchNextPage()}
-              disabled={query.isFetchingNextPage}
+              onClick={() => loadPage(false)}
+              aria-disabled={fetchingPage}
+              aria-busy={query.isFetchingNextPage}
+              className="h-11 w-full md:h-10 md:w-auto"
             >
               {t('loadMore')}
             </Button>

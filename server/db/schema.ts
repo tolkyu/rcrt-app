@@ -376,6 +376,7 @@ export const auditLog = app.table(
     id: bigint('id', { mode: 'bigint' })
       .primaryKey()
       .generatedAlwaysAsIdentity(),
+    /** Millisecond precision only (writers pass JS Dates, never SQL `now()`): keyset cursors round-trip it as ISO strings. */
     occurredAt: instant('occurred_at').notNull(),
     actorId: uuid('actor_id').references(() => appUser.id, {
       onDelete: 'restrict',

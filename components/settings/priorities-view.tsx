@@ -648,7 +648,7 @@ function PriorityEditor({
                         variant="ghost"
                         size="icon"
                         data-focus={`${item.userId}:${direction === -1 ? 'up' : 'down'}`}
-                        className="size-11 aria-disabled:cursor-not-allowed aria-disabled:opacity-40 md:size-9"
+                        className="aria-disabled:text-foreground size-11 aria-disabled:cursor-not-allowed aria-disabled:bg-transparent aria-disabled:opacity-40 md:size-9"
                         aria-label={t(
                           direction === -1 ? 'moveUp' : 'moveDown',
                           {

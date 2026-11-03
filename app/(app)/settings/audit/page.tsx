@@ -34,10 +34,11 @@ export default async function SettingsAuditPage({
   const search = parseAuditSearch(params);
   const filters = auditApiFilters(search, ctx.clock.now());
   const queryClient = getQueryClient();
+  const { queryKey, initialPageParam } = auditQuery(filters);
   const [, initialActor] = await Promise.all([
     queryClient.prefetchInfiniteQuery({
-      queryKey: auditQuery(filters).queryKey,
-      initialPageParam: null as string | null,
+      queryKey,
+      initialPageParam,
       queryFn: () => listAudit(ctx, filters),
     }),
     search.actorId && search.actorId !== AUDIT_SYSTEM_ACTOR

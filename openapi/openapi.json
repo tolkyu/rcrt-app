@@ -285,12 +285,21 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Older matching records exist after the last item; pass as `cursor`."
+          },
+          "prevCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Newer matching records exist before the first item; pass as `cursor` with `direction=newer`. Always null without `cursor`."
           }
         },
         "required": [
           "items",
-          "nextCursor"
+          "nextCursor",
+          "prevCursor"
         ]
       },
       "AuditEntry": {
@@ -2211,12 +2220,26 @@
               "type": "string",
               "maxLength": 64,
               "pattern": "^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z)_(\\d{1,19})$",
-              "description": "Opaque `nextCursor` from the previous page.",
+              "description": "Opaque `nextCursor` or `prevCursor` of a previous page; valid only with the filters that produced it.",
               "example": "2026-11-16T08:00:00.000Z_42"
             },
             "required": false,
-            "description": "Opaque `nextCursor` from the previous page.",
+            "description": "Opaque `nextCursor` or `prevCursor` of a previous page; valid only with the filters that produced it.",
             "name": "cursor",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "older",
+                "newer"
+              ],
+              "description": "Side of `cursor` to read: `older` (default, pass `nextCursor`) or `newer` (pass `prevCursor`; requires `cursor`). Items are newest first either way."
+            },
+            "required": false,
+            "description": "Side of `cursor` to read: `older` (default, pass `nextCursor`) or `newer` (pass `prevCursor`; requires `cursor`). Items are newest first either way.",
+            "name": "direction",
             "in": "query"
           },
           {

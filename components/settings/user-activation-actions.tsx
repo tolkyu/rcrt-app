@@ -55,7 +55,7 @@ export function UserActivationActions({
     >
       <Button
         ref={trigger}
-        className="aria-disabled:bg-surface-muted aria-disabled:text-muted-foreground h-12 aria-disabled:cursor-not-allowed sm:h-10 sm:self-start"
+        className="aria-disabled:text-muted-foreground h-12 aria-disabled:cursor-not-allowed sm:h-10 sm:self-start"
         variant={reactivate ? 'default' : 'destructive-soft'}
         aria-disabled={reason ? true : undefined}
         aria-describedby={reason ? reasonId : undefined}

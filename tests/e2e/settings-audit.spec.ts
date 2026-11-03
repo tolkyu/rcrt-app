@@ -362,6 +362,7 @@ test('changing action or view filters restarts a previously evicted cache window
             },
           ],
           nextCursor: index < 3 ? String(index + 1) : null,
+          prevCursor: null,
         },
       });
     },
@@ -408,6 +409,356 @@ test('changing action or view filters restarts a previously evicted cache window
   await expect(thirdPage).toHaveCount(0);
 });
 
+type AuditRow = AuditPage['items'][number];
+
+const deniedRows = (count: number): AuditRow[] =>
+  Array.from({ length: count }, (_, index) => ({
+    id: String(20_000 - index),
+    occurredAt: new Date(
+      Date.UTC(2026, 10, 2, 9, 0) - index * 60_000,
+    ).toISOString(),
+    actor: null,
+    actorKind: 'SYSTEM',
+    action: 'vertical.created',
+    result: 'DENIED',
+    entity: {
+      type: 'vertical',
+      id: '00000000-0000-4000-8000-000000000001',
+      label: 'Крипто',
+    },
+    ip: null,
+  }));
+
+/** Serves `rows` with the `/audit` keyset contract (items newest first, `prevCursor`/`nextCursor` per side); `gate` may hold a request or answer it with an error status. */
+async function routeAuditWindow(
+  page: Page,
+  rows: readonly AuditRow[],
+  {
+    pageSize = 50,
+    gate,
+  }: {
+    pageSize?: number;
+    gate?: (url: URL) => Promise<number | undefined>;
+  } = {},
+) {
+  const calls: URL[] = [];
+  await page.route(
+    (url) => url.pathname === '/api/v1/audit',
+    async (route) => {
+      const url = new URL(route.request().url());
+      calls.push(url);
+      const status = await gate?.(url);
+      if (status) {
+        await route.fulfill({
+          status,
+          json: {
+            type: 'about:blank',
+            title: 'Error',
+            status,
+            code: 'INTERNAL',
+          },
+        });
+        return;
+      }
+      const cursor = url.searchParams.get('cursor');
+      const newer = url.searchParams.get('direction') === 'newer';
+      const at = cursor ? rows.findIndex((row) => row.id === cursor) : -1;
+      const start = newer ? Math.max(0, at - pageSize) : at + 1;
+      const items = rows.slice(start, newer ? at : start + pageSize);
+      const more = newer ? start > 0 : start + pageSize < rows.length;
+      await route.fulfill({
+        json: {
+          items,
+          nextCursor: (newer || more) && items.length ? items.at(-1)!.id : null,
+          prevCursor:
+            cursor && (!newer || more) && items.length ? items[0]!.id : null,
+        } satisfies AuditPage,
+      });
+    },
+  );
+  return calls;
+}
+
+function auditWindow(page: Page, rows: readonly AuditRow[]) {
+  const shownRows = page.locator('[data-audit-row]:visible');
+  return {
+    shownRows,
+    shownIds: () =>
+      shownRows.evaluateAll((elements) =>
+        elements.map((element) => element.getAttribute('data-audit-row')!),
+      ),
+    idsOf: (from: number, to: number) =>
+      rows.slice(from, to).map((row) => row.id),
+    loadMore: page.getByRole('button', { name: t.loadMore, exact: true }),
+    loadNewer: page.getByRole('button', { name: t.loadNewer, exact: true }),
+  };
+}
+
+const newerRequests = (calls: readonly URL[]) =>
+  calls.filter((url) => url.searchParams.get('direction') === 'newer');
+
+test('«Показати новіші» returns from an evicted window to the newest records with a stable anchor row and focus [STORY-AUD-4]', async ({
+  page,
+  isMobile,
+}) => {
+  const rows = deniedRows(180);
+  const calls = await routeAuditWindow(page, rows);
+  await page.goto('/settings/audit');
+  await page
+    .getByLabel(t.filters.result, { exact: true })
+    .selectOption('DENIED');
+  const { shownRows, shownIds, idsOf, loadMore, loadNewer } = auditWindow(
+    page,
+    rows,
+  );
+  await expect(shownRows.first()).toHaveAttribute(
+    'data-audit-row',
+    rows[0]!.id,
+  );
+  for (const last of [100, 150, 180]) {
+    await loadMore.click();
+    await expect(shownRows.last()).toHaveAttribute(
+      'data-audit-row',
+      rows[last - 1]!.id,
+    );
+    if (last === 100) await expect(loadNewer).toHaveCount(0);
+  }
+  expect(await shownIds()).toEqual(idsOf(100, 180));
+  await expect(loadMore).toHaveCount(0);
+  await expect(loadNewer).toBeVisible();
+  const newerBox = (await loadNewer.boundingBox())!;
+  expect(newerBox.y).toBeLessThan((await shownRows.first().boundingBox())!.y);
+  if (isMobile) {
+    expect(newerBox.height).toBeGreaterThanOrEqual(44);
+    expect(newerBox.width).toBeGreaterThanOrEqual(
+      (await shownRows.first().boundingBox())!.width - 2,
+    );
+  }
+
+  const pressNewer = async (anchorId: string, firstId: string) => {
+    const anchor = page.locator(`[data-audit-row="${anchorId}"]:visible`);
+    await loadNewer.scrollIntoViewIfNeeded();
+    const before = (await anchor.boundingBox())!.y;
+    await loadNewer.click();
+    await expect(shownRows.first()).toHaveAttribute('data-audit-row', firstId);
+    await expect
+      .poll(async () => Math.abs((await anchor.boundingBox())!.y - before))
+      .toBeLessThanOrEqual(3);
+    const ids = await shownIds();
+    expect(ids.length).toBeLessThanOrEqual(100);
+    expect(new Set(ids).size).toBe(ids.length);
+    return anchor;
+  };
+
+  await pressNewer(rows[100]!.id, rows[50]!.id);
+  expect(await shownIds()).toEqual(idsOf(50, 150));
+  await expect(loadNewer).toBeFocused();
+  await expect(loadMore).toBeVisible();
+  const shown = page.getByText(t.shown.replace('{shown}', '100'), {
+    exact: true,
+  });
+  await expect(shown).toBeVisible();
+  await expect(shown.locator('..')).toHaveAttribute('aria-live', 'polite');
+  const shownBefore = (await shown.elementHandle())!;
+
+  const anchor = await pressNewer(rows[50]!.id, rows[0]!.id);
+  expect(await shownIds()).toEqual(idsOf(0, 100));
+  // Same count (100→100): the text node is replaced inside the stable live region, so it is announced again.
+  expect(await shownBefore.evaluate((node) => node.isConnected)).toBe(false);
+  await expect(shown).toBeVisible();
+  await expect(shown.locator('..')).toHaveAttribute('aria-live', 'polite');
+  await expect(loadNewer).toHaveCount(0);
+  await expect(anchor.locator('[data-row-open]')).toBeFocused();
+  const newerCalls = newerRequests(calls);
+  expect(newerCalls.map((url) => url.searchParams.get('cursor'))).toEqual([
+    rows[100]!.id,
+    rows[50]!.id,
+  ]);
+  expect(
+    newerCalls.every((url) => url.searchParams.get('result') === 'DENIED'),
+  ).toBe(true);
+
+  await loadMore.click();
+  await loadMore.click();
+  await expect(loadNewer).toBeVisible();
+  const entityType = page.getByLabel(t.filters.entityType, { exact: true });
+  for (const value of ['vertical', '']) {
+    await entityType.selectOption(value);
+    await expect(shownRows.first()).toHaveAttribute(
+      'data-audit-row',
+      rows[0]!.id,
+    );
+    await expect(loadNewer).toHaveCount(0);
+    expect(await shownIds()).toEqual(idsOf(0, 50));
+  }
+});
+
+test('«Показати новіші» is busy without double requests, keeps rows on error, keeps the record sheet over a focus refetch, and restarts on reset and reload [STORY-AUD-4]', async ({
+  page,
+  isMobile,
+}) => {
+  const rows = deniedRows(180);
+  let failNewer = false;
+  let hold: Promise<void> | null = null;
+  const calls = await routeAuditWindow(page, rows, {
+    gate: async (url) => {
+      if (url.searchParams.get('direction') !== 'newer') return undefined;
+      await hold;
+      return failNewer ? 500 : undefined;
+    },
+  });
+  await page.route(/\/api\/v1\/audit\/\d+$/, (route) => {
+    const id = new URL(route.request().url()).pathname.split('/').at(-1);
+    const row = rows.find((candidate) => candidate.id === id)!;
+    return route.fulfill({
+      json: {
+        ...row,
+        before: null,
+        after: null,
+        details: null,
+        userAgent: null,
+        requestId: null,
+        detailLabels: {},
+      } satisfies AuditRecord,
+    });
+  });
+  await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+  await page.goto('/settings/audit');
+  const result = page.getByLabel(t.filters.result, { exact: true });
+  await result.selectOption('DENIED');
+  const { shownRows, shownIds, idsOf, loadMore, loadNewer } = auditWindow(
+    page,
+    rows,
+  );
+  await expect(shownRows.first()).toHaveAttribute(
+    'data-audit-row',
+    rows[0]!.id,
+  );
+  await expect(loadNewer).toHaveCount(0);
+  if (isMobile) {
+    const box = (await loadMore.boundingBox())!;
+    expect(box.height).toBeGreaterThanOrEqual(44);
+    expect(box.width).toBeGreaterThanOrEqual(
+      (await shownRows.first().boundingBox())!.width - 2,
+    );
+  }
+  const moveDown = async (clicks: number) => {
+    for (let click = 0; click < clicks; click += 1) await loadMore.click();
+    await expect(shownRows.last()).toHaveAttribute(
+      'data-audit-row',
+      rows[149]!.id,
+    );
+    await expect(loadNewer).toBeVisible();
+  };
+  await moveDown(2);
+  const errorAlert = page
+    .getByRole('alert')
+    .filter({ hasText: messages.states.errorTitle });
+
+  failNewer = true;
+  await loadNewer.click();
+  await expect(errorAlert).toBeVisible({ timeout: 15_000 });
+  expect(await shownIds()).toEqual(idsOf(50, 150));
+  await expect(loadNewer).toBeVisible();
+  await expect(loadMore).toBeEnabled();
+  expect((await errorAlert.boundingBox())!.y).toBeLessThan(
+    (await shownRows.first().boundingBox())!.y,
+  );
+  failNewer = false;
+  await errorAlert
+    .getByRole('button', { name: messages.common.retry, exact: true })
+    .click();
+  await expect(shownRows.first()).toHaveAttribute(
+    'data-audit-row',
+    rows[0]!.id,
+  );
+  await expect(errorAlert).toHaveCount(0);
+  await expect(loadNewer).toHaveCount(0);
+
+  await moveDown(1);
+  let release!: () => void;
+  hold = new Promise((resolve) => {
+    release = resolve;
+  });
+  const before = newerRequests(calls).length;
+  const olderRequests = () =>
+    calls.filter(
+      (url) =>
+        url.searchParams.has('cursor') &&
+        url.searchParams.get('direction') !== 'newer',
+    ).length;
+  const olderBefore = olderRequests();
+  await loadNewer.click();
+  await expect.poll(() => newerRequests(calls).length).toBe(before + 1);
+  await expect(loadNewer).toHaveAttribute('aria-busy', 'true');
+  await expect(loadNewer).toHaveAttribute('aria-disabled', 'true');
+  await expect(loadMore).toHaveAttribute('aria-disabled', 'true');
+  await loadNewer.click({ force: true });
+  await loadMore.click({ force: true });
+  await loadNewer.press('Enter');
+  await expect(loadNewer).toBeFocused();
+  release();
+  hold = null;
+  await expect(shownRows.first()).toHaveAttribute(
+    'data-audit-row',
+    rows[0]!.id,
+  );
+  expect(newerRequests(calls)).toHaveLength(before + 1);
+  expect(olderRequests()).toBe(olderBefore);
+  expect(await shownIds()).toEqual(idsOf(0, 100));
+
+  await moveDown(1);
+  const retained = idsOf(50, 150);
+  const sheetRow = page.locator(`[data-audit-row="${rows[120]!.id}"]:visible`);
+  await sheetRow.locator('[data-row-open]').click();
+  await expect(page).toHaveURL(new RegExp(`record=${rows[120]!.id}`));
+  const sheet = page.getByRole('dialog');
+  await expect(sheet).toBeVisible();
+  await expect(sheet).toContainText(t.actions.vertical.created);
+  if (!isMobile) await expect(sheetRow).toHaveClass(/bg-primary-subtle/);
+  const beforeFocus = calls.length;
+  await page.clock.fastForward('00:31');
+  await page.evaluate(() =>
+    window.dispatchEvent(new Event('visibilitychange')),
+  );
+  await expect.poll(() => calls.length).toBe(beforeFocus + 2);
+  const refetched = calls.slice(beforeFocus);
+  expect(refetched.every((url) => url.searchParams.has('cursor'))).toBe(true);
+  expect(
+    refetched.every((url) => url.searchParams.get('result') === 'DENIED'),
+  ).toBe(true);
+  await expect(sheet).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`record=${rows[120]!.id}`));
+  expect(await shownIds()).toEqual(retained);
+  await page.keyboard.press('Escape');
+  await expect(sheet).toHaveCount(0);
+  expect(await shownIds()).toEqual(retained);
+  await expect(loadNewer).toBeVisible();
+
+  await page.getByRole('button', { name: t.filters.reset }).first().click();
+  await expect(page).toHaveURL(/\/settings\/audit$/);
+  await expect(loadNewer).toHaveCount(0);
+  await result.selectOption('DENIED');
+  await expect(shownRows.first()).toHaveAttribute(
+    'data-audit-row',
+    rows[0]!.id,
+  );
+  await expect(loadNewer).toHaveCount(0);
+  expect(await shownIds()).toEqual(idsOf(0, 50));
+
+  await moveDown(2);
+  const beforeReload = calls.length;
+  await page.reload();
+  await expect(result).toHaveValue('DENIED');
+  await expect(loadNewer).toHaveCount(0);
+  await expect(page.locator(`[data-audit-row="${rows[149]!.id}"]`)).toHaveCount(
+    0,
+  );
+  expect(
+    calls.slice(beforeReload).some((url) => url.searchParams.has('cursor')),
+  ).toBe(false);
+});
+
 test('selected actions remain editable during a pending list and after an API failure [UI-06, STORY-AUD-2]', async ({
   page,
 }) => {
@@ -431,7 +782,10 @@ test('selected actions remain editable during a pending list and after an API fa
             code: 'VALIDATION_ERROR',
           },
         });
-      else await route.fulfill({ json: { items: [], nextCursor: null } });
+      else
+        await route.fulfill({
+          json: { items: [], nextCursor: null, prevCursor: null },
+        });
     },
   );
   try {
@@ -803,6 +1157,7 @@ test('audit list and detail render without overflow in both themes [SHOT-01..03,
             : fixture,
         ],
         nextCursor: null,
+        prevCursor: null,
       },
     });
   });
@@ -963,5 +1318,123 @@ test('audit list and detail render without overflow in both themes [SHOT-01..03,
         .first(),
     ).toBeVisible();
     await capture('security');
+  }
+});
+
+test('a moved audit window shows «Показати новіші» above the list in both themes [SHOT-01..03, STORY-AUD-4]', async ({
+  page,
+  isMobile,
+}, testInfo) => {
+  const people = {
+    anna: {
+      id: '00000000-0000-4000-8000-000000000001',
+      fullName: 'Анна Дорошенко',
+      isActive: true,
+    },
+    olena: {
+      id: '00000000-0000-4000-8000-000000000005',
+      fullName: 'Олена Коваль',
+      isActive: true,
+    },
+    ihor: {
+      id: '00000000-0000-4000-8000-000000000004',
+      fullName: 'Ігор Литвин',
+      isActive: false,
+    },
+  };
+  const user = (label: string, index: number) => ({
+    type: 'user' as const,
+    id: `00000000-0000-4000-8000-0000000001${String(index).padStart(2, '0')}`,
+    label,
+  });
+  const templates: Omit<AuditRow, 'id' | 'occurredAt'>[] = [
+    {
+      actor: people.anna,
+      actorKind: 'USER',
+      action: 'vertical.renamed',
+      result: 'SUCCESS',
+      entity: {
+        type: 'vertical',
+        id: '00000000-0000-4000-8000-000000000002',
+        label: 'Крипто',
+      },
+      ip: '127.0.0.1',
+    },
+    {
+      actor: people.olena,
+      actorKind: 'USER',
+      action: 'user.invited',
+      result: 'SUCCESS',
+      entity: user('Марія Бондар', 1),
+      ip: '127.0.0.1',
+    },
+    {
+      actor: null,
+      actorKind: 'SYSTEM',
+      action: 'auth.login_failed',
+      result: 'DENIED',
+      entity: user('Тарас Шевчук', 2),
+      ip: '127.0.0.1',
+    },
+    {
+      actor: people.anna,
+      actorKind: 'USER',
+      action: 'user.roles_changed',
+      result: 'SUCCESS',
+      entity: user('Василь Мельник', 3),
+      ip: '127.0.0.1',
+    },
+    {
+      actor: people.ihor,
+      actorKind: 'USER',
+      action: 'user.mfa_reset',
+      result: 'SUCCESS',
+      entity: user('Олена Коваль', 4),
+      ip: '127.0.0.1',
+    },
+  ];
+  const rows: AuditRow[] = Array.from({ length: 15 }, (_, index) => ({
+    ...templates[index % templates.length]!,
+    id: String(30_000 - index),
+    occurredAt: new Date(
+      Date.parse(FIXED_CLOCK_ISO) - (index + 1) * 37 * 60_000,
+    ).toISOString(),
+  }));
+  await routeAuditWindow(page, rows, { pageSize: 5 });
+  await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const { shownRows, shownIds, idsOf, loadMore, loadNewer } = auditWindow(
+    page,
+    rows,
+  );
+  for (const theme of ['light', 'dark'] as const) {
+    await page
+      .context()
+      .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
+    await page.goto('/settings/audit');
+    await page
+      .getByLabel(t.filters.period, { exact: true })
+      .selectOption('30d');
+    await expect(shownRows.first()).toHaveAttribute(
+      'data-audit-row',
+      rows[0]!.id,
+    );
+    await loadMore.click();
+    await expect(shownRows.last()).toHaveAttribute(
+      'data-audit-row',
+      rows[9]!.id,
+    );
+    await loadMore.click();
+    await expect(loadNewer).toBeVisible();
+    await expect(loadMore).toHaveCount(0);
+    expect(await shownIds()).toEqual(idsOf(5, 15));
+    expect((await loadNewer.boundingBox())!.y).toBeLessThan(
+      (await shownRows.first().boundingBox())!.y,
+    );
+    await captureScreen(
+      page,
+      testInfo,
+      `06-admin-audit-newer-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`,
+    );
   }
 });

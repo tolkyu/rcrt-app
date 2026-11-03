@@ -20,6 +20,8 @@ export {
 } from '../audit-constants';
 
 const kyivDate = z.iso.date();
+export const AUDIT_DIRECTIONS = ['older', 'newer'] as const;
+export type AuditDirection = (typeof AUDIT_DIRECTIONS)[number];
 
 export const auditQuerySchema = z
   .object({
@@ -54,10 +56,24 @@ export const auditQuerySchema = z
     entityType: z.enum(AUDIT_ENTITY_TYPES).optional(),
     entityId: z.string().min(1).max(64).optional(),
     result: z.enum(['SUCCESS', 'DENIED']).optional(),
-    cursor: timeIdCursorSchema.optional(),
+    cursor: timeIdCursorSchema
+      .meta({
+        ...timeIdCursorSchema.meta(),
+        description:
+          'Opaque `nextCursor` or `prevCursor` of a previous page; valid only with the filters that produced it.',
+      })
+      .optional(),
+    direction: z.enum(AUDIT_DIRECTIONS).optional().meta({
+      description:
+        'Side of `cursor` to read: `older` (default, pass `nextCursor`) or `newer` (pass `prevCursor`; requires `cursor`). Items are newest first either way.',
+    }),
     limit: z.coerce.number().int().min(1).max(100).default(AUDIT_PAGE),
   })
   .strict()
+  .refine((query) => query.direction !== 'newer' || query.cursor, {
+    path: ['cursor'],
+    message: 'cursor_required',
+  })
   .refine(
     (query) => query.action === undefined || query.actions === undefined,
     {
@@ -105,7 +121,14 @@ export type AuditEntry = z.infer<typeof auditEntrySchema>;
 export const auditPageSchema = z
   .object({
     items: z.array(auditEntrySchema),
-    nextCursor: z.string().nullable(),
+    nextCursor: z.string().nullable().meta({
+      description:
+        'Older matching records exist after the last item; pass as `cursor`.',
+    }),
+    prevCursor: z.string().nullable().meta({
+      description:
+        'Newer matching records exist before the first item; pass as `cursor` with `direction=newer`. Always null without `cursor`.',
+    }),
   })
   .meta({ id: 'AuditPage' });
 export type AuditPage = z.infer<typeof auditPageSchema>;

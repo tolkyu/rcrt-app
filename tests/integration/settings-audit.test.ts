@@ -5,8 +5,13 @@ import {
   auditRecordSchema,
   auditPageSchema,
   auditQuerySchema,
+  type AuditEntry,
+  type AuditPage,
+  type AuditQuery,
 } from '../../lib/schemas/audit';
+import { encodeTimeIdCursor } from '../../lib/schemas/cursor';
 import { writeAudit } from '../../server/audit';
+import type { VerifiedIdentity } from '../../server/context/identity';
 import { loadAuthContext } from '../../server/context/request-context';
 import * as schema from '../../server/db/schema';
 import { createRouteFactory } from '../../server/http/define-route';
@@ -326,34 +331,8 @@ describe('Security view intersects manual selection [STORY-AUD-2, Q-158]', () =>
         action: 'vertical.renamed',
         result: 'DENIED',
       });
-      const defineRoute = createRouteFactory({
-        db: () => args.ctx.db,
-        clock: args.ctx.clock,
-        appUrl: () => 'http://localhost:3100',
-        registry: createApiRegistry(),
-        verifyIdentity: async () => ctx.identity,
-      });
       const service = vi.fn(listAudit);
-      const route = defineRoute(
-        {
-          method: 'GET',
-          path: '/audit',
-          operationId: 'listAudit',
-          summary: 'List audit',
-          tags: ['Audit'],
-          query: auditQuerySchema,
-          response: auditPageSchema,
-          errors: [400, 404],
-        },
-        (requestContext, { query }) => service(requestContext, query),
-      );
-      const get = (query: string) =>
-        route(
-          new Request(`http://localhost:3100/api/v1/audit?${query}`, {
-            headers: { 'x-activity': 'background' },
-          }),
-          { params: Promise.resolve({}) },
-        );
+      const get = auditRoute(args, () => ctx.identity, service);
       const select = vi.spyOn(ctx.db, 'select');
       const insert = vi.spyOn(ctx.db, 'insert');
       try {
@@ -824,4 +803,298 @@ describe('«Хто» actor lookup [STORY-AUD-2, wireframe settings-admin §3.1]'
       );
     });
   });
+});
+
+const rowCursor = (item: AuditEntry) =>
+  encodeTimeIdCursor({
+    occurredAt: new Date(item.occurredAt),
+    id: BigInt(item.id),
+  });
+const ids = (page: AuditPage) => page.items.map((item) => item.id);
+
+/** Walks `older` pages from the newest, then `newer` pages back up from the oldest page's `prevCursor`. */
+async function walkWindow(
+  ctx: Awaited<ReturnType<typeof adminRequest>>,
+  filters: AuditQuery,
+) {
+  const older = [await listAudit(ctx, filters)];
+  while (older.at(-1)!.nextCursor)
+    older.push(
+      await listAudit(ctx, { ...filters, cursor: older.at(-1)!.nextCursor! }),
+    );
+  const newer: AuditPage[] = [];
+  let cursor = older.at(-1)!.prevCursor;
+  while (cursor) {
+    const page = await listAudit(ctx, {
+      ...filters,
+      cursor,
+      direction: 'newer',
+    });
+    newer.push(page);
+    cursor = page.prevCursor;
+  }
+  return { older, newer };
+}
+
+function auditRoute(
+  args: FixtureArgs,
+  identity: () => VerifiedIdentity | null,
+  service: typeof listAudit = listAudit,
+) {
+  const defineRoute = createRouteFactory({
+    db: () => args.ctx.db,
+    clock: args.ctx.clock,
+    appUrl: () => 'http://localhost:3100',
+    registry: createApiRegistry(),
+    verifyIdentity: async () => identity(),
+  });
+  const route = defineRoute(
+    {
+      method: 'GET',
+      path: '/audit',
+      operationId: 'listAudit',
+      summary: 'List audit',
+      tags: ['Audit'],
+      query: auditQuerySchema,
+      response: auditPageSchema,
+      errors: [400, 404],
+    },
+    (requestContext, { query }) => service(requestContext, query),
+  );
+  return (query: string) =>
+    route(
+      new Request(`http://localhost:3100/api/v1/audit?${query}`, {
+        headers: { 'x-activity': 'background' },
+      }),
+      { params: Promise.resolve({}) },
+    );
+}
+
+describe('«Показати новіші» window [STORY-AUD-4, PERF-05]', () => {
+  it('reads newer pages newest first across equal-timestamp boundaries, with both cursors at both ends and one select per page', async () => {
+    await fixture.run(async (args) => {
+      const ctx = await adminRequest(args);
+      const entityId = randomUUID();
+      const write = () =>
+        writeAudit(ctx.db, ctx, {
+          action: 'vertical.renamed',
+          entityType: 'vertical',
+          entityId,
+        });
+      for (const [minute, count] of [
+        [0, 3],
+        [1, 3],
+        [2, 1],
+      ] as const) {
+        args.at(new Date(Date.UTC(2033, 0, 10, 8, minute)));
+        for (let index = 0; index < count; index += 1) await write();
+      }
+      const filters = { entityType: 'vertical' as const, entityId, limit: 2 };
+      const select = vi.spyOn(ctx.db, 'select');
+      const insert = vi.spyOn(ctx.db, 'insert');
+      try {
+        const { older, newer } = await walkWindow(ctx, filters);
+        expect(older.map((page) => page.items.length)).toEqual([2, 2, 2, 1]);
+        const entries = older.flatMap((page) => page.items);
+        expect(new Set(entries.map((item) => item.id)).size).toBe(7);
+        expect(
+          entries.every((item, index) => {
+            const previous = entries[index - 1];
+            return (
+              !previous ||
+              previous.occurredAt > item.occurredAt ||
+              (previous.occurredAt === item.occurredAt &&
+                BigInt(previous.id) > BigInt(item.id))
+            );
+          }),
+        ).toBe(true);
+        expect(older[0]!.prevCursor).toBeNull();
+        expect(older.slice(1).map((page) => page.prevCursor)).toEqual(
+          older.slice(1).map((page) => rowCursor(page.items[0]!)),
+        );
+        const above = older.slice(0, 3).reverse();
+        expect(newer.map(ids)).toEqual(above.map(ids));
+        expect(newer.map((page) => page.nextCursor)).toEqual(
+          above.map((page) => page.nextCursor),
+        );
+        expect(newer.map((page) => page.prevCursor)).toEqual([
+          rowCursor(older[2]!.items[0]!),
+          rowCursor(older[1]!.items[0]!),
+          null,
+        ]);
+        expect(select).toHaveBeenCalledTimes(older.length + newer.length);
+        expect(insert).not.toHaveBeenCalled();
+        select.mockClear();
+
+        args.at(new Date(Date.UTC(2033, 0, 10, 8, 3)));
+        await write();
+        const top = await listAudit(ctx, {
+          ...filters,
+          cursor: older[1]!.prevCursor!,
+          direction: 'newer',
+        });
+        expect(ids(top)).toEqual(ids(older[0]!));
+        expect(top.prevCursor).toBe(rowCursor(top.items[0]!));
+        const latest = await listAudit(ctx, {
+          ...filters,
+          cursor: top.prevCursor!,
+          direction: 'newer',
+        });
+        expect(latest.items).toHaveLength(1);
+        expect(entries.map((item) => item.id)).not.toContain(
+          latest.items[0]!.id,
+        );
+        expect(latest.prevCursor).toBeNull();
+        expect(latest.nextCursor).toBe(rowCursor(latest.items[0]!));
+        expect(select).toHaveBeenCalledTimes(2);
+      } finally {
+        select.mockRestore();
+        insert.mockRestore();
+      }
+    });
+  });
+
+  it('ANDs period, actor, entity, result, selected actions and the security view in the newer direction', async () => {
+    await fixture.run(async (args) => {
+      const ctx = await adminRequest(args);
+      const entityId = randomUUID();
+      const matching = {
+        action: 'auth.login_failed',
+        entityType: 'user',
+        entityId,
+        result: 'DENIED',
+      } as const;
+      const noise = [
+        { ...matching, action: 'user.invited' },
+        { ...matching, action: 'user.mfa_reset' },
+        { ...matching, action: 'vertical.renamed' },
+        { ...matching, result: 'SUCCESS' },
+        { ...matching, entityId: randomUUID() },
+      ] as const;
+      for (let minute = 0; minute < 5; minute += 1) {
+        args.at(new Date(Date.UTC(2033, 1, 14, 8, minute)));
+        await writeAudit(ctx.db, ctx, matching);
+        await writeAudit(ctx.db, { ...ctx, auth: null }, matching);
+        for (const row of noise) await writeAudit(ctx.db, ctx, row);
+      }
+      args.at(new Date(Date.UTC(2033, 1, 14, 23, 0)));
+      await writeAudit(ctx.db, ctx, matching);
+      const filters = {
+        view: 'security' as const,
+        actions: 'vertical.renamed,user.invited,auth.login_failed',
+        actorId: args.user.id,
+        entityType: 'user' as const,
+        entityId,
+        result: 'DENIED' as const,
+        from: '2033-02-14',
+        to: '2033-02-14',
+        limit: 2,
+      };
+      const { older, newer } = await walkWindow(ctx, filters);
+      expect(older.map((page) => page.items.length)).toEqual([2, 2, 1]);
+      expect(
+        [...older, ...newer]
+          .flatMap((page) => page.items)
+          .every(
+            (item) =>
+              item.action === 'auth.login_failed' &&
+              item.result === 'DENIED' &&
+              item.actor?.id === args.user.id &&
+              item.entity?.id === entityId,
+          ),
+      ).toBe(true);
+      expect(newer.map(ids)).toEqual(older.slice(0, 2).reverse().map(ids));
+      expect(newer.at(-1)!.prevCursor).toBeNull();
+    });
+  });
+
+  it('validates direction over HTTP and keeps cursor-only requests unchanged', async () => {
+    await fixture.run(async (args) => {
+      const ctx = await adminRequest(args);
+      const entityId = randomUUID();
+      for (let minute = 0; minute < 3; minute += 1) {
+        args.at(new Date(Date.UTC(2033, 2, 1, 8, minute)));
+        await writeAudit(ctx.db, ctx, {
+          action: 'vertical.created',
+          entityType: 'vertical',
+          entityId,
+        });
+      }
+      // The route reloads the session per request; return the clock from the seeded future dates.
+      args.at(new Date('2026-11-16T08:00:00Z'));
+      let identity: VerifiedIdentity | null = ctx.identity;
+      const get = auditRoute(args, () => identity);
+      const json = async (query: string) => {
+        const response = await get(query);
+        expect(response.status, query).toBe(200);
+        return auditPageSchema.parse(await response.json());
+      };
+      const base = `entityType=vertical&entityId=${entityId}&limit=1`;
+      const first = await json(base);
+      expect(first.prevCursor).toBeNull();
+      const cursor = encodeURIComponent(first.nextCursor!);
+      const legacy = await json(`${base}&cursor=${cursor}`);
+      expect(await json(`${base}&cursor=${cursor}&direction=older`)).toEqual(
+        legacy,
+      );
+      expect(legacy.items).toHaveLength(1);
+      expect(legacy.items[0]!.id).not.toBe(first.items[0]!.id);
+      expect(legacy.nextCursor).toBe(rowCursor(legacy.items[0]!));
+      expect(legacy.prevCursor).toBe(rowCursor(legacy.items[0]!));
+      const back = await json(
+        `${base}&cursor=${encodeURIComponent(legacy.prevCursor!)}&direction=newer`,
+      );
+      expect(back.items).toEqual(first.items);
+      expect(back.prevCursor).toBeNull();
+      expect(back.nextCursor).toBe(first.nextCursor);
+      for (const query of [
+        `${base}&direction=newer`,
+        `${base}&direction=sideways`,
+        `${base}&direction=`,
+        `${base}&cursor=${cursor}&direction=NEWER`,
+        `${base}&cursor=${cursor}&direction=newer&direction=older`,
+        `${base}&cursor=garbage&direction=newer`,
+      ])
+        expect((await get(query)).status, query).toBe(400);
+      identity = null;
+      expect(
+        (await get(`${base}&cursor=${cursor}&direction=newer`)).status,
+      ).toBe(401);
+    });
+  });
+
+  it.each([
+    ['a Head Recruiter', 'HEAD_RECRUITER', false, 'aal2', 404],
+    ['Finance', 'FINANCE', false, 'aal2', 404],
+    ['an aal1 Admin', null, true, 'aal1', 401],
+  ] as const)(
+    'denies %s a newer page without widening scope',
+    async (_who, role, admin, aal, status) => {
+      await fixture.run(async (args) => {
+        if (role)
+          await args.ctx.db.insert(schema.userRole).values({
+            userId: args.user.id,
+            role,
+            verticalId: role === 'FINANCE' ? null : args.user.verticalId,
+          });
+        const ctx = await request(args, {
+          admin,
+          aal,
+          verified: aal === 'aal2',
+        });
+        const cursor = encodeTimeIdCursor({
+          occurredAt: new Date('2020-01-01T00:00:00.000Z'),
+          id: 1n,
+        });
+        const response = await auditRoute(
+          args,
+          () => ctx.identity,
+        )(`cursor=${encodeURIComponent(cursor)}&direction=newer`);
+        expect(response.status).toBe(status);
+        await expect(
+          listAudit(ctx, { cursor, direction: 'newer' }),
+        ).rejects.toMatchObject({ status });
+      });
+    },
+  );
 });

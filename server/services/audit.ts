@@ -78,18 +78,25 @@ export async function listAudit(
   const cursor = query.cursor ? decodeTimeIdCursor(query.cursor) : null;
   const bounds = kyivDateBounds(query.from, query.to);
   const actorId = query.actorId === AUDIT_SYSTEM_ACTOR ? null : query.actorId;
+  const direction = query.direction ?? 'older';
+  const newer = direction === 'newer';
   const rows = await listAuditEntries(
     ctx.db,
     { ...query, ...bounds, actorId, actions: query.actions?.split(',') },
-    cursor,
+    cursor && { ...cursor, direction },
     query.limit,
   );
   const page = rows.slice(0, query.limit);
+  if (newer) page.reverse();
+  const more = rows.length > query.limit;
+  const first = page[0];
   const last = page.at(-1);
+  // STORY-AUD-4: the cursor row itself lies on the side we came from, so that side always has records.
   return {
     items: page.map(toEntry),
-    nextCursor:
-      rows.length > query.limit && last ? encodeTimeIdCursor(last) : null,
+    nextCursor: (newer || more) && last ? encodeTimeIdCursor(last) : null,
+    prevCursor:
+      cursor && (!newer || more) && first ? encodeTimeIdCursor(first) : null,
   };
 }
 

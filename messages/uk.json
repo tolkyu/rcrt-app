@@ -700,6 +700,7 @@
         "teamLead": "Тімлід"
       },
       "loadMore": "Показати ще",
+      "loadNewer": "Показати новіші",
       "shown": "Показано {shown} (до 100 останніх завантажених записів)",
       "openRecord": "Відкрити запис: {action}, {at, date, ::dd.MM.yyyy HH:mm:ss}",
       "detail": {
