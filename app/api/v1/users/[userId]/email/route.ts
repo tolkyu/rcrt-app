@@ -19,7 +19,7 @@ export const PUT = defineRoute(
     params: userParamsSchema,
     body: changeUserEmailSchema,
     response: userEmailChangedSchema,
-    errors: [400, 404, 409],
+    errors: [404, 409],
   },
   (ctx, { params, body }) =>
     changeInviteeEmail(authDependencies, ctx, params.userId, body),

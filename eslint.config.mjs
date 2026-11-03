@@ -130,4 +130,9 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Postman sandbox scripts, merged into tests/postman/collection.json by scripts/postman.ts.
+    files: ['tests/postman/tests/**/*.js'],
+    languageOptions: { sourceType: 'script', globals: { pm: 'readonly' } },
+  },
 );

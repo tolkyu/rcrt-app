@@ -28,7 +28,7 @@ export const PATCH = defineRoute(
     tags: ['Profile'],
     body: updateMeSchema,
     response: meSchema,
-    errors: [400],
+    errors: [],
   },
   (ctx, { body }) => updateMyProfile(ctx, body),
 );

@@ -18,7 +18,7 @@ export const PUT = defineRoute(
     params: userParamsSchema,
     body: updateUserRolesSchema,
     response: userRolesUpdatedSchema,
-    errors: [400, 404, 409],
+    errors: [404, 409],
   },
   (ctx, { params, body }) => updateUserRoles(ctx, params.userId, body),
 );

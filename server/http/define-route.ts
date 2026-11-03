@@ -16,12 +16,14 @@ import { problemResponse } from './problem';
 import { readJsonBody } from './read-json';
 import {
   problemResponses,
+  UNSAFE_METHODS,
   zodFieldErrors,
   type ErrorStatus,
+  type HttpMethod,
 } from './route-shared';
 
-export type { ErrorStatus } from './route-shared';
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+export type { ErrorStatus, HttpMethod } from './route-shared';
+export { UNSAFE_METHODS } from './route-shared';
 type AnyObject = z.ZodObject<z.ZodRawShape>;
 type Output<S> = S extends z.ZodType ? z.output<S> : undefined;
 
@@ -42,7 +44,7 @@ export interface RouteSpec<
   readonly body?: B;
   readonly response: R;
   readonly successStatus?: 200 | 201;
-  /** Documented error responses besides 401 and 500, which every user route can return. */
+  /** Documented error responses besides 401, 500 and the 400 every route with params/query/body returns. */
   readonly errors: readonly ErrorStatus[];
 }
 
@@ -71,8 +73,6 @@ export interface RouteLogEntry {
   readonly userId: string | null;
   readonly error?: unknown;
 }
-
-const unsafe = new Set<HttpMethod>(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 function parsePart<S extends AnyObject | z.ZodType | undefined>(
   schema: S,
@@ -112,7 +112,7 @@ function openApiRoute(
     request: {
       ...(spec.params ? { params: spec.params } : {}),
       ...(spec.query ? { query: spec.query } : {}),
-      ...(unsafe.has(spec.method)
+      ...(UNSAFE_METHODS.has(spec.method)
         ? { headers: z.object({ 'X-CSRF-Protection': z.literal('1') }) }
         : {}),
       ...(spec.body
@@ -131,8 +131,11 @@ function openApiRoute(
       },
       ...problemResponses([
         ...spec.errors,
+        ...(spec.params || spec.query || spec.body ? [400 as const] : []),
         401,
-        ...(unsafe.has(spec.method) ? [403 as const, 413 as const] : []),
+        ...(UNSAFE_METHODS.has(spec.method)
+          ? [403 as const, 413 as const]
+          : []),
         500,
       ]),
     },
@@ -156,7 +159,7 @@ export function createRouteFactory(deps: RouteFactoryDependencies) {
       input: RouteInput<Output<P>, Output<Q>, Output<B>>,
     ) => Promise<z.input<R>>,
   ): RouteHandler {
-    if (spec.body && !unsafe.has(spec.method)) {
+    if (spec.body && !UNSAFE_METHODS.has(spec.method)) {
       throw new Error(
         `${spec.operationId}: ${spec.method} routes cannot declare a body`,
       );
@@ -186,7 +189,7 @@ export function createRouteFactory(deps: RouteFactoryDependencies) {
             searchParamsObject(new URL(request.url)),
             'query',
           ) as Output<Q>,
-          body: unsafe.has(spec.method)
+          body: UNSAFE_METHODS.has(spec.method)
             ? (parsePart(
                 spec.body,
                 await readJsonBody(request),

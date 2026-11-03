@@ -214,6 +214,7 @@ flowchart LR
 | T-S03 | T, E | **Malicious dependency / compromised GitHub Action** (npm worm style) | M | **H** | **DG-17**: frozen pnpm lockfile, pnpm 10 lifecycle scripts blocked except `onlyBuiltDependencies` allowlist, `minimumReleaseAge` ≥ 1 day, Renovate with review, `pnpm audit --audit-level high` gate, Actions pinned by SHA, default `permissions: read-all`, no `pull_request_target`, SBOM in Phase 7 | M |
 | T-S04 | E | **CI secret misuse**: prod migrations or deploy from PR branches; fork PRs reading secrets | L | H | **DG-22**: GitHub Environments with required reviewers; prod migrations only from `main`; migration role separate from `app_rw`; perf/Newman jobs use only local Supabase (no prod secrets) | L |
 | T-S05 | D | **Availability**: Supabase free tier pauses; Hobby cron limits | M | M | ADR-001 P1/P2 (O-01, O-02) | M |
+| T-S06 | T, I | **Dev-only Newman advisories** (accepted, 2026-11-03): `newman@6.2.3` pulls transitive advisories (handlebars, node-forge, lodash, underscore, flatted, qs, `@faker-js/faker`, …) | L | L | devDependency only, never bundled or deployed; runs only against the local stack over loopback http (runner refuses non-loopback URLs and `VERCEL_ENV`); input is our committed, generated collection — no untrusted templates or remote collections; no pnpm overrides | L (accepted) |
 
 ---
 

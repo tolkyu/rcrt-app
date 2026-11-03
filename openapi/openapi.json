@@ -1971,6 +1971,16 @@
               }
             }
           },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
@@ -5170,6 +5180,16 @@
               }
             }
           },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
@@ -5555,6 +5575,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VerticalTeamLeadPriorities"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
                 }
               }
             }

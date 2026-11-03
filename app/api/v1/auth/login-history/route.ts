@@ -15,7 +15,7 @@ export const GET = defineRoute(
     tags: ['Auth'],
     query: loginHistoryQuerySchema,
     response: loginHistorySchema,
-    errors: [400],
+    errors: [],
   },
   (ctx, { query }) => listMyLoginHistory(ctx, query),
 );

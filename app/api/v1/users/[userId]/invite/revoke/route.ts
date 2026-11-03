@@ -18,7 +18,7 @@ export const POST = defineRoute(
     params: userParamsSchema,
     body: userInviteActionSchema,
     response: userInviteRevokedSchema,
-    errors: [400, 404, 409],
+    errors: [404, 409],
   },
   (ctx, { params }) => revokeInvite(ctx, params.userId),
 );

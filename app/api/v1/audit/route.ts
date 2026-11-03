@@ -14,7 +14,7 @@ export const GET = defineRoute(
     tags: ['Audit'],
     query: auditQuerySchema,
     response: auditPageSchema,
-    errors: [400, 404],
+    errors: [404],
   },
   (ctx, { query }) => listAudit(ctx, query),
 );

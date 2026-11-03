@@ -19,7 +19,7 @@ export const POST = defineRoute(
     params: userParamsSchema,
     body: deactivateUserSchema,
     response: userActivationUpdatedSchema,
-    errors: [400, 404, 409, 503],
+    errors: [404, 409, 503],
   },
   (ctx, { params, body }) =>
     deactivateUser(authDependencies, ctx, params.userId, body),

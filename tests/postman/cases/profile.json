@@ -1,0 +1,74 @@
+[
+  {
+    "operation": "getMe",
+    "name": "recruiter (Крипто) reads own profile",
+    "as": "recruiter_crypto",
+    "status": 200,
+    "script": "me-recruiter-crypto"
+  },
+  {
+    "operation": "getMe",
+    "name": "Admin without TOTP sees MFA required and no global grants",
+    "as": "admin_aal1",
+    "status": 200,
+    "script": "me-admin-aal1"
+  },
+  {
+    "operation": "getMe",
+    "name": "no token",
+    "as": null,
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "updateMe",
+    "name": "change own display name",
+    "as": "recruiter_crypto",
+    "body": { "fullName": "  {{me_full_name}}   API  " },
+    "status": 200,
+    "script": "me-renamed"
+  },
+  {
+    "operation": "updateMe",
+    "name": "restore own display name",
+    "as": "recruiter_crypto",
+    "body": { "fullName": "{{me_full_name}}" },
+    "status": 200,
+    "script": "me-restored"
+  },
+  {
+    "operation": "updateMe",
+    "name": "blank name",
+    "as": "recruiter_crypto",
+    "body": { "fullName": "   " },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [{ "path": "body.fullName", "code": "too_small" }]
+  },
+  {
+    "operation": "updateMe",
+    "name": "email is not self-service",
+    "as": "recruiter_crypto",
+    "body": { "fullName": "{{me_full_name}}", "email": "other@demo" },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [{ "path": "body", "code": "unrecognized_keys" }]
+  },
+  {
+    "operation": "updateMe",
+    "name": "missing X-CSRF-Protection",
+    "as": "recruiter_crypto",
+    "headers": { "X-CSRF-Protection": null },
+    "body": { "fullName": "{{me_full_name}}" },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "updateMe",
+    "name": "no token",
+    "as": null,
+    "body": { "fullName": "{{me_full_name}}" },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  }
+]

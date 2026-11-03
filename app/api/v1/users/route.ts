@@ -14,7 +14,7 @@ export const GET = defineRoute(
     tags: ['Users'],
     query: userListQuerySchema,
     response: userPageSchema,
-    errors: [400, 404],
+    errors: [404],
   },
   (ctx, { query }) => listUserPage(ctx, query),
 );

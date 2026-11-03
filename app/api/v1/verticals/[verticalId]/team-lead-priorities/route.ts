@@ -34,7 +34,7 @@ export const PUT = defineRoute(
     params: teamLeadPriorityParamsSchema,
     body: updateTeamLeadPrioritiesSchema,
     response: verticalTeamLeadPrioritiesSchema,
-    errors: [400, 404, 409],
+    errors: [404, 409],
   },
   (ctx, { params, body }) =>
     updateTeamLeadPriorities(ctx, params.verticalId, body),

@@ -1,0 +1,346 @@
+[
+  {
+    "operation": "listSettingsVerticals",
+    "name": "Admin lists all verticals with user counts",
+    "as": "admin",
+    "status": 200,
+    "script": "settings-verticals-admin"
+  },
+  {
+    "operation": "listSettingsVerticals",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "listSettingsVerticals",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listSettingsVerticals",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listSettingsVerticals",
+    "name": "no token",
+    "as": null,
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "listVerticals",
+    "name": "Admin sees every vertical",
+    "as": "admin",
+    "status": 200,
+    "script": "verticals-admin"
+  },
+  {
+    "operation": "listVerticals",
+    "name": "Head Recruiter (Гемблінг) sees only own vertical",
+    "as": "head_recruiter_gambling",
+    "status": 200,
+    "script": "verticals-head-recruiter"
+  },
+  {
+    "operation": "listVerticals",
+    "name": "Recruiter (Крипто) sees only own vertical",
+    "as": "recruiter_crypto",
+    "status": 200,
+    "script": "verticals-recruiter-crypto"
+  },
+  {
+    "operation": "listVerticals",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listVerticals",
+    "name": "no token",
+    "as": null,
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "renameVertical",
+    "name": "Admin saves the unchanged name (no-op)",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{vertical_id}}"
+    },
+    "body": "{\"name\":\"{{vertical_name}}\",\"expectedVersion\":{{vertical_version}}}",
+    "status": 200,
+    "script": "vertical-unchanged"
+  },
+  {
+    "operation": "renameVertical",
+    "name": "stale expectedVersion",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{vertical_id}}"
+    },
+    "body": {
+      "name": "Перейменування API",
+      "expectedVersion": 2147483647
+    },
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "renameVertical",
+    "name": "unknown vertical",
+    "as": "admin",
+    "params": {
+      "verticalId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": "{\"name\":\"{{vertical_name}}\",\"expectedVersion\":{{vertical_version}}}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "renameVertical",
+    "name": "Head Recruiter gets the same 404 as an unknown vertical",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "verticalId": "{{vertical_id}}"
+    },
+    "body": "{\"name\":\"{{vertical_name}}\",\"expectedVersion\":{{vertical_version}}}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "renameVertical",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "params": {
+      "verticalId": "{{vertical_id}}"
+    },
+    "body": "{\"name\":\"{{vertical_name}}\",\"expectedVersion\":{{vertical_version}}}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "renameVertical",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "verticalId": "{{vertical_id}}"
+    },
+    "body": "{\"name\":\"{{vertical_name}}\",\"expectedVersion\":{{vertical_version}}}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "renameVertical",
+    "name": "malformed id and one-letter name",
+    "as": "admin",
+    "params": {
+      "verticalId": "not-a-uuid"
+    },
+    "body": {
+      "name": " Г ",
+      "expectedVersion": 0
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "params.verticalId",
+        "code": "invalid_format"
+      }
+    ]
+  },
+  {
+    "operation": "renameVertical",
+    "name": "one-letter name and zero version",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{vertical_id}}"
+    },
+    "body": {
+      "name": " Г ",
+      "expectedVersion": 0
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.name",
+        "code": "too_small"
+      },
+      {
+        "path": "body.expectedVersion",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "renameVertical",
+    "name": "missing X-CSRF-Protection",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{vertical_id}}"
+    },
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "body": {
+      "name": "Перейменування API",
+      "expectedVersion": 2147483647
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "renameVertical",
+    "name": "foreign Origin",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{vertical_id}}"
+    },
+    "headers": {
+      "Origin": "https://evil.example"
+    },
+    "body": {
+      "name": "Перейменування API",
+      "expectedVersion": 2147483647
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "renameVertical",
+    "name": "Origin header removed",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{vertical_id}}"
+    },
+    "headers": {
+      "Origin": null
+    },
+    "body": {
+      "name": "Перейменування API",
+      "expectedVersion": 2147483647
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "renameVertical",
+    "name": "Content-Type text/plain",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{vertical_id}}"
+    },
+    "headers": {
+      "content-type": "text/plain"
+    },
+    "body": {
+      "name": "Перейменування API",
+      "expectedVersion": 2147483647
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "renameVertical",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "verticalId": "{{vertical_id}}"
+    },
+    "body": {
+      "name": "Перейменування API",
+      "expectedVersion": 2147483647
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "createVertical",
+    "name": "existing name is taken",
+    "as": "admin",
+    "body": {
+      "name": "{{vertical_name}}"
+    },
+    "status": 409,
+    "code": "VERTICAL_NAME_TAKEN"
+  },
+  {
+    "operation": "createVertical",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "body": {
+      "name": "{{vertical_name}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createVertical",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "body": {
+      "name": "{{vertical_name}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createVertical",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "body": {
+      "name": "{{vertical_name}}"
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "createVertical",
+    "name": "name over 50 characters",
+    "as": "admin",
+    "body": {
+      "name": "Вертикаль з надто довгою назвою для перевірки обмеження"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.name",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "createVertical",
+    "name": "missing X-CSRF-Protection",
+    "as": "admin",
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "body": {
+      "name": "{{vertical_name}}"
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "createVertical",
+    "name": "no token",
+    "as": null,
+    "body": {
+      "name": "{{vertical_name}}"
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  }
+]

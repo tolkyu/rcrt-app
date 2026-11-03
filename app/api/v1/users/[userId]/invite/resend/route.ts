@@ -19,7 +19,7 @@ export const POST = defineRoute(
     params: userParamsSchema,
     body: userInviteActionSchema,
     response: userInviteSentSchema,
-    errors: [400, 404, 409],
+    errors: [404, 409],
   },
   (ctx, { params }) => resendInvite(authDependencies, ctx, params.userId),
 );

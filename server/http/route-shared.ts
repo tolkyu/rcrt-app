@@ -3,6 +3,15 @@ import type { z } from 'zod';
 import type { FieldError } from './errors';
 import { problemSchema } from './openapi';
 
+export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+export const UNSAFE_METHODS: ReadonlySet<string> = new Set<HttpMethod>([
+  'POST',
+  'PUT',
+  'PATCH',
+  'DELETE',
+]);
+
 export type ErrorStatus = 400 | 401 | 403 | 404 | 409 | 413 | 429 | 503;
 export type DocumentedErrorStatus = ErrorStatus | 500;
 

@@ -19,7 +19,7 @@ export const POST = defineRoute(
     params: userParamsSchema,
     body: reactivateUserSchema,
     response: userActivationUpdatedSchema,
-    errors: [400, 404, 409, 503],
+    errors: [404, 409, 503],
   },
   (ctx, { params, body }) =>
     reactivateUser(authDependencies, ctx, params.userId, body),

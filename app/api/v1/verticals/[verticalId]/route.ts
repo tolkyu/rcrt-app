@@ -18,7 +18,7 @@ export const PATCH = defineRoute(
     params: verticalIdParamsSchema,
     body: renameVerticalSchema,
     response: settingsVerticalSchema,
-    errors: [400, 404, 409],
+    errors: [404, 409],
   },
   (ctx, { params, body }) => renameVertical(ctx, params.verticalId, body),
 );

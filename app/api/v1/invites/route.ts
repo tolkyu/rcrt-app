@@ -17,7 +17,7 @@ export const POST = defineRoute(
     body: createInviteSchema,
     response: createInviteResponseSchema,
     successStatus: 201,
-    errors: [400, 404, 409],
+    errors: [404, 409],
   },
   (ctx, { body }) => createInvite(authDependencies, ctx, body),
 );

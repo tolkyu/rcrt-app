@@ -18,7 +18,7 @@ export const GET = defineRoute(
     params: userParamsSchema,
     query: userEventsQuerySchema,
     response: userEventPageSchema,
-    errors: [400, 404],
+    errors: [404],
   },
   (ctx, { params, query }) => listUserEventPage(ctx, params.userId, query),
 );

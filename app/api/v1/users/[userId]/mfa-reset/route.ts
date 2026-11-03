@@ -18,7 +18,7 @@ export const POST = defineRoute(
     params: userIdParamsSchema,
     body: mfaResetSchema,
     response: mfaResetResponseSchema,
-    errors: [400, 403, 404, 503],
+    errors: [403, 404, 503],
   },
   (ctx, { params, body }) =>
     resetUserMfa(authDependencies, ctx, {

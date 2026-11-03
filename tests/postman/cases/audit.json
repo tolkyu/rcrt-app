@@ -1,0 +1,312 @@
+[
+  {
+    "operation": "listAudit",
+    "name": "newest page",
+    "as": "admin",
+    "query": {
+      "limit": "2"
+    },
+    "status": 200,
+    "script": "audit-newest-page"
+  },
+  {
+    "operation": "listAudit",
+    "name": "older page by nextCursor",
+    "as": "admin",
+    "query": {
+      "limit": "2",
+      "cursor": "{{audit_next_cursor}}"
+    },
+    "status": 200,
+    "script": "audit-older-page"
+  },
+  {
+    "operation": "listAudit",
+    "name": "direction=newer by prevCursor returns the newest page again",
+    "as": "admin",
+    "query": {
+      "limit": "2",
+      "cursor": "{{audit_prev_cursor}}",
+      "direction": "newer"
+    },
+    "status": 200,
+    "script": "audit-newer-page"
+  },
+  {
+    "operation": "listAudit",
+    "name": "security view with several actions",
+    "as": "admin",
+    "query": {
+      "view": "security",
+      "actions": "auth.login_succeeded,auth.logged_out",
+      "limit": "5"
+    },
+    "status": 200,
+    "script": "audit-security-actions"
+  },
+  {
+    "operation": "listAudit",
+    "name": "unknown action code",
+    "as": "admin",
+    "query": {
+      "actions": "auth.login_succeeded,user.unknown"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.actions",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "listAudit",
+    "name": "direction=newer without cursor",
+    "as": "admin",
+    "query": {
+      "direction": "newer"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.cursor",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "listAudit",
+    "name": "unknown direction",
+    "as": "admin",
+    "query": {
+      "cursor": "{{audit_next_cursor}}",
+      "direction": "sideways"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.direction",
+        "code": "invalid_value"
+      }
+    ]
+  },
+  {
+    "operation": "listAudit",
+    "name": "limit above 100",
+    "as": "admin",
+    "query": {
+      "limit": "101"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.limit",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "listAudit",
+    "name": "forged cursor",
+    "as": "admin",
+    "query": {
+      "cursor": "2026-13-01T00:00:00.000Z_1"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.cursor",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "listAudit",
+    "name": "unknown query parameter",
+    "as": "admin",
+    "query": {
+      "sort": "asc"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "listAudit",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listAudit",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listAudit",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "listAudit",
+    "name": "no token",
+    "as": null,
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "getAuditRecord",
+    "name": "Admin opens a record from the list",
+    "as": "admin",
+    "params": {
+      "recordId": "{{audit_record_id}}"
+    },
+    "status": 200,
+    "script": "audit-record"
+  },
+  {
+    "operation": "getAuditRecord",
+    "name": "unknown record",
+    "as": "admin",
+    "params": {
+      "recordId": "9223372036854775807"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getAuditRecord",
+    "name": "non-numeric id",
+    "as": "admin",
+    "params": {
+      "recordId": "abc"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "params.recordId",
+        "code": "invalid_format"
+      }
+    ]
+  },
+  {
+    "operation": "getAuditRecord",
+    "name": "Head Recruiter gets the same 404 as an unknown record",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "recordId": "{{audit_record_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getAuditRecord",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "params": {
+      "recordId": "{{audit_record_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getAuditRecord",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "recordId": "{{audit_record_id}}"
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "getAuditRecord",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "recordId": "{{audit_record_id}}"
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "listAuditActors",
+    "name": "Admin searches actors by email part",
+    "as": "admin",
+    "query": {
+      "q": "recruiter",
+      "limit": "50"
+    },
+    "status": 200,
+    "script": "audit-actors"
+  },
+  {
+    "operation": "listAuditActors",
+    "name": "one-character search",
+    "as": "admin",
+    "query": {
+      "q": "r"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.q",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "listAuditActors",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "q": "recruiter"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listAuditActors",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "query": {
+      "q": "recruiter"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listAuditActors",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "query": {
+      "q": "recruiter"
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "listAuditActors",
+    "name": "no token",
+    "as": null,
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  }
+]

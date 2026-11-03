@@ -34,7 +34,7 @@ export const POST = defineRoute(
     body: createVerticalSchema,
     response: settingsVerticalSchema,
     successStatus: 201,
-    errors: [400, 404, 409],
+    errors: [404, 409],
   },
   (ctx, { body }) => createVertical(ctx, body),
 );
