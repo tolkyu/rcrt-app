@@ -7,6 +7,8 @@ export interface ApiSession {
   /** Access token before the TOTP step (aal1); equals `token` for users without TOTP. */
   readonly aal1Token: string;
   readonly token: string;
+  /** Cookie header of the session, for routes bound to the cookie session (logout). */
+  readonly cookie: string;
   /** Logs out; resolves `true` only if every token of the session is rejected afterwards. */
   readonly close: () => Promise<boolean>;
 }
@@ -98,6 +100,7 @@ export async function signInForApi(
   return {
     aal1Token,
     token,
+    cookie: cookieHeader(jar),
     close: async () => {
       await call('POST', '/auth/logout', {});
       const statuses = await Promise.all(

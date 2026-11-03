@@ -17,6 +17,7 @@ import {
   completeInviteGoogle,
   acceptInvite,
   createInvite,
+  inspectInvite,
 } from '../../server/services/auth/invite';
 import {
   createInviteResponseSchema,
@@ -93,6 +94,37 @@ describe('Invite consumption and Google identity binding [ROLE-05, D33, DG-07]',
       await admin`delete from app.user_invite where id=${inviteId}`;
       await admin`delete from app.app_user where id=${userId}`;
     }
+  });
+
+  it('previews expired, revoked and consumed invites exactly like an unknown token [STORY-ROLE-05, T7-S4-02]', async () => {
+    await fixture.run(async ({ ctx, provider, user, at }) => {
+      const deps = provider.dependencies();
+      const preview = (token: string) => inspectInvite(deps, ctx, { token });
+      const [revoked, consumed, expired] = [
+        await pendingInvite(ctx, user),
+        await pendingInvite(ctx, user),
+        await pendingInvite(ctx, user),
+      ];
+      expect((await preview(expired.token)).state).toBe('VALID');
+      await ctx.db
+        .update(schema.userInvite)
+        .set({
+          status: 'REVOKED',
+          revokedAt: ctx.clock.now(),
+          revokedBy: user.id,
+        })
+        .where(eq(schema.userInvite.id, revoked.id));
+      await ctx.db
+        .update(schema.userInvite)
+        .set({ status: 'ACCEPTED', acceptedAt: ctx.clock.now() })
+        .where(eq(schema.userInvite.id, consumed.id));
+      const unknown = await preview(generateInviteToken().token);
+      expect(unknown).toEqual({ state: 'INVALID' });
+      expect(await preview(revoked.token)).toEqual(unknown);
+      expect(await preview(consumed.token)).toEqual(unknown);
+      at(new Date(ctx.clock.now().getTime() + 72 * 3600_000));
+      expect(await preview(expired.token)).toEqual(unknown);
+    });
   });
 
   it('activates the invite only for the matching verified Google email, allowing case normalization', async () => {

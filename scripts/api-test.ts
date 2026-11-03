@@ -96,6 +96,8 @@ function startServer(env: Record<string, string>) {
         ...env,
         APP_ENV: 'test',
         APP_URL: ORIGIN,
+        // The Auth folder asserts the «Google not configured» refusals; never call out to Google.
+        AUTH_GOOGLE_ENABLED: 'false',
         NEXT_TELEMETRY_DISABLED: '1',
       },
       stdio: ['ignore', 'ignore', 'inherit'],
@@ -122,11 +124,21 @@ async function waitForServer(server: Server) {
   throw new Error(`${ORIGIN}/api/health did not answer within 60 s`);
 }
 
-/** Tokens stay in memory: Newman receives them as environment values, never through a file. */
+/**
+ * Tokens stay in memory: Newman receives them as environment values, never through a file. Different
+ * users sign in in parallel; sessions of the same email in sequence, as a new link replaces the previous one.
+ */
 async function signInAll(sessions: Map<string, ApiSession>) {
+  const byEmail = new Map<string, [string, (typeof API_USERS)[string]][]>();
+  for (const entry of Object.entries(API_USERS))
+    byEmail.set(entry[1].email, [
+      ...(byEmail.get(entry[1].email) ?? []),
+      entry,
+    ]);
   const results = await Promise.allSettled(
-    Object.entries(API_USERS).map(async ([key, user]) => {
-      sessions.set(key, await signInForApi(ORIGIN, user.email, user.totp));
+    [...byEmail.values()].map(async (group) => {
+      for (const [key, user] of group)
+        sessions.set(key, await signInForApi(ORIGIN, user.email, user.totp));
     }),
   );
   const failed = results.find((r) => r.status === 'rejected');
@@ -138,8 +150,11 @@ function environment(sessions: Map<string, ApiSession>) {
     { key: 'origin', value: ORIGIN },
     ...[...sessions].flatMap(([key, session]) => [
       { key: `token_${key}`, value: session.token },
-      ...(API_USERS[key as keyof typeof API_USERS].totp
+      ...(API_USERS[key]?.totp
         ? [{ key: `token_${key}_aal1`, value: session.aal1Token }]
+        : []),
+      ...(API_USERS[key]?.cookie
+        ? [{ key: `cookie_${key}`, value: session.cookie }]
         : []),
     ]),
   ];

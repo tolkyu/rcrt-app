@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createAuthCookieStore } from '../../server/auth/cookies';
 import * as schema from '../../server/db/schema';
+import { mapError } from '../../server/http/map-error';
 import {
   requestMagicLink,
   confirmMagicLink,
@@ -149,6 +150,35 @@ describe('Magic-link services with real database principals and a provider bound
       const response = new Response();
       cookies.apply(response);
       expect(response.headers.getSetCookie()).toHaveLength(0);
+    });
+  });
+
+  it('answers a consumed token hash with the same 401 body as an unknown one [SEC-AUTH, T7-S4-02]', async () => {
+    await fixture.run(async ({ ctx, provider, user }) => {
+      const deps = provider.dependencies();
+      const tokenHash = await provider.admin().magicLinkTokenHash(user.email);
+      await confirmMagicLink(
+        deps,
+        ctx,
+        { token_hash: tokenHash! },
+        cookieStore(),
+      );
+      const problem = async (token_hash: string) => {
+        const error = await confirmMagicLink(
+          deps,
+          ctx,
+          { token_hash },
+          cookieStore(),
+        ).then(
+          () => null,
+          (rejected: unknown) => rejected,
+        );
+        const response = mapError(error, 'fixed-request-id');
+        return { status: response?.status, body: await response?.json() };
+      };
+      const unknown = await problem('b'.repeat(56));
+      expect(unknown.status).toBe(401);
+      expect(await problem(tokenHash!)).toEqual(unknown);
     });
   });
 

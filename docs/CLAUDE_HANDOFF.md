@@ -7,6 +7,7 @@
 
 - **Working mode (owner):** one small slice end-to-end → commit → report → wait for «далі».
 - **Working mode:** owner wants the team agents used (engineer → QA → code-reviewer + security → engineer fixes); orchestrator verifies, commits, reports in Ukrainian only.
+- **T7 slice 4 done — Newman Auth; all 37 operations covered.** 285 req / 1,660 assertions; 7 confirms per run (≤ 4 runs / 15 min). T9 adds: magic-link timing equalisation, enrol rate-limit order. Owner question pending: users per office IP.
 - **T7 slice 3 done — Newman Users + Priorities.** 233 req / 1,363 assertions, refusal-only mutations (version 2147483647, self-target), `snapshot`/`sameAs` after-checks. Open: `resetUserMfa` expectedVersion (owner, Phase 2), malformed-id 400 vs 404 (T9).
 - **T7 slice 2 done — byte-stable screenshots [SHOT-DET-01].** `settleRendering` + `--disable-partial-raster` + fixed sign-in times; no more `git checkout -- screenshots` after E2E — any screenshot diff now means a real UI change. Watch `settings-priorities.spec.ts:271` (one load flake).
 - **T7 slice 1 done — Newman runner `pnpm test:api` [ADR-006].** Cases live in `tests/postman/cases/<tag>.json` (+ `tests/postman/tests/*.js`), merged by `scripts/postman-cases.ts`; run `pnpm build` first. Covered Profile, Verticals, Audit (66 req / 381 assertions). Each run uses 4 of the 30/15 min sign-in budget shared with E2E. Not covered: Auth, Users, Priorities. Open: S2 refine codes → `custom`; CI wiring; ADR-006 vs Sec-Fetch-Site rule.
@@ -50,7 +51,7 @@
 
 ## Next steps (in order)
 
-1. **Next:** T7 slice 4 — Newman cases for the Auth folder (13 ops; mind the 30/15 min sign-in budget shared with E2E). Audit route 179.18 kB / 180. Then T8 perf, T9 carry-overs, Phase-1 report.
+1. **Next:** T7 wrap-up — UX review of the screenshot gallery (ux-ui-designer, CLAUDE.md §7), then T8 perf gates, T9 security/carry-overs, Phase-1 report. Newman in CI needs the Supabase stack in Actions (devops). Audit route 179.18 kB / 180. Then T8 perf, T9 carry-overs, Phase-1 report.
 2. **T7** QA: full phase-1 E2E, Newman, screenshots → `screenshots/phase-1/` + `index.html` + `screenshots/latest/`.
 3. **T8** perf gates for phase-1 screens.
 4. **T9** carry-overs: CI Supabase job, CI SHA pins, `pnpm audit`, Drizzle drift, `format:check`, secret grep, DG-03 storage test, hosted Supabase config drift (A04, B06, C06, D03, H04, I03, R03), SEC-CORE-13/14.

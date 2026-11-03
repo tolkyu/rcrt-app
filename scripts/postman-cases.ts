@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import { UNSAFE_METHODS } from '../server/http/route-shared';
-import { API_TOKENS } from '../tests/postman/users';
+import { API_TOKENS, API_USERS } from '../tests/postman/users';
 
 interface PmPair {
   key: string;
@@ -29,6 +29,7 @@ export interface PmItem {
   response?: unknown[];
   item?: PmItem[];
   event?: unknown[];
+  protocolProfileBehavior?: { disableCookies: boolean };
 }
 export interface PmCollection {
   info: Record<string, unknown>;
@@ -87,8 +88,22 @@ const caseSchema = z
 type ApiCase = z.infer<typeof caseSchema>;
 
 const PROBLEM_KEYS = ['code', 'requestId', 'status', 'type'];
+/** The Auth folder ends these sessions (end-others, logout), so no other folder may use them. */
+const AUTH_ONLY_FOLDER = 'Auth';
+const COOKIE_USERS = new Set(
+  Object.entries(API_USERS).flatMap(([key, user]) =>
+    user.cookie ? [key] : [],
+  ),
+);
 /** Variables the runner injects; everything else in `{{…}}` must be captured by an earlier case. */
-const RUNNER_VARIABLES = new Set(['origin', 'baseUrl']);
+const RUNNER_VARIABLES = new Set([
+  'origin',
+  'baseUrl',
+  ...API_TOKENS.map((t) => `token_${t}`),
+  ...Object.entries(API_USERS).flatMap(([key, user]) =>
+    user.cookie ? [`cookie_${key}`] : [],
+  ),
+]);
 const CAPTURE = /pm\.collectionVariables\.set\(\s*'(\w+)'/g;
 
 /** Inline `$ref`s (no cycles in our spec) and drop prose so the schema fits a Postman test line. */
@@ -169,7 +184,7 @@ function chainedVariables(c: ApiCase): string[] {
   const text = JSON.stringify([c.params, c.query, c.headers, c.body]);
   const names = [...text.matchAll(/{{(\w+)}}/g)].map((m) => m[1]!);
   return [...new Set([...names, ...(c.sameAs ? [c.sameAs] : [])])].filter(
-    (n) => !RUNNER_VARIABLES.has(n) && !n.startsWith('token_'),
+    (n) => !RUNNER_VARIABLES.has(n),
   );
 }
 
@@ -254,6 +269,8 @@ function caseItem(
   return {
     name,
     request,
+    /** Only explicit `Cookie` headers reach the app; Newman's jar never carries a session between requests. */
+    protocolProfileBehavior: { disableCookies: true },
     event: [
       ...(chained.length
         ? [
@@ -332,6 +349,15 @@ export function mergeCases(
     const duplicate = names.find((n, i) => names.indexOf(n) !== i);
     if (duplicate)
       throw new Error(`${folder.name}: duplicate case ${duplicate}`);
+    const leaked = cases.find(
+      (c) =>
+        (c.as !== null && COOKIE_USERS.has(c.as)) ||
+        JSON.stringify(c.headers ?? {}).includes('{{cookie_'),
+    );
+    if (leaked && folder.name !== AUTH_ONLY_FOLDER)
+      throw new Error(
+        `${folder.name}: ${leaked.name} uses a session only the Auth folder may use`,
+      );
     const captured = new Set<string>();
     folder.item = cases.map((c) => {
       const base = bases.get(c.operation);
