@@ -1,5 +1,6 @@
 'use client';
 
+import { Minus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { useRoleLabel } from '@/components/auth/use-role-label';
@@ -12,12 +13,12 @@ type ChipRole = RoleView & { readonly verticalId?: string | null };
 const TONES = {
   active: 'bg-primary-subtle text-link',
   muted: 'bg-surface-muted text-muted-foreground',
-  removed: 'bg-surface-muted text-muted-foreground line-through',
+  removed: 'bg-destructive-subtle text-error-text line-through',
 } as const;
 
 /**
- * Role chips of the user card, «Змінити ролі» and the invite summary. `removed` strikes the label through
- * but keeps it as text, so it stays readable and is announced under its «Буде знято» heading.
+ * Role chips of the user card, «Змінити ролі» and the invite summary. `removed` pairs the strike with a
+ * minus icon and error colours (≥ 4.5:1), so removal never relies on the line-through alone.
  */
 export function RoleChips({
   roles,
@@ -47,7 +48,10 @@ export function RoleChips({
               TONES[tone],
             )}
           >
-            {marker}
+            {marker ??
+              (tone === 'removed' && (
+                <Minus className="size-3 shrink-0" aria-hidden="true" />
+              ))}
             {roleLabel(
               role,
               vertical?.name ??

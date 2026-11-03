@@ -1,6 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
-import type { UserStatus } from '../../lib/user-constants';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import { E2E_ORIGIN, sessionFile } from '../support/e2e-session';
 import { userActivationPage } from '../support/user-activation-page';
@@ -189,20 +188,44 @@ test('Head Recruiter and Finance get not-found for the users screen, user card a
   }
 });
 
-/** Which demo users have signed in depends on the database's history, so the list shows a time for every active user. */
+/**
+ * Which demo users have signed in depends on the database's history, so every screenshot uses this one
+ * table (UX-G-03): before the fixed clock, after the history below; the deactivated recruiter signed in
+ * before she was deactivated, the never-accepted invitee never did.
+ */
+const SHOT_SIGN_INS: Record<string, string> = {
+  'admin@demo': '2026-11-16T07:41:23.000Z',
+  'head.recruiter.gambling@demo': '2026-11-16T07:12:57.000Z',
+  'recruiter1.gambling@demo': '2026-11-16T06:33:10.000Z',
+  'recruiter2.gambling@demo': '2026-11-15T17:47:02.000Z',
+  'recruiter.crypto@demo': '2026-11-16T07:26:39.000Z',
+  'head.hr@demo': '2026-11-14T09:03:15.000Z',
+  'hr@demo': '2026-11-16T05:58:47.000Z',
+  'vasyl.tl@demo': '2026-11-16T06:52:08.000Z',
+  'taras.tl@demo': '2026-11-13T15:18:44.000Z',
+  'tl.crypto@demo': '2026-11-16T06:05:31.000Z',
+  'finance@demo': '2026-11-12T12:20:05.000Z',
+  'inactive.recruiter@demo': '2026-11-06T14:09:51.000Z',
+};
+const shotSignIn = (email: string) => SHOT_SIGN_INS[email] ?? null;
+const withShotSignIn = (detail: {
+  email: string;
+  lastLoginAt: string | null;
+}) => {
+  detail.lastLoginAt = shotSignIn(detail.email);
+};
+/** The seed writes its history at the fixed clock; shots move it to onboarding day so it precedes every sign-in. */
+const SHOT_HISTORY_AT: Record<string, string> = {
+  'user.invited': '2026-11-02T07:14:36.000Z',
+};
+
 function fixListSignInTimes(page: Page) {
-  const anchor = Date.parse(FIXED_CLOCK_ISO);
   return page.route('**/api/v1/users?*', async (route) => {
     const response = await route.fetch();
     const body = (await response.json()) as {
-      items: { status: UserStatus; lastLoginAt: string | null }[];
+      items: { email: string; lastLoginAt: string | null }[];
     };
-    body.items.forEach((item, index) => {
-      item.lastLoginAt =
-        item.status === 'ACTIVE'
-          ? new Date(anchor - (index + 1) * 3_600_000).toISOString()
-          : null;
-    });
+    for (const item of body.items) item.lastLoginAt = shotSignIn(item.email);
     await route.fulfill({ response, json: body });
   });
 }
@@ -1900,7 +1923,7 @@ test('captures role changes and removal confirmation with deterministic state [S
   page,
   isMobile,
 }, testInfo) => {
-  await userRolesPage(page, 'Василь Мороз');
+  await userRolesPage(page, 'Василь Мороз', withShotSignIn);
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const capture = async (state: string, theme: string) => {
@@ -1922,6 +1945,12 @@ test('captures role changes and removal confirmation with deterministic state [S
     await expect(
       dialog.getByText(rolesT.removed, { exact: true }),
     ).toBeVisible();
+    // UX-G-05: removal is told by icon and colour too, never by the strike alone.
+    const removedChip = dialog
+      .getByRole('list', { name: rolesT.removed })
+      .getByRole('listitem');
+    await expect(removedChip.locator('svg')).toHaveCount(1);
+    await expect(removedChip).toHaveCSS('text-decoration-line', 'line-through');
     await capture('dialog', theme);
     await dialog.getByRole('button', { name: rolesT.submit }).click();
     const confirm = page.getByRole('alertdialog', {
@@ -1951,7 +1980,11 @@ test('captures deactivation, its unconfirmed provider ban and reactivation with 
       .context()
       .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
     await page.unrouteAll({ behavior: 'wait' });
-    const active = await userActivationPage(page, 'Василь Мороз');
+    const active = await userActivationPage(
+      page,
+      'Василь Мороз',
+      withShotSignIn,
+    );
     const card = await openCard(page, isMobile, 'Василь Мороз');
     await card.getByRole('button', { name: activationT.deactivate }).click();
     const deactivate = deactivateDialog(page, 'Василь Мороз');
@@ -1994,7 +2027,7 @@ test('captures deactivation, its unconfirmed provider ban and reactivation with 
     await page.keyboard.press('Escape');
     await expect(deactivate).toHaveCount(0);
 
-    await userActivationPage(page, 'Юлія Петренко');
+    await userActivationPage(page, 'Юлія Петренко', withShotSignIn);
     const deactivated = await openCard(page, isMobile, 'Юлія Петренко');
     await expect(
       deactivated.getByRole('heading', {
@@ -2072,7 +2105,7 @@ test('captures invitation actions, revoke confirmation and change email with det
     await expect(input).toBeFocused();
     await expect(input).toHaveValue(fixture.detail.email);
     await capture('change-email-dialog', theme);
-    await input.fill('olena.taken@company.com');
+    await input.fill('recruiting@company.com');
     await dialog.getByRole('button', { name: changeT.submit }).click();
     await expect(
       dialog.getByText(t.inviteDialog.errors.userExists, { exact: true }),
@@ -2091,15 +2124,31 @@ test('captures the user card screenshots with fixed sign-in times [SHOT-01..03]'
   page,
   isMobile,
 }, testInfo) => {
-  const anchor = Date.parse(FIXED_CLOCK_ISO);
-  const lastLogin = new Date(anchor - 3_600_000).toISOString();
   await fixListSignInTimes(page);
   await page.route(
     (url) => /^\/api\/v1\/users\/[0-9a-f-]{36}$/.test(url.pathname),
     async (route) => {
       const response = await route.fetch();
-      const body = (await response.json()) as { lastLoginAt: string | null };
-      body.lastLoginAt = lastLogin;
+      const body = (await response.json()) as {
+        email: string;
+        lastLoginAt: string | null;
+      };
+      body.lastLoginAt = shotSignIn(body.email);
+      await route.fulfill({ response, json: body });
+    },
+  );
+  const seededTimes = new Set<string>();
+  await page.route(
+    (url) => /^\/api\/v1\/users\/[0-9a-f-]{36}\/events$/.test(url.pathname),
+    async (route) => {
+      const response = await route.fetch();
+      const body = (await response.json()) as {
+        items: { type: string; occurredAt: string }[];
+      };
+      for (const item of body.items) {
+        seededTimes.add(item.occurredAt);
+        item.occurredAt = SHOT_HISTORY_AT[item.type] ?? item.occurredAt;
+      }
       await route.fulfill({ response, json: body });
     },
   );
@@ -2122,7 +2171,7 @@ test('captures the user card screenshots with fixed sign-in times [SHOT-01..03]'
     const card = drawer(page);
     await expect(card.getByText('Гемблінг: П0', { exact: true })).toBeVisible();
     await expect(
-      card.getByText('Останній вхід: 16.11.2026, 09:00', { exact: true }),
+      card.getByText('Останній вхід: 16.11.2026, 08:52', { exact: true }),
     ).toBeVisible();
     await expect(
       card.getByText(drawerT.mfaOptionalRole, { exact: true }),
@@ -2140,7 +2189,9 @@ test('captures the user card screenshots with fixed sign-in times [SHOT-01..03]'
           nodes.map((node) => node.getAttribute('datetime')),
         ),
       ),
-    ).toEqual(new Set([FIXED_CLOCK_ISO]));
+    ).toEqual(new Set(Object.values(SHOT_HISTORY_AT)));
+    // Only seed history is remapped; anything else would mean the shared demo data changed.
+    expect(seededTimes).toEqual(new Set([FIXED_CLOCK_ISO]));
     await expect(card.getByRole('button', { name: t.loadMore })).toHaveCount(0);
     await capture(`10-admin-user-drawer-history-${viewport}-${theme}.png`);
   }

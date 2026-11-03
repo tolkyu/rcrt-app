@@ -38,3 +38,5 @@ export const AUDIT_SYSTEM_ACTOR = 'system';
 /** Without an entity this action has no known user and is labelled «Невідомий користувач», not «Система» (T4-K02). */
 export const AUDIT_UNKNOWN_ACTOR_ACTION = 'auth.login_failed';
 export const AUDIT_ACTORS_PAGE = 20;
+/** «Входи та безпека» = actions starting with any of these; the repository filter and E2E mocks share it (D74). */
+export const AUDIT_SECURITY_PREFIXES = ['auth.', 'user.mfa_'] as const;

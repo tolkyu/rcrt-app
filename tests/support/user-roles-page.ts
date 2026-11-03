@@ -60,7 +60,10 @@ export async function userRolesPage(
       const original = await route.fetch();
       const data = (await original.json()) as UserPage;
       for (const item of data.items)
-        if (item.id === detail.id) item.roles = detail.roles;
+        if (item.id === detail.id) {
+          item.roles = detail.roles;
+          item.lastLoginAt = detail.lastLoginAt;
+        }
       await route.fulfill({ response: original, json: data });
     },
   );

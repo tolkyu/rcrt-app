@@ -8,6 +8,13 @@ import type {
 } from '../../lib/schemas/audit';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import {
+  isSecurityAction,
+  SHOT_DENIED,
+  SHOT_PEOPLE,
+  SHOT_RENAME,
+  SHOT_ROWS,
+} from '../support/audit-shot-fixture';
+import {
   E2E_ORIGIN,
   MUTATION_HEADERS,
   sessionFile,
@@ -1213,100 +1220,75 @@ test('audit list and detail render without overflow in both themes [SHOT-01..03,
   page,
   isMobile,
 }, testInfo) => {
-  const fixture: AuditRecord = {
-    id: '4242',
-    occurredAt: FIXED_CLOCK_ISO,
-    actor: {
-      id: '00000000-0000-4000-8000-000000000001',
-      fullName: 'Анна Дорошенко',
-      isActive: true,
+  // Mock implements only the actions, actorId and view filters; period, entity and result pass every row.
+  await page.route(
+    (url) => url.pathname === '/api/v1/audit',
+    (route) => {
+      const query = new URL(route.request().url()).searchParams;
+      const single = query.get('action');
+      const actions =
+        query.get('actions')?.split(',') ?? (single ? [single] : null);
+      const actorId = query.get('actorId');
+      const security = query.get('view') === 'security';
+      const items = SHOT_ROWS.filter(
+        (row) =>
+          (!actions || actions.includes(row.action)) &&
+          (!actorId || row.actor?.id === actorId) &&
+          (!security || isSecurityAction(row.action)),
+      );
+      return route.fulfill({
+        json: { items, nextCursor: null, prevCursor: null } satisfies AuditPage,
+      });
     },
-    actorKind: 'USER',
-    action: 'vertical.renamed',
-    result: 'SUCCESS',
-    entity: {
-      type: 'vertical',
-      id: '00000000-0000-4000-8000-000000000002',
-      label: 'Крипто',
-    },
-    ip: '127.0.0.1',
-    before: { name: 'Криптовалюти' },
-    after: { name: 'Крипто' },
-    details: null,
-    userAgent: 'Playwright — Chromium',
-    requestId: '00000000-0000-4000-8000-000000000003',
-    detailLabels: {},
-  };
-  await page.route('**/api/v1/audit?*', (route) => {
-    const security =
-      new URL(route.request().url()).searchParams.get('view') === 'security';
-    return route.fulfill({
-      json: {
-        items: [
-          security
-            ? {
-                ...fixture,
-                action: 'auth.login_failed',
-                result: 'DENIED',
-                entity: {
-                  type: 'user',
-                  id: fixture.actor!.id,
-                  label: fixture.actor!.fullName,
-                },
-              }
-            : fixture,
-        ],
-        nextCursor: null,
-        prevCursor: null,
-      },
-    });
-  });
-  await page.route('**/api/v1/audit/4242', (route) =>
-    route.fulfill({ json: fixture }),
   );
+  await page.route(
+    (url) => /^\/api\/v1\/audit\/\d+$/.test(url.pathname),
+    (route) =>
+      route.fulfill({
+        json: route.request().url().endsWith(`/${SHOT_DENIED.id}`)
+          ? SHOT_DENIED
+          : SHOT_RENAME,
+      }),
+  );
+  const actor = SHOT_PEOPLE.ivan;
   await page.route(
     (url) => url.pathname === '/api/v1/audit/actors',
     (route) =>
       route.fulfill({
         json: {
-          items: [
-            fixture.actor,
-            {
-              id: '00000000-0000-4000-8000-000000000004',
-              fullName: 'Ігор Литвин',
-              isActive: false,
-            },
-          ],
+          items: Object.values(SHOT_PEOPLE).sort((a, b) =>
+            a.fullName.localeCompare(b.fullName, 'uk'),
+          ),
           nextCursor: null,
-        },
+        } satisfies AuditActorPage,
       }),
   );
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
+  const shownRows = page.locator('[data-audit-row]:visible');
   for (const theme of ['light', 'dark'] as const) {
     await page
       .context()
       .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
     await page.goto('/settings/audit');
-    const fixtureResponse = page.waitForResponse(
-      (response) =>
-        response.url().includes('/api/v1/audit?') &&
-        new URL(response.url()).searchParams.get('action') ===
-          'vertical.renamed',
-    );
-    await selectAction(page, 'vertical.renamed');
-    await fixtureResponse;
     await expect(
-      page.getByRole('button', { name: /^Відкрити запис:/ }).first(),
-    ).toBeVisible();
+      page.getByLabel(t.filters.period, { exact: true }),
+    ).toHaveValue('7d');
+    await expect(shownRows).toHaveCount(SHOT_ROWS.length);
+    await expect(shownRows.first()).toHaveAttribute(
+      'data-audit-row',
+      SHOT_ROWS[0]!.id,
+    );
+    await expect(shownRows.filter({ hasText: t.actorUnknown })).toHaveCount(1);
     const capture = async (state: string) => {
       const file = `06-admin-audit-${state}-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
       await captureScreen(page, testInfo, file);
     };
     await capture('list');
     await page
-      .getByRole('button', { name: /^Відкрити запис:/ })
-      .first()
+      .getByRole('button', {
+        name: new RegExp(`^Відкрити запис: ${t.actions.vertical.renamed},`),
+      })
       .click();
     await expect(
       page
@@ -1317,25 +1299,37 @@ test('audit list and detail render without overflow in both themes [SHOT-01..03,
     await page.getByRole('button', { name: t.detail.close }).click();
     await page
       .getByRole('button', {
+        name: new RegExp(
+          `^Відкрити запис: ${t.actions.auth.mfa_challenge_failed},`,
+        ),
+      })
+      .click();
+    await expect(
+      page
+        .getByRole('dialog')
+        .getByText(t.reasons.CODE_INVALID, { exact: true }),
+    ).toBeVisible();
+    await capture('detail-denied');
+    await page.getByRole('button', { name: t.detail.close }).click();
+    await page
+      .getByRole('button', {
         name: `${t.columns.actor} ${t.filters.all}`,
         exact: true,
       })
       .click();
     const picker = page.getByRole('dialog', { name: t.columns.actor });
     await picker
-      .getByRole('option', { name: fixture.actor!.fullName, exact: true })
+      .getByRole('option', { name: actor.fullName, exact: true })
       .click();
     await page
       .getByRole('button', {
-        name: `${t.columns.actor} ${fixture.actor!.fullName}`,
+        name: `${t.columns.actor} ${actor.fullName}`,
         exact: true,
       })
       .click();
     await expect(
       picker.getByRole('option', {
-        name: new RegExp(
-          `${fixture.actor!.fullName}\\s*${t.filters.actorSelected}`,
-        ),
+        name: new RegExp(`${actor.fullName}\\s*${t.filters.actorSelected}`),
       }),
     ).toBeVisible();
     await capture('actors');
@@ -1343,6 +1337,7 @@ test('audit list and detail render without overflow in both themes [SHOT-01..03,
     await page
       .getByRole('button', { name: t.filters.actorClear, exact: true })
       .click();
+    await selectAction(page, 'vertical.renamed');
     await selectAction(page, 'user.mfa_reset');
     await selectAction(page, 'auth.login_failed');
     const summary = page.locator(
@@ -1425,81 +1420,7 @@ test('a moved audit window shows «Показати новіші» above the lis
   page,
   isMobile,
 }, testInfo) => {
-  const people = {
-    anna: {
-      id: '00000000-0000-4000-8000-000000000001',
-      fullName: 'Анна Дорошенко',
-      isActive: true,
-    },
-    olena: {
-      id: '00000000-0000-4000-8000-000000000005',
-      fullName: 'Олена Коваль',
-      isActive: true,
-    },
-    ihor: {
-      id: '00000000-0000-4000-8000-000000000004',
-      fullName: 'Ігор Литвин',
-      isActive: false,
-    },
-  };
-  const user = (label: string, index: number) => ({
-    type: 'user' as const,
-    id: `00000000-0000-4000-8000-0000000001${String(index).padStart(2, '0')}`,
-    label,
-  });
-  const templates: Omit<AuditRow, 'id' | 'occurredAt'>[] = [
-    {
-      actor: people.anna,
-      actorKind: 'USER',
-      action: 'vertical.renamed',
-      result: 'SUCCESS',
-      entity: {
-        type: 'vertical',
-        id: '00000000-0000-4000-8000-000000000002',
-        label: 'Крипто',
-      },
-      ip: '127.0.0.1',
-    },
-    {
-      actor: people.olena,
-      actorKind: 'USER',
-      action: 'user.invited',
-      result: 'SUCCESS',
-      entity: user('Марія Бондар', 1),
-      ip: '127.0.0.1',
-    },
-    {
-      actor: null,
-      actorKind: 'SYSTEM',
-      action: 'auth.login_failed',
-      result: 'DENIED',
-      entity: user('Тарас Шевчук', 2),
-      ip: '127.0.0.1',
-    },
-    {
-      actor: people.anna,
-      actorKind: 'USER',
-      action: 'user.roles_changed',
-      result: 'SUCCESS',
-      entity: user('Василь Мельник', 3),
-      ip: '127.0.0.1',
-    },
-    {
-      actor: people.ihor,
-      actorKind: 'USER',
-      action: 'user.mfa_reset',
-      result: 'SUCCESS',
-      entity: user('Олена Коваль', 4),
-      ip: '127.0.0.1',
-    },
-  ];
-  const rows: AuditRow[] = Array.from({ length: 15 }, (_, index) => ({
-    ...templates[index % templates.length]!,
-    id: String(30_000 - index),
-    occurredAt: new Date(
-      Date.parse(FIXED_CLOCK_ISO) - (index + 1) * 37 * 60_000,
-    ).toISOString(),
-  }));
+  const rows = SHOT_ROWS;
   await routeAuditWindow(page, rows, { pageSize: 5 });
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });

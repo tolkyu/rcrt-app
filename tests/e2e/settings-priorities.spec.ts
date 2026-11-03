@@ -416,39 +416,21 @@ test('mobile: cards with 44 px controls, no horizontal scroll, footer above the 
   expect(saveBox && bar && saveBox.y + saveBox.height <= bar.y).toBe(true);
 });
 
-/** Screenshot fixture: four Гемблінг Team Leads (a П1 tie and one without priority) so every list state is visible. */
-const SHOT_ITEMS: Item[] = [
-  {
-    userId: '00000000-0000-4000-8000-000000000141',
-    fullName: VASYL,
-    priority: 0,
-    version: 1,
-  },
-  {
-    userId: '00000000-0000-4000-8000-000000000142',
-    fullName: TARAS,
-    priority: 1,
-    version: 1,
-  },
-  {
-    userId: '00000000-0000-4000-8000-000000000143',
-    fullName: 'Марина Савчук',
-    priority: 1,
-    version: 1,
-  },
-  {
-    userId: '00000000-0000-4000-8000-000000000144',
-    fullName: 'Ігор Литвин',
-    priority: null,
-    version: null,
-  },
-];
+/**
+ * The empty state needs a vertical without Team Leads, which the seed does not have: «Дейтинг» exists in
+ * the browser only, so the seeded Крипто is never shown as empty (UX-G-03).
+ */
+const DATING: Vertical = {
+  id: '6f1c9b2e-58d4-4a7e-9c3b-2d81f4a6e053',
+  name: 'Дейтинг',
+};
 
-test('captures the priorities list, unsaved changes, conflict and empty vertical [SHOT-01..03]', async ({
+test('captures the seeded priorities, a tie, «Без пріоритету», conflict and an empty vertical [SHOT-01..03]', async ({
   browser,
   page: adminPage,
 }, testInfo) => {
-  const { Гемблінг: gambling, Крипто: crypto } = await verticals(adminPage);
+  const { Гемблінг: gambling } = await verticals(adminPage);
+  await restoreSeed(adminPage, gambling!.id);
   const viewports = {
     desktop: {
       ...devices['Desktop Chrome'],
@@ -470,6 +452,7 @@ test('captures the priorities list, unsaved changes, conflict and empty vertical
         ]);
         const page = await context.newPage();
         await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+        // Saves are refused so the shared seed never changes; reads are the live seed.
         await page.route(
           `**/api/v1/verticals/${gambling!.id}/team-lead-priorities`,
           (route) =>
@@ -484,31 +467,32 @@ test('captures the priorities list, unsaved changes, conflict and empty vertical
                     code: 'STALE_STATE',
                   },
                 })
-              : route.fulfill({
-                  json: {
-                    vertical: gambling,
-                    items: SHOT_ITEMS,
-                    pendingInvites: 1,
-                  },
-                }),
-        );
-        await page.route(
-          `**/api/v1/verticals/${crypto!.id}/team-lead-priorities`,
-          (route) =>
-            route.fulfill({
-              json: { vertical: crypto, items: [], pendingInvites: 0 },
-            }),
+              : route.fallback(),
         );
         const name = (state: string) =>
           `14-admin-priorities-${state}-${viewport}-${theme}.png`;
 
-        await page.goto(`/settings/priorities?vertical=${crypto!.id}`);
-        await page.getByRole('tab', { name: 'Гемблінг' }).click();
-        await expect(page).toHaveURL(
-          `/settings/priorities?vertical=${gambling!.id}`,
-        );
-        await expect(field(page, 'Ігор Литвин')).toHaveValue('');
+        await page.goto(`/settings/priorities?vertical=${gambling!.id}`);
+        await expect(names(page)).toHaveText([VASYL, TARAS]);
+        await expect(field(page, VASYL)).toHaveValue('0');
+        await expect(field(page, TARAS)).toHaveValue('1');
+        await expect(footer(page)).toHaveCount(0);
+        await captureScreen(page, testInfo, name('list'));
+
+        await field(page, TARAS).fill('0');
+        await field(page, TARAS).blur();
         await expect(page.getByText(t.tieHint)).toHaveCount(2);
+        await expect(
+          page.getByText(fill(t.was, { value: 'П1' }), { exact: true }),
+        ).toBeVisible();
+        await expect(footer(page)).toHaveText(fill(t.unsaved, { count: 1 }));
+        await captureScreen(page, testInfo, name('edited'));
+
+        await page
+          .getByRole('button', { name: messages.settings.common.cancel })
+          .click();
+        await field(page, TARAS).fill('');
+        await field(page, TARAS).blur();
         await expect(
           page.getByText(
             fill(t.notSetGroupLine, {
@@ -517,19 +501,9 @@ test('captures the priorities list, unsaved changes, conflict and empty vertical
             }),
           ),
         ).toBeVisible();
-        await expect(footer(page)).toHaveCount(0);
-        await captureScreen(page, testInfo, name('list'));
-
-        await field(page, TARAS).fill('0');
-        await field(page, TARAS).blur();
-        await field(page, 'Ігор Литвин').fill('2');
-        await field(page, 'Ігор Литвин').blur();
-        await expect(footer(page)).toHaveText(fill(t.unsaved, { count: 2 }));
-        await expect(page.getByText(t.tieHint)).toHaveCount(2);
-        await expect(
-          page.getByText(fill(t.was, { value: 'П1' }), { exact: true }),
-        ).toBeVisible();
-        await captureScreen(page, testInfo, name('edited'));
+        await expect(row(page, TARAS).getByText(t.notSet)).toBeVisible();
+        await expect(footer(page)).toHaveText(fill(t.unsaved, { count: 1 }));
+        await captureScreen(page, testInfo, name('unset'));
 
         await save(page).click();
         const conflict = page
@@ -539,11 +513,29 @@ test('captures the priorities list, unsaved changes, conflict and empty vertical
         await expect(save(page)).toBeDisabled();
         await captureScreen(page, testInfo, name('conflict'));
 
+        await page.route(
+          '**/api/v1/settings/priorities/verticals',
+          async (route) => {
+            const response = await route.fetch();
+            const body = (await response.json()) as { items: Vertical[] };
+            body.items = [...body.items, DATING].sort((a, b) =>
+              a.name.localeCompare(b.name, 'uk'),
+            );
+            await route.fulfill({ response, json: body });
+          },
+        );
+        await page.route(
+          `**/api/v1/verticals/${DATING.id}/team-lead-priorities`,
+          (route) =>
+            route.fulfill({
+              json: { vertical: DATING, items: [], pendingInvites: 0 },
+            }),
+        );
         await page.goto(`/settings/priorities?vertical=${gambling!.id}`);
-        await page.getByRole('tab', { name: 'Крипто' }).click();
+        await page.getByRole('tab', { name: DATING.name }).click();
         await expect(
           page.getByText(
-            fill(t.empty.noTeamLeadsTitle, { vertical: 'Крипто' }),
+            fill(t.empty.noTeamLeadsTitle, { vertical: DATING.name }),
           ),
         ).toBeVisible();
         await captureScreen(page, testInfo, name('empty'));

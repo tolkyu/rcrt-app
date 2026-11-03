@@ -63,14 +63,17 @@ function MatrixCell({
       <span
         aria-hidden="true"
         className={cn(
-          'peer-focus-visible:ring-ring flex size-8 items-center justify-center rounded-lg border transition-colors duration-120 peer-focus-visible:ring-2',
+          'peer-focus-visible:outline-ring flex size-5 items-center justify-center rounded-sm border-2 transition-colors duration-120 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-solid',
           checked
-            ? 'border-success bg-success/15 text-success-text'
-            : 'border-border bg-surface text-muted-foreground hover:bg-surface-muted',
+            ? 'border-primary bg-primary text-primary-foreground'
+            : cn(
+                'border-input bg-surface',
+                !locked && 'peer-hover:bg-surface-muted',
+              ),
           locked && 'opacity-60',
         )}
       >
-        {checked && <Check className="size-4" strokeWidth={3} />}
+        {checked && <Check className="size-3.5" strokeWidth={3} />}
       </span>
     </label>
   );

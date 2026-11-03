@@ -52,6 +52,7 @@ export async function userActivationPage(
         if (item.id === detail.id) {
           item.status = detail.status;
           item.roles = detail.roles;
+          item.lastLoginAt = detail.lastLoginAt;
         }
       await route.fulfill({ response: original, json: data });
     },

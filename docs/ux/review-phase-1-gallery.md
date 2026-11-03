@@ -72,3 +72,23 @@ Verdict: the Admin settings screens look consistent and calm in both themes, and
 | Audit (§3.4) | Skeleton; empty «Записів не знайдено»; SectionError; «Свій період» calendar + «Оберіть період не довший за рік.»; detail DENIED with «Причина відмови»; «Показати JSON» expanded; detail 404 |
 | Priorities | Loading skeleton; save-failed rollback toast |
 | Shell | In-shell `not-found.tsx` and `error.tsx`; mobile `/settings` index (if kept per wireframe §0); collapsed 72 px icon rail; UserMenu dropdown open |
+
+## Re-check (step A), 2026-11-03
+
+Checked the uncommitted regenerated shots, light/dark × desktop/mobile: 06 (list, detail, detail-denied, newer), 08, 09, 10 (profile, history), 11-change-email-taken, 12 (dialog, remove), 13 (all four states), 14 (list, edited, unset, conflict, empty). Also checked both `index.html` files.
+
+| ID | Status | Evidence / residual |
+|---|---|---|
+| UX-G-03 | Fixed | Priorities match the seed (Гемблінг: Василь Мороз П0, Тарас Лисенко П1; «2 тімліди»). Last logins agree across 06, 08, 10, 12 and 13 (Василь 16.11 08:52, Юлія 06.11 16:09). Василь's invite (02.11 09:14) now comes before his login. The empty state uses the fixture vertical «Дейтинг», and the gallery heading marks it as a test vertical. Accepted deviation. |
+| UX-G-04 | Fixed | RoleMatrix (09, 12) now uses the standard Checkbox: `--input` border is visible in both themes and the checked state is indigo `--primary`. It matches the reactivate dialog and the audit picker. |
+| UX-G-05 | Fixed | The removed chip is now red-soft with `--error-text` and a `−` icon, keeping the strike (light ≈ 5.9:1; dark #F87171 on red-soft passes). Same in the AlertDialog chip. |
+| UX-G-06 | Fixed | Captions and alt texts are Ukrainian («Компʼютер · світла», «Історія · телефон · темна»). There is one `<h2>` per state, a section index, and an intro that lists roles and the data caveats. Foundation is renamed «Hiring — фундамент», cross-linked, and the 404 also appears in the phase-1 gallery. |
+| UX-G-10 | Partly fixed | Fixed: realistic Chrome 130 UA, random request IDs, varied public IPs and seconds, 15 distinct audit events. Remaining, as an accepted deviation: `expired.invite@demo` and `inactive.recruiter@demo` (rename needs a DB reset, so schedule it with the next seed reset). The taken-email shot uses `recruiting@company.com`, which matches no seeded user, so «Показати в списку» finds nothing in a live demo. Acceptable for the shot. |
+| UX-G-11 | Fixed | `06-…-list` is now the unfiltered default: 15 rows with Система, «Невідомий користувач» and two «Відмовлено» chips, and no leftover focus ring. The new `06-…-detail-denied` shows «Причина відмови: Невірний код». |
+
+**New, introduced by the fixes (all P3)**
+- RA-01: the RoleMatrix checkbox is now 20 px. On mobile, make sure the whole cell is the label with a ≥ 44 × 44 target (UX-G-12). This can't be confirmed from the pixels. `role-matrix.tsx`.
+- RA-02: the audit detail now shows the full raw User-Agent as three lines of mono text. That is realistic but noisy, which makes UX-G-16 (parsed «Пристрій: Chrome 130 · Windows», raw UA collapsed) more visible.
+- RA-03: the gallery intro mentions «seed (CLAUDE.md §8)», developer jargon in an owner-facing page. Use «демо-дані». The gallery's section labels use CSS `uppercase`; design-system §2 says no uppercase labels. `scripts/screenshot-gallery.mjs`.
+
+Still open and not part of step A: UX-G-01/02 (P1); UX-G-22 (plural «Зняти ролі?» for one role, still visible in 12-remove); UX-G-28 («по порядку»); UX-G-29 (mobile drawer and detail shots still stretched to 2178–2342 px).

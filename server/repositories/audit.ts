@@ -14,7 +14,10 @@ import {
 } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { DbExecutor } from '../db';
-import { AUDIT_UNKNOWN_ACTOR_ACTION } from '../../lib/audit-constants';
+import {
+  AUDIT_SECURITY_PREFIXES,
+  AUDIT_UNKNOWN_ACTOR_ACTION,
+} from '../../lib/audit-constants';
 import type { AuditDirection } from '../../lib/schemas/audit';
 import { appUser, auditLog, vertical } from '../db/schema';
 
@@ -88,8 +91,9 @@ export function listAuditEntries(
   const conditions: (SQL | undefined)[] = [
     filters.view === 'security'
       ? or(
-          sql`starts_with(${auditLog.action}, ${'auth.'})`,
-          sql`starts_with(${auditLog.action}, ${'user.mfa_'})`,
+          ...AUDIT_SECURITY_PREFIXES.map(
+            (prefix) => sql`starts_with(${auditLog.action}, ${prefix})`,
+          ),
         )
       : undefined,
     filters.from ? gte(auditLog.occurredAt, filters.from) : undefined,

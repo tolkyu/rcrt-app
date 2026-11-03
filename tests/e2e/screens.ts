@@ -28,6 +28,21 @@ export async function captureScreen(
   file: string,
 ) {
   await page.mouse.move(0, 0);
+  // The ring left by the last click or Escape is not part of the screen (UX-G-11); text fields keep focus, blurring them would validate.
+  const blurred = await page.evaluateHandle(() => {
+    const active = document.activeElement;
+    const typing =
+      active instanceof HTMLTextAreaElement ||
+      (active instanceof HTMLElement && active.isContentEditable) ||
+      (active instanceof HTMLInputElement &&
+        !['checkbox', 'radio', 'button', 'submit', 'reset'].includes(
+          active.type,
+        ));
+    if (!(active instanceof HTMLElement) || active === document.body || typing)
+      return null;
+    active.blur();
+    return active;
+  });
   await settleRendering(page);
   const noHorizontalOverflow = () =>
     page.evaluate(
@@ -69,6 +84,10 @@ export async function captureScreen(
     await page.screenshot({ path, animations: 'disabled', scale: 'css' });
   } finally {
     await page.setViewportSize(viewport);
+    await blurred.evaluate((element) =>
+      element?.focus({ preventScroll: true }),
+    );
+    await blurred.dispose();
   }
   copyFileSync(path, `screenshots/latest/${file}`);
   await testInfo.attach(file, { path, contentType: 'image/png' });

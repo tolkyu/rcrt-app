@@ -49,6 +49,13 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 | T8 | Perf seed + perf:check | performance-engineer | 🔄 Initial-JS gate (PERF-04) green 2026-11-01 (`e251de6`, `5be02ea`): all routes ≤ 180 kB. Pending: API P95, Web Vitals/Lighthouse, perf seed (Phase 2) |
 | T9 | Security review, code review, fixes, verify | security-engineer, code-reviewer | ⏳ Carry-over from foundation review: route framework validates query/body before `requirePermission` → non-admin gets 400 instead of 404 for malformed input (add `permission` to `RouteSpec`, SEC review of users list S2); deploy smoke `set role app_rw; select count(*) from app.auth_mfa_totp` and runbook note that GoTrue tables must exist before app migrations (0002/0007 skip silently otherwise); CI action SHA pins, `pnpm audit` gate, Drizzle drift check, `format:check`, `NEXT_PUBLIC_`/static secret grep; DG-03 storage policy test on local Supabase; AGENTS.md/.codex duplication (owner call) |
 
+## Implementation checkpoint — 2026-11-03 (Claude team, gallery review step A)
+
+- Fixed from `docs/ux/review-phase-1-gallery.md`: UX-G-03 (fixtures match the seed, causal times), G-04 (role-matrix checkbox ≥3:1, indigo like other checkboxes), G-05 (removed-role chip 5.9:1 + minus icon), G-06 (Ukrainian gallery captions/alt, one heading per state, 1:1 file check both ways), G-11 (unfiltered audit list, new denied detail). G-10 partly: realistic UA/ids/IPs/15 events; seed emails `expired.invite@demo`, `inactive.recruiter@demo` need a DB reset (owner question).
+- `AUDIT_SECURITY_PREFIXES` shared by repository and E2E mock; audit shot fixture in `tests/support/audit-shot-fixture.ts`; captureScreen blurs non-text focus.
+- Verified: lint, typecheck, 2,196 Vitest, build, perf:size (users 178.45, audit 179.19), full E2E 171 + 2 skips, screens 24, zero screenshot drift on rerun; 136 phase-1 PNGs. Code review APPROVED; UX re-check 5/6 fixed + 1 partly.
+- Open: owner decisions on seed reset (person-like emails, history dated two weeks earlier); P1 UX-G-01/02 (other roles, missing screens) → step B; mobile P2 → step C; new P3 RA-02/03 noted in the review.
+
 ## Implementation checkpoint — 2026-11-03 (Claude team, T7 slice 4 — Newman Auth)
 
 - Newman covers all 37 Phase-1 operations (Auth, Profile, Users, Verticals, Priorities, Audit): 285 requests, 1,660 assertions. Auth: confirm / invite preview / accept refusals issue no session cookie, INVALID is one state; CSRF on every public POST; own sessions/history only; logout and end-other-sessions revoke server-side (second `tl.crypto@demo` session proven ended); Bearer-only MFA verify refused before the attempt counter [ADR-006, SEC-AUTH, DG-06].
