@@ -1,0 +1,1918 @@
+[
+  {
+    "operation": "listUsers",
+    "name": "Admin lists every seeded user",
+    "as": "admin",
+    "query": {
+      "limit": "100"
+    },
+    "status": 200,
+    "script": "users-all"
+  },
+  {
+    "operation": "listUsers",
+    "name": "first page by limit",
+    "as": "admin",
+    "query": {
+      "limit": "3"
+    },
+    "status": 200,
+    "script": "users-first-page"
+  },
+  {
+    "operation": "listUsers",
+    "name": "next page by nextCursor",
+    "as": "admin",
+    "query": {
+      "limit": "3",
+      "cursor": "{{users_next_cursor}}"
+    },
+    "status": 200,
+    "script": "users-next-page"
+  },
+  {
+    "operation": "listUsers",
+    "name": "status filter: expired invite",
+    "as": "admin",
+    "query": {
+      "status": "INVITE_EXPIRED"
+    },
+    "status": 200,
+    "script": "users-status-expired"
+  },
+  {
+    "operation": "listUsers",
+    "name": "status filter with two values",
+    "as": "admin",
+    "query": {
+      "status": ["ACTIVE", "DEACTIVATED"],
+      "limit": "100"
+    },
+    "status": 200,
+    "script": "users-status-two"
+  },
+  {
+    "operation": "listUsers",
+    "name": "Team Leads of Гемблінг",
+    "as": "admin",
+    "query": {
+      "role": "TEAM_LEAD",
+      "vertical": "{{gambling_id}}"
+    },
+    "status": 200,
+    "script": "users-tl-gambling"
+  },
+  {
+    "operation": "listUsers",
+    "name": "global roles",
+    "as": "admin",
+    "query": {
+      "vertical": "GLOBAL"
+    },
+    "status": 200,
+    "script": "users-global"
+  },
+  {
+    "operation": "listUsers",
+    "name": "search by surname",
+    "as": "admin",
+    "query": {
+      "q": "Мороз"
+    },
+    "status": 200,
+    "script": "users-search"
+  },
+  {
+    "operation": "listUsers",
+    "name": "one-letter search",
+    "as": "admin",
+    "query": {
+      "q": "М"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.q",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "listUsers",
+    "name": "limit above 100",
+    "as": "admin",
+    "query": {
+      "limit": "101"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.limit",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "listUsers",
+    "name": "unknown status",
+    "as": "admin",
+    "query": {
+      "status": "BOGUS"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.status",
+        "code": "invalid_union"
+      }
+    ]
+  },
+  {
+    "operation": "listUsers",
+    "name": "malformed cursor",
+    "as": "admin",
+    "query": {
+      "cursor": "not-a-uuid"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.cursor",
+        "code": "invalid_format"
+      }
+    ]
+  },
+  {
+    "operation": "listUsers",
+    "name": "unknown query parameter",
+    "as": "admin",
+    "query": {
+      "sort": "name"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "listUsers",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listUsers",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listUsers",
+    "name": "Recruiter (Крипто) is out of scope",
+    "as": "recruiter_crypto",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listUsers",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "listUsers",
+    "name": "no token",
+    "as": null,
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "getUser",
+    "name": "Team Lead card with priorities",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "status": 200,
+    "script": "user-vasyl",
+    "snapshot": "vasyl_card"
+  },
+  {
+    "operation": "getUser",
+    "name": "own card: last active Admin",
+    "as": "admin",
+    "params": {
+      "userId": "{{admin_id}}"
+    },
+    "status": 200,
+    "script": "user-admin",
+    "snapshot": "admin_card"
+  },
+  {
+    "operation": "getUser",
+    "name": "expired invitee",
+    "as": "admin",
+    "params": {
+      "userId": "{{expired_id}}"
+    },
+    "status": 200,
+    "script": "user-expired",
+    "snapshot": "expired_card"
+  },
+  {
+    "operation": "getUser",
+    "name": "deactivated user",
+    "as": "admin",
+    "params": {
+      "userId": "{{inactive_id}}"
+    },
+    "status": 200,
+    "script": "user-inactive",
+    "snapshot": "inactive_card"
+  },
+  {
+    "operation": "getUser",
+    "name": "unknown user",
+    "as": "admin",
+    "params": {
+      "userId": "00000000-0000-4000-8000-000000000000"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getUser",
+    "name": "malformed id answers like an unknown one",
+    "as": "admin",
+    "params": {
+      "userId": "abc"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getUser",
+    "name": "id longer than 64 characters",
+    "as": "admin",
+    "params": {
+      "userId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "params.userId",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "getUser",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getUser",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getUser",
+    "name": "Recruiter (Крипто) is out of scope",
+    "as": "recruiter_crypto",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getUser",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "getUser",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "listUserEvents",
+    "name": "first page by limit",
+    "as": "admin",
+    "params": {
+      "userId": "{{inactive_id}}"
+    },
+    "query": {
+      "limit": "1"
+    },
+    "status": 200,
+    "script": "events-first-page"
+  },
+  {
+    "operation": "listUserEvents",
+    "name": "next page by nextCursor",
+    "as": "admin",
+    "params": {
+      "userId": "{{inactive_id}}"
+    },
+    "query": {
+      "limit": "1",
+      "cursor": "{{events_next_cursor}}"
+    },
+    "status": 200,
+    "script": "events-next-page"
+  },
+  {
+    "operation": "listUserEvents",
+    "name": "Team Lead timeline",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "status": 200,
+    "script": "events-vasyl"
+  },
+  {
+    "operation": "listUserEvents",
+    "name": "limit above 50",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "query": {
+      "limit": "51"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.limit",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "listUserEvents",
+    "name": "forged cursor",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "query": {
+      "cursor": "abc"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.cursor",
+        "code": "invalid_format"
+      },
+      {
+        "path": "query.cursor",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "listUserEvents",
+    "name": "unknown user",
+    "as": "admin",
+    "params": {
+      "userId": "00000000-0000-4000-8000-000000000000"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listUserEvents",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listUserEvents",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listUserEvents",
+    "name": "Recruiter (Крипто) is out of scope",
+    "as": "recruiter_crypto",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listUserEvents",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "listUserEvents",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "createInvite",
+    "name": "demo address fails the email rule",
+    "as": "admin",
+    "body": {
+      "email": "vasyl.tl@demo",
+      "fullName": "Василь Мороз",
+      "roles": [
+        {
+          "role": "TEAM_LEAD",
+          "verticalId": "{{gambling_id}}"
+        }
+      ]
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.email",
+        "code": "invalid_format"
+      }
+    ]
+  },
+  {
+    "operation": "createInvite",
+    "name": "blank name and no roles",
+    "as": "admin",
+    "body": {
+      "email": "new.invitee@example.test",
+      "fullName": "  ",
+      "roles": []
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.fullName",
+        "code": "too_small"
+      },
+      {
+        "path": "body.roles",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "createInvite",
+    "name": "the payload denied roles send is refused for Admin too",
+    "as": "admin",
+    "body": {
+      "email": "new.invitee@example.test",
+      "fullName": "Нова Людина",
+      "roles": [
+        {
+          "role": "ADMIN",
+          "verticalId": "{{gambling_id}}"
+        }
+      ]
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.roles",
+        "code": "invalid_roles"
+      }
+    ]
+  },
+  {
+    "operation": "createInvite",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "body": {
+      "email": "new.invitee@example.test",
+      "fullName": "Нова Людина",
+      "roles": [
+        {
+          "role": "ADMIN",
+          "verticalId": "{{gambling_id}}"
+        }
+      ]
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createInvite",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "body": {
+      "email": "new.invitee@example.test",
+      "fullName": "Нова Людина",
+      "roles": [
+        {
+          "role": "ADMIN",
+          "verticalId": "{{gambling_id}}"
+        }
+      ]
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createInvite",
+    "name": "Recruiter (Крипто) is out of scope",
+    "as": "recruiter_crypto",
+    "body": {
+      "email": "new.invitee@example.test",
+      "fullName": "Нова Людина",
+      "roles": [
+        {
+          "role": "ADMIN",
+          "verticalId": "{{gambling_id}}"
+        }
+      ]
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createInvite",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "body": {
+      "email": "new.invitee@example.test",
+      "fullName": "Нова Людина",
+      "roles": [
+        {
+          "role": "ADMIN",
+          "verticalId": "{{gambling_id}}"
+        }
+      ]
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "createInvite",
+    "name": "no token",
+    "as": null,
+    "body": {
+      "email": "new.invitee@example.test",
+      "fullName": "Нова Людина",
+      "roles": [
+        {
+          "role": "ADMIN",
+          "verticalId": "{{gambling_id}}"
+        }
+      ]
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "createInvite",
+    "name": "missing X-CSRF-Protection",
+    "as": "admin",
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "body": {
+      "email": "new.invitee@example.test",
+      "fullName": "Нова Людина",
+      "roles": [
+        {
+          "role": "ADMIN",
+          "verticalId": "{{gambling_id}}"
+        }
+      ]
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "resendUserInvite",
+    "name": "active user has no pending invite",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 409,
+    "code": "INVITE_NOT_PENDING"
+  },
+  {
+    "operation": "resendUserInvite",
+    "name": "unknown user",
+    "as": "admin",
+    "params": {
+      "userId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": {},
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "resendUserInvite",
+    "name": "body must be empty",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "roles": []
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "resendUserInvite",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "resendUserInvite",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "resendUserInvite",
+    "name": "Recruiter (Крипто) is out of scope",
+    "as": "recruiter_crypto",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "resendUserInvite",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "resendUserInvite",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "resendUserInvite",
+    "name": "missing X-CSRF-Protection",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "body": {},
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "revokeUserInvite",
+    "name": "active user has no pending invite",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 409,
+    "code": "INVITE_NOT_PENDING"
+  },
+  {
+    "operation": "revokeUserInvite",
+    "name": "unknown user",
+    "as": "admin",
+    "params": {
+      "userId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": {},
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "revokeUserInvite",
+    "name": "body must be empty",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "roles": []
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "revokeUserInvite",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "revokeUserInvite",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "revokeUserInvite",
+    "name": "Recruiter (Крипто) is out of scope",
+    "as": "recruiter_crypto",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "revokeUserInvite",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "revokeUserInvite",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "revokeUserInvite",
+    "name": "missing X-CSRF-Protection",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "body": {},
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "reinviteUser",
+    "name": "activated user exists",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 409,
+    "code": "USER_EXISTS"
+  },
+  {
+    "operation": "reinviteUser",
+    "name": "invite still pending (expired, not revoked)",
+    "as": "admin",
+    "params": {
+      "userId": "{{expired_id}}"
+    },
+    "body": {},
+    "status": 409,
+    "code": "INVITE_ALREADY_PENDING"
+  },
+  {
+    "operation": "reinviteUser",
+    "name": "deactivated user",
+    "as": "admin",
+    "params": {
+      "userId": "{{inactive_id}}"
+    },
+    "body": {},
+    "status": 409,
+    "code": "USER_DEACTIVATED"
+  },
+  {
+    "operation": "reinviteUser",
+    "name": "unknown user",
+    "as": "admin",
+    "params": {
+      "userId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": {},
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "reinviteUser",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "reinviteUser",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "reinviteUser",
+    "name": "Recruiter (Крипто) is out of scope",
+    "as": "recruiter_crypto",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "reinviteUser",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "reinviteUser",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {},
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "reinviteUser",
+    "name": "missing X-CSRF-Protection",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "body": {},
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "changeUserEmail",
+    "name": "activated user keeps their email",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "email": "new.address@example.test",
+      "expectedVersion": 2147483647
+    },
+    "status": 409,
+    "code": "USER_ACTIVATED"
+  },
+  {
+    "operation": "changeUserEmail",
+    "name": "deactivated (activated) user",
+    "as": "admin",
+    "params": {
+      "userId": "{{inactive_id}}"
+    },
+    "body": {
+      "email": "new.address@example.test",
+      "expectedVersion": 2147483647
+    },
+    "status": 409,
+    "code": "USER_ACTIVATED"
+  },
+  {
+    "operation": "changeUserEmail",
+    "name": "stale version of the invitee card",
+    "as": "admin",
+    "params": {
+      "userId": "{{expired_id}}"
+    },
+    "body": {
+      "email": "new.address@example.test",
+      "expectedVersion": 2147483647
+    },
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "changeUserEmail",
+    "name": "unknown user",
+    "as": "admin",
+    "params": {
+      "userId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": {
+      "email": "new.address@example.test",
+      "expectedVersion": 2147483647
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "changeUserEmail",
+    "name": "invalid email and zero version",
+    "as": "admin",
+    "params": {
+      "userId": "{{expired_id}}"
+    },
+    "body": {
+      "email": "expired.invite@demo",
+      "expectedVersion": 0
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.email",
+        "code": "invalid_format"
+      },
+      {
+        "path": "body.expectedVersion",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "changeUserEmail",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "userId": "{{expired_id}}"
+    },
+    "body": {
+      "email": "new.address@example.test",
+      "expectedVersion": 2147483647
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "changeUserEmail",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "params": {
+      "userId": "{{expired_id}}"
+    },
+    "body": {
+      "email": "new.address@example.test",
+      "expectedVersion": 2147483647
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "changeUserEmail",
+    "name": "Recruiter (Крипто) is out of scope",
+    "as": "recruiter_crypto",
+    "params": {
+      "userId": "{{expired_id}}"
+    },
+    "body": {
+      "email": "new.address@example.test",
+      "expectedVersion": 2147483647
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "changeUserEmail",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "userId": "{{expired_id}}"
+    },
+    "body": {
+      "email": "new.address@example.test",
+      "expectedVersion": 2147483647
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "changeUserEmail",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "userId": "{{expired_id}}"
+    },
+    "body": {
+      "email": "new.address@example.test",
+      "expectedVersion": 2147483647
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "changeUserEmail",
+    "name": "missing X-CSRF-Protection",
+    "as": "admin",
+    "params": {
+      "userId": "{{expired_id}}"
+    },
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "body": {
+      "email": "new.address@example.test",
+      "expectedVersion": 2147483647
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "updateUserRoles",
+    "name": "own ADMIN role cannot be removed (D45)",
+    "as": "admin",
+    "params": {
+      "userId": "{{admin_id}}"
+    },
+    "body": "{\"roles\":[],\"expectedVersion\":{{admin_version}}}",
+    "status": 409,
+    "code": "SELF_ADMIN_REMOVAL"
+  },
+  {
+    "operation": "updateUserRoles",
+    "name": "same role set",
+    "as": "admin",
+    "params": {
+      "userId": "{{admin_id}}"
+    },
+    "body": "{\"roles\":[{\"role\":\"ADMIN\",\"verticalId\":null}],\"expectedVersion\":{{admin_version}}}",
+    "status": 400,
+    "code": "ROLES_UNCHANGED",
+    "errors": [
+      {
+        "path": "body.roles",
+        "code": "unchanged"
+      }
+    ]
+  },
+  {
+    "operation": "updateUserRoles",
+    "name": "stale version",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "TEAM_LEAD",
+          "verticalId": "{{crypto_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "updateUserRoles",
+    "name": "deactivated user keeps frozen roles",
+    "as": "admin",
+    "params": {
+      "userId": "{{inactive_id}}"
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "TEAM_LEAD",
+          "verticalId": "{{crypto_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 409,
+    "code": "USER_DEACTIVATED"
+  },
+  {
+    "operation": "updateUserRoles",
+    "name": "global role with a vertical",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "FINANCE",
+          "verticalId": "{{gambling_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.roles",
+        "code": "invalid_roles"
+      }
+    ]
+  },
+  {
+    "operation": "updateUserRoles",
+    "name": "roles missing",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "expectedVersion": 2147483647
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.roles",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "updateUserRoles",
+    "name": "unknown user",
+    "as": "admin",
+    "params": {
+      "userId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "TEAM_LEAD",
+          "verticalId": "{{crypto_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateUserRoles",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "TEAM_LEAD",
+          "verticalId": "{{crypto_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateUserRoles",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "TEAM_LEAD",
+          "verticalId": "{{crypto_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateUserRoles",
+    "name": "Recruiter (Крипто) is out of scope",
+    "as": "recruiter_crypto",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "TEAM_LEAD",
+          "verticalId": "{{crypto_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateUserRoles",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "TEAM_LEAD",
+          "verticalId": "{{crypto_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "updateUserRoles",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "TEAM_LEAD",
+          "verticalId": "{{crypto_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "updateUserRoles",
+    "name": "missing X-CSRF-Protection",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "TEAM_LEAD",
+          "verticalId": "{{crypto_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "deactivateUser",
+    "name": "Admin cannot deactivate themselves (D45)",
+    "as": "admin",
+    "params": {
+      "userId": "{{admin_id}}"
+    },
+    "body": {
+      "expectedVersion": 2147483647
+    },
+    "status": 409,
+    "code": "SELF_DEACTIVATION"
+  },
+  {
+    "operation": "deactivateUser",
+    "name": "stale version",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "expectedVersion": 2147483647
+    },
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "deactivateUser",
+    "name": "unknown user",
+    "as": "admin",
+    "params": {
+      "userId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": {
+      "expectedVersion": 2147483647
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deactivateUser",
+    "name": "version as text and reason over 500",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "expectedVersion": "1",
+      "reason": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.expectedVersion",
+        "code": "invalid_type"
+      },
+      {
+        "path": "body.reason",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "deactivateUser",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "expectedVersion": 2147483647
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deactivateUser",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "expectedVersion": 2147483647
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deactivateUser",
+    "name": "Recruiter (Крипто) is out of scope",
+    "as": "recruiter_crypto",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "expectedVersion": 2147483647
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deactivateUser",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "expectedVersion": 2147483647
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "deactivateUser",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": {
+      "expectedVersion": 2147483647
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "deactivateUser",
+    "name": "missing X-CSRF-Protection",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "body": {
+      "expectedVersion": 2147483647
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "reactivateUser",
+    "name": "active user cannot be reactivated",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "body": "{\"roles\":[{\"role\":\"TEAM_LEAD\",\"verticalId\":\"{{gambling_id}}\"}],\"expectedVersion\":{{vasyl_version}}}",
+    "status": 409,
+    "code": "USER_ALREADY_ACTIVE"
+  },
+  {
+    "operation": "reactivateUser",
+    "name": "stale version",
+    "as": "admin",
+    "params": {
+      "userId": "{{inactive_id}}"
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "RECRUITER",
+          "verticalId": "{{gambling_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "reactivateUser",
+    "name": "unknown role code",
+    "as": "admin",
+    "params": {
+      "userId": "{{inactive_id}}"
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "OWNER",
+          "verticalId": "{{gambling_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.roles",
+        "code": "invalid_roles"
+      }
+    ]
+  },
+  {
+    "operation": "reactivateUser",
+    "name": "unknown user",
+    "as": "admin",
+    "params": {
+      "userId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "RECRUITER",
+          "verticalId": "{{gambling_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "reactivateUser",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "userId": "{{inactive_id}}"
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "RECRUITER",
+          "verticalId": "{{gambling_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "reactivateUser",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "params": {
+      "userId": "{{inactive_id}}"
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "RECRUITER",
+          "verticalId": "{{gambling_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "reactivateUser",
+    "name": "Recruiter (Крипто) is out of scope",
+    "as": "recruiter_crypto",
+    "params": {
+      "userId": "{{inactive_id}}"
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "RECRUITER",
+          "verticalId": "{{gambling_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "reactivateUser",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "userId": "{{inactive_id}}"
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "RECRUITER",
+          "verticalId": "{{gambling_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "reactivateUser",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "userId": "{{inactive_id}}"
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "RECRUITER",
+          "verticalId": "{{gambling_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "reactivateUser",
+    "name": "missing X-CSRF-Protection",
+    "as": "admin",
+    "params": {
+      "userId": "{{inactive_id}}"
+    },
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "body": {
+      "roles": [
+        {
+          "role": "RECRUITER",
+          "verticalId": "{{gambling_id}}"
+        }
+      ],
+      "expectedVersion": 2147483647
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "resetUserMfa",
+    "name": "Admin cannot reset their own 2FA",
+    "as": "admin",
+    "params": {
+      "userId": "{{admin_id}}"
+    },
+    "body": {
+      "reason": "Перевірка API: без змін"
+    },
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "resetUserMfa",
+    "name": "unknown user",
+    "as": "admin",
+    "params": {
+      "userId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": {
+      "reason": "Перевірка API: без змін"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "resetUserMfa",
+    "name": "malformed id",
+    "as": "admin",
+    "params": {
+      "userId": "abc"
+    },
+    "body": {
+      "reason": "Перевірка API: без змін"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "params.userId",
+        "code": "invalid_format"
+      }
+    ]
+  },
+  {
+    "operation": "resetUserMfa",
+    "name": "reason under 10 characters",
+    "as": "admin",
+    "params": {
+      "userId": "{{admin_id}}"
+    },
+    "body": {
+      "reason": "коротко"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "resetUserMfa",
+    "name": "Head Recruiter, self target: refused even if authz regressed",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "userId": "{{head_recruiter_id}}"
+    },
+    "body": {
+      "reason": "Перевірка API: без змін"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "resetUserMfa",
+    "name": "Finance, self target: refused even if authz regressed",
+    "as": "finance",
+    "params": {
+      "userId": "{{finance_id}}"
+    },
+    "body": {
+      "reason": "Перевірка API: без змін"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "resetUserMfa",
+    "name": "Recruiter (Крипто), self target: refused even if authz regressed",
+    "as": "recruiter_crypto",
+    "params": {
+      "userId": "{{recruiter_crypto_id}}"
+    },
+    "body": {
+      "reason": "Перевірка API: без змін"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "resetUserMfa",
+    "name": "Admin without TOTP, self target: refused even if authz regressed",
+    "as": "admin_aal1",
+    "params": {
+      "userId": "{{admin_id}}"
+    },
+    "body": {
+      "reason": "Перевірка API: без змін"
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "resetUserMfa",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "userId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": {
+      "reason": "Перевірка API: без змін"
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "resetUserMfa",
+    "name": "missing X-CSRF-Protection",
+    "as": "admin",
+    "params": {
+      "userId": "{{admin_id}}"
+    },
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "body": {
+      "reason": "Перевірка API: без змін"
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "getUser",
+    "name": "after mutations: own card unchanged",
+    "as": "admin",
+    "params": {
+      "userId": "{{admin_id}}"
+    },
+    "status": 200,
+    "sameAs": "admin_card"
+  },
+  {
+    "operation": "getUser",
+    "name": "after mutations: Team Lead card unchanged",
+    "as": "admin",
+    "params": {
+      "userId": "{{vasyl_id}}"
+    },
+    "status": 200,
+    "sameAs": "vasyl_card"
+  },
+  {
+    "operation": "getUser",
+    "name": "after mutations: invitee card unchanged",
+    "as": "admin",
+    "params": {
+      "userId": "{{expired_id}}"
+    },
+    "status": 200,
+    "sameAs": "expired_card"
+  },
+  {
+    "operation": "getUser",
+    "name": "after mutations: deactivated card unchanged",
+    "as": "admin",
+    "params": {
+      "userId": "{{inactive_id}}"
+    },
+    "status": 200,
+    "sameAs": "inactive_card"
+  },
+  {
+    "operation": "listUsers",
+    "name": "after mutations: no user was created",
+    "as": "admin",
+    "query": {
+      "limit": "100"
+    },
+    "status": 200,
+    "script": "users-count-unchanged"
+  }
+]

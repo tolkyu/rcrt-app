@@ -1,0 +1,439 @@
+[
+  {
+    "operation": "listTeamLeadPriorityVerticals",
+    "name": "Admin sees the vertical tabs",
+    "as": "admin",
+    "status": 200,
+    "script": "prio-verticals"
+  },
+  {
+    "operation": "listTeamLeadPriorityVerticals",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listTeamLeadPriorityVerticals",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listTeamLeadPriorityVerticals",
+    "name": "Recruiter (Крипто) is out of scope",
+    "as": "recruiter_crypto",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listTeamLeadPriorityVerticals",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "listTeamLeadPriorityVerticals",
+    "name": "no token",
+    "as": null,
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "getVerticalTeamLeadPriorities",
+    "name": "Гемблінг Team Leads with priorities",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "status": 200,
+    "script": "prio-gambling",
+    "snapshot": "prio_snapshot"
+  },
+  {
+    "operation": "getVerticalTeamLeadPriorities",
+    "name": "Крипто Team Leads with priorities",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{prio_crypto_id}}"
+    },
+    "status": 200,
+    "script": "prio-crypto"
+  },
+  {
+    "operation": "getVerticalTeamLeadPriorities",
+    "name": "unknown vertical",
+    "as": "admin",
+    "params": {
+      "verticalId": "00000000-0000-4000-8000-000000000000"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVerticalTeamLeadPriorities",
+    "name": "malformed id answers like an unknown one",
+    "as": "admin",
+    "params": {
+      "verticalId": "abc"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVerticalTeamLeadPriorities",
+    "name": "id longer than 64 characters",
+    "as": "admin",
+    "params": {
+      "verticalId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "params.verticalId",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "getVerticalTeamLeadPriorities",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVerticalTeamLeadPriorities",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVerticalTeamLeadPriorities",
+    "name": "Recruiter (Крипто) is out of scope",
+    "as": "recruiter_crypto",
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVerticalTeamLeadPriorities",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "getVerticalTeamLeadPriorities",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "updateTeamLeadPriorities",
+    "name": "same values with current versions write nothing",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "body": "{\"changes\":{{prio_changes}}}",
+    "status": 200,
+    "sameAs": "prio_snapshot"
+  },
+  {
+    "operation": "updateTeamLeadPriorities",
+    "name": "stale row version",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "body": {
+      "changes": [
+        {
+          "userId": "{{prio_user_id}}",
+          "priority": 0,
+          "version": 2147483647
+        }
+      ]
+    },
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "updateTeamLeadPriorities",
+    "name": "user who is not a Team Lead here",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "body": {
+      "changes": [
+        {
+          "userId": "00000000-0000-4000-8000-000000000000",
+          "priority": 0,
+          "version": null
+        }
+      ]
+    },
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "updateTeamLeadPriorities",
+    "name": "same Team Lead twice",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "body": {
+      "changes": [
+        {
+          "userId": "{{prio_user_id}}",
+          "priority": 0,
+          "version": 2147483647
+        },
+        {
+          "userId": "{{prio_user_id}}",
+          "priority": 1,
+          "version": 2147483647
+        }
+      ]
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.changes",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "updateTeamLeadPriorities",
+    "name": "priority above 99",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "body": {
+      "changes": [
+        {
+          "userId": "{{prio_user_id}}",
+          "priority": 100,
+          "version": 2147483647
+        }
+      ]
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.changes.0.priority",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "updateTeamLeadPriorities",
+    "name": "no changes",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "body": {
+      "changes": []
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.changes",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "updateTeamLeadPriorities",
+    "name": "unknown vertical",
+    "as": "admin",
+    "params": {
+      "verticalId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": {
+      "changes": [
+        {
+          "userId": "{{prio_user_id}}",
+          "priority": 0,
+          "version": 2147483647
+        }
+      ]
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateTeamLeadPriorities",
+    "name": "malformed id answers like an unknown one",
+    "as": "admin",
+    "params": {
+      "verticalId": "abc"
+    },
+    "body": {
+      "changes": [
+        {
+          "userId": "{{prio_user_id}}",
+          "priority": 0,
+          "version": 2147483647
+        }
+      ]
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateTeamLeadPriorities",
+    "name": "Head Recruiter is out of scope",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "body": {
+      "changes": [
+        {
+          "userId": "{{prio_user_id}}",
+          "priority": 0,
+          "version": 2147483647
+        }
+      ]
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateTeamLeadPriorities",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "body": {
+      "changes": [
+        {
+          "userId": "{{prio_user_id}}",
+          "priority": 0,
+          "version": 2147483647
+        }
+      ]
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateTeamLeadPriorities",
+    "name": "Recruiter (Крипто) is out of scope",
+    "as": "recruiter_crypto",
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "body": {
+      "changes": [
+        {
+          "userId": "{{prio_user_id}}",
+          "priority": 0,
+          "version": 2147483647
+        }
+      ]
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateTeamLeadPriorities",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "body": {
+      "changes": [
+        {
+          "userId": "{{prio_user_id}}",
+          "priority": 0,
+          "version": 2147483647
+        }
+      ]
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "updateTeamLeadPriorities",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "body": {
+      "changes": [
+        {
+          "userId": "{{prio_user_id}}",
+          "priority": 0,
+          "version": 2147483647
+        }
+      ]
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "updateTeamLeadPriorities",
+    "name": "missing X-CSRF-Protection",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "body": {
+      "changes": [
+        {
+          "userId": "{{prio_user_id}}",
+          "priority": 0,
+          "version": 2147483647
+        }
+      ]
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "getVerticalTeamLeadPriorities",
+    "name": "after mutations: priorities unchanged",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{prio_gambling_id}}"
+    },
+    "status": 200,
+    "sameAs": "prio_snapshot"
+  }
+]

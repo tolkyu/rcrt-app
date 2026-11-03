@@ -54,7 +54,10 @@ const caseSchema = z
     name: z.string().min(1),
     as: z.enum(API_TOKENS as [string, ...string[]]).nullable(),
     params: z.record(z.string(), z.string()).optional(),
-    query: z.record(z.string(), z.string()).optional(),
+    /** An array repeats the key (`?status=A&status=B`), as multi-value filters expect. */
+    query: z
+      .record(z.string(), z.union([z.string(), z.array(z.string()).min(1)]))
+      .optional(),
     headers: z.record(z.string(), z.string().nullable()).optional(),
     body: z.union([z.string(), z.record(z.string(), z.unknown())]).optional(),
     status: z.number().int().min(200).max(599),
@@ -69,6 +72,10 @@ const caseSchema = z
       .string()
       .regex(/^[a-z0-9-]+$/)
       .optional(),
+    /** Stores the whole response body under this variable for a later `sameAs`. */
+    snapshot: z.string().regex(/^\w+$/).optional(),
+    /** The response body must deep-equal the snapshot taken earlier (proof a refused mutation wrote nothing). */
+    sameAs: z.string().regex(/^\w+$/).optional(),
   })
   .strict()
   .refine((c) => c.status >= 400 === (c.code !== undefined), {
@@ -161,7 +168,7 @@ function scriptLines(dir: string, name: string): string[] {
 function chainedVariables(c: ApiCase): string[] {
   const text = JSON.stringify([c.params, c.query, c.headers, c.body]);
   const names = [...text.matchAll(/{{(\w+)}}/g)].map((m) => m[1]!);
-  return [...new Set(names)].filter(
+  return [...new Set([...names, ...(c.sameAs ? [c.sameAs] : [])])].filter(
     (n) => !RUNNER_VARIABLES.has(n) && !n.startsWith('token_'),
   );
 }
@@ -203,10 +210,9 @@ function caseItem(
     name,
     url: {
       ...base.url,
-      query: Object.entries(c.query ?? {}).map(([key, value]) => ({
-        key,
-        value,
-      })),
+      query: Object.entries(c.query ?? {}).flatMap(([key, value]) =>
+        [value].flat().map((v) => ({ key, value: v })),
+      ),
       variable,
     },
     header: headers(base, c),
@@ -228,7 +234,17 @@ function caseItem(
   else delete request.body;
   const exec = [
     ...assertions(c, responseSchema(spec, operation, c.status)),
+    ...(c.sameAs
+      ? [
+          `pm.test(${JSON.stringify(`body identical to ${c.sameAs}`)}, () => pm.expect(pm.response.json()).to.deep.equal(JSON.parse(pm.collectionVariables.get('${c.sameAs}'))));`,
+        ]
+      : []),
     ...(c.script ? scriptLines(dir, c.script) : []),
+    ...(c.snapshot
+      ? [
+          `pm.collectionVariables.set('${c.snapshot}', JSON.stringify(pm.response.json()));`,
+        ]
+      : []),
   ];
   const chained = chainedVariables(c);
   const missing = chained.filter((key) => !captured.has(key));

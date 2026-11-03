@@ -22,44 +22,57 @@
   },
   {
     "operation": "updateMe",
-    "name": "change own display name",
+    "name": "same name with surrounding spaces writes nothing",
     "as": "recruiter_crypto",
-    "body": { "fullName": "  {{me_full_name}}   API  " },
+    "body": {
+      "fullName": "  {{me_full_name}}  "
+    },
     "status": 200,
-    "script": "me-renamed"
-  },
-  {
-    "operation": "updateMe",
-    "name": "restore own display name",
-    "as": "recruiter_crypto",
-    "body": { "fullName": "{{me_full_name}}" },
-    "status": 200,
-    "script": "me-restored"
+    "script": "me-unchanged"
   },
   {
     "operation": "updateMe",
     "name": "blank name",
     "as": "recruiter_crypto",
-    "body": { "fullName": "   " },
+    "body": {
+      "fullName": "   "
+    },
     "status": 400,
     "code": "VALIDATION_FAILED",
-    "errors": [{ "path": "body.fullName", "code": "too_small" }]
+    "errors": [
+      {
+        "path": "body.fullName",
+        "code": "too_small"
+      }
+    ]
   },
   {
     "operation": "updateMe",
     "name": "email is not self-service",
     "as": "recruiter_crypto",
-    "body": { "fullName": "{{me_full_name}}", "email": "other@demo" },
+    "body": {
+      "fullName": "{{me_full_name}}",
+      "email": "other@demo"
+    },
     "status": 400,
     "code": "VALIDATION_FAILED",
-    "errors": [{ "path": "body", "code": "unrecognized_keys" }]
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
   },
   {
     "operation": "updateMe",
     "name": "missing X-CSRF-Protection",
     "as": "recruiter_crypto",
-    "headers": { "X-CSRF-Protection": null },
-    "body": { "fullName": "{{me_full_name}}" },
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "body": {
+      "fullName": "{{me_full_name}}"
+    },
     "status": 403,
     "code": "CSRF_FORBIDDEN"
   },
@@ -67,7 +80,9 @@
     "operation": "updateMe",
     "name": "no token",
     "as": null,
-    "body": { "fullName": "{{me_full_name}}" },
+    "body": {
+      "fullName": "{{me_full_name}}"
+    },
     "status": 401,
     "code": "UNAUTHENTICATED"
   }
