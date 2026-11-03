@@ -25,7 +25,6 @@ import {
   auditSearchParams,
   parseAuditSearch,
   selectedAuditActions,
-  validAuditPeriod,
   type AuditSearch,
 } from '@/lib/audit-filters';
 import { AUDIT_PERIODS } from '@/lib/audit-period';
@@ -161,11 +160,18 @@ export function AuditView({
     () => resolveFilters(search, initialSearch, initialFilters),
     [search, initialSearch, initialFilters],
   );
-  const [from, setFrom] = useState(
-    initialSearch.from ?? initialFilters.from ?? '',
-  );
-  const [to, setTo] = useState(initialSearch.to ?? initialFilters.to ?? '');
+  const [from, setFrom] = useState(filters.from ?? '');
+  const [to, setTo] = useState(filters.to ?? '');
   const [dateError, setDateError] = useState(false);
+  const periodKey = `${search.period} ${filters.from ?? ''} ${filters.to ?? ''}`;
+  const [draftKey, setDraftKey] = useState(periodKey);
+  /** Back/Forward, reset or entity history moved the period: the URL wins over the date draft, as on a fresh load. */
+  if (draftKey !== periodKey) {
+    setDraftKey(periodKey);
+    setFrom(filters.from ?? '');
+    setTo(filters.to ?? '');
+    setDateError(false);
+  }
   const [pickedActor, setPickedActor] = useState(initialActor);
   const query = useInfiniteQuery(auditQuery(filters));
   const queryClient = useQueryClient();
@@ -493,14 +499,10 @@ export function AuditView({
           value={search.period}
           onChange={(value) => {
             const period = value as AuditSearch['period'];
-            setDateError(false);
-            const customDates = validAuditPeriod(from, to)
-              ? { from, to }
-              : { from: filters.from, to: filters.to };
             applyFilters({
               period,
-              from: period === 'custom' ? customDates.from : undefined,
-              to: period === 'custom' ? customDates.to : undefined,
+              from: period === 'custom' ? filters.from : undefined,
+              to: period === 'custom' ? filters.to : undefined,
             });
           }}
         >

@@ -1077,6 +1077,106 @@ test('custom Kyiv dates reach the API, while a period over one year stays on the
   await expect(page.getByLabel(t.filters.to, { exact: true })).toHaveCount(0);
 });
 
+test('the custom-date draft follows Back and Forward like a fresh load, while applying keeps the typed dates [STORY-AUD-2]', async ({
+  page,
+}) => {
+  await page.route(
+    (url) => url.pathname === '/api/v1/audit',
+    async (route) => {
+      const url = new URL(route.request().url());
+      const range = `${url.searchParams.get('from')}…${url.searchParams.get('to')}`;
+      const [row] = deniedRows(1);
+      await route.fulfill({
+        json: {
+          items: [{ ...row!, entity: { ...row!.entity!, label: range } }],
+          nextCursor: null,
+          prevCursor: null,
+        } satisfies AuditPage,
+      });
+    },
+  );
+  const period = page.getByLabel(t.filters.period, { exact: true });
+  const from = page.getByLabel(t.filters.from, { exact: true });
+  const to = page.getByLabel(t.filters.to, { exact: true });
+  const apply = page.getByRole('button', {
+    name: t.filters.apply,
+    exact: true,
+  });
+  const shownRow = page.locator('[data-audit-row]:visible').first();
+  const periodError = page
+    .getByRole('alert')
+    .filter({ hasText: t.filters.invalidPeriod });
+  /** Filters replace the history entry; opening a record pushes one, so Back can return to the previous period. */
+  const pushEntry = async () => {
+    await shownRow.locator('[data-row-open]').click();
+    await expect(page).toHaveURL(/record=/);
+    await page.getByRole('button', { name: t.detail.close }).click();
+    await expect(page).not.toHaveURL(/record=/);
+  };
+  const applyRange = async (start: string, end: string) => {
+    await from.fill(start);
+    await to.fill(end);
+    await apply.click();
+    await expect(page).toHaveURL(new RegExp(`from=${start}&to=${end}`));
+    await expect(shownRow).toContainText(`${start}…${end}`);
+    await expect(from).toHaveValue(start);
+    await expect(to).toHaveValue(end);
+  };
+  const expectRange = async (start: string, end: string) => {
+    await expect(page).toHaveURL(new RegExp(`from=${start}&to=${end}`));
+    await expect(period).toHaveValue('custom');
+    await expect(from).toHaveValue(start);
+    await expect(to).toHaveValue(end);
+    await expect(shownRow).toContainText(`${start}…${end}`);
+    await expect(periodError).toHaveCount(0);
+  };
+
+  await page.goto('/settings/audit?period=30d');
+  // A full reload would drop this marker, so it proves Back/Forward stayed client-side.
+  await page.evaluate(() => (document.documentElement.dataset.softNav = '1'));
+  const softNav = page.locator('html[data-soft-nav="1"]');
+  await pushEntry();
+  await period.selectOption('custom');
+  await applyRange('2026-10-01', '2026-10-05');
+  await pushEntry();
+  await applyRange('2026-10-10', '2026-10-12');
+
+  await page.goBack();
+  await expectRange('2026-10-01', '2026-10-05');
+  await page.goBack();
+  await expect(page).toHaveURL(/period=30d/);
+  await expect(period).toHaveValue('30d');
+  await expect(from).toHaveCount(0);
+  await expect(softNav).toHaveCount(1);
+  await page.goForward();
+  await expectRange('2026-10-01', '2026-10-05');
+
+  await page.goForward();
+  await expectRange('2026-10-10', '2026-10-12');
+  await from.fill('2026-10-20');
+  await apply.click();
+  await expect(periodError).toBeVisible();
+  await page.goBack();
+  await expectRange('2026-10-01', '2026-10-05');
+  await expect(softNav).toHaveCount(1);
+
+  await from.fill('2026-10-20');
+  await apply.click();
+  await expect(periodError).toBeVisible();
+  await page
+    .getByRole('button', { name: t.filters.reset, exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/settings\/audit$/);
+  await expect(period).toHaveValue('7d');
+  await expect(from).toHaveCount(0);
+  await expect(periodError).toHaveCount(0);
+  await period.selectOption('custom');
+  await expect(page).toHaveURL(/period=custom/);
+  const url = new URL(page.url());
+  await expectRange(url.searchParams.get('from')!, url.searchParams.get('to')!);
+  await expect(softNav).toHaveCount(1);
+});
+
 test('Finance and Head Recruiter cannot read audit records or settings [VIS-01..03, D25]', async ({
   browser,
 }) => {
