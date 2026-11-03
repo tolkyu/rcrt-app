@@ -51,7 +51,7 @@
 
 ## Next steps (in order)
 
-1. **Next:** fix the Phase-1 gallery review `docs/ux/review-phase-1-gallery.md` (33 issues: P1 2, P2 10, P3 21) in small slices — A ✅ done (G-10 seed emails await owner OK for a DB reset; also move seed history ~2 weeks earlier); B: P1 coverage (non-admin roles, Вертикалі, Профіль, MFA, invite accept — G-01/02); C: mobile P2 (G-07/08/09/12); P3 batched later. Then T8 perf gates, T9 security/carry-overs, Phase-1 report. Newman in CI needs the Supabase stack in Actions (devops). Audit route 179.18 kB / 180. Then T8 perf, T9 carry-overs, Phase-1 report.
+1. **Next:** fix the Phase-1 gallery review `docs/ux/review-phase-1-gallery.md` (33 issues: P1 2, P2 10, P3 21) in small slices — A ✅ done; B ✅ done (204 PNGs, all roles); owner APPROVED (2026-11-03) a local demo DB reset: person-like emails for expired.invite@demo / inactive.recruiter@demo + seed history ~2 weeks earlier → do next; B was: P1 coverage (non-admin roles, Вертикалі, Профіль, MFA, invite accept — G-01/02); C: mobile P2 (G-07/08/09/12) + «Пізніше» on optional 2FA setup; T9 adds settings 404 HTTP 200 (VIS-02); P3 batched later. Then T8 perf gates, T9 security/carry-overs, Phase-1 report. Newman in CI needs the Supabase stack in Actions (devops). Audit route 179.18 kB / 180. Then T8 perf, T9 carry-overs, Phase-1 report.
 2. **T7** QA: full phase-1 E2E, Newman, screenshots → `screenshots/phase-1/` + `index.html` + `screenshots/latest/`.
 3. **T8** perf gates for phase-1 screens.
 4. **T9** carry-overs: CI Supabase job, CI SHA pins, `pnpm audit`, Drizzle drift, `format:check`, secret grep, DG-03 storage test, hosted Supabase config drift (A04, B06, C06, D03, H04, I03, R03), SEC-CORE-13/14.

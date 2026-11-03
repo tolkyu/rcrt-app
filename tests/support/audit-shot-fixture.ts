@@ -65,9 +65,10 @@ const CRYPTO = {
   id: '4bb6cdac-f89d-46ea-9a6b-e6019637cc9e',
   label: 'Крипто',
 };
-const IVAN_IP = '91.203.4.17';
-const OFFICE_IP = '185.12.40.3';
-const IRYNA_IP = '176.36.221.9';
+export const IVAN_IP = '91.203.4.17';
+export const OFFICE_IP = '185.12.40.3';
+export const IRYNA_IP = '176.36.221.9';
+export const VASYL_IP = '46.211.88.102';
 
 type ShotEvent = Omit<AuditRow, 'id' | 'actorKind'>;
 const event = (
@@ -150,7 +151,7 @@ export const SHOT_ROWS: AuditRow[] = [
     vasyl,
     'auth.login_succeeded',
     user(vasyl),
-    '46.211.88.102',
+    VASYL_IP,
   ),
   event(
     '2026-11-16T06:31:16Z',
@@ -195,7 +196,7 @@ export const SHOT_ROWS: AuditRow[] = [
   actorKind: row.actor ? 'USER' : 'SYSTEM',
 }));
 
-const CHROME_WINDOWS_UA =
+export const CHROME_WINDOWS_UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36';
 const record = (action: string, requestId: string): AuditRecord => {
   const row = SHOT_ROWS.find((item) => item.action === action)!;

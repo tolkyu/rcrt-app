@@ -2,6 +2,8 @@ import { test as setup } from '@playwright/test';
 import {
   E2E_ORIGIN,
   E2E_USERS,
+  MFA_PENDING_USER,
+  mfaPendingSessionFile,
   sessionFile,
   signIn,
   signInWithTotp,
@@ -23,3 +25,16 @@ for (const [email, method] of Object.entries(E2E_USERS) as [
     }
   });
 }
+
+setup(
+  `sign in ${MFA_PENDING_USER} without the TOTP step`,
+  async ({ browser }) => {
+    const context = await browser.newContext({ baseURL: E2E_ORIGIN });
+    try {
+      await signIn(context.request, MFA_PENDING_USER);
+      await context.storageState({ path: mfaPendingSessionFile });
+    } finally {
+      await context.close();
+    }
+  },
+);

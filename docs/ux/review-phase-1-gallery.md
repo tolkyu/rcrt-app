@@ -92,3 +92,39 @@ Checked the uncommitted regenerated shots, light/dark × desktop/mobile: 06 (lis
 - RA-03: the gallery intro mentions «seed (CLAUDE.md §8)», developer jargon in an owner-facing page. Use «демо-дані». The gallery's section labels use CSS `uppercase`; design-system §2 says no uppercase labels. `scripts/screenshot-gallery.mjs`.
 
 Still open and not part of step A: UX-G-01/02 (P1); UX-G-22 (plural «Зняти ролі?» for one role, still visible in 12-remove); UX-G-28 («по порядку»); UX-G-29 (mobile drawer and detail shots still stretched to 2178–2342 px).
+
+## Re-check (step B), 2026-11-03
+
+Gallery now has 204 PNGs, uncommitted. Checked every new stem in light/dark × desktop/mobile: 15-tl/head-hr/finance-profile, 16-head-recruiter-settings-denied, 17-admin-verticals-* (5 states), 18-admin-profile, 19-*-mfa-setup-*, 20-admin-mfa-verify-*, 21-public-invite-valid, 22-public-{login,invite}-google. Also checked the updated 07 overlay and the rewritten `index.html` (intro, captions, shared-layout notes).
+
+| ID | Status | Evidence / residual |
+|---|---|---|
+| UX-G-01 | Fixed (accepted deviation) | All seven roles are represented, and the captions say who shares a layout: TL covers Head Recruiter and Recruiter, Head HR covers HR. The Head Recruiter shot shows the Settings 404 inside the shell. TL mobile is present. Finance's top bar shows only the theme toggle and avatar (D41). The intro explains that every non-Admin role sees only «Профіль» in Phase 1. |
+| UX-G-02 | Fixed | Vertical list, create, duplicate, «Назва не змінилася.» and empty states. Also profile (4 roles), MFA setup (optional and backup), MFA verify (form and wrong code), valid invite, and Google variants for login and invite. User counts on verticals (7 / 4) match the users list. The remaining states in the Gaps table (skeletons, SectionError, toasts, 2FA-reset dialog, self card, etc.) are still open; they were never part of G-02. |
+
+**The author's list: I agree with all six, and re-grade one**
+
+| Author item | Sev | Note |
+|---|---|---|
+| No way back from `/mfa/setup` (optional and backup modes) | **P2** | Raised from P3. It is a dead end on an optional flow, and TL is mobile-first. Add a secondary «Пізніше» (optional) / «Скасувати» (backup) → `/profile`. |
+| Session row always shows a laptop icon | P3 | Use `smartphone` for Android/iOS, `monitor` otherwise. |
+| Mobile theme segment truncates «Систем…» | P3 | At < 400 px, drop the segment icons (or put labels under icons). Never truncate. |
+| Google buttons have no Google mark | P3 | Add the official multicolour «G» (Google sign-in branding guidelines), left of the label. |
+| 17-empty shell still shows «Усі мої вертикалі» | P3 | Hide VerticalSwitcher when there are 0 verticals. The same root cause is RB-05. |
+| Ірина's odd 2FA-failure story | P3 | «Невірний код 2FA» from Android with no later session or success. Add a successful retry, or drop the event. |
+
+**New issues (step B)**
+
+| ID | Sev | Shot(s) | Issue | Fix |
+|---|---|---|---|---|
+| RB-01 | P3 | 19-*-mobile | On a phone the QR code can't be scanned by the same device, and the key is an ungrouped 32-character string with no copy button. | On mobile show the key first, grouped in 4s (`ELXS NOPL …`), with «Копіювати» and an «Відкрити в застосунку» `otpauth://` link. Keep the QR below. |
+| RB-02 | P3 | 15/18-*, 09, 21 | The person-name label is inconsistent: «ПІБ» (invite, search), «Імʼя та прізвище» (profile), «Імʼя» (invite accept). The seed has no patronymics, so «ПІБ» is also inaccurate. | Use «Імʼя та прізвище» everywhere and add it to `glossary.md`. |
+| RB-03 | P3 | 18-admin-profile-* | The Admin sees «Змінити пошту може лише адміністратор.» about his own address. | For Admin: «Пошту активного користувача поки не можна змінити.» Keep the current text for other roles. |
+| RB-04 | P3 | 15/18-*-desktop | The 2-column grid stretches cards to equal height, leaving big empty «Ролі та доступ» and «Тема оформлення» cards. | `items-start` on the grid, or stack Тема under Ролі in the right column. |
+| RB-05 | P3 | 15-head-hr-* | A profile-only user with two verticals sees «Усі мої вертикалі», which filters nothing in Phase 1. | Render VerticalSwitcher only on routes that consume it. |
+| RB-06 | P3 | 15/18-*-mobile, all profiles | The login-history meta wraps «IP / 46.211.88.102». The «Вихід» row uses the green success check. | `whitespace-nowrap` on «IP {ip}». «Вихід» gets a neutral `log-out` icon in muted colour. |
+| RB-07 | P3 | 21-*, 22-public-invite-* | The valid-invite example is Оксана Олійник (`hr@demo`), who is already «Активний» in 08. There is also no expiry line. | Use a not-yet-activated person, and add «Запрошення діє до {dd.MM.yyyy, HH:mm}» under the roles. |
+| RB-08 | P3 | 20-* | MFA verify has no escape other than the hint («Немає доступу до пристрою?…»). | Add a ghost link «Вийти й увійти іншим акаунтом». |
+| RB-09 | P3 | `index.html` | RA-03 is partly fixed: the intro now says «демо-дані», but the `.screen` section labels are still CSS `uppercase`. | Drop `text-transform`. `scripts/screenshot-gallery.mjs`. |
+
+Still open from earlier: UX-G-26 (the 404 title and body repeat each other, now also in 16-denied); UX-G-33 (the «Створено» prefix in vertical table cells, 17-list desktop); UX-G-07 (the lone «Ще» in the Admin bottom nav, 17/18 mobile).

@@ -1,10 +1,14 @@
-import { expect, test, type Page } from '@playwright/test';
+import { devices, expect, test, type Page } from '@playwright/test';
+import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import {
   E2E_ORIGIN,
   MUTATION_HEADERS,
   sessionFile,
 } from '../support/e2e-session';
+import { problemFulfill } from '../support/problem';
+import { routeShotVerticals } from '../support/shot-timeline';
+import { captureScreen, forEachTheme } from './screens';
 
 const t = messages.settings;
 const dialogErrors = t.verticals.dialog.errors;
@@ -230,4 +234,117 @@ test('roles without settings permissions get the not-found page and 404 from the
   } finally {
     await context.close();
   }
+});
+
+test('captures the verticals screenshots; saves are refused in the browser, verticals are permanent (D34) [SHOT-01..03, STORY-ROLE-03-1]', async ({
+  browser,
+}, testInfo) => {
+  const viewports = {
+    desktop: {
+      ...devices['Desktop Chrome'],
+      viewport: { width: 1440, height: 900 },
+    },
+    mobile: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } },
+  };
+  const dialogT = t.verticals.dialog;
+  const [taken, stale] = await Promise.all([
+    problemFulfill(409, 'VERTICAL_NAME_TAKEN'),
+    problemFulfill(409, 'STALE_STATE'),
+  ]);
+  const saves = { create: 0, rename: 0 };
+  for (const [viewport, device] of Object.entries(viewports)) {
+    const context = await browser.newContext({
+      ...device,
+      baseURL: E2E_ORIGIN,
+      storageState: sessionFile('admin@demo'),
+      reducedMotion: 'reduce',
+    });
+    try {
+      const page = await context.newPage();
+      await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+      await page.route('**/api/v1/verticals', (route) => {
+        if (route.request().method() !== 'POST') return route.fallback();
+        saves.create += 1;
+        return route.fulfill(taken);
+      });
+      await page.route('**/api/v1/verticals/*', (route) => {
+        if (route.request().method() !== 'PATCH') return route.fallback();
+        saves.rename += 1;
+        return route.fulfill(stale);
+      });
+      await routeShotVerticals(page);
+      const items =
+        viewport === 'desktop'
+          ? verticalsTable(page).getByRole('rowheader')
+          : page
+              .getByRole('main')
+              .getByRole('listitem')
+              .filter({ hasText: 'Створено' });
+
+      await forEachTheme(page, async (theme) => {
+        const name = (state: string) =>
+          `17-admin-verticals-${state}-${viewport}-${theme}.png`;
+        await page.goto('/settings/verticals');
+        await expect(items).toHaveCount(2);
+        await expect(items.first()).toContainText('Гемблінг');
+        await expect(items.last()).toContainText('Крипто');
+        await expect(
+          page.getByText('Створено 02.11.2026').filter({ visible: true }),
+        ).toHaveCount(2);
+        // The seed's active users: 7 in Гемблінг, 4 in Крипто (CLAUDE.md §8; Head HR and HR are in both).
+        await expect(
+          page.getByRole('link', { name: '7 користувачів' }),
+        ).toBeVisible();
+        await expect(
+          page.getByRole('link', { name: '4 користувачі' }),
+        ).toBeVisible();
+        await captureScreen(page, testInfo, name('list'));
+
+        await page.getByRole('button', { name: t.verticals.create }).click();
+        const dialog = openDialog(page);
+        const input = dialog.getByLabel(dialogT.nameLabel);
+        await expect(input).toBeFocused();
+        await captureScreen(page, testInfo, name('create'));
+
+        await input.fill('Гемблінг');
+        await dialog
+          .getByRole('button', { name: dialogT.createSubmit })
+          .click();
+        await expect(dialog.getByText(dialogErrors.duplicate)).toBeVisible();
+        await expect(input).toHaveAttribute('aria-invalid', 'true');
+        await captureScreen(page, testInfo, name('duplicate'));
+        await dialog.getByRole('button', { name: t.common.cancel }).click();
+        await expect(dialog).toHaveCount(0);
+
+        await page
+          .getByRole('button', { name: `${t.verticals.rename}: Крипто` })
+          .click();
+        await expect(
+          dialog.getByText(dialogT.currentName.replace('{name}', 'Крипто')),
+        ).toBeVisible();
+        await expect(dialog.getByText(dialogErrors.unchanged)).toBeVisible();
+        await expect(
+          dialog.getByRole('button', { name: dialogT.renameSubmit }),
+        ).toBeDisabled();
+        await captureScreen(page, testInfo, name('rename'));
+        await dialog.getByRole('button', { name: t.common.cancel }).click();
+        await expect(dialog).toHaveCount(0);
+
+        await page.route('**/api/v1/settings/verticals', (route) =>
+          route.fulfill({ json: { items: [] } }),
+        );
+        await page.goto('/settings/verticals');
+        await expect(page.getByText(t.verticals.empty.title)).toBeVisible();
+        await expect(
+          page.getByRole('button', { name: t.verticals.create }),
+        ).toHaveCount(1);
+        await captureScreen(page, testInfo, name('empty'));
+        await page.unroute('**/api/v1/settings/verticals');
+        await routeShotVerticals(page);
+      });
+    } finally {
+      await context.close();
+    }
+  }
+  expect(saves).toEqual({ create: 4, rename: 0 });
 });

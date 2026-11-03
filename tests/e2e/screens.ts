@@ -1,5 +1,23 @@
 import { copyFileSync, mkdirSync } from 'node:fs';
 import { expect, type Page, type TestInfo } from '@playwright/test';
+import { E2E_ORIGIN } from '../support/origins';
+
+/** Phone projects end in `mobile` (`e2e-mobile`, `e2e-admin-mobile`); the file name's viewport token follows it. */
+export const viewportOf = (testInfo: TestInfo) =>
+  testInfo.project.name.endsWith('mobile') ? 'mobile' : 'desktop';
+
+/** Runs `step` once per theme with the server-rendered theme cookie set (SHOT-01..03). */
+export async function forEachTheme(
+  page: Page,
+  step: (theme: 'light' | 'dark') => Promise<void>,
+) {
+  for (const theme of ['light', 'dark'] as const) {
+    await page
+      .context()
+      .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
+    await step(theme);
+  }
+}
 
 /** Captures taken while a state-change colour transition is still running differ from run to run (SHOT-DET-01). */
 export async function settleRendering(page: Page) {

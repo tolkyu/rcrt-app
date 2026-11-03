@@ -49,6 +49,14 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 | T8 | Perf seed + perf:check | performance-engineer | 🔄 Initial-JS gate (PERF-04) green 2026-11-01 (`e251de6`, `5be02ea`): all routes ≤ 180 kB. Pending: API P95, Web Vitals/Lighthouse, perf seed (Phase 2) |
 | T9 | Security review, code review, fixes, verify | security-engineer, code-reviewer | ⏳ Carry-over from foundation review: route framework validates query/body before `requirePermission` → non-admin gets 400 instead of 404 for malformed input (add `permission` to `RouteSpec`, SEC review of users list S2); deploy smoke `set role app_rw; select count(*) from app.auth_mfa_totp` and runbook note that GoTrue tables must exist before app migrations (0002/0007 skip silently otherwise); CI action SHA pins, `pnpm audit` gate, Drizzle drift check, `format:check`, `NEXT_PUBLIC_`/static secret grep; DG-03 storage policy test on local Supabase; AGENTS.md/.codex duplication (owner call) |
 
+## Implementation checkpoint — 2026-11-03 (Claude team, gallery review step B)
+
+- UX-G-01/02 fixed: every seeded role and every built Phase-1 screen is in the gallery (204 PNGs). Shared layouts: Team Lead = Head Recruiter = Recruiter; Head HR = HR; Finance and Admin separate. New: role profiles, in-shell settings 404 for non-Admin, Вертикалі (list/create/duplicate/rename/empty), Admin profile, 2FA setup (optional/backup) and verify (form/wrong code), valid invite, Google login/invite buttons (second test server :3101 with Google on; outside hosts aborted).
+- Safety: every write or counted-attempt mock asserts its interception count (no real wrong TOTP code can reach the server); problem mocks built by the server's own `problemResponse`.
+- Verified: lint, typecheck, 2,196 Vitest, build, full E2E 203 + 2 skips, screens 36, zero screenshot drift, test:api green. Code review blocker fixed; UX re-check: P1s closed.
+- Sign-in budget: full E2E 11 + Newman 7 per 15 min.
+- Found: non-Admin `/settings/*` renders the 404 page with HTTP 200 (VIS-02) → T9. UX P2: no way back from optional 2FA setup → step C. New P3 RB-01..09 in the review.
+
 ## Implementation checkpoint — 2026-11-03 (Claude team, gallery review step A)
 
 - Fixed from `docs/ux/review-phase-1-gallery.md`: UX-G-03 (fixtures match the seed, causal times), G-04 (role-matrix checkbox ≥3:1, indigo like other checkboxes), G-05 (removed-role chip 5.9:1 + minus icon), G-06 (Ukrainian gallery captions/alt, one heading per state, 1:1 file check both ways), G-11 (unfiltered audit list, new denied detail). G-10 partly: realistic UA/ids/IPs/15 events; seed emails `expired.invite@demo`, `inactive.recruiter@demo` need a DB reset (owner question).

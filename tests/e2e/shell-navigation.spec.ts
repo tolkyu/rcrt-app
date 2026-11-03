@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
-import { E2E_ORIGIN, sessionFile } from '../support/e2e-session';
-import { captureScreen } from './screens';
+import { sessionFile } from '../support/e2e-session';
+import { routeShotVerticals } from '../support/shot-timeline';
+import { captureScreen, forEachTheme } from './screens';
 
 const t = messages.shell;
 
@@ -46,12 +47,10 @@ test('keyboard opening moves focus into navigation, Escape restores its trigger,
   await expect(page).toHaveURL(/\/profile$/);
   await expect(dialog).toHaveCount(0);
 
+  await routeShotVerticals(page);
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  for (const theme of ['light', 'dark'] as const) {
-    await page
-      .context()
-      .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
+  await forEachTheme(page, async (theme) => {
     await page.goto('/settings/verticals');
     await expect(
       page.getByRole('heading', {
@@ -59,6 +58,9 @@ test('keyboard opening moves focus into navigation, Escape restores its trigger,
         name: messages.settings.verticals.title,
       }),
     ).toBeVisible();
+    await expect(
+      page.getByText('Створено 02.11.2026').filter({ visible: true }),
+    ).toHaveCount(2);
     await trigger.click();
     await expect(dialog).toBeVisible();
     await expect(dialog.locator(':focus')).toHaveCount(1);
@@ -66,5 +68,5 @@ test('keyboard opening moves focus into navigation, Escape restores its trigger,
     await captureScreen(page, testInfo, file);
     await page.keyboard.press('Escape');
     await expect(trigger).toBeFocused();
-  }
+  });
 });

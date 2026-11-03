@@ -1,6 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
+import { E2E_ORIGIN, GOOGLE_E2E_ORIGIN } from './tests/support/origins';
 
-const baseURL = 'http://localhost:3100';
+const baseURL = E2E_ORIGIN;
 const DESKTOP = { width: 1440, height: 900 };
 const MOBILE = { width: 390, height: 844 };
 /** These rename the shared, undeletable demo verticals (D34): they run last, one worker, mobile after desktop. */
@@ -17,13 +18,18 @@ export default defineConfig({
     /** Re-rastering only the invalidated rect leaves 1-level anti-aliasing seams that vary between runs (SHOT-DET-01); a project-level launchOptions would drop this. */
     launchOptions: { args: ['--disable-partial-raster'] },
   },
-  webServer: {
-    command: 'node node_modules/next/dist/bin/next start --port 3100',
-    url: `${baseURL}/api/health`,
+  webServer: [E2E_ORIGIN, GOOGLE_E2E_ORIGIN].map((origin) => ({
+    command: `node node_modules/next/dist/bin/next start --port ${new URL(origin).port}`,
+    url: `${origin}/api/health`,
     reuseExistingServer: false,
-    env: { APP_ENV: 'test', APP_URL: baseURL, NEXT_TELEMETRY_DISABLED: '1' },
+    env: {
+      APP_ENV: 'test',
+      APP_URL: origin,
+      NEXT_TELEMETRY_DISABLED: '1',
+      AUTH_GOOGLE_ENABLED: String(origin === GOOGLE_E2E_ORIGIN),
+    },
     timeout: 60_000,
-  },
+  })),
   projects: [
     { name: 'e2e-sessions', testMatch: 'e2e/sessions.setup.ts' },
     {

@@ -19,7 +19,7 @@ import {
   MUTATION_HEADERS,
   sessionFile,
 } from '../support/e2e-session';
-import { captureScreen } from './screens';
+import { captureScreen, forEachTheme, viewportOf } from './screens';
 
 const t = messages.settings.audit;
 const actionLabel = (code: string) => {
@@ -1266,10 +1266,7 @@ test('audit list and detail render without overflow in both themes [SHOT-01..03,
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const shownRows = page.locator('[data-audit-row]:visible');
-  for (const theme of ['light', 'dark'] as const) {
-    await page
-      .context()
-      .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
+  await forEachTheme(page, async (theme) => {
     await page.goto('/settings/audit');
     await expect(
       page.getByLabel(t.filters.period, { exact: true }),
@@ -1281,7 +1278,7 @@ test('audit list and detail render without overflow in both themes [SHOT-01..03,
     );
     await expect(shownRows.filter({ hasText: t.actorUnknown })).toHaveCount(1);
     const capture = async (state: string) => {
-      const file = `06-admin-audit-${state}-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
+      const file = `06-admin-audit-${state}-${viewportOf(testInfo)}-${theme}.png`;
       await captureScreen(page, testInfo, file);
     };
     await capture('list');
@@ -1413,12 +1410,11 @@ test('audit list and detail render without overflow in both themes [SHOT-01..03,
         .first(),
     ).toBeVisible();
     await capture('security');
-  }
+  });
 });
 
 test('a moved audit window shows «Показати новіші» above the list in both themes [SHOT-01..03, STORY-AUD-4]', async ({
   page,
-  isMobile,
 }, testInfo) => {
   const rows = SHOT_ROWS;
   await routeAuditWindow(page, rows, { pageSize: 5 });
@@ -1428,10 +1424,7 @@ test('a moved audit window shows «Показати новіші» above the lis
     page,
     rows,
   );
-  for (const theme of ['light', 'dark'] as const) {
-    await page
-      .context()
-      .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
+  await forEachTheme(page, async (theme) => {
     await page.goto('/settings/audit');
     await page
       .getByLabel(t.filters.period, { exact: true })
@@ -1455,7 +1448,7 @@ test('a moved audit window shows «Показати новіші» above the lis
     await captureScreen(
       page,
       testInfo,
-      `06-admin-audit-newer-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`,
+      `06-admin-audit-newer-${viewportOf(testInfo)}-${theme}.png`,
     );
-  }
+  });
 });

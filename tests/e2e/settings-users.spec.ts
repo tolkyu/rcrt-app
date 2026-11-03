@@ -2,10 +2,11 @@ import { expect, test, type Page } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import { E2E_ORIGIN, sessionFile } from '../support/e2e-session';
+import { SHOT_INVITED_AT, shotSignIn } from '../support/shot-timeline';
 import { userActivationPage } from '../support/user-activation-page';
 import { userInvitePage } from '../support/user-invite-page';
 import { userRolesPage } from '../support/user-roles-page';
-import { captureScreen } from './screens';
+import { captureScreen, forEachTheme, viewportOf } from './screens';
 
 const t = messages.settings.users;
 const roles = messages.common.roles;
@@ -188,35 +189,14 @@ test('Head Recruiter and Finance get not-found for the users screen, user card a
   }
 });
 
-/**
- * Which demo users have signed in depends on the database's history, so every screenshot uses this one
- * table (UX-G-03): before the fixed clock, after the history below; the deactivated recruiter signed in
- * before she was deactivated, the never-accepted invitee never did.
- */
-const SHOT_SIGN_INS: Record<string, string> = {
-  'admin@demo': '2026-11-16T07:41:23.000Z',
-  'head.recruiter.gambling@demo': '2026-11-16T07:12:57.000Z',
-  'recruiter1.gambling@demo': '2026-11-16T06:33:10.000Z',
-  'recruiter2.gambling@demo': '2026-11-15T17:47:02.000Z',
-  'recruiter.crypto@demo': '2026-11-16T07:26:39.000Z',
-  'head.hr@demo': '2026-11-14T09:03:15.000Z',
-  'hr@demo': '2026-11-16T05:58:47.000Z',
-  'vasyl.tl@demo': '2026-11-16T06:52:08.000Z',
-  'taras.tl@demo': '2026-11-13T15:18:44.000Z',
-  'tl.crypto@demo': '2026-11-16T06:05:31.000Z',
-  'finance@demo': '2026-11-12T12:20:05.000Z',
-  'inactive.recruiter@demo': '2026-11-06T14:09:51.000Z',
-};
-const shotSignIn = (email: string) => SHOT_SIGN_INS[email] ?? null;
 const withShotSignIn = (detail: {
   email: string;
   lastLoginAt: string | null;
 }) => {
   detail.lastLoginAt = shotSignIn(detail.email);
 };
-/** The seed writes its history at the fixed clock; shots move it to onboarding day so it precedes every sign-in. */
 const SHOT_HISTORY_AT: Record<string, string> = {
-  'user.invited': '2026-11-02T07:14:36.000Z',
+  'user.invited': SHOT_INVITED_AT,
 };
 
 function fixListSignInTimes(page: Page) {
@@ -237,10 +217,7 @@ test('captures the users list screenshots with fixed sign-in times [SHOT-01..03]
   await fixListSignInTimes(page);
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  for (const theme of ['light', 'dark'] as const) {
-    await page
-      .context()
-      .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
+  await forEachTheme(page, async (theme) => {
     await page.goto('/settings/users?status=REVOKED');
     const refetched = page.waitForResponse((response) =>
       response.url().includes('/api/v1/users?'),
@@ -248,9 +225,9 @@ test('captures the users list screenshots with fixed sign-in times [SHOT-01..03]
     await page.getByLabel(t.filterStatus, { exact: true }).selectOption('');
     await refetched;
     await expect(listed(page, isMobile)).toHaveCount(13);
-    const file = `08-admin-users-list-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
+    const file = `08-admin-users-list-${viewportOf(testInfo)}-${theme}.png`;
     await captureScreen(page, testInfo, file);
-  }
+  });
 });
 
 const inviteT = t.inviteDialog;
@@ -455,14 +432,10 @@ test('invite dialog: undelivered letter, server-rejected roles, long name, and c
 
 test('captures the invite dialog screenshots [SHOT-01..03]', async ({
   page,
-  isMobile,
 }, testInfo) => {
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  for (const theme of ['light', 'dark'] as const) {
-    await page
-      .context()
-      .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
+  await forEachTheme(page, async (theme) => {
     await page.goto('/settings/users?status=REVOKED');
     await page.getByRole('button', { name: t.invite }).click();
     const dialog = page.getByRole('dialog', { name: inviteT.title });
@@ -473,9 +446,9 @@ test('captures the invite dialog screenshots [SHOT-01..03]', async ({
     await dialog.getByLabel(`${roles.RECRUITER} · Гемблінг`).check();
     await dialog.getByLabel(`${roles.RECRUITER} · Крипто`).check();
     await dialog.getByLabel(`${roles.TEAM_LEAD} · Гемблінг`).check();
-    const file = `09-admin-invite-dialog-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
+    const file = `09-admin-invite-dialog-${viewportOf(testInfo)}-${theme}.png`;
     await captureScreen(page, testInfo, file);
-  }
+  });
 });
 
 const drawerT = t.drawer;
@@ -1927,13 +1900,10 @@ test('captures role changes and removal confirmation with deterministic state [S
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const capture = async (state: string, theme: string) => {
-    const file = `12-admin-user-roles-${state}-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
+    const file = `12-admin-user-roles-${state}-${viewportOf(testInfo)}-${theme}.png`;
     await captureScreen(page, testInfo, file);
   };
-  for (const theme of ['light', 'dark'] as const) {
-    await page
-      .context()
-      .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
+  await forEachTheme(page, async (theme) => {
     const { dialog } = await openRoles(page, isMobile, 'Василь Мороз');
     await dialog
       .getByLabel(`${roles.TEAM_LEAD} · Гемблінг`, { exact: true })
@@ -1962,7 +1932,7 @@ test('captures role changes and removal confirmation with deterministic state [S
     await expect(confirm).toHaveCount(0);
     await page.keyboard.press('Escape');
     await expect(dialog).toHaveCount(0);
-  }
+  });
 });
 
 test('captures deactivation, its unconfirmed provider ban and reactivation with deterministic state [SHOT-01..03]', async ({
@@ -1972,13 +1942,10 @@ test('captures deactivation, its unconfirmed provider ban and reactivation with 
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const capture = async (state: string, theme: string) => {
-    const file = `13-admin-user-${state}-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
+    const file = `13-admin-user-${state}-${viewportOf(testInfo)}-${theme}.png`;
     await captureScreen(page, testInfo, file);
   };
-  for (const theme of ['light', 'dark'] as const) {
-    await page
-      .context()
-      .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
+  await forEachTheme(page, async (theme) => {
     await page.unrouteAll({ behavior: 'wait' });
     const active = await userActivationPage(
       page,
@@ -2050,7 +2017,7 @@ test('captures deactivation, its unconfirmed provider ban and reactivation with 
     await capture('reactivate-dialog', theme);
     await page.keyboard.press('Escape');
     await expect(reactivate).toHaveCount(0);
-  }
+  });
 });
 
 test('captures invitation actions, revoke confirmation and change email with deterministic state [SHOT-01..03]', async ({
@@ -2073,13 +2040,10 @@ test('captures invitation actions, revoke confirmation and change email with det
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const capture = async (state: string, theme: string) => {
-    const file = `11-admin-user-${state}-${isMobile ? 'mobile' : 'desktop'}-${theme}.png`;
+    const file = `11-admin-user-${state}-${viewportOf(testInfo)}-${theme}.png`;
     await captureScreen(page, testInfo, file);
   };
-  for (const theme of ['light', 'dark'] as const) {
-    await page
-      .context()
-      .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
+  await forEachTheme(page, async (theme) => {
     await page.goto('/settings/users?q=Богдан');
     await listedUser(page, isMobile, name).click();
     const card = drawer(page);
@@ -2117,7 +2081,7 @@ test('captures invitation actions, revoke confirmation and change email with det
     await page.keyboard.press('Escape');
     await expect(dialog).toHaveCount(0);
     await expect(card).toBeVisible();
-  }
+  });
 });
 
 test('captures the user card screenshots with fixed sign-in times [SHOT-01..03]', async ({
@@ -2154,12 +2118,9 @@ test('captures the user card screenshots with fixed sign-in times [SHOT-01..03]'
   );
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  const viewport = isMobile ? 'mobile' : 'desktop';
+  const viewport = viewportOf(testInfo);
   const capture = (file: string) => captureScreen(page, testInfo, file);
-  for (const theme of ['light', 'dark'] as const) {
-    await page
-      .context()
-      .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
+  await forEachTheme(page, async (theme) => {
     await page.goto('/settings/users?status=REVOKED');
     const refetched = page.waitForResponse((response) =>
       response.url().includes('/api/v1/users?'),
@@ -2194,5 +2155,5 @@ test('captures the user card screenshots with fixed sign-in times [SHOT-01..03]'
     expect(seededTimes).toEqual(new Set([FIXED_CLOCK_ISO]));
     await expect(card.getByRole('button', { name: t.loadMore })).toHaveCount(0);
     await capture(`10-admin-user-drawer-history-${viewport}-${theme}.png`);
-  }
+  });
 });

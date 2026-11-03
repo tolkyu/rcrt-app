@@ -32,6 +32,7 @@ Tag `[assumes Q-xx]` = the test encodes the BA recommendation for an open questi
 **Determinism:** server `FixedClock`; Playwright `page.clock`, `timezoneId: 'Europe/Kyiv'`, `locale: 'uk-UA'`, `reducedMotion: 'reduce'`, CSS animations off, `document.fonts.ready` before capture; deterministic seed PRNG; no sleeps (auto-waits only); one retry on CI, and a retried pass is reported as flaky.
 **Screenshot byte-stability (SHOT-DET-01):** `settleRendering` (`tests/e2e/screens.ts`) waits for fonts and every running finite CSS transition before each capture; Chromium runs with `--disable-partial-raster` (partial re-raster left run-to-run 1-level anti-aliasing seams on just-changed rounded borders); captured API data that depends on database history (users' last sign-in) is rewritten to fixed values. Consecutive `pnpm test:e2e` + `pnpm test:screens` runs (verified 3×) leave `git status screenshots` empty.
 **Isolation:** integration = one database per Vitest worker cloned from a migrated + seeded template (`CREATE DATABASE … TEMPLATE`); tests create their own fixtures and never assert global counts. E2E/Newman = `supabase db reset` + `pnpm db:seed` per run; E2E specs that mutate shared fixtures run serially in one project.
+**Sign-in budget:** `/auth/confirm` allows 30 calls / 15 min per IP, shared by all local runs. A full `pnpm test:e2e` uses **11** (9 stored sessions in `e2e-sessions` incl. the aal1 Admin for `/mfa/verify`, + 2 in `shell.spec`), `pnpm test:api` uses **7**: two E2E runs + Newman ≈ 29, so wait 15 min before a further run; reruns with `--no-deps` reuse the stored sessions (only `shell.spec` signs in). On 429, wait for the window instead of retrying.
 **i18n check (no untranslated UI):** (1) static: every `t()` key exists in `messages/uk.json`, no unused keys; (2) every API error `code` and `PipelineErrorCode` has `errors.<code>`; (3) runtime: next-intl `onError` throws on `MISSING_MESSAGE` in test builds, so E2E fails; (4) DOM scan during screenshots: text nodes in Latin script outside an allowlist (emails, URLs, Meet links, «П0», «CSV/XLSX», ISO currency codes) fail the run.
 
 ## 2. Traceability
@@ -96,6 +97,8 @@ Test ID prefixes: `UT-` unit · `IT-` integration · `AZ-nnn-ROLE-A|D` authz cel
 | UI-06-1 | E2E-P1-07 404 copy identical for missing vs forbidden; SHOT states |
 | SEED-1 | IT-P1-SEED-01 idempotent; refuses production |
 | SHOT-01-1..03-1 | SHOT-GAL-01 every PNG linked, every link exists · SHOT-DET-01 two runs pixel-identical |
+| UI-04-1, ROLE-05-6, VIS-02-1 | `e2e/profile.spec.ts`: Head Recruiter, Recruiter, Head HR, HR, TL, Finance each land on «Профіль»; nav = [Профіль] (no bottom nav on mobile); «Усі мої вертикалі» only for the two-vertical roles; every `/settings/*` → in-shell 404 (UI assertion only: the page is sent with HTTP 200, app bug for T9) · SHOT 15 (team-lead, head-hr, finance), 16 (head-recruiter settings 404), 18 (admin) with fixture sessions/sign-in history |
+| SEC-AUTH-3, SEC-AUTH-R02 | `e2e/mfa.spec.ts`: `/mfa/setup` optional (TL) and backup (Admin) with a browser-answered enrolment (interceptions counted, no real factor) · `/mfa/verify` on an aal1 Admin session incl. wrong code (answered in the browser with the real 400 `MFA_CODE_INVALID` body, interceptions counted, never reaches the attempt limit) · SHOT 19, 20 |
 
 ## 3. Authorization tests (VIS-01..03)
 
