@@ -55,7 +55,7 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 - Safety: no well-formed TOTP code for seeded users except the Bearer-binding case (refused before counting), no real invite or factor touched, cookie jar disabled, cookies/tokens in memory only. Budget: 7 `/auth/confirm` per run → ≤ 4 runs per 15 min (shared with E2E locally).
 - Integration: expired / revoked / consumed invite previews equal the unknown answer; a consumed sign-in link gives the same 401 as an unknown one.
 - Verified: lint, typecheck, 2,196 Vitest, generator byte-stable, test:api green, no repo/DB drift, e2e-sessions 6/6; full E2E 171 + 2 skips during the slice. Code review APPROVED, security no blockers.
-- T9 (app code): magic-link response time reveals whether an address belongs to an eligible user → equalise; `enrollTotp` spends the per-user enrol limit before the Bearer refusal → reorder. Owner question: how many people sign in from one office IP (confirm limit 30/15 min per IP counts successes too).
+- T9 (app code): magic-link response time reveals whether an address belongs to an eligible user → equalise; `enrollTotp` spends the per-user enrol limit before the Bearer refusal → reorder. Owner 2026-11-03: team is fully remote, no shared office IP → keep the per-IP confirm limit as is.
 
 ## Implementation checkpoint — 2026-11-03 (Claude team, T7 slice 3 — Newman Users + Priorities)
 
