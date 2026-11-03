@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
+import type { UserStatus } from '../../lib/user-constants';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import { E2E_ORIGIN, sessionFile } from '../support/e2e-session';
 import { userActivationPage } from '../support/user-activation-page';
@@ -188,24 +189,29 @@ test('Head Recruiter and Finance get not-found for the users screen, user card a
   }
 });
 
+/** Which demo users have signed in depends on the database's history, so the list shows a time for every active user. */
+function fixListSignInTimes(page: Page) {
+  const anchor = Date.parse(FIXED_CLOCK_ISO);
+  return page.route('**/api/v1/users?*', async (route) => {
+    const response = await route.fetch();
+    const body = (await response.json()) as {
+      items: { status: UserStatus; lastLoginAt: string | null }[];
+    };
+    body.items.forEach((item, index) => {
+      item.lastLoginAt =
+        item.status === 'ACTIVE'
+          ? new Date(anchor - (index + 1) * 3_600_000).toISOString()
+          : null;
+    });
+    await route.fulfill({ response, json: body });
+  });
+}
+
 test('captures the users list screenshots with fixed sign-in times [SHOT-01..03]', async ({
   page,
   isMobile,
 }, testInfo) => {
-  const anchor = Date.parse(FIXED_CLOCK_ISO);
-  await page.route('**/api/v1/users?*', async (route) => {
-    const response = await route.fetch();
-    const body = (await response.json()) as {
-      items: { lastLoginAt: string | null }[];
-    };
-    body.items.forEach((item, index) => {
-      if (item.lastLoginAt)
-        item.lastLoginAt = new Date(
-          anchor - (index + 1) * 3_600_000,
-        ).toISOString();
-    });
-    await route.fulfill({ response, json: body });
-  });
+  await fixListSignInTimes(page);
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   for (const theme of ['light', 'dark'] as const) {
@@ -2087,19 +2093,7 @@ test('captures the user card screenshots with fixed sign-in times [SHOT-01..03]'
 }, testInfo) => {
   const anchor = Date.parse(FIXED_CLOCK_ISO);
   const lastLogin = new Date(anchor - 3_600_000).toISOString();
-  await page.route('**/api/v1/users?*', async (route) => {
-    const response = await route.fetch();
-    const body = (await response.json()) as {
-      items: { lastLoginAt: string | null }[];
-    };
-    body.items.forEach((item, index) => {
-      if (item.lastLoginAt)
-        item.lastLoginAt = new Date(
-          anchor - (index + 1) * 3_600_000,
-        ).toISOString();
-    });
-    await route.fulfill({ response, json: body });
-  });
+  await fixListSignInTimes(page);
   await page.route(
     (url) => /^\/api\/v1\/users\/[0-9a-f-]{36}$/.test(url.pathname),
     async (route) => {

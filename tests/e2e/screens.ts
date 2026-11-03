@@ -1,6 +1,26 @@
 import { copyFileSync, mkdirSync } from 'node:fs';
 import { expect, type Page, type TestInfo } from '@playwright/test';
 
+/** Captures taken while a state-change colour transition is still running differ from run to run (SHOT-DET-01). */
+export async function settleRendering(page: Page) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await Promise.race([
+      Promise.allSettled(
+        document
+          .getAnimations()
+          .filter(
+            (animation) =>
+              animation.playState === 'running' &&
+              Number.isFinite(animation.effect?.getComputedTiming().endTime),
+          )
+          .map((animation) => animation.finished),
+      ),
+      new Promise((resolve) => setTimeout(resolve, 3_000)),
+    ]);
+  });
+}
+
 /** A page-tall viewport places fixed bars at the image edge instead of halfway through a full-page capture. */
 export async function captureScreen(
   page: Page,
@@ -8,7 +28,7 @@ export async function captureScreen(
   file: string,
 ) {
   await page.mouse.move(0, 0);
-  await page.evaluate(() => document.fonts.ready);
+  await settleRendering(page);
   const noHorizontalOverflow = () =>
     page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -45,6 +65,7 @@ export async function captureScreen(
       height: Math.max(viewport.height, height),
     });
     expect(await noHorizontalOverflow()).toBe(true);
+    await settleRendering(page);
     await page.screenshot({ path, animations: 'disabled', scale: 'css' });
   } finally {
     await page.setViewportSize(viewport);

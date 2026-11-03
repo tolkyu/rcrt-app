@@ -11,7 +11,12 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
   reporter: [['list'], ['html', { open: 'never' }]],
-  use: { baseURL, trace: 'retain-on-failure' },
+  use: {
+    baseURL,
+    trace: 'retain-on-failure',
+    /** Re-rastering only the invalidated rect leaves 1-level anti-aliasing seams that vary between runs (SHOT-DET-01); a project-level launchOptions would drop this. */
+    launchOptions: { args: ['--disable-partial-raster'] },
+  },
   webServer: {
     command: 'node node_modules/next/dist/bin/next start --port 3100',
     url: `${baseURL}/api/health`,

@@ -1,6 +1,7 @@
 import { mkdirSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
+import { settleRendering } from '../e2e/screens';
 
 const screens = [
   { id: '01-public-login', path: '/login', heading: 'Вхід до Hiring' },
@@ -39,7 +40,7 @@ for (const screen of screens) {
       ).toBeVisible();
     if (screen.id === '03-public-confirm-invalid')
       await expect(page.getByRole('main').getByRole('alert')).toBeVisible();
-    await page.evaluate(() => document.fonts.ready);
+    await settleRendering(page);
     expect(
       await page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
