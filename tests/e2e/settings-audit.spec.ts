@@ -1,4 +1,5 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
+import { AUDIT_ACTION_GROUPS } from '../../lib/audit-constants';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import type {
   AuditActorPage,
@@ -14,6 +15,21 @@ import {
 import { captureScreen } from './screens';
 
 const t = messages.settings.audit;
+const actionLabel = (code: string) => {
+  const [group, action] = code.split('.') as [keyof typeof t.actions, string];
+  return (t.actions[group] as Record<string, string>)[action]!;
+};
+const actionTrigger = (page: Page) =>
+  page.getByRole('button', { name: new RegExp(`^${t.filters.action} `) });
+const actionPicker = (page: Page) =>
+  page.getByRole('dialog', { name: t.filters.action, exact: true });
+async function selectAction(page: Page, code: string) {
+  await actionTrigger(page).click();
+  await actionPicker(page)
+    .getByRole('checkbox', { name: actionLabel(code), exact: true })
+    .check();
+  await page.keyboard.press('Escape');
+}
 
 test.use({ storageState: sessionFile('admin@demo') });
 
@@ -43,9 +59,9 @@ test('Admin investigates a real rename, before/after and entity history [STORY-A
     await expect(
       page.getByRole('heading', { level: 1, name: t.title }),
     ).toBeVisible();
-    await expect(
-      page.getByLabel(t.filters.action, { exact: true }),
-    ).toHaveValue('vertical.renamed');
+    await expect(actionTrigger(page)).toHaveAccessibleName(
+      `${t.filters.action} ${t.actions.vertical.renamed}`,
+    );
     const api = await page.request.get(
       `/api/v1/audit?entityType=vertical&entityId=${original.id}&action=vertical.renamed&limit=1`,
     );
@@ -63,6 +79,10 @@ test('Admin investigates a real rename, before/after and entity history [STORY-A
     await expect(dialog.getByRole('cell', { name, exact: true })).toBeVisible();
     await dialog.getByRole('button', { name: t.detail.showJson }).click();
     await expect(dialog.locator('pre')).toContainText(`"name": "${name}"`);
+    await page.goto(
+      `/settings/audit?view=security&actions=user.invited,vertical.renamed&record=${record.id}`,
+    );
+    await expect(dialog.getByRole('cell', { name, exact: true })).toBeVisible();
     await dialog
       .getByRole('button', { name: new RegExp(t.detail.entityHistory) })
       .click();
@@ -70,9 +90,10 @@ test('Admin investigates a real rename, before/after and entity history [STORY-A
     await expect(page).toHaveURL(new RegExp(`entityId=${original.id}`));
     await expect(page).not.toHaveURL(/record=/);
     await page.reload();
-    await expect(
-      page.getByLabel(t.filters.action, { exact: true }),
-    ).toHaveValue('');
+    await expect(actionTrigger(page)).toHaveAccessibleName(
+      `${t.filters.action} ${t.filters.all}`,
+    );
+    await expect(page).not.toHaveURL(/view=|actions?=/);
     const auditLink = page
       .getByRole('navigation', { name: messages.settings.nav.label })
       .getByRole('link', { name: messages.settings.nav.audit });
@@ -101,6 +122,366 @@ test('Admin investigates a real rename, before/after and entity history [STORY-A
       );
       expect(restored.status()).toBe(200);
     }
+  }
+});
+
+test('grouped actions apply by keyboard, preserve open focus and scroll, and intersect security without clearing the choice [STORY-AUD-2, Q-158, UI-05]', async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto('/settings/audit?result=DENIED');
+  const trigger = actionTrigger(page);
+  await trigger.focus();
+  await trigger.press('Enter');
+  const picker = actionPicker(page);
+  const invited = picker.getByRole('checkbox', {
+    name: t.actions.user.invited,
+    exact: true,
+  });
+  await expect(invited).toBeFocused();
+  await expect(
+    picker.getByRole('group', { name: t.actionGroups.users }),
+  ).toBeVisible();
+  await expect(
+    picker.getByRole('group', { name: t.actionGroups.security }),
+  ).toHaveCount(1);
+  await expect(
+    picker.getByRole('group', { name: t.actionGroups.verticals }),
+  ).toHaveCount(1);
+  await expect(picker.getByRole('checkbox')).toHaveCount(
+    Object.values(AUDIT_ACTION_GROUPS).flat().length,
+  );
+  await expect(picker.getByRole('option')).toHaveCount(0);
+  await invited.press('Space');
+  await expect(invited).toBeChecked();
+  await expect(invited).toBeFocused();
+  await expect(page).toHaveURL(/action=user.invited/);
+  await page.keyboard.press('Tab');
+  await expect(picker.getByRole('checkbox').nth(1)).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(invited).toBeFocused();
+  const renamed = picker.getByRole('checkbox', {
+    name: t.actions.vertical.renamed,
+    exact: true,
+  });
+  await renamed.scrollIntoViewIfNeeded();
+  await renamed.focus();
+  const scroll = await picker.evaluate((element) => element.scrollTop);
+  await renamed.press('Space');
+  await expect(renamed).toBeChecked();
+  await expect(renamed).toBeFocused();
+  expect(await picker.evaluate((element) => element.scrollTop)).toBe(scroll);
+  await expect(page).toHaveURL(/actions=user.invited%2Cvertical.renamed/);
+  await expect(trigger).toHaveAccessibleDescription(
+    `Дії: ${t.actions.user.invited}; ${t.actions.vertical.renamed}`,
+  );
+  if (isMobile) {
+    expect(page.viewportSize()).toEqual({ width: 390, height: 844 });
+    const box = (await picker.boundingBox())!;
+    expect(box.width).toBeLessThanOrEqual(358);
+    expect(box.x).toBeGreaterThanOrEqual(16);
+    expect(box.x + box.width).toBeLessThanOrEqual(374);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height).toBeLessThanOrEqual(844);
+    const row = (await renamed.locator('..').boundingBox())!;
+    expect(row.height).toBeGreaterThanOrEqual(44);
+  }
+  await page.keyboard.press('Escape');
+  await expect(picker).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  const security = page.getByRole('button', {
+    name: t.views.security,
+    exact: true,
+  });
+  const securityResponse = page.waitForResponse((response) => {
+    const url = new URL(response.url());
+    return (
+      url.pathname === '/api/v1/audit' &&
+      url.searchParams.get('view') === 'security' &&
+      url.searchParams.get('actions') === 'user.invited,vertical.renamed'
+    );
+  });
+  await security.click();
+  expect(((await (await securityResponse).json()) as AuditPage).items).toEqual(
+    [],
+  );
+  await expect(page.getByText(t.empty.title, { exact: true })).toBeVisible();
+  await expect(security).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByLabel(t.filters.result, { exact: true })).toHaveValue(
+    'DENIED',
+  );
+  await trigger.click();
+  await expect(invited).toBeFocused();
+  await expect(invited).toBeChecked();
+  await expect(renamed).toBeChecked();
+  await expect(picker.getByRole('checkbox')).toHaveCount(21);
+  await invited.press('Space');
+  await expect(page).toHaveURL(/action=vertical.renamed/);
+  await renamed.focus();
+  await renamed.press('Space');
+  await expect(trigger).toHaveAccessibleName(
+    `${t.filters.action} ${t.filters.all}`,
+  );
+  await expect(page).not.toHaveURL(/actions?=/);
+  await expect(picker).toBeVisible();
+  await expect(renamed).toBeFocused();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: t.views.all, exact: true }).click();
+  await expect(page).not.toHaveURL(/view=/);
+  await selectAction(page, 'user.mfa_reset');
+  const clear = page.getByRole('button', {
+    name: t.filters.actionsClear,
+    exact: true,
+  });
+  if (isMobile) {
+    const triggerBox = (await trigger.boundingBox())!;
+    const clearBox = (await clear.boundingBox())!;
+    const labelBox = (await trigger.locator('span').boundingBox())!;
+    expect(triggerBox.width).toBeGreaterThanOrEqual(44);
+    expect(triggerBox.height).toBeGreaterThanOrEqual(44);
+    expect(clearBox.width).toBeGreaterThanOrEqual(44);
+    expect(clearBox.height).toBeGreaterThanOrEqual(44);
+    expect(triggerBox.x + triggerBox.width).toBeLessThanOrEqual(clearBox.x);
+    expect(labelBox.x + labelBox.width).toBeLessThanOrEqual(
+      triggerBox.x + triggerBox.width,
+    );
+    expect(
+      await trigger.locator('span').evaluate((element) => ({
+        overflow: getComputedStyle(element).overflowX,
+        whitespace: getComputedStyle(element).whiteSpace,
+        textOverflow: getComputedStyle(element).textOverflow,
+      })),
+    ).toEqual({
+      overflow: 'hidden',
+      whitespace: 'nowrap',
+      textOverflow: 'ellipsis',
+    });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
+  await clear.click();
+  await expect(trigger).toBeFocused();
+  await expect(page).not.toHaveURL(/actions?=/);
+  await security.click();
+  await page
+    .getByRole('button', { name: t.filters.reset, exact: true })
+    .first()
+    .click();
+  await expect(page).toHaveURL(/\/settings\/audit$/);
+  await expect(
+    page.getByRole('button', { name: t.views.all, exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('multi-action and security deep links restore across Back, Forward and reload, and malformed repeated page values normalise consistently [STORY-AUD-2]', async ({
+  page,
+}) => {
+  const selected = 'user.invited,auth.login_failed,vertical.renamed';
+  await page.goto(
+    `/settings/audit?view=security&actions=${selected}&result=DENIED`,
+  );
+  await expect(
+    page.getByRole('button', { name: t.views.security, exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(actionTrigger(page)).toHaveAccessibleDescription(
+    `Дії: ${t.actions.user.invited}; ${t.actions.auth.login_failed}; ${t.actions.vertical.renamed}`,
+  );
+  await page.goto('/settings/audit?action=vertical.created');
+  await expect(actionTrigger(page)).toHaveAccessibleName(
+    `${t.filters.action} ${t.actions.vertical.created}`,
+  );
+  await page.goBack();
+  await expect(page).toHaveURL(/view=security/);
+  await expect(actionTrigger(page)).toHaveAccessibleDescription(
+    `Дії: ${t.actions.user.invited}; ${t.actions.auth.login_failed}; ${t.actions.vertical.renamed}`,
+  );
+  await actionTrigger(page).click();
+  const picker = actionPicker(page);
+  for (const code of selected.split(','))
+    await expect(
+      picker.getByRole('checkbox', { name: actionLabel(code), exact: true }),
+    ).toBeChecked();
+  await page.keyboard.press('Escape');
+  await page.reload();
+  await expect(
+    page.getByRole('button', { name: t.views.security, exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByLabel(t.filters.result, { exact: true })).toHaveValue(
+    'DENIED',
+  );
+  await page.goForward();
+  await expect(actionTrigger(page)).toHaveAccessibleName(
+    `${t.filters.action} ${t.actions.vertical.created}`,
+  );
+  await expect(
+    page.getByRole('button', { name: t.views.all, exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await page.goto(
+    '/settings/audit?view=security&view=all&actions=user.invited&actions=vertical.renamed&result=DENIED',
+  );
+  await expect(actionTrigger(page)).toHaveAccessibleName(
+    `${t.filters.action} ${t.filters.all}`,
+  );
+  await expect(
+    page.getByRole('button', { name: t.views.all, exact: true }),
+  ).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByLabel(t.filters.result, { exact: true })).toHaveValue(
+    'DENIED',
+  );
+});
+
+test('changing action or view filters restarts a previously evicted cache window [STORY-AUD-2]', async ({
+  page,
+}) => {
+  const calls: URL[] = [];
+  await page.route(
+    (url) => url.pathname === '/api/v1/audit',
+    async (route) => {
+      const url = new URL(route.request().url());
+      calls.push(url);
+      const index = Number(url.searchParams.get('cursor') ?? '1');
+      await route.fulfill({
+        json: {
+          items: [
+            {
+              id: String(9000 + index),
+              occurredAt: `2026-11-02T10:0${index}:00.000Z`,
+              actor: null,
+              actorKind: 'SYSTEM',
+              action: 'vertical.created',
+              result: 'SUCCESS',
+              entity: {
+                type: 'vertical',
+                id: '00000000-0000-4000-8000-000000000001',
+                label: `Сторінка ${index}`,
+              },
+              ip: null,
+            },
+          ],
+          nextCursor: index < 3 ? String(index + 1) : null,
+        },
+      });
+    },
+  );
+  await page.goto('/settings/audit');
+  await selectAction(page, 'vertical.created');
+  const firstPage = page.getByRole('button', {
+    name: /^Відкрити запис:.*:01:00/,
+  });
+  const thirdPage = page.getByRole('button', {
+    name: /^Відкрити запис:.*:03:00/,
+  });
+  await expect(firstPage).toBeVisible();
+  await page.getByRole('button', { name: t.loadMore, exact: true }).click();
+  await expect(
+    page.getByRole('button', { name: /^Відкрити запис:.*:02:00/ }),
+  ).toBeVisible();
+  await page.getByRole('button', { name: t.loadMore, exact: true }).click();
+  await expect(thirdPage).toBeVisible();
+  await expect(firstPage).toHaveCount(0);
+  await page
+    .getByRole('button', { name: t.views.security, exact: true })
+    .click();
+  await expect(page).not.toHaveURL(/record=/);
+  await page.getByRole('button', { name: t.views.all, exact: true }).click();
+  await expect(firstPage).toBeVisible();
+  await expect(thirdPage).toHaveCount(0);
+  const returned = calls.filter(
+    (url) =>
+      url.searchParams.get('action') === 'vertical.created' &&
+      !url.searchParams.has('view'),
+  );
+  expect(returned.at(-1)!.searchParams.has('cursor')).toBe(false);
+  await page.getByRole('button', { name: t.loadMore, exact: true }).click();
+  await page.getByRole('button', { name: t.loadMore, exact: true }).click();
+  await expect(thirdPage).toBeVisible();
+  await selectAction(page, 'user.invited');
+  await actionTrigger(page).click();
+  await actionPicker(page)
+    .getByRole('checkbox', { name: t.actions.user.invited, exact: true })
+    .uncheck();
+  await page.keyboard.press('Escape');
+  await expect(firstPage).toBeVisible();
+  await expect(thirdPage).toHaveCount(0);
+});
+
+test('selected actions remain editable during a pending list and after an API failure [UI-06, STORY-AUD-2]', async ({
+  page,
+}) => {
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  let fail = false;
+  await page.route(
+    (url) => url.pathname === '/api/v1/audit',
+    async (route) => {
+      if (new URL(route.request().url()).searchParams.has('action'))
+        await pending;
+      if (fail)
+        await route.fulfill({
+          status: 400,
+          json: {
+            type: 'about:blank',
+            title: 'Bad Request',
+            status: 400,
+            code: 'VALIDATION_ERROR',
+          },
+        });
+      else await route.fulfill({ json: { items: [], nextCursor: null } });
+    },
+  );
+  try {
+    await page.goto('/settings/audit');
+    await actionTrigger(page).click();
+    const picker = actionPicker(page);
+    const invited = picker.getByRole('checkbox', {
+      name: t.actions.user.invited,
+      exact: true,
+    });
+    const request = page.waitForRequest((request) => {
+      const url = new URL(request.url());
+      return (
+        url.pathname === '/api/v1/audit' &&
+        url.searchParams.get('action') === 'user.invited'
+      );
+    });
+    await invited.check();
+    await request;
+    await expect(invited).toBeChecked();
+    await expect(picker).toBeVisible();
+    await expect(actionTrigger(page)).toHaveAccessibleDescription(
+      `Дії: ${t.actions.user.invited}`,
+    );
+    fail = true;
+    release();
+    await expect(
+      page.getByRole('alert').filter({ hasText: messages.states.errorTitle }),
+    ).toBeVisible({ timeout: 15_000 });
+    await expect(invited).toBeChecked();
+    await picker
+      .getByRole('checkbox', { name: t.actions.vertical.renamed, exact: true })
+      .check();
+    await expect(actionTrigger(page)).toHaveAccessibleDescription(
+      `Дії: ${t.actions.user.invited}; ${t.actions.vertical.renamed}`,
+    );
+    await page.keyboard.press('Escape');
+    await expect(actionTrigger(page)).toBeFocused();
+    fail = false;
+    await page
+      .getByRole('button', { name: t.filters.actionsClear, exact: true })
+      .click();
+    await expect(actionTrigger(page)).toHaveAccessibleName(
+      `${t.filters.action} ${t.filters.all}`,
+    );
+    await expect(
+      page.getByRole('alert').filter({ hasText: messages.states.errorTitle }),
+    ).toHaveCount(0);
+  } finally {
+    release();
   }
 });
 
@@ -332,6 +713,14 @@ test('custom Kyiv dates reach the API, while a period over one year stays on the
   await expect(page.getByLabel(t.filters.to, { exact: true })).toHaveValue(
     '2026-10-30',
   );
+  await page.goto(
+    '/settings/audit?period=custom&from=2026-02-30&to=2026-03-01',
+  );
+  await expect(page.getByLabel(t.filters.period, { exact: true })).toHaveValue(
+    '7d',
+  );
+  await expect(page.getByLabel(t.filters.from, { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel(t.filters.to, { exact: true })).toHaveCount(0);
 });
 
 test('Finance and Head Recruiter cannot read audit records or settings [VIS-01..03, D25]', async ({
@@ -394,9 +783,29 @@ test('audit list and detail render without overflow in both themes [SHOT-01..03,
     requestId: '00000000-0000-4000-8000-000000000003',
     detailLabels: {},
   };
-  await page.route('**/api/v1/audit?*', (route) =>
-    route.fulfill({ json: { items: [fixture], nextCursor: null } }),
-  );
+  await page.route('**/api/v1/audit?*', (route) => {
+    const security =
+      new URL(route.request().url()).searchParams.get('view') === 'security';
+    return route.fulfill({
+      json: {
+        items: [
+          security
+            ? {
+                ...fixture,
+                action: 'auth.login_failed',
+                result: 'DENIED',
+                entity: {
+                  type: 'user',
+                  id: fixture.actor!.id,
+                  label: fixture.actor!.fullName,
+                },
+              }
+            : fixture,
+        ],
+        nextCursor: null,
+      },
+    });
+  });
   await page.route('**/api/v1/audit/4242', (route) =>
     route.fulfill({ json: fixture }),
   );
@@ -430,9 +839,7 @@ test('audit list and detail render without overflow in both themes [SHOT-01..03,
         new URL(response.url()).searchParams.get('action') ===
           'vertical.renamed',
     );
-    await page
-      .getByLabel(t.filters.action, { exact: true })
-      .selectOption('vertical.renamed');
+    await selectAction(page, 'vertical.renamed');
     await fixtureResponse;
     await expect(
       page.getByRole('button', { name: /^Відкрити запис:/ }).first(),
@@ -478,5 +885,83 @@ test('audit list and detail render without overflow in both themes [SHOT-01..03,
     ).toBeVisible();
     await capture('actors');
     await page.keyboard.press('Escape');
+    await page
+      .getByRole('button', { name: t.filters.actorClear, exact: true })
+      .click();
+    await selectAction(page, 'user.mfa_reset');
+    await selectAction(page, 'auth.login_failed');
+    const summary = page.locator(
+      `[id="${await actionTrigger(page).getAttribute('aria-describedby')}"]`,
+    );
+    await expect(summary).toHaveText(
+      `Дії: ${t.actions.user.mfa_reset}; ${t.actions.auth.login_failed}; ${t.actions.vertical.renamed}`,
+    );
+    expect(
+      await summary.evaluate(
+        (element) => element.scrollWidth <= element.clientWidth,
+      ),
+    ).toBe(true);
+    await capture('multi');
+    await actionTrigger(page).click();
+    await expect(
+      actionPicker(page).getByRole('checkbox', {
+        name: t.actions.user.mfa_reset,
+        exact: true,
+      }),
+    ).toBeFocused();
+    const pickerGeometry = () =>
+      actionPicker(page).evaluate((element) => ({
+        x: element.getBoundingClientRect().x,
+        right: element.getBoundingClientRect().right,
+        bottom: element.getBoundingClientRect().bottom,
+        heights: [...element.querySelectorAll('label')].map(
+          (label) => label.getBoundingClientRect().height,
+        ),
+      }));
+    // The popover is focused on mount but positioned one frame later; wait for placement before measuring or capturing.
+    await expect
+      .poll(async () => (await pickerGeometry()).x)
+      .toBeGreaterThanOrEqual(16);
+    // WCAG 2.4.11: the focused checked row must be inside the popover's scroll viewport, not hidden below it.
+    await expect
+      .poll(() =>
+        actionPicker(page).evaluate((element) => {
+          const focused = document.activeElement;
+          const row = focused?.closest('label')?.getBoundingClientRect();
+          const box = element.getBoundingClientRect();
+          return (
+            !!row &&
+            element.contains(focused) &&
+            (focused as HTMLInputElement).checked &&
+            row.top >= box.top &&
+            row.bottom <= box.bottom
+          );
+        }),
+      )
+      .toBe(true);
+    if (isMobile) {
+      expect(page.viewportSize()).toEqual({ width: 390, height: 844 });
+      const geometry = await pickerGeometry();
+      expect(geometry.right).toBeLessThanOrEqual(374);
+      expect(geometry.bottom).toBeLessThanOrEqual(844);
+      expect(geometry.heights.every((height) => height >= 44)).toBe(true);
+    }
+    await capture('actions');
+    await page.keyboard.press('Escape');
+    const securityResponse = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname === '/api/v1/audit' &&
+        new URL(response.url()).searchParams.get('view') === 'security',
+    );
+    await page
+      .getByRole('button', { name: t.views.security, exact: true })
+      .click();
+    await securityResponse;
+    await expect(
+      page
+        .getByRole('button', { name: /^Відкрити запис: Невдала спроба входу/ })
+        .first(),
+    ).toBeVisible();
+    await capture('security');
   }
 });

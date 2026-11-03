@@ -17,6 +17,7 @@ export const settingsVerticalsQuery = () =>
 
 export type AuditFilterValues = Readonly<Omit<AuditQuery, 'cursor' | 'limit'>>;
 
+/** Expects canonical filters from `auditApiFilters`; the RSC prefetch takes its key from here too, so SSR and client keys match. */
 export const auditQuery = (filters: AuditFilterValues) =>
   infiniteQueryOptions({
     queryKey: queryKeys.settingsAudit(filters),

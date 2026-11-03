@@ -2095,11 +2095,25 @@
     "/audit": {
       "get": {
         "operationId": "listAudit",
-        "summary": "Audit log, newest first, filtered by Kyiv period, actor, action and entity (Admin)",
+        "summary": "Audit log, newest first, filtered by view, Kyiv period, actor, action(s) and entity (Admin)",
         "tags": [
           "Audit"
         ],
         "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "all",
+                "security"
+              ],
+              "description": "Security view restricts results to auth.* or user.mfa_* actions, intersected with all other filters. Default is all."
+            },
+            "required": false,
+            "description": "Security view restricts results to auth.* or user.mfa_* actions, intersected with all other filters. Default is all.",
+            "name": "view",
+            "in": "query"
+          },
           {
             "schema": {
               "type": "string",
@@ -2146,6 +2160,16 @@
             },
             "required": false,
             "name": "action",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "description": "Comma-separated known action codes (maximum 21 before deduplication), ORed together. Cannot be combined with `action`."
+            },
+            "required": false,
+            "description": "Comma-separated known action codes (maximum 21 before deduplication), ORed together. Cannot be combined with `action`.",
+            "name": "actions",
             "in": "query"
           },
           {

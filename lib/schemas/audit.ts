@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AUDIT_ACTION_COUNT, parseAuditActions } from '../audit-actions';
 import { timeIdCursorSchema } from './cursor';
 import {
   AUDIT_ACTORS_PAGE,
@@ -22,6 +23,10 @@ const kyivDate = z.iso.date();
 
 export const auditQuerySchema = z
   .object({
+    view: z.enum(['all', 'security']).optional().meta({
+      description:
+        'Security view restricts results to auth.* or user.mfa_* actions, intersected with all other filters. Default is all.',
+    }),
     from: kyivDate.optional(),
     to: kyivDate.optional(),
     actorId: z
@@ -34,6 +39,18 @@ export const auditQuerySchema = z
       .string()
       .regex(/^[a-z_]+\.[a-z_]+$/)
       .optional(),
+    actions: z
+      .string()
+      .transform((value, ctx) => {
+        const codes = parseAuditActions(value);
+        if (codes) return codes.join(',');
+        ctx.addIssue({ code: 'custom', message: 'invalid_actions' });
+        return z.NEVER;
+      })
+      .optional()
+      .meta({
+        description: `Comma-separated known action codes (maximum ${AUDIT_ACTION_COUNT} before deduplication), ORed together. Cannot be combined with \`action\`.`,
+      }),
     entityType: z.enum(AUDIT_ENTITY_TYPES).optional(),
     entityId: z.string().min(1).max(64).optional(),
     result: z.enum(['SUCCESS', 'DENIED']).optional(),
@@ -41,6 +58,13 @@ export const auditQuerySchema = z
     limit: z.coerce.number().int().min(1).max(100).default(AUDIT_PAGE),
   })
   .strict()
+  .refine(
+    (query) => query.action === undefined || query.actions === undefined,
+    {
+      path: ['actions'],
+      message: 'action_filters_exclusive',
+    },
+  )
   .refine((query) => !query.entityId || query.entityType, {
     path: ['entityId'],
     message: 'entity_type_required',

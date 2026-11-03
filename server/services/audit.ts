@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { kyivDateBounds, periodDays } from '../../lib/audit-period';
+import { kyivDateBounds, periodDays } from '../audit/period';
 import type {
   AuditActor,
   AuditActorPage,
@@ -80,7 +80,7 @@ export async function listAudit(
   const actorId = query.actorId === AUDIT_SYSTEM_ACTOR ? null : query.actorId;
   const rows = await listAuditEntries(
     ctx.db,
-    { ...query, ...bounds, actorId },
+    { ...query, ...bounds, actorId, actions: query.actions?.split(',') },
     cursor,
     query.limit,
   );

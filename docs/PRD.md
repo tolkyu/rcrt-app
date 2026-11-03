@@ -316,6 +316,7 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
 
 ### Audit (AUD-xx)
 - All writes logged (actor, IP, user agent, before/after). Also logged: CV and polygraph PDF downloads, views of offer salary, exports. Admin-only audit viewer with filters. Login history (each user sees their own sign-ins and active sessions in «Профіль»). Retention 3 years (D25).
+- The audit viewer supports grouped action selection (OR between selected actions) and «Усі дії» / «Входи та безпека» views. Switching views preserves the manual action selection and other filters; the security view adds an AND constraint for `auth.*` or `user.mfa_*`, including historical codes outside the current picker catalogue. An empty intersection uses the normal empty state (D74).
 
 ### Security & privacy (SEC-xx)
 - Auth: email magic link (valid 15 min, single use) + Google SSO (Google email must equal invited email; no domain restriction in v1). Sessions: 12h idle timeout, 7-day absolute limit; deactivation revokes all sessions immediately (D23). 2FA (TOTP) mandatory for Admin and Finance grants (also with Google sign-in), optional for other roles; recovery uses a second TOTP factor or reset by another Admin, without recovery codes (D22). A mixed-role user at `aal1` retains grants from their other, nonprivileged roles; Admin/Finance grants require `aal2` (D63).
@@ -427,6 +428,7 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
 | D71 | Invite dialog vs designer mockup | **Decided by owner 2026-11-01 (Q-155):** take the mockup's look (two columns, «Підсумок доступу», roles × verticals matrix with check toggles); content stays per PRD — no «Посада», no «Базова роль», no extra roles or per-user permission toggles (permissions come from roles; custom roles in Phase 2, ROLE-04), no temporary passwords (invite link / Google only). |
 | D72 | Name change in user «Історія» | **Decided by owner 2026-11-01 (Q-156):** the user timeline shows only «Змінено: ПІБ» (field names, no values) plus a link to «Журнал дій»; old/new values stay in the audit log (Admin, aal2). |
 | D73 | TL priority changes in user «Історія» | **Decided by owner 2026-11-01 (Q-157):** a Team Lead priority change also appears in that Team Lead's own timeline; built with the «Пріоритети тімлідів» slice. |
+| D74 | Audit security view with selected actions | **Decided by owner 2026-11-02 (Q-158):** switching «Усі дії» / «Входи та безпека» preserves selected actions. The security view narrows results to their intersection with `auth.*` or `user.mfa_*`; an empty intersection shows the normal empty state. |
 | D38 | Self-referral flag | **Confirmed 2026-10-31:** bonus blocked unless Admin approves; flag set by recruiter or Head Recruiter (BONUS-05; Q-12) |
 
 ---

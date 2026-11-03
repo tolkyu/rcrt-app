@@ -1,6 +1,6 @@
 'use client';
 
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, ScrollText, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
@@ -11,31 +11,32 @@ import { EmptyState } from '@/components/states/empty-state';
 import { SectionError } from '@/components/states/section-error';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   auditApiFilters,
   auditSearchParams,
   parseAuditSearch,
+  selectedAuditActions,
   validAuditPeriod,
   type AuditSearch,
 } from '@/lib/audit-filters';
 import { AUDIT_PERIODS } from '@/lib/audit-period';
+import { auditActionSelection } from '@/lib/audit-actions';
 import { auditQuery, type AuditFilterValues } from '@/lib/queries/settings';
-import {
-  AUDIT_ACTION_GROUPS,
-  AUDIT_ENTITY_TYPES,
-  AUDIT_SYSTEM_ACTOR,
-  type AuditActionGroup,
-} from '@/lib/audit-constants';
+import { AUDIT_ENTITY_TYPES, AUDIT_SYSTEM_ACTOR } from '@/lib/audit-constants';
 import type { AuditActor, AuditEntry } from '@/lib/schemas/audit';
 import { loadOrReload } from '@/lib/load-or-reload';
 import { cn } from '@/lib/utils';
 import { AuditActorFilter } from './audit-actor-filter';
+import { AuditActionFilter } from './audit-action-filter';
 import { useAuditLabels } from './audit-labels';
 
 const loadRecordSheet = () => import('./audit-record-sheet');
+const AuditDateFilter = dynamic(() =>
+  loadOrReload(() => import('./audit-date-filter')).then(
+    (module) => module.AuditDateFilter,
+  ),
+);
 /** The record sheet is its own chunk (PERF-04 budget); it is fetched right after hydration so opening a row stays instant. */
 const AuditRecordSheet = dynamic(
   () => loadOrReload(loadRecordSheet).then((module) => module.AuditRecordSheet),
@@ -62,6 +63,17 @@ const PERIOD_KEYS = {
   custom: 'periodCustom',
 } as const satisfies Record<AuditSearch['period'], string>;
 
+function resolveFilters(
+  search: AuditSearch,
+  initialSearch: AuditSearch,
+  initialFilters: AuditFilterValues,
+) {
+  return auditSearchParams(search).toString() ===
+    auditSearchParams(initialSearch).toString()
+    ? initialFilters
+    : auditApiFilters(search, new Date());
+}
+
 function FilterSelect({
   label,
   value,
@@ -76,9 +88,9 @@ function FilterSelect({
   const id = useId();
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <Label htmlFor={id} className="text-xs">
+      <label htmlFor={id} className="text-foreground text-xs font-medium">
         {label}
-      </Label>
+      </label>
       <select
         id={id}
         value={value}
@@ -119,15 +131,13 @@ export function AuditView({
   const params = useSearchParams();
   const searchKey = params.toString();
   const search = useMemo(
-    () => parseAuditSearch(Object.fromEntries(new URLSearchParams(searchKey))),
+    () => parseAuditSearch(new URLSearchParams(searchKey)),
     [searchKey],
   );
+  const selectedActions = selectedAuditActions(search);
+  const actionsSummaryId = useId();
   const filters = useMemo(
-    () =>
-      auditSearchParams(search).toString() ===
-      auditSearchParams(initialSearch).toString()
-        ? initialFilters
-        : auditApiFilters(search, new Date()),
+    () => resolveFilters(search, initialSearch, initialFilters),
     [search, initialSearch, initialFilters],
   );
   const [from, setFrom] = useState(
@@ -137,6 +147,7 @@ export function AuditView({
   const [dateError, setDateError] = useState(false);
   const [pickedActor, setPickedActor] = useState(initialActor);
   const query = useInfiniteQuery(auditQuery(filters));
+  const queryClient = useQueryClient();
   useEffect(() => void loadRecordSheet().catch(() => undefined), []);
 
   const items = query.data?.pages.flatMap((page) => page.items) ?? [];
@@ -152,6 +163,20 @@ export function AuditView({
   };
   const applyFilters = (patch: Partial<AuditSearch>) => {
     const next = { ...search, ...patch, record: undefined };
+    if (
+      auditSearchParams(next).toString() !==
+      auditSearchParams({ ...search, record: undefined }).toString()
+    ) {
+      const { queryKey } = auditQuery(
+        resolveFilters(next, initialSearch, initialFilters),
+      );
+      const cached = queryClient.getQueryData(queryKey);
+      if (
+        cached &&
+        (cached.pageParams.length > 1 || cached.pageParams[0] !== null)
+      )
+        queryClient.removeQueries({ queryKey, exact: true });
+    }
     sync(next);
   };
   const openRecord = (record: string | undefined) => {
@@ -159,14 +184,21 @@ export function AuditView({
     sync(next, record ? 'push' : 'replace');
   };
   const filtered =
+    search.view === 'security' ||
     search.period !== '7d' ||
     Boolean(
-      search.action || search.entityType || search.actorId || search.result,
+      search.action ||
+      search.actions ||
+      search.entityType ||
+      search.actorId ||
+      search.result,
     );
   const reset = () =>
     applyFilters({
       period: '7d',
+      view: undefined,
       action: undefined,
+      actions: undefined,
       entityType: undefined,
       entityId: undefined,
       actorId: undefined,
@@ -351,6 +383,25 @@ export function AuditView({
   return (
     <>
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
+      <div
+        role="group"
+        aria-label={t('views.label')}
+        className="border-border mb-4 inline-flex max-w-full rounded-lg border p-1"
+      >
+        {(['all', 'security'] as const).map((view) => (
+          <Button
+            key={view}
+            variant={(search.view ?? 'all') === view ? 'secondary' : 'ghost'}
+            aria-pressed={(search.view ?? 'all') === view}
+            onClick={() =>
+              applyFilters({ view: view === 'security' ? view : undefined })
+            }
+            className="min-h-11 whitespace-normal"
+          >
+            {t(`views.${view}`)}
+          </Button>
+        ))}
+      </div>
       <section
         aria-label={t('filters.label')}
         className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-5"
@@ -386,25 +437,19 @@ export function AuditView({
             applyFilters({ actorId });
           }}
         />
-        <FilterSelect
-          label={t('filters.action')}
-          value={search.action ?? ''}
-          onChange={(value) => applyFilters({ action: value || undefined })}
-        >
-          <option value="">{t('filters.all')}</option>
-          {Object.entries(AUDIT_ACTION_GROUPS).map(([group, actions]) => (
-            <optgroup
-              key={group}
-              label={t(`actionGroups.${group as AuditActionGroup}`)}
-            >
-              {actions.map((code) => (
-                <option key={code} value={code}>
-                  {labels.action(code)}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </FilterSelect>
+        <AuditActionFilter
+          value={selectedActions}
+          summaryId={actionsSummaryId}
+          valueLabel={
+            selectedActions.length > 1
+              ? t('filters.actionsSelected', { count: selectedActions.length })
+              : selectedActions[0]
+                ? labels.action(selectedActions[0])
+                : t('filters.all')
+          }
+          className={selectClass}
+          onSelect={(codes) => applyFilters(auditActionSelection(codes))}
+        />
         <FilterSelect
           label={t('filters.entityType')}
           value={search.entityType ?? ''}
@@ -439,48 +484,30 @@ export function AuditView({
         </FilterSelect>
       </section>
       {search.period === 'custom' && (
-        <form
-          className="mb-4 flex flex-wrap items-end gap-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!validAuditPeriod(from, to)) {
-              setDateError(true);
-              return;
-            }
-            setDateError(false);
-            applyFilters({ from, to });
-          }}
-        >
-          <Label className="flex flex-col gap-1">
-            {t('filters.from')}
-            <Input
-              type="date"
-              required
-              value={from}
-              onChange={(event) => setFrom(event.target.value)}
-              aria-invalid={dateError}
-            />
-          </Label>
-          <Label className="flex flex-col gap-1">
-            {t('filters.to')}
-            <Input
-              type="date"
-              required
-              value={to}
-              onChange={(event) => setTo(event.target.value)}
-              aria-invalid={dateError}
-            />
-          </Label>
-          <Button type="submit" variant="outline">
-            {t('filters.apply')}
-          </Button>
-          {dateError && (
-            <p role="alert" className="text-error-text w-full text-sm">
-              {t('filters.invalidPeriod')}
-            </p>
-          )}
-        </form>
+        <AuditDateFilter
+          from={from}
+          to={to}
+          error={dateError}
+          setFrom={setFrom}
+          setTo={setTo}
+          setError={setDateError}
+          onApply={() => applyFilters({ from, to })}
+        />
       )}
+      {/* Stays mounted so the first selection (0→1) is announced; empty <p> has no height. */}
+      <p
+        id={selectedActions.length > 0 ? actionsSummaryId : undefined}
+        className={cn(
+          'text-muted-foreground text-sm',
+          selectedActions.length > 0 && 'mb-3',
+        )}
+        aria-live="polite"
+      >
+        {selectedActions.length > 0 &&
+          t('filters.actionsSummary', {
+            labels: selectedActions.map(labels.action).join('; '),
+          })}
+      </p>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {chips.map((chip) => (
           <span
@@ -541,7 +568,9 @@ export function AuditView({
               ),
               entityId: entity.id,
               period: '365d',
+              view: undefined,
               action: undefined,
+              actions: undefined,
               actorId: undefined,
               result: undefined,
               from: undefined,

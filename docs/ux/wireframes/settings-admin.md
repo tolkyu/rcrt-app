@@ -404,12 +404,49 @@ Reused (do not duplicate): `inviteDialog.emailHint`, `inviteDialog.submitting`, 
 │ Показано 50 · [Показати ще]                                                                       │
 ```
 - Newest first, cursor pagination (50/page) + TanStack Virtual; no total count (avoids a full count over 3 years of rows).
-- **Views** (segmented ToggleGroup): «Усі дії» · «Входи та безпека» = preset `action ∈ auth.* + user.mfa_*` (login history for all users, STORY-AUD-3). Same table, same detail.
+- **Views** (segmented ToggleGroup): «Усі дії» · «Входи та безпека» = `auth.*` or `user.mfa_*`, including historical codes outside the picker catalogue (login history for all users, STORY-AUD-3). Both directions preserve manual selections; security view intersects them with its scope (D74). Same table, same detail.
 - **Filters:** Період (presets Сьогодні / Останні 7 днів (default) / Останні 30 днів / Свій період → range Calendar, Monday first; boundaries = Kyiv midnight, STORY-AUD-2) · Хто (searchable combobox of users + «Система») · Дія (grouped multi-select: Користувачі / Входи та безпека / Вертикалі / Налаштування; labels §3.4) · Обʼєкт (type: Користувач, Запрошення, Вертикаль, Налаштування) · Результат (Усі / Успішно / Відмовлено). Specific entity filter is set from links («Усі дії з цим обʼєктом», drawer/vertical «Історія змін») and shows as a FilterChip.
 - **Хто:** UserAvatar + current name; deactivated → «(деактивовано)»; `actor_kind=SYSTEM` → «⚙ Система», except `auth.login_failed` without entity → «Невідомий користувач» (no email is stored, T4-K02).
 - **Обʼєкт:** «{type} · {label}», label = current name for users/verticals (Admin can open them anyway), never values from PII side tables. Unknown/removed target → type + short ID «#3f2a…». Phase 2+ candidate/application entities: label = application/candidate ID only ⚠ OPEN-L2.
 - **Результат:** «Успішно» muted text; «Відмовлено» = red-soft chip with `ban` icon (security events, STORY-AUD-1).
 - Row click / `Enter` → detail Sheet (480; `?record=<id>`). `j/k` move between rows while the sheet is open (detail follows).
+
+#### 3.1.1 T6: grouped action selector and security view [STORY-AUD-2, D74, UI-05, PERF-04]
+
+Bounded replacement of the existing single-action filter plus the approved security view; keep the current filter grid, table/cards and date behaviour. Owner answer [Q-158](../../OPEN_QUESTIONS.md), 2026-11-02 (D74): preserve selected actions and narrow results to their intersection with security events.
+
+```text
+Дія
+[ Обрано 2 дії                         × ]
+┌ Дія ──────────────────────────────────┐
+│ Користувачі                           │
+│ [✓] Запрошено користувача              │
+│ [ ] Запрошення прийнято                │
+│ …                                     │
+│ Входи та безпека                       │
+│ [✓] Невдала спроба входу               │
+│ …                                     │
+│ Вертикалі                             │
+│ [ ] Створено вертикаль                │
+└───────────────────────────────────────┘
+Дії: Запрошено користувача; Невдала спроба входу
+```
+
+| Area | Engineer acceptance criteria |
+|---|---|
+| Catalogue | Use the existing `AUDIT_ACTION_GROUPS` order and Ukrainian action labels. Keep `user.mfa_*` in its current «Користувачі» group. Omit empty groups (no «Налаштування» until actual supported actions exist); no free-text action entry, group-wide selection or extra search. |
+| Security view | Render the existing segmented «Усі дії» / «Входи та безпека» control with an accessible group label and announced selected state. Switching either way preserves manual selections, their summary and unrelated filters. Security view adds an AND constraint for `auth.*` or `user.mfa_*`, including historical codes outside the current catalogue; without manual selection it shows all matching security events. Keep every action group selectable in both views. Selecting only «Запрошено користувача» in security view yields the normal empty/reset state; switching back restores its results. A mixed invitation/login-failed selection shows only the login-failed events in security view. |
+| Trigger and summary | Keep the visible «Дія» label. Zero selections → existing «Усі»; one → that action's label; several → localized «Обрано {count} дії/дій». Show every selected action's full label in a wrapping «Дії: {labels}» summary below the filter grid, in catalogue order. Trigger may truncate, summary must not. Its accessible name includes the filter label and current value; `aria-describedby` references the full summary. Count is selected action types, never matching records. |
+| Popover | Follow the actor filter's lazy boundary: closed trigger is a plain button; load the Radix popover body on first focus/hover/open, never eagerly at page load. Button has `aria-haspopup="dialog"`, `aria-expanded` and `aria-controls`. Label the dialog «Дія»; each group is a `fieldset` with its visible `legend`, each option a labelled native checkbox. No `listbox`/`option` roles for checkboxes. |
+| Interaction | Each checkbox applies immediately and keeps the popover open, its scroll position and focus stable. Selected actions are ORed; other filters remain ANDed. No draft or «Застосувати» button for actions. Escape/outside click closes without rollback; closing returns focus to the trigger unless focus was intentionally moved outside. Tab/Shift+Tab reach controls; Space toggles the focused checkbox. First open focuses the first selected checkbox, or the first option when empty. |
+| Clear | Trigger's separate × button uses «Очистити фільтр «Дія»» as its accessible name, clears all selected actions in one operation and returns focus to the trigger; selected view and other filters remain. Unchecking the last action means no manual action constraint. Do not use a checkbox labelled «Усі», which can be confused with explicitly selecting every action. Global «Скинути фільтри» restores «Усі дії», clears actions and restores existing defaults. Entity-history links also reset view and actions while setting their entity constraint. |
+| URL and history | URL is the sole selection state. Engineering contract: canonical `action=<one code>` for a single selection, `actions=<comma-separated unique codes>` for multiple selections, neither for none; legacy single-action links remain supported. API returns 400 when both keys are supplied. Security view is `view=security`; default «Усі дії» omits `view`. Canonical ordering/validation belong to the shared parser. Use the existing filter `replaceState` policy, clear `record` and start the filtered list at its first page. Restored URLs, browser Back/Forward and reloaded/deep-linked pages update the segment, trigger, checked boxes, full summary and query together; no stale local draft. This does not change the separate custom-date draft scope. |
+| Loading and errors | Keep the trigger/value visible during chunk loading; announce «Завантаження…» through the existing states copy and show a small matching popover skeleton when opened. Use the existing guarded lazy-load error path. Result loading/error/empty states remain those in §3.4; controls and chosen values stay available after a list error. |
+| Mobile and dark mode | Keep the current two-column mobile filter grid for this slice. Trigger and clear button each have a non-overlapping target ≥44×44 px on mobile; every checkbox label row is ≥44 px high with whole-row activation. Popover width ≤`calc(100vw - 32px)`, desktop cap 24rem, collision padding 16 px; internal vertical scrolling respects available viewport height. Labels wrap whole Ukrainian words, no horizontal overflow at native 390×844. Reuse surface/input/ring tokens in both themes. |
+
+Copy: reuse `settings.audit.filters.action`, `.all`, `.reset`, `settings.audit.actionGroups.*`, existing action labels and loading copy. Add `filters.actionsSelected` = `{count, plural, one {Обрано # дію} few {Обрано # дії} many {Обрано # дій} other {Обрано # дії}}`, `filters.actionsSummary` = `Дії: {labels}`, and `filters.actionsClear` = `Очистити фільтр «Дія»` in `messages/uk.json` during implementation. Reuse §5 `views.*` for the preset labels; provide a localized accessible group label if the existing copy has none.
+
+QA evidence for this slice: desktop/mobile × light/dark, closed multi-selection + open grouped list and selected security view; keyboard toggle/close/refocus, view-switch preservation, mixed/empty intersection, historical security codes, clear-last/global/entity-history reset, legacy link, dual-key rejection, URL restoration and selected-summary announcement. Measure native 390×844 targets/overflow independently of stretched screenshots. Initial route JS must stay ≤180 kB gzipped.
 
 ### 3.2 Record detail (Sheet right 480)
 

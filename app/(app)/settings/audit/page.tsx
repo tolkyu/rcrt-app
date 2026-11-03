@@ -9,7 +9,7 @@ import {
   parseAuditSearch,
 } from '@/lib/audit-filters';
 import { AUDIT_SYSTEM_ACTOR } from '@/lib/audit-constants';
-import { queryKeys } from '@/lib/query-keys';
+import { auditQuery } from '@/lib/queries/settings';
 import { hasAnyGrant } from '@/server/authz/can';
 import { getQueryClient } from '@/server/query/query-client';
 import { getAuditActor, listAudit } from '@/server/services/audit';
@@ -36,7 +36,7 @@ export default async function SettingsAuditPage({
   const queryClient = getQueryClient();
   const [, initialActor] = await Promise.all([
     queryClient.prefetchInfiniteQuery({
-      queryKey: queryKeys.settingsAudit(filters),
+      queryKey: auditQuery(filters).queryKey,
       initialPageParam: null as string | null,
       queryFn: () => listAudit(ctx, filters),
     }),

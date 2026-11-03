@@ -1,9 +1,16 @@
 import { randomUUID } from 'node:crypto';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { auditEntrySchema, auditRecordSchema } from '../../lib/schemas/audit';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  auditEntrySchema,
+  auditRecordSchema,
+  auditPageSchema,
+  auditQuerySchema,
+} from '../../lib/schemas/audit';
 import { writeAudit } from '../../server/audit';
 import { loadAuthContext } from '../../server/context/request-context';
 import * as schema from '../../server/db/schema';
+import { createRouteFactory } from '../../server/http/define-route';
+import { createApiRegistry } from '../../server/http/openapi';
 import {
   getAuditActor,
   getAuditRecord,
@@ -48,6 +55,345 @@ async function request(
 
 const adminRequest = (args: FixtureArgs) =>
   request(args, { admin: true, aal: 'aal2', verified: true });
+
+describe('Grouped action OR filter [STORY-AUD-2, VIS-01..03]', () => {
+  it('uses one read query, ORs actions, ANDs actor/entity/result/Kyiv dates and preserves tied cursor ordering', async () => {
+    await fixture.run(async (args) => {
+      const ctx = await adminRequest(args);
+      const entityId = randomUUID();
+      args.at(new Date('2032-02-07T10:00:00Z'));
+      for (const action of [
+        'vertical.created',
+        'vertical.renamed',
+        'vertical.renamed',
+      ])
+        await writeAudit(ctx.db, ctx, {
+          action,
+          entityType: 'vertical',
+          entityId,
+          result: 'DENIED',
+        });
+      await writeAudit(ctx.db, ctx, {
+        action: 'user.invited',
+        entityType: 'vertical',
+        entityId,
+        result: 'DENIED',
+      });
+      await writeAudit(ctx.db, ctx, {
+        action: 'vertical.created',
+        entityType: 'vertical',
+        entityId,
+        result: 'SUCCESS',
+      });
+      await writeAudit(
+        ctx.db,
+        { ...ctx, auth: null },
+        {
+          action: 'vertical.created',
+          entityType: 'vertical',
+          entityId,
+          result: 'DENIED',
+        },
+      );
+      await writeAudit(ctx.db, ctx, {
+        action: 'vertical.created',
+        entityType: 'user',
+        entityId,
+        result: 'DENIED',
+      });
+      await writeAudit(ctx.db, ctx, {
+        action: 'vertical.created',
+        entityType: 'vertical',
+        entityId: randomUUID(),
+        result: 'DENIED',
+      });
+      args.at(new Date('2032-02-08T10:00:00Z'));
+      await writeAudit(ctx.db, ctx, {
+        action: 'vertical.created',
+        entityType: 'vertical',
+        entityId,
+        result: 'DENIED',
+      });
+      const filters = {
+        actions: 'vertical.renamed,vertical.created,vertical.renamed',
+        entityType: 'vertical' as const,
+        entityId,
+        actorId: args.user.id,
+        result: 'DENIED' as const,
+        from: '2032-02-07',
+        to: '2032-02-07',
+        limit: 2,
+      };
+      const select = vi.spyOn(ctx.db, 'select');
+      const insert = vi.spyOn(ctx.db, 'insert');
+      try {
+        const first = await listAudit(ctx, filters);
+        expect(select).toHaveBeenCalledTimes(1);
+        expect(insert).not.toHaveBeenCalled();
+        expect(first.items).toHaveLength(2);
+        const second = await listAudit(ctx, {
+          ...filters,
+          cursor: first.nextCursor!,
+        });
+        const items = [...first.items, ...second.items];
+        expect(items.map((item) => item.action).sort()).toEqual([
+          'vertical.created',
+          'vertical.renamed',
+          'vertical.renamed',
+        ]);
+        expect(new Set(items.map((item) => item.id)).size).toBe(3);
+        expect(
+          items.every(
+            (item, index) =>
+              index === 0 || BigInt(items[index - 1]!.id) > BigInt(item.id),
+          ),
+        ).toBe(true);
+        expect(second.nextCursor).toBeNull();
+        expect(select).toHaveBeenCalledTimes(2);
+        expect(insert).not.toHaveBeenCalled();
+      } finally {
+        select.mockRestore();
+        insert.mockRestore();
+      }
+    });
+  });
+
+  it.each([
+    'RECRUITER',
+    'HEAD_RECRUITER',
+    'HEAD_HR',
+    'HR',
+    'TEAM_LEAD',
+    'FINANCE',
+  ] as const)(
+    'denies multi-action results to %s with verified MFA',
+    async (role) => {
+      await fixture.run(async (args) => {
+        if (role !== 'RECRUITER')
+          await args.ctx.db.insert(schema.userRole).values({
+            userId: args.user.id,
+            role,
+            verticalId: role === 'FINANCE' ? null : args.user.verticalId,
+          });
+        const ctx = await request(args, {
+          admin: false,
+          aal: 'aal2',
+          verified: true,
+        });
+        await expect(
+          listAudit(ctx, {
+            view: 'security',
+            actions: 'user.invited,auth.login_failed',
+          }),
+        ).rejects.toMatchObject({ status: 404, code: 'NOT_FOUND' });
+      });
+    },
+  );
+
+  it('denies an Admin without verified MFA and retains legacy unknown-action requests', async () => {
+    for (const aal of ['aal1', 'aal2'] as const)
+      await fixture.run(async (args) => {
+        const ctx = await request(args, {
+          admin: true,
+          aal,
+          verified: false,
+        });
+        await expect(
+          listAudit(ctx, {
+            view: 'security',
+            actions: 'user.invited,auth.login_failed',
+          }),
+        ).rejects.toMatchObject({ status: 401, code: 'MFA_REQUIRED' });
+      });
+    await fixture.run(async (args) => {
+      const ctx = await adminRequest(args);
+      expect((await listAudit(ctx, { action: 'future.action' })).items).toEqual(
+        [],
+      );
+      for (const input of [
+        { actions: 'future.action' },
+        { action: 'user.invited', actions: 'auth.login_failed' },
+      ])
+        await expect(listAudit(ctx, input)).rejects.toMatchObject({
+          name: 'ZodError',
+        });
+    });
+  });
+});
+
+describe('Security view intersects manual selection [STORY-AUD-2, Q-158]', () => {
+  it('includes historic auth and literal user.mfa_ prefixes while ANDing other filters and selected actions', async () => {
+    await fixture.run(async (args) => {
+      const ctx = await adminRequest(args);
+      const entityId = randomUUID();
+      const security = [
+        'auth.historic_event',
+        'auth.login_failed',
+        'user.mfa_historic',
+        'user.mfa_reset',
+      ];
+      for (const action of [
+        ...security,
+        'user.mfax_reset',
+        'user.mfa',
+        'authentication.login_failed',
+        'vertical.renamed',
+      ])
+        await writeAudit(ctx.db, ctx, {
+          action,
+          entityType: 'user',
+          entityId,
+          result: 'DENIED',
+        });
+      await writeAudit(ctx.db, ctx, {
+        action: 'auth.login_failed',
+        entityType: 'user',
+        entityId,
+        result: 'SUCCESS',
+      });
+      await writeAudit(ctx.db, ctx, {
+        action: 'auth.login_failed',
+        entityType: 'user',
+        entityId: randomUUID(),
+        result: 'DENIED',
+      });
+      await writeAudit(
+        ctx.db,
+        { ...ctx, auth: null },
+        {
+          action: 'auth.login_failed',
+          entityType: 'user',
+          entityId,
+          result: 'DENIED',
+        },
+      );
+      const filters = {
+        view: 'security' as const,
+        entityType: 'user' as const,
+        entityId,
+        actorId: args.user.id,
+        result: 'DENIED' as const,
+        from: '2026-11-16',
+        to: '2026-11-16',
+      };
+      const select = vi.spyOn(ctx.db, 'select');
+      const insert = vi.spyOn(ctx.db, 'insert');
+      try {
+        const page = await listAudit(ctx, filters);
+        expect(page.items.map((item) => item.action).sort()).toEqual(
+          [...security].sort(),
+        );
+        expect(select).toHaveBeenCalledTimes(1);
+        expect(insert).not.toHaveBeenCalled();
+        expect(
+          (
+            await listAudit(ctx, {
+              ...filters,
+              actions: 'vertical.renamed,auth.login_failed,user.mfa_reset',
+            })
+          ).items
+            .map((item) => item.action)
+            .sort(),
+        ).toEqual(['auth.login_failed', 'user.mfa_reset']);
+        expect(
+          (await listAudit(ctx, { ...filters, action: 'vertical.renamed' }))
+            .items,
+        ).toEqual([]);
+        expect(
+          (
+            await listAudit(ctx, { ...filters, action: 'auth.historic_event' })
+          ).items.map((item) => item.action),
+        ).toEqual(['auth.historic_event']);
+        expect(
+          (await listAudit(ctx, { ...filters, view: 'all' })).items,
+        ).toHaveLength(8);
+        expect(insert).not.toHaveBeenCalled();
+      } finally {
+        select.mockRestore();
+        insert.mockRestore();
+      }
+    });
+  });
+
+  it('passes canonical multi-selection through the real route factory into the service and rejects malformed query transports', async () => {
+    await fixture.run(async (args) => {
+      const ctx = await adminRequest(args);
+      await writeAudit(ctx.db, ctx, {
+        action: 'auth.login_failed',
+        result: 'DENIED',
+      });
+      await writeAudit(ctx.db, ctx, {
+        action: 'vertical.renamed',
+        result: 'DENIED',
+      });
+      const defineRoute = createRouteFactory({
+        db: () => args.ctx.db,
+        clock: args.ctx.clock,
+        appUrl: () => 'http://localhost:3100',
+        registry: createApiRegistry(),
+        verifyIdentity: async () => ctx.identity,
+      });
+      const service = vi.fn(listAudit);
+      const route = defineRoute(
+        {
+          method: 'GET',
+          path: '/audit',
+          operationId: 'listAudit',
+          summary: 'List audit',
+          tags: ['Audit'],
+          query: auditQuerySchema,
+          response: auditPageSchema,
+          errors: [400, 404],
+        },
+        (requestContext, { query }) => service(requestContext, query),
+      );
+      const get = (query: string) =>
+        route(
+          new Request(`http://localhost:3100/api/v1/audit?${query}`, {
+            headers: { 'x-activity': 'background' },
+          }),
+          { params: Promise.resolve({}) },
+        );
+      const select = vi.spyOn(ctx.db, 'select');
+      const insert = vi.spyOn(ctx.db, 'insert');
+      try {
+        const response = await get(
+          'view=security&actions=vertical.renamed,auth.login_failed,auth.login_failed&result=DENIED',
+        );
+        expect(response.status).toBe(200);
+        expect(
+          auditPageSchema
+            .parse(await response.json())
+            .items.map((item) => item.action),
+        ).toEqual(['auth.login_failed']);
+        expect(service).toHaveBeenCalledTimes(1);
+        expect(select).toHaveBeenCalledTimes(1);
+        expect(insert).not.toHaveBeenCalled();
+        service.mockClear();
+        for (const query of [
+          'action=user.invited&actions=auth.login_failed',
+          'actions=user.invited&actions=auth.login_failed',
+          'action=user.invited&action=auth.login_failed',
+          'view=security&view=security',
+          'view=unknown',
+          'actions=',
+          'actions=future.action',
+          `actions=${Array.from({ length: 22 }, () => 'user.invited').join(',')}`,
+          `actions=${'a'.repeat(2000)}`,
+        ]) {
+          expect((await get(query)).status, query).toBe(400);
+        }
+        expect(service).not.toHaveBeenCalled();
+        expect(select).toHaveBeenCalledTimes(1);
+        expect(insert).not.toHaveBeenCalled();
+        expect((await get('action=future.action')).status).toBe(200);
+      } finally {
+        select.mockRestore();
+        insert.mockRestore();
+      }
+    });
+  });
+});
 
 describe('«Журнал дій» viewer [STORY-AUD-2, AUD, D25]', () => {
   it('lists newest first with actor and current entity name, and filters by entity, action and result', async () => {
@@ -463,6 +809,16 @@ describe('«Хто» actor lookup [STORY-AUD-2, wireframe settings-admin §3.1]'
           (item) => item.actorKind === 'SYSTEM' && item.actor === null,
         ),
       ).toBe(true);
+      const security = await listAudit(ctx, {
+        actorId: 'system',
+        view: 'security',
+        actions: 'auth.login_failed,vertical.renamed',
+        from: '2031-03-07',
+        to: '2031-03-07',
+      });
+      expect(
+        security.items.map((item) => [item.action, item.entity?.id]),
+      ).toEqual([['auth.login_failed', args.user.id]]);
       await expect(listAudit(ctx, { actorId: 'SYSTEM' })).rejects.toMatchObject(
         { name: 'ZodError' },
       );

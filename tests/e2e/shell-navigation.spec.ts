@@ -53,6 +53,12 @@ test('keyboard opening moves focus into navigation, Escape restores its trigger,
       .context()
       .addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
     await page.goto('/settings/verticals');
+    await expect(
+      page.getByRole('heading', {
+        level: 1,
+        name: messages.settings.verticals.title,
+      }),
+    ).toBeVisible();
     await trigger.click();
     await expect(dialog).toBeVisible();
     await expect(dialog.locator(':focus')).toHaveCount(1);

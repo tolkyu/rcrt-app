@@ -878,47 +878,70 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
         `subject_type = 'app_user' and subject_id = '${id}'`,
       ],
     ];
-    await admin.begin(async (tx) => {
-      await tx`set local enable_seqscan = off`;
-      await tx`set local enable_bitmapscan = off`;
-      const plans = [
-        ...timelines.map(([index, where]) => [
-          index,
-          `select id from app.entity_event where ${where} order by occurred_at desc, id desc limit 31`,
-        ]),
-        [
-          'audit_log_entity_idx',
-          `select id from app.audit_log where entity_type = 'app_user' and entity_id = '${id}' order by occurred_at desc, id desc limit 31`,
-        ],
-        [
-          'audit_log_actor_idx',
-          `select id from app.audit_log where actor_id = '${id}' order by occurred_at desc, id desc limit 31`,
-        ],
-        [
-          'audit_log_action_idx',
-          "select id from app.audit_log where action = 'vertical.renamed' order by occurred_at desc, id desc limit 51",
-        ],
-        [
-          'audit_log_result_idx',
-          "select id from app.audit_log where result = 'DENIED' order by occurred_at desc, id desc limit 51",
-        ],
-        [
-          'audit_log_entity_type_idx',
-          "select id from app.audit_log where entity_type = 'vertical' order by occurred_at desc, id desc limit 51",
-        ],
-        [
-          'user_invite_latest_idx',
-          `select status from app.user_invite where user_id = '${id}' order by status = 'PENDING' desc, created_at desc, id desc limit 1`,
-        ],
-      ];
-      for (const [index, query] of plans) {
-        const plan = JSON.stringify(
-          await tx.unsafe(`explain (format json) ${query}`),
-        );
-        expect(plan, index).toContain(`"Index Name":"${index}"`);
-        expect(plan, index).not.toContain('"Node Type":"Sort"');
-      }
-    });
+    const planFixtureRollback = Symbol('rollback index-plan fixture');
+    const [beforePlanFixture] =
+      await admin`select count(*)::int as count from app.audit_log`;
+    try {
+      await admin.begin(async (tx) => {
+        // Make entity type common and the target entity rare so the composite-index assertion is selective.
+        await tx`insert into app.audit_log (occurred_at, actor_kind, action, entity_type, entity_id)
+        select '2020-01-01T00:00:00Z'::timestamptz + n * interval '1 second',
+          'SYSTEM', 'qa.plan_event', 'app_user', md5(${id} || n::text)::uuid::text
+        from generate_series(1, 4096) n`;
+        await tx`insert into app.audit_log (occurred_at, actor_kind, action, entity_type, entity_id)
+        values ('2020-01-01T00:00:00Z', 'SYSTEM', 'qa.plan_event', 'app_user', ${id})`;
+        await tx`analyze app.audit_log`;
+        await tx`set local enable_seqscan = off`;
+        await tx`set local enable_bitmapscan = off`;
+        const plans = [
+          ...timelines.map(([index, where]) => [
+            index,
+            `select id from app.entity_event where ${where} order by occurred_at desc, id desc limit 31`,
+          ]),
+          [
+            'audit_log_entity_idx',
+            `select id from app.audit_log where entity_type = 'app_user' and entity_id = '${id}' order by occurred_at desc, id desc limit 31`,
+          ],
+          [
+            'audit_log_actor_idx',
+            `select id from app.audit_log where actor_id = '${id}' order by occurred_at desc, id desc limit 31`,
+          ],
+          [
+            'audit_log_action_idx',
+            "select id from app.audit_log where action = 'vertical.renamed' order by occurred_at desc, id desc limit 51",
+          ],
+          [
+            'audit_log_result_idx',
+            "select id from app.audit_log where result = 'DENIED' order by occurred_at desc, id desc limit 51",
+          ],
+          [
+            'audit_log_entity_type_idx',
+            "select id from app.audit_log where entity_type = 'vertical' order by occurred_at desc, id desc limit 51",
+          ],
+          [
+            'user_invite_latest_idx',
+            `select status from app.user_invite where user_id = '${id}' order by status = 'PENDING' desc, created_at desc, id desc limit 1`,
+          ],
+        ];
+        for (const [index, query] of plans) {
+          const plan = JSON.stringify(
+            await tx.unsafe(`explain (format json) ${query}`),
+          );
+          expect(plan, index).toContain(`"Index Name":"${index}"`);
+          expect(plan, index).not.toContain('"Node Type":"Sort"');
+          if (index === 'audit_log_entity_idx')
+            expect(plan).toMatch(/"Index Cond":"[^"]*entity_id/);
+        }
+        throw planFixtureRollback;
+      });
+    } catch (error) {
+      if (error !== planFixtureRollback) throw error;
+    } finally {
+      await admin`analyze app.audit_log`;
+    }
+    const [afterPlanFixture] =
+      await admin`select count(*)::int as count from app.audit_log`;
+    expect(afterPlanFixture!.count).toBe(beforePlanFixture!.count);
   });
 
   it('rejects unknown file buckets and scan states [ADR-005, DG-12]', async () => {

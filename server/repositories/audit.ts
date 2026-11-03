@@ -16,11 +16,13 @@ import { AUDIT_UNKNOWN_ACTOR_ACTION } from '../../lib/audit-constants';
 import { appUser, auditLog, vertical } from '../db/schema';
 
 export interface AuditFilters {
+  readonly view?: 'all' | 'security' | undefined;
   readonly from?: Date | undefined;
   readonly to?: Date | undefined;
   /** `null` = «Система»: SYSTEM rows minus unknown-user sign-in failures (T4-K02); both forms use `audit_log_actor_idx`. */
   readonly actorId?: string | null | undefined;
   readonly action?: string | undefined;
+  readonly actions?: readonly string[] | undefined;
   readonly entityType?: string | undefined;
   readonly entityId?: string | undefined;
   readonly result?: 'SUCCESS' | 'DENIED' | undefined;
@@ -72,6 +74,12 @@ export function listAuditEntries(
   limit: number,
 ) {
   const conditions: (SQL | undefined)[] = [
+    filters.view === 'security'
+      ? or(
+          sql`starts_with(${auditLog.action}, ${'auth.'})`,
+          sql`starts_with(${auditLog.action}, ${'user.mfa_'})`,
+        )
+      : undefined,
     filters.from ? gte(auditLog.occurredAt, filters.from) : undefined,
     filters.to ? lt(auditLog.occurredAt, filters.to) : undefined,
     filters.actorId === null
@@ -83,6 +91,9 @@ export function listAuditEntries(
         ? eq(auditLog.actorId, filters.actorId)
         : undefined,
     filters.action ? eq(auditLog.action, filters.action) : undefined,
+    filters.actions?.length
+      ? inArray(auditLog.action, [...filters.actions])
+      : undefined,
     filters.entityType
       ? eq(auditLog.entityType, filters.entityType)
       : undefined,

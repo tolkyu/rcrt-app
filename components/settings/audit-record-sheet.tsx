@@ -22,9 +22,12 @@ import {
 import { roleLabelKey } from '@/lib/roles';
 import type { AuditEntry, AuditRecord } from '@/lib/schemas/audit';
 import { AUDIT_ENTITY_TYPES } from '@/lib/audit-constants';
+import type messages from '@/messages/uk.json';
 import { useAuditLabels } from './audit-labels';
+import { useAuditFieldLabel } from './audit-field-label';
 
 type Json = AuditRecord['before'];
+type AuditMessages = typeof messages.settings.audit;
 
 function asObject(value: Json): Record<string, Json> {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -71,6 +74,12 @@ export function AuditRecordSheet({
   const tRoles = useTranslations('common.roles');
   const tPriority = useTranslations('settings.priorities');
   const labels = useAuditLabels();
+  const fieldLabel = useAuditFieldLabel();
+  const reasonLabel = (code: string) => {
+    const key =
+      `reasons.${code}` as `reasons.${keyof AuditMessages['reasons']}`;
+    return t.has(key) ? t(key, { code }) : t('reasons.unknown', { code });
+  };
   const record = useQuery(auditRecordQuery(recordId));
   const verticals = useQuery(settingsVerticalsQuery());
   const [showJson, setShowJson] = useState(false);
@@ -145,7 +154,7 @@ export function AuditRecordSheet({
           </Row>
           <Row label={t('detail.actor')}>{labels.actor(data)}</Row>
           {data.result === 'DENIED' && typeof reason === 'string' && (
-            <Row label={t('detail.reason')}>{labels.reason(reason)}</Row>
+            <Row label={t('detail.reason')}>{reasonLabel(reason)}</Row>
           )}
           {data.entity && (
             <Row label={t('detail.entity')}>
@@ -205,7 +214,7 @@ export function AuditRecordSheet({
                     className="border-border border-b align-top last:border-0"
                   >
                     <th scope="row" className="py-2 pr-2 text-left font-medium">
-                      {labels.field(key)}
+                      {fieldLabel(key)}
                     </th>
                     <td className="py-2 pr-2 break-words">
                       {change(key, before[key])}
@@ -226,7 +235,7 @@ export function AuditRecordSheet({
             </h3>
             <dl className="divide-border divide-y">
               {details.map(([key, raw]) => (
-                <Row key={key} label={labels.field(key)}>
+                <Row key={key} label={fieldLabel(key)}>
                   {(typeof raw === 'string' && data.detailLabels[raw]) ||
                     value(raw)}
                 </Row>

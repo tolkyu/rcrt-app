@@ -43,23 +43,12 @@ export function useAuditLabels() {
           label: value.label ?? shortId(value.id),
         })
       : null;
-  const reason = (code: string) => {
-    const key =
-      `reasons.${code}` as `reasons.${keyof AuditMessages['reasons']}`;
-    return t.has(key) ? t(key, { code }) : t('reasons.unknown', { code });
-  };
-  const field = (name: string) => {
-    const key = `fields.${name}` as `fields.${keyof AuditMessages['fields']}`;
-    return t.has(key) ? t(key) : name;
-  };
   return {
     action,
     actor,
     actorName,
     entity,
     entityType,
-    reason,
-    field,
     shortId,
   };
 }

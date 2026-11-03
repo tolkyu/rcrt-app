@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  auditPeriodRange,
-  kyivDateBounds,
-  periodDays,
-} from '@/lib/audit-period';
+import { auditPeriodRange } from '@/lib/audit-period';
+import { kyivDateBounds, periodDays } from '@/server/audit/period';
 
 describe('Audit Kyiv calendar periods [STORY-AUD-2]', () => {
   it.each([

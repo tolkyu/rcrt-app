@@ -4,8 +4,8 @@ import {
   type AuditPeriod,
 } from './audit-period';
 import type { AuditFilterValues } from './queries/settings';
+import { auditActionSelection, parseAuditActions } from './audit-actions';
 import {
-  AUDIT_ACTION_GROUPS,
   AUDIT_ENTITY_TYPES,
   AUDIT_PERIOD_MAX_DAYS,
   AUDIT_SYSTEM_ACTOR,
@@ -15,9 +15,11 @@ import {
 /** «Журнал дій» state kept in the URL (wireframe settings-admin §0): back button and shareable links. */
 export interface AuditSearch {
   readonly period: AuditPeriod | 'custom';
+  readonly view?: 'security' | undefined;
   readonly from?: string | undefined;
   readonly to?: string | undefined;
   readonly action?: string | undefined;
+  readonly actions?: string | undefined;
   readonly entityType?: AuditEntityType | undefined;
   readonly entityId?: string | undefined;
   /** User id or `AUDIT_SYSTEM_ACTOR`. */
@@ -26,14 +28,16 @@ export interface AuditSearch {
   readonly record?: string | undefined;
 }
 
-const KNOWN_ACTIONS = new Set<string>(
-  Object.values(AUDIT_ACTION_GROUPS).flat(),
-);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-type SearchSource = Readonly<Record<string, string | string[] | undefined>>;
+type SearchSource =
+  Readonly<Record<string, string | string[] | undefined>> | URLSearchParams;
 
 function one(source: SearchSource, key: string) {
+  if (source instanceof URLSearchParams) {
+    const values = source.getAll(key);
+    return values.length === 1 ? values[0] : undefined;
+  }
   const value = source[key];
   return typeof value === 'string' ? value : undefined;
 }
@@ -42,6 +46,19 @@ function one(source: SearchSource, key: string) {
 export function parseAuditSearch(source: SearchSource): AuditSearch {
   const period = one(source, 'period');
   const action = one(source, 'action');
+  const actions = one(source, 'actions');
+  const has = (key: string) =>
+    source instanceof URLSearchParams
+      ? source.has(key)
+      : source[key] !== undefined;
+  const selected =
+    has('action') && has('actions')
+      ? []
+      : actions
+        ? (parseAuditActions(actions) ?? [])
+        : action
+          ? [action]
+          : [];
   const entityType = one(source, 'entityType');
   const entityId = one(source, 'entityId');
   const actorId = one(source, 'actorId');
@@ -53,12 +70,13 @@ export function parseAuditSearch(source: SearchSource): AuditSearch {
     period === 'custom' && from && to && validAuditPeriod(from, to);
   const type = AUDIT_ENTITY_TYPES.find((known) => known === entityType);
   return {
+    view: one(source, 'view') === 'security' ? 'security' : undefined,
     period: custom
       ? 'custom'
       : (AUDIT_PERIODS.find((known) => known === period) ?? '7d'),
     from: custom ? from : undefined,
     to: custom ? to : undefined,
-    action: action && KNOWN_ACTIONS.has(action) ? action : undefined,
+    ...auditActionSelection(selected),
     entityType: type,
     entityId: type && entityId && UUID.test(entityId) ? entityId : undefined,
     actorId:
@@ -91,11 +109,18 @@ export function validAuditPeriod(from: string, to: string): boolean {
   );
 }
 
+export function selectedAuditActions(search: AuditSearch): string[] {
+  return search.actions?.split(',') ?? (search.action ? [search.action] : []);
+}
+
 export function auditSearchParams(search: AuditSearch) {
   const params = new URLSearchParams();
+  const selection = auditActionSelection(selectedAuditActions(search));
+  if (selection.action) params.set('action', selection.action);
+  if (selection.actions) params.set('actions', selection.actions);
+  if (search.view === 'security') params.set('view', search.view);
   if (search.period !== '7d') params.set('period', search.period);
   for (const key of [
-    'action',
     'entityType',
     'entityId',
     'actorId',
@@ -115,10 +140,12 @@ export function auditApiFilters(
   now: Date,
 ): AuditFilterValues {
   return {
+    view: search.view,
     ...(search.period === 'custom'
       ? { from: search.from, to: search.to }
       : auditPeriodRange(search.period, now)),
     action: search.action,
+    actions: search.actions,
     entityType: search.entityType,
     entityId: search.entityId,
     actorId: search.actorId,

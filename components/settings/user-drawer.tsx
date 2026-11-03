@@ -50,6 +50,7 @@ import type {
   UserStatus,
 } from '@/lib/schemas/user';
 import { useAuditLabels } from './audit-labels';
+import { useAuditFieldLabel } from './audit-field-label';
 import { UserInviteActions } from './user-invite-actions';
 import { UserActivationActions } from './user-activation-actions';
 import { RoleChips } from './role-chips';
@@ -267,6 +268,7 @@ function useEventDetails() {
   const t = useTranslations('settings.users.drawer');
   const tPriority = useTranslations('settings.priorities');
   const labels = useAuditLabels();
+  const fieldLabel = useAuditFieldLabel();
   const roleLabel = useRoleLabel();
   return (event: UserEvent) => {
     if (event.priorityChange) {
@@ -297,7 +299,7 @@ function useEventDetails() {
         .join(', ');
     if (event.fields)
       return t('historyFields', {
-        fields: event.fields.map(labels.field).join(', '),
+        fields: event.fields.map(fieldLabel).join(', '),
       });
     return null;
   };

@@ -1,0 +1,33 @@
+# Security review: grouped audit action filters and security view
+
+Date: 2026-11-02. Scope: T6 slice 13, STORY-AUD-2, VIS-01..03, AUD, D74; settings-admin §3.1.1. Q-158 is resolved: security view intersects the preserved manual selection.
+
+**Status: APPROVED.** No new Critical, High, Medium or Low finding. No new trust boundary, permission, write endpoint or database migration. Release validation, browser screenshots and performance gates remain part of the orchestrator's completion checks.
+
+## Controls verified
+
+| Area | Evidence and result |
+|---|---|
+| Authorization | `server/services/audit.ts:70` requires central `audit.read` before parsing or database reads. `server/authz/permissions.ts:136` requires verified MFA. The settings page checks the privileged session and grant before prefetch. Finance and every other non-Admin fixture receive 404; Admin at aal1 receives `MFA_REQUIRED`. Filters cannot grant access to a record or its detail. |
+| Input bounds | `lib/audit-actions.ts:10` bounds raw string length before splitting, then permits at most 21 raw catalogue codes before deduplication. Empty, unknown, malformed and oversized CSV fails. `lib/schemas/audit.ts:26` restricts view to `all` or `security`; the strict schema rejects simultaneous action transports and repeated query parameters (arrays from the route factory). Legacy `action` keeps its existing regex, including historical syntactically valid codes. Canonical CSV remains a string and survives route/service double validation. |
+| Security intersection | `server/repositories/audit.ts:79` binds literal `starts_with(action, 'auth.') OR starts_with(action, 'user.mfa_')`; no SQL LIKE wildcard interpretation of `_`, SQL concatenation or catalogue truncation. Historic prefix events remain eligible. The prefix predicate and selected-action `inArray` are ANDed with period, actor, entity, result and cursor. Incompatible selections return the ordinary empty result; switching views does not discard them. |
+| Query bounds | `server/repositories/audit.ts:113` preserves one SELECT, descending timestamp/id keyset and `limit + 1`; schema retains 50 default/100 maximum and service retains the 366-day explicit-range ceiling. No counts, N+1 lookups or writes were introduced. Direct API callers may still omit dates, as before. |
+| URL and cache | `lib/audit-filters.ts:50` handles server arrays and client `URLSearchParams` identically, including repeated/dual keys. Selection is deduplicated in catalogue order, singleton uses `action`, multiple use `actions`; default all is omitted. `lib/queries/settings.ts:21` includes normalized selection/view in cache identity and retains two pages. `components/settings/audit-view.tsx:161` clears the selected record on filter changes and removes a previously cached destination's advanced cursor window. Reset/entity history also clear the view. |
+| Privacy and integrity | Existing minimal list DTO, current-name labels and `private, no-store` route responses remain. No before/after payload, email search input, persistent storage, notification, event or statistics write was added. React renders labels as text. Entity detail retains its separate permission check. Existing «Система» exclusion of anonymous failed sign-ins remains an additional AND constraint. |
+| Lazy UI and focus | `components/settings/audit-action-filter.tsx:24` lazy-loads the picker through guarded `loadOrReload`; closed trigger does not import the Popover eagerly. Trigger announces current value/full summary, clear target is 44 px on mobile, native labelled checkboxes retain selection focus, Escape returns focus to the trigger, and deliberate outside focus is preserved. The view group exposes `aria-pressed`; these controls do not alter server authorization. |
+
+## Findings and inherited limitations
+
+- **No new finding.** No change expands the authorized audience or the data returned by the list.
+- **Inherited Low, T9:** the common route wrapper validates input before the service permission check; malformed input can return 400 to a signed-in non-Admin instead of 404. It performs no audit-data lookup or disclosure in that path.
+- **Inherited SEC-AAF-02/03 / DG-09 / DG-16:** staff-search platform query logs and the lack of per-user search rate limiting remain tracked in the actor-filter review/T9. This slice adds only finite action/view values, no staff-search input.
+- Custom-date draft synchronization on Back, backward page-window navigation/full virtualization and retention jobs remain separate slices. Large-data latency verification remains T8.
+
+## Verification
+
+- Static review: changed schema, parser, query cache, API, service/repository and both picker components; central permission/route factory, settings RSC prefetch and previous actor security report.
+- Coordinated QA reported **84/84 focused unit/integration tests passing** across `tests/unit/audit-actions.test.ts`, `tests/unit/audit-filters.test.ts` and `tests/integration/settings-audit.test.ts` after the security view was added.
+- PostgreSQL integration evidence covers selected-action OR with all existing AND constraints, same-timestamp keyset ties/no duplicates, one SELECT/no INSERT, six non-Admin role denials including Finance, Admin aal1 denial and legacy unknown-action compatibility.
+- Security-view integration includes `auth.historic_event` / `user.mfa_historic`, rejects accidental `user.mfax_reset` / `user.mfa` / `authentication.*` prefix matches, tests mixed and empty intersections, and preserves the existing «Система» unknown-sign-in regression.
+- Real route factory → service test confirms canonical CSV survives both schema passes; repeated action/view parameters, dual transports, unknown codes and raw length/count overflow return 400 before the service/audit SELECT. SSR/client duplicate normalization and scope/cache identity have unit coverage.
+- Security started no duplicate build, browser session or database runner. Full-suite, browser and bundle evidence belongs to QA/performance and final orchestration checks.
