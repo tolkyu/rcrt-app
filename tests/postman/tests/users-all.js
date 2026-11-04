@@ -7,26 +7,25 @@ pm.test('every seeded user on one page', () => {
     'admin@demo',
     'vasyl.tl@demo',
     'tl.crypto@demo',
-    'expired.invite@demo',
-    'inactive.recruiter@demo',
+    'bohdan.polishchuk@demo',
+    'yuliia.petrenko@demo',
     'head.recruiter.gambling@demo',
     'finance@demo',
     'recruiter.crypto@demo',
   );
 });
 pm.test('derived statuses of the fixtures', () => {
-  pm.expect(byEmail['expired.invite@demo'].status).to.equal('INVITE_EXPIRED');
-  pm.expect(byEmail['inactive.recruiter@demo'].status).to.equal('DEACTIVATED');
+  pm.expect(byEmail['bohdan.polishchuk@demo'].status).to.equal(
+    'INVITE_EXPIRED',
+  );
+  pm.expect(byEmail['yuliia.petrenko@demo'].status).to.equal('DEACTIVATED');
   pm.expect(byEmail['vasyl.tl@demo'].status).to.equal('ACTIVE');
 });
 pm.collectionVariables.set('users_total', total);
 pm.collectionVariables.set('admin_id', byEmail['admin@demo'].id);
 pm.collectionVariables.set('vasyl_id', byEmail['vasyl.tl@demo'].id);
-pm.collectionVariables.set('expired_id', byEmail['expired.invite@demo'].id);
-pm.collectionVariables.set(
-  'inactive_id',
-  byEmail['inactive.recruiter@demo'].id,
-);
+pm.collectionVariables.set('expired_id', byEmail['bohdan.polishchuk@demo'].id);
+pm.collectionVariables.set('inactive_id', byEmail['yuliia.petrenko@demo'].id);
 pm.collectionVariables.set(
   'head_recruiter_id',
   byEmail['head.recruiter.gambling@demo'].id,

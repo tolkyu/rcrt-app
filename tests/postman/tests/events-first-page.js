@@ -18,7 +18,7 @@ pm.test('event fields only, no subject email', () => {
         'priorityChange',
       ),
   );
-  pm.expect(pm.response.text()).to.not.include('inactive.recruiter@demo');
+  pm.expect(pm.response.text()).to.not.include('yuliia.petrenko@demo');
 });
 pm.collectionVariables.set('events_first_id', page.items[0].id);
 pm.collectionVariables.set('events_next_cursor', page.nextCursor);

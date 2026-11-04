@@ -1036,7 +1036,7 @@
       "userId": "{{expired_id}}"
     },
     "body": {
-      "email": "expired.invite@demo",
+      "email": "bohdan.polishchuk@demo",
       "expectedVersion": 0
     },
     "status": 400,

@@ -1,8 +1,9 @@
 import { expect, test, type Page } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
+import { DEMO_HISTORY, DEMO_USERS } from '../../server/db/seed/index';
 import { E2E_ORIGIN, sessionFile } from '../support/e2e-session';
-import { SHOT_INVITED_AT, shotSignIn } from '../support/shot-timeline';
+import { shotSignIn } from '../support/shot-timeline';
 import { userActivationPage } from '../support/user-activation-page';
 import { userInvitePage } from '../support/user-invite-page';
 import { userRolesPage } from '../support/user-roles-page';
@@ -195,9 +196,13 @@ const withShotSignIn = (detail: {
 }) => {
   detail.lastLoginAt = shotSignIn(detail.email);
 };
-const SHOT_HISTORY_AT: Record<string, string> = {
-  'user.invited': SHOT_INVITED_AT,
-};
+/** Vasyl's seeded «Історія»: his invite, then the Гемблінг priority set after he accepted. */
+const VASYL_HISTORY = new Set([
+  DEMO_USERS.find(
+    (user) => user.email === 'vasyl.tl@demo',
+  )!.invitedAt.toISOString(),
+  DEMO_HISTORY.prioritiesSetAt.gambling.toISOString(),
+]);
 
 function fixListSignInTimes(page: Page) {
   return page.route('**/api/v1/users?*', async (route) => {
@@ -597,12 +602,12 @@ test('expired invitee card shows the invitation block and no sign-in security [S
     card.getByRole('heading', { name: drawerT.inviteTitle }),
   ).toBeVisible();
   await expect(
-    card.getByText('Надіслано: 10.01.2020, 10:00', {
+    card.getByText('Надіслано: 30.10.2026, 09:11', {
       exact: true,
     }),
   ).toBeVisible();
   await expect(
-    card.getByText('Прострочене з 13.01.2020, 10:00', {
+    card.getByText('Прострочене з 02.11.2026, 09:11', {
       exact: true,
     }),
   ).toBeVisible();
@@ -630,7 +635,7 @@ test('deactivated and self cards: «(деактивовано)» with inactive r
     }),
   ).toBeVisible();
   await expect(
-    card.getByText('inactive.recruiter@demo', { exact: true }),
+    card.getByText('yuliia.petrenko@demo', { exact: true }),
   ).toBeVisible();
   await expect(
     card.getByText(t.status.DEACTIVATED, { exact: true }),
@@ -709,7 +714,7 @@ test('«Історія» lists the user timeline newest first and pages by curso
   await expect(events.nth(0)).toContainText(messages.settings.audit.system);
   const time = events.nth(0).locator('time');
   await expect(time).toHaveAttribute('datetime', timeline.items[0]!.occurredAt);
-  await expect(time).toHaveText('16.11.2026, 10:00');
+  await expect(time).toHaveText('02.11.2026, 09:45');
   for (let shown = 1; shown < types.length; shown++) {
     await expect(more).toBeVisible();
     await more.click();
@@ -2101,21 +2106,6 @@ test('captures the user card screenshots with fixed sign-in times [SHOT-01..03]'
       await route.fulfill({ response, json: body });
     },
   );
-  const seededTimes = new Set<string>();
-  await page.route(
-    (url) => /^\/api\/v1\/users\/[0-9a-f-]{36}\/events$/.test(url.pathname),
-    async (route) => {
-      const response = await route.fetch();
-      const body = (await response.json()) as {
-        items: { type: string; occurredAt: string }[];
-      };
-      for (const item of body.items) {
-        seededTimes.add(item.occurredAt);
-        item.occurredAt = SHOT_HISTORY_AT[item.type] ?? item.occurredAt;
-      }
-      await route.fulfill({ response, json: body });
-    },
-  );
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const viewport = viewportOf(testInfo);
@@ -2150,9 +2140,7 @@ test('captures the user card screenshots with fixed sign-in times [SHOT-01..03]'
           nodes.map((node) => node.getAttribute('datetime')),
         ),
       ),
-    ).toEqual(new Set(Object.values(SHOT_HISTORY_AT)));
-    // Only seed history is remapped; anything else would mean the shared demo data changed.
-    expect(seededTimes).toEqual(new Set([FIXED_CLOCK_ISO]));
+    ).toEqual(VASYL_HISTORY);
     await expect(card.getByRole('button', { name: t.loadMore })).toHaveCount(0);
     await capture(`10-admin-user-drawer-history-${viewport}-${theme}.png`);
   });

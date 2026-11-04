@@ -7,7 +7,6 @@ import {
   sessionFile,
 } from '../support/e2e-session';
 import { problemFulfill } from '../support/problem';
-import { routeShotVerticals } from '../support/shot-timeline';
 import { captureScreen, forEachTheme } from './screens';
 
 const t = messages.settings;
@@ -272,7 +271,6 @@ test('captures the verticals screenshots; saves are refused in the browser, vert
         saves.rename += 1;
         return route.fulfill(stale);
       });
-      await routeShotVerticals(page);
       const items =
         viewport === 'desktop'
           ? verticalsTable(page).getByRole('rowheader')
@@ -289,7 +287,7 @@ test('captures the verticals screenshots; saves are refused in the browser, vert
         await expect(items.first()).toContainText('Гемблінг');
         await expect(items.last()).toContainText('Крипто');
         await expect(
-          page.getByText('Створено 02.11.2026').filter({ visible: true }),
+          page.getByText('Створено 30.10.2026').filter({ visible: true }),
         ).toHaveCount(2);
         // The seed's active users: 7 in Гемблінг, 4 in Крипто (CLAUDE.md §8; Head HR and HR are in both).
         await expect(
@@ -340,7 +338,6 @@ test('captures the verticals screenshots; saves are refused in the browser, vert
         ).toHaveCount(1);
         await captureScreen(page, testInfo, name('empty'));
         await page.unroute('**/api/v1/settings/verticals');
-        await routeShotVerticals(page);
       });
     } finally {
       await context.close();

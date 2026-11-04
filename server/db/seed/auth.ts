@@ -55,9 +55,9 @@ export async function seedDemoAuth(source: Record<string, string | undefined>) {
   }).auth.admin;
   try {
     await assertDisposableLocalData(sql);
-    for (const user of DEMO_USERS.filter(
-      (entry) => entry.roles.length > 0 && !entry.pendingInvite,
-    )) {
+    for (const user of DEMO_USERS) {
+      const { acceptedAt } = user;
+      if (user.roles.length === 0 || acceptedAt === null) continue;
       const created = await admin.createUser({
         email: user.email,
         email_confirm: true,
@@ -74,11 +74,11 @@ export async function seedDemoAuth(source: Record<string, string | undefined>) {
         authUserId = existing?.id ?? null;
       }
       if (!authUserId) throw new Error('Auth user lookup failed');
-      if (user.inactive)
+      if (user.deactivatedAt)
         await admin.updateUserById(authUserId, { ban_duration: '876000h' });
       await sql`
         update app.app_user
-        set auth_user_id = ${authUserId}, activated_at = coalesce(activated_at, now())
+        set auth_user_id = ${authUserId}, activated_at = coalesce(activated_at, ${acceptedAt})
         where email = ${user.email}
       `;
       if (

@@ -587,7 +587,7 @@ Fixture start 2026-11-09, 90 days, end 2027-02-06 [assumes Q-58]. Day N = elapse
 
 ## 9. Screenshot plan (SHOT-01..03)
 
-- **Clock:** 2026-11-16 (Mon) 10:00 Europe/Kyiv = 08:00Z, server FixedClock + Playwright `page.clock`. Seed dates are absolute and aligned to this anchor (e.g. probation day 35 = start 2026-10-13). Story SHOT-03-1's example date 02.11.2026 gets updated to this one.
+- **Clock:** 2026-11-16 (Mon) 10:00 Europe/Kyiv = 08:00Z, server FixedClock + Playwright `page.clock`. Seed dates are absolute and aligned to this anchor (e.g. probation day 35 = start 2026-10-13). Story SHOT-03-1's example date 02.11.2026 gets updated to this one. Phase-1 seed history (Kyiv): Admin + verticals + Bohdan's invite 30.10 (expired 02.11 by the wall clock the API uses, so it must stay ≥ 72 h before any run); team invites 31.10 10:14–10:28, accepted 31.10–01.11; TL priorities and saved filters 01.11; Yuliia deactivated 02.11 — nothing after 03.11.2026 (owner), all before the clock (`DEMO_USERS`, `DEMO_HISTORY` in `server/db/seed/index.ts`).
 - **Matrix per unit:** 1440×900 + 390×844 × light + dark = **4 PNG per unit** (unit = screen × role × state). Full-page. Dialogs = bottom sheet on mobile.
 - **File:** `screenshots/phase-N/<NN>-<role>-<screen>-<state>-<viewport>-<theme>.png`, viewport ∈ `desktop|mobile`, theme ∈ `light|dark`. NN = screen number S-xx; dialogs NN = 20 + D-xx (D-10a shares NN 30 with D-10, distinct `<screen>` slug). Role slugs: `public, admin, head-recruiter, recruiter, head-hr, hr, team-lead, finance`. Gallery `index.html` (groups by screen, Ukrainian captions, opens from disk) + copy to `screenshots/latest/`.
 - **Data:** demo seed (§10) for filled states; **empty** states run on an `empty` seed profile (migrations + verticals + users only). States not in the seed are prepared through `/api/v1` calls in the spec setup. Loading/error states use `page.route('**/api/v1/**')` delay/500 on a client-triggered refetch (filter change) with `page.clock` advanced past 150 ms.
@@ -704,7 +704,7 @@ Checks: SHOT-GAL-01 (gallery ↔ files 1:1, captions in Ukrainian), SHOT-DET-01 
 | `taras.tl@demo` | TEAM_LEAD@Гемблінг P1 | TLT: "other TL" denial; routing target |
 | `tl.crypto@demo` | TEAM_LEAD@Крипто P0 | cross-vertical |
 | `finance@demo` | FINANCE (global), TOTP local-only | FIN |
-| Phase-1 extras | one expired invite, one deactivated user | S-02, S-01 states |
+| Phase-1 extras | `bohdan.polishchuk@demo` (Богдан Поліщук, RECRUITER@Гемблінг, invite expired) · `yuliia.petrenko@demo` (Юлія Петренко, RECRUITER@Гемблінг, deactivated) | S-02, S-01 states |
 
 **Test fixtures (never in the CLAUDE.md §8 demo seed).** Created by `tests/fixtures/` in the integration template DB and in the E2E/Newman global setup (through `/api/v1` as Admin, so they exist only in test databases):
 

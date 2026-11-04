@@ -2,7 +2,6 @@ import { expect, test } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import { sessionFile } from '../support/e2e-session';
-import { routeShotVerticals } from '../support/shot-timeline';
 import { captureScreen, forEachTheme } from './screens';
 
 const t = messages.shell;
@@ -47,7 +46,6 @@ test('keyboard opening moves focus into navigation, Escape restores its trigger,
   await expect(page).toHaveURL(/\/profile$/);
   await expect(dialog).toHaveCount(0);
 
-  await routeShotVerticals(page);
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await forEachTheme(page, async (theme) => {
@@ -59,7 +57,7 @@ test('keyboard opening moves focus into navigation, Escape restores its trigger,
       }),
     ).toBeVisible();
     await expect(
-      page.getByText('Створено 02.11.2026').filter({ visible: true }),
+      page.getByText('Створено 30.10.2026').filter({ visible: true }),
     ).toHaveCount(2);
     await trigger.click();
     await expect(dialog).toBeVisible();

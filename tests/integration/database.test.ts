@@ -1,7 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import { migrateDatabase } from '../../server/db/migrate';
-import { DEMO_USERS, seedDemo } from '../../server/db/seed/index';
+import {
+  DEMO_HISTORY,
+  DEMO_USERS,
+  DEMO_VERTICALS,
+  demoId,
+  seedDemo,
+} from '../../server/db/seed/index';
 import {
   connectTestDatabase,
   phaseOneTables,
@@ -1084,6 +1091,54 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       where u.email in ${runtime(DEMO_USERS.map((user) => user.email))}
         and i.status = 'PENDING' and i.expires_at < now() and i.expires_at = i.sent_at + interval '72 hours' and octet_length(i.token_hash) = 32`;
     expect(expired?.count).toBe(1);
+    const demoIds = DEMO_USERS.map((user) => demoId(`user:${user.email}`));
+    const [history] = await runtime`select
+        (select bool_and(i.sent_at = u.created_at
+            and (i.accepted_at is null or i.accepted_at between i.sent_at and i.expires_at))
+          from app.user_invite i join app.app_user u on u.id = i.user_id
+          where u.id in ${runtime(demoIds)}) as "invitesCausal",
+        (select bool_and(r.created_at = i.sent_at and (v.id is null or v.created_at < i.sent_at))
+          from app.user_role r join app.user_invite i on i.user_id = r.user_id
+          left join app.vertical v on v.id = r.vertical_id
+          where r.user_id in ${runtime(demoIds)}) as "rolesWithInvite",
+        (select bool_and(p.updated_at > i.accepted_at) from app.team_lead_priority p
+          join app.user_invite i on i.user_id = p.user_id where p.user_id in ${runtime(demoIds)}) as "prioritiesAfterAcceptance",
+        (select bool_and(u.deactivated_at > i.accepted_at) from app.app_user u
+          join app.user_invite i on i.user_id = u.id where u.id in ${runtime(demoIds)} and u.deactivated_at is not null) as "deactivatedAfterAcceptance",
+        (select max(e.occurred_at) from app.entity_event e
+          where e.subject_id in ${runtime([...demoIds, ...Object.values(DEMO_VERTICALS)])}) as "lastEvent"`;
+    expect(history).toMatchObject({
+      invitesCausal: true,
+      rolesWithInvite: true,
+      prioritiesAfterAcceptance: true,
+      deactivatedAfterAcceptance: true,
+    });
+    // Every seed event: verticals, invites, deactivations, TL priorities, saved filters (all SYSTEM, demo subjects).
+    const seededEvents =
+      Object.keys(DEMO_VERTICALS).length +
+      DEMO_USERS.length +
+      DEMO_USERS.filter((user) => user.deactivatedAt).length +
+      DEMO_USERS.filter((user) =>
+        user.roles.some((role) => role.role === 'TEAM_LEAD'),
+      ).length +
+      Object.keys(DEMO_HISTORY.savedFiltersAt).length;
+    const [seeded] = await admin`with subject as (
+        select unnest(${admin.array([...demoIds, ...Object.values(DEMO_VERTICALS)])}::text[]) as id
+        union select f.id::text from app.saved_filter f where f.user_id = any(${admin.array(demoIds)}::uuid[]))
+      select count(*)::int as events, max(e.occurred_at) as "lastEvent",
+        (select max(a.occurred_at) from app.audit_log a where a.actor_kind = 'SYSTEM'
+          and a.entity_id in (select id from subject)) as "lastAudit"
+      from app.entity_event e where e.actor_kind = 'SYSTEM' and e.subject_id in (select id from subject)`;
+    expect(seeded?.events).toBe(seededEvents);
+    expect(history?.lastEvent.getTime()).toBeLessThanOrEqual(
+      seeded?.lastEvent.getTime(),
+    );
+    // Owner: demo history is never dated after the day it was approved, and always before the fixed clock.
+    const cutOff = Date.parse('2026-11-03T23:59:59+02:00');
+    for (const last of [seeded?.lastEvent, seeded?.lastAudit]) {
+      expect(last.getTime()).toBeLessThanOrEqual(cutOff);
+      expect(last.getTime()).toBeLessThan(Date.parse(FIXED_CLOCK_ISO));
+    }
     const [auth] = await admin`select to_regclass('auth.users') as users,
         (select count(*)::int from auth.mfa_factors) as factors`;
     expect(auth).toEqual({ users: null, factors: 0 });

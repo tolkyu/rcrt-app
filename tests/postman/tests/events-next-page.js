@@ -18,5 +18,5 @@ pm.test('older event, not the first one again', () => {
         'priorityChange',
       ),
   );
-  pm.expect(pm.response.text()).to.not.include('inactive.recruiter@demo');
+  pm.expect(pm.response.text()).to.not.include('yuliia.petrenko@demo');
 });
