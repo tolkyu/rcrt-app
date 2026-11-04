@@ -3,12 +3,54 @@ import {
   parseDrawerUser,
   parseUserSearch,
   userSearchParams,
+  userSearchSource,
+  userFilterValues,
 } from '@/lib/user-filters';
 
 const ID = '37211bf7-c7ef-4099-aa9d-d4fd3da8eb9d';
 const VERTICAL = '11111111-1111-4111-8111-111111111111';
 
 describe('User drawer URL state [STORY-ROLE-05-4, wireframe settings-admin §0]', () => {
+  it('canonicalizes repeated filters without losing values or accepting unknown choices', () => {
+    const source = userSearchSource(
+      new URLSearchParams(
+        `q=Мороз&status=DEACTIVATED&status=ACTIVE&status=ACTIVE&status=bogus&role=TEAM_LEAD&role=RECRUITER&vertical=${VERTICAL.toUpperCase()}&vertical=GLOBAL&user=${ID}`,
+      ),
+    );
+    const search = parseUserSearch(source);
+    expect(search).toEqual({
+      q: 'Мороз',
+      status: ['ACTIVE', 'DEACTIVATED'],
+      role: ['RECRUITER', 'TEAM_LEAD'],
+      vertical: [VERTICAL, 'GLOBAL'],
+    });
+    expect(userFilterValues(search)).toEqual(search);
+    const params = userSearchParams(search, ID);
+    expect(params.getAll('status')).toEqual(['ACTIVE', 'DEACTIVATED']);
+    expect(parseUserSearch(userSearchSource(params))).toEqual(search);
+    expect(parseDrawerUser(userSearchSource(params))).toBe(ID);
+  });
+
+  it('bounds malformed and overlong groups to the existing API contract', () => {
+    const vertical = Array.from(
+      { length: 12 },
+      (_, index) =>
+        `11111111-1111-4111-8111-${String(index).padStart(12, '0')}`,
+    );
+    expect(parseUserSearch({ vertical }).vertical).toHaveLength(10);
+    expect(
+      parseUserSearch({
+        status: ['unknown'],
+        role: [],
+        vertical: ['not-a-uuid'],
+      }),
+    ).toEqual({
+      q: undefined,
+      status: undefined,
+      role: undefined,
+      vertical: undefined,
+    });
+  });
   it('reads a valid user id and lower-cases an upper-case one', () => {
     expect(parseDrawerUser({ user: ID })).toBe(ID);
     expect(parseDrawerUser({ user: ID.toUpperCase() })).toBe(ID);

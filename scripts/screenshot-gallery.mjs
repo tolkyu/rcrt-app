@@ -211,12 +211,12 @@ const groups = [
       {
         file: '07-admin-navigation-open',
         heading: 'Навігація — відкрите меню',
-        variants: [
-          'tablet-light',
-          'tablet-dark',
-          'mobile-light',
-          'mobile-dark',
-        ],
+        variants: ['tablet-light', 'tablet-dark'],
+      },
+      {
+        file: '07-admin-navigation-direct',
+        heading: 'Навігація — прямі посилання на телефоні',
+        variants: ['mobile-light', 'mobile-dark'],
       },
     ],
   },
@@ -226,6 +226,11 @@ const groups = [
     roles: ['Адміністратор'],
     states: [
       { file: '08-admin-users-list', heading: 'Користувачі та ролі — список' },
+      {
+        file: '08-admin-users-filters',
+        heading: 'Користувачі та ролі — мобільні фільтри',
+        variants: ['mobile-light', 'mobile-dark'],
+      },
       { file: '09-admin-invite-dialog', heading: 'Запросити користувача' },
       {
         file: '10-admin-user-drawer-profile',

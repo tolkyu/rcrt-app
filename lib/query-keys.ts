@@ -7,8 +7,9 @@ export const queryKeys = {
   settingsVerticals: () => ['settings', 'verticals'] as const,
   settingsAudit: (filters: Readonly<Record<string, string | undefined>>) =>
     ['settings', 'audit', filters] as const,
-  settingsUsers: (filters: Readonly<Record<string, string | undefined>>) =>
-    ['settings', 'users', filters] as const,
+  settingsUsers: (
+    filters: Readonly<Record<string, string | string[] | undefined>>,
+  ) => ['settings', 'users', filters] as const,
   settingsAuditActors: (q: string) => ['settings', 'audit-actors', q] as const,
   settingsAuditRecord: (id: string) =>
     ['settings', 'audit-record', id] as const,

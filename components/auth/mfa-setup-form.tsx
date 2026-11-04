@@ -35,6 +35,7 @@ export function MfaSetupForm({
   canSkip: boolean;
 }) {
   const t = useTranslations('auth');
+  const tCommon = useTranslations('common');
   const [enrollment, setEnrollment] = useState<MfaEnrollment | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -96,10 +97,16 @@ export function MfaSetupForm({
           </div>
         </TotpCodeForm>
       )}
-      {canSkip ? (
+      {mode !== 'required' ? (
+        <Button asChild variant="secondary" size="lg" className="w-full">
+          <Link href="/profile">
+            {mode === 'optional' ? t('mfa.later') : tCommon('cancel')}
+          </Link>
+        </Button>
+      ) : canSkip ? (
         <Link
           href="/"
-          className="text-link text-sm font-medium underline-offset-4 hover:underline"
+          className="text-link inline-flex min-h-11 items-center text-sm font-medium underline-offset-4 hover:underline"
         >
           {t('mfa.skip')}
         </Link>

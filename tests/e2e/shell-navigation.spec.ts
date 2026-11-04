@@ -14,13 +14,53 @@ test('keyboard opening moves focus into navigation, Escape restores its trigger,
 }, testInfo) => {
   if (!isMobile) await page.setViewportSize({ width: 900, height: 900 });
   await page.goto('/settings/verticals');
+  if (isMobile) {
+    const nav = page.getByRole('navigation', { name: t.mobileNav });
+    await expect(nav.getByRole('link')).toHaveText([
+      messages.nav.profile,
+      messages.nav.settings,
+    ]);
+    await expect(nav.getByRole('button', { name: t.more })).toHaveCount(0);
+    const profile = nav.getByRole('link', {
+      name: messages.nav.profile,
+      exact: true,
+    });
+    await profile.focus();
+    await profile.press('Enter');
+    await expect(page).toHaveURL(/\/profile$/);
+    await expect(profile).toHaveAttribute('aria-current', 'page');
+    const settings = nav.getByRole('link', {
+      name: messages.nav.settings,
+      exact: true,
+    });
+    expect((await settings.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await settings.click();
+    await expect(page).toHaveURL(/\/settings\/users$/);
+    await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await forEachTheme(page, async (theme) => {
+      await page.goto('/settings/verticals');
+      await expect(
+        page.getByRole('heading', {
+          level: 1,
+          name: messages.settings.verticals.title,
+        }),
+      ).toBeVisible();
+      await captureScreen(
+        page,
+        testInfo,
+        `07-admin-navigation-direct-mobile-${theme}.png`,
+      );
+    });
+    return;
+  }
   const trigger = page.getByRole('button', {
-    name: isMobile ? t.more : t.openMenu,
+    name: t.openMenu,
     exact: true,
     includeHidden: true,
   });
   const dialog = page.getByRole('dialog', {
-    name: isMobile ? t.moreTitle : t.menuTitle,
+    name: t.menuTitle,
     exact: true,
   });
   await expect(trigger).toHaveAttribute('aria-haspopup', 'dialog');
@@ -62,7 +102,7 @@ test('keyboard opening moves focus into navigation, Escape restores its trigger,
     await trigger.click();
     await expect(dialog).toBeVisible();
     await expect(dialog.locator(':focus')).toHaveCount(1);
-    const file = `07-admin-navigation-open-${isMobile ? 'mobile' : 'tablet'}-${theme}.png`;
+    const file = `07-admin-navigation-open-tablet-${theme}.png`;
     await captureScreen(page, testInfo, file);
     await page.keyboard.press('Escape');
     await expect(trigger).toBeFocused();

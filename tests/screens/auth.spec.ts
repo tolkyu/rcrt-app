@@ -15,7 +15,7 @@ const screens = [
   {
     id: '03-public-confirm-invalid',
     path: '/auth/confirm',
-    heading: 'Підтвердіть вхід',
+    heading: messages.auth.confirm.invalidTitle,
   },
   {
     id: '04-public-invite-invalid',

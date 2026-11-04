@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import messages from '../../messages/uk.json' with { type: 'json' };
 
 for (const email of ['active@fixture.test', 'unknown@fixture.test']) {
   test(`magic-link request shows the same neutral completion for ${email}`, async ({
@@ -119,7 +120,13 @@ test('confirmation waits for a click and removes the token fragment before sendi
   await expect(confirm).toBeDisabled();
   finish();
   await expect(
-    page.getByText('Посилання недійсне або прострочене. Запросіть нове.', {
+    page.getByText(messages.auth.confirm.invalid, {
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole('heading', {
+      name: messages.auth.confirm.invalidTitle,
       exact: true,
     }),
   ).toBeVisible();
@@ -138,16 +145,34 @@ test('confirmation without a token does not call the auth API', async ({
   });
   await page.goto('/auth/confirm');
   await expect(
-    page.getByText(
-      'Посилання неповне. Відкрийте його з листа ще раз або запросіть нове.',
-      { exact: true },
-    ),
+    page.getByText(messages.auth.confirm.missing, { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole('link', { name: 'Повернутися до входу', exact: true }),
+    page.getByRole('link', {
+      name: messages.auth.confirm.newLink,
+      exact: true,
+    }),
   ).toBeVisible();
   expect(calls).toBe(0);
   expect((await request.get('/api/v1/auth/confirm')).status()).toBe(405);
+  const exit = page.getByRole('link', {
+    name: messages.auth.confirm.newLink,
+    exact: true,
+  });
+  expect((await exit.boundingBox())!.height).toBeGreaterThanOrEqual(48);
+  await exit.click();
+  await expect(page).toHaveURL(/\/login$/);
+  await page.goto('/invite');
+  await expect(page.getByRole('main').getByRole('alert')).toHaveText(
+    messages.auth.invite.missing,
+  );
+  const inviteExit = page.getByRole('link', {
+    name: messages.auth.invite.toLogin,
+  });
+  expect((await inviteExit.boundingBox())!.height).toBeGreaterThanOrEqual(48);
+  await inviteExit.click();
+  await expect(page).toHaveURL(/\/login$/);
+  expect(calls).toBe(0);
 });
 
 test('delivery failure shows the owner-approved safe error instead of a sent confirmation', async ({

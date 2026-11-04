@@ -2,7 +2,13 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
-import { useState, type ReactNode } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+} from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
@@ -26,33 +32,41 @@ export function TotpCodeForm({
 }) {
   const t = useTranslations('auth');
   const [failure, setFailure] = useState<string | null>(null);
+  const request = useRef<AbortController | null>(null);
+  useEffect(() => () => request.current?.abort(), []);
   const form = useForm<{ code: string }>({
     resolver: zodResolver(codeSchema),
     defaultValues: { code: '' },
   });
   const invalid = Boolean(form.formState.errors.code);
 
-  const submit = form.handleSubmit(async ({ code }) => {
-    setFailure(null);
-    try {
-      const { redirectTo } = await apiRequest('/auth/mfa/verify', {
-        method: 'POST',
-        body: { factorId, code, ...(next ? { next } : {}) },
-        schema: redirectResponseSchema,
-      });
-      window.location.replace(redirectTo);
-    } catch (error) {
-      form.resetField('code');
-      form.setFocus('code');
-      setFailure(
-        error instanceof ApiError && error.status === 429
-          ? t('mfa.locked')
-          : error instanceof ApiError && error.code === 'MFA_CODE_INVALID'
-            ? t('mfa.invalidCode')
-            : t('genericError'),
-      );
-    }
-  });
+  const submit = (event: FormEvent<HTMLFormElement>) =>
+    form.handleSubmit(async ({ code }) => {
+      setFailure(null);
+      const controller = new AbortController();
+      request.current = controller;
+      try {
+        const { redirectTo } = await apiRequest('/auth/mfa/verify', {
+          method: 'POST',
+          body: { factorId, code, ...(next ? { next } : {}) },
+          schema: redirectResponseSchema,
+          signal: controller.signal,
+        });
+        if (controller.signal.aborted) return;
+        window.location.replace(redirectTo);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        form.resetField('code');
+        form.setFocus('code');
+        setFailure(
+          error instanceof ApiError && error.status === 429
+            ? t('mfa.locked')
+            : error instanceof ApiError && error.code === 'MFA_CODE_INVALID'
+              ? t('mfa.invalidCode')
+              : t('genericError'),
+        );
+      }
+    })(event);
 
   return (
     <form noValidate onSubmit={submit} className="flex flex-col gap-4">

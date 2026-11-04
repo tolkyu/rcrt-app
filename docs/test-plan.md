@@ -674,6 +674,8 @@ Fixture start 2026-11-09, 90 days, end 2027-02-06 [assumes Q-58]. Day N = elapse
 
 Checks: SHOT-GAL-01 (gallery ↔ files 1:1, captions in Ukrainian), SHOT-DET-01 (two runs identical), DOM untranslated-text scan (§1), screen a role cannot open is captured only as S-18.
 
+**Gallery step C (UI-04..06, ROLE-05, D63):** `settings-users.spec.ts` covers mobile multi-select drafts, atomic Apply, discard/reset, repeated-value links through reload/Back/Forward and user drawer navigation, desktop multi-value preservation, and native touch targets. `shell-navigation.spec.ts` captures direct mobile navigation and tablet menu; `auth.spec.ts` verifies invalid-link recovery; `mfa.spec.ts` exits optional/backup setup to the profile. `mfa-setup-exit.test.ts` checks loading/error/ready exits for optional/backup/required/mixed modes and aborts a pending verification on unmount. Mobile filter-sheet screenshots use native 390×844 so the scrollable sheet and footer stay visible; all other captures retain the existing full-page convention.
+
 ## 10. Newman (API)
 
 | Item | Design |

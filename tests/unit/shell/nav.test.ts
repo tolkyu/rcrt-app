@@ -228,14 +228,14 @@ describe('mobileNav: up to 4 bar slots + «Ще» (screens.md §1, A-46)', () =>
     expect(mobileNav([NAV_ITEMS[0]!])).toBeNull();
   });
 
-  it('gives the aal2 Admin Профіль and Налаштування under «Ще»', () => {
-    expect(mobileNav(NAV_ITEMS)).toEqual({ bar: [], more: [...NAV_ITEMS] });
+  it('gives the aal2 Admin direct Профіль and Налаштування slots', () => {
+    expect(mobileNav(NAV_ITEMS)).toEqual({ bar: [...NAV_ITEMS], more: [] });
   });
 
-  it('puts bar sections in slots and more sections in the sheet', () => {
+  it('promotes all four destinations without a More sheet', () => {
     expect(mobileNav([home, statistics, vacancies, settings])).toEqual({
-      bar: [home, vacancies],
-      more: [statistics, settings],
+      bar: [home, statistics, vacancies, settings],
+      more: [],
     });
   });
 
@@ -272,10 +272,10 @@ describe('mobileNav: up to 4 bar slots + «Ще» (screens.md §1, A-46)', () =>
     ]);
   });
 
-  it('works with only more sections: no bar slots, everything under «Ще»', () => {
+  it('promotes two more-only sections into direct slots', () => {
     expect(mobileNav([statistics, settings])).toEqual({
-      bar: [],
-      more: [statistics, settings],
+      bar: [statistics, settings],
+      more: [],
     });
   });
 });

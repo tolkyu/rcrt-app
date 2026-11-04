@@ -519,6 +519,47 @@ As **any user**, I want clear states everywhere (UI-06).
 
 ---
 
+### STORY-UI-05-2: Mobile navigation and touch targets (gallery step C)
+As a **user on a phone**, I want visible destinations and comfortably sized controls, so that I can navigate without precise taps (UI-04..06, UX-G-07/12).
+
+**Acceptance criteria**
+- Given 2–4 visible destinations, When using the mobile bottom bar, Then each destination appears directly and «Ще» is absent; with 5+ destinations the existing overflow navigation remains available. A profile-only role keeps the existing profile-only shell.
+- Given a control for «Усі дії в журналі», priority «Змінити», «Повернутися до входу» or «Скинути фільтри», Then its mobile target is at least 44×44 px. Reactivation role rows and mobile RoleMatrix labels activate their checkbox through the whole row, at least 44 px high; targets do not overlap.
+- Given keyboard navigation, Then controls retain visible focus and their accessible names; all changes work at native 390×844 in light/dark without horizontal overflow.
+- (negative) Given a role without a destination's permission, Then the destination remains absent; larger hit areas never enable disabled/self/last-Admin role controls.
+
+### STORY-ROLE-05-8: Mobile users filter sheet (gallery step C)
+As an **Admin**, I want a compact search row and a filter sheet on my phone, so that the users list is visible immediately (ROLE-05, VIS-01..03, UX-G-08).
+
+**Acceptance criteria**
+- Given the mobile users list, Then search and «Фільтри» replace the three inline selects. The trigger shows a count of selected status/role/vertical values, excluding search; no count is shown at zero.
+- Given the sheet opens, Then checkbox groups «Статус», «Роль», «Вертикаль» reflect the committed URL and allow multiple values. Values within one group are ORed; different groups and search are ANDed, using the existing API contract.
+- Given draft choices, When «Показати результати» is pressed, Then all three groups apply together, the sheet closes, pagination restarts and focus returns to «Фільтри». Preserve the latest live search text; use the existing filter replace-history policy.
+- Given unapplied changes, When closing via ×, Escape or outside tap, Then discard them without changing URL/results; reopening starts from the current URL. A URL change through Back/Forward or another navigation discards stale draft choices and restores URL selection, trigger count and results together.
+- Given «Скинути фільтри» in the sheet or existing list, When pressed, Then retain the existing global reset: clear search and all three groups, cancel pending search debounce, close the sheet and show the unfiltered first page.
+- Given an existing one-value URL or a repeated-value multi-select URL, When opening/reloading/sharing it, Then restore the same valid choices; canonicalisation deduplicates values and drops malformed/unknown values. The desktop controls must preserve a loaded multi-selection until that group is explicitly changed.
+- (negative) Non-Admin, including Head Recruiter and Finance, still receives no users list or filter choices; underlying APIs remain 404. Draft changes issue no mutation or additional list request before apply.
+
+### STORY-UI-06-2: Recovery from incomplete sign-in and invite links (gallery step C)
+As a **person opening a sign-in or invite link**, I want a clear explanation and next action, so that I can recover without a dead end (UI-06, UX-G-09/12).
+
+**Acceptance criteria**
+- Given an incomplete or consumed sign-in link, Then title «Посилання недійсне» and the safe explanation direct me to a full-width secondary «Отримати нове посилання» → `/login`, 48 px high on mobile.
+- Given an incomplete invite link, Then explain «Відкрийте його з листа ще раз або попросіть адміністратора надіслати нове запрошення.» and offer «Перейти до входу» → `/login`.
+- (negative) These actions do not consume a token, issue a session or reveal whether an address/account exists. Existing valid-link confirmation and invite-acceptance flows are unchanged.
+
+### STORY-SEC-AUTH-5: Leave optional or backup TOTP setup (gallery step C)
+As a **user setting up optional or backup 2FA**, I want to return to my profile, so that I am not trapped in an unfinished setup (SEC, D22/D63, UX gallery step-B P2).
+
+**Acceptance criteria**
+- Given optional setup, Then a secondary «Пізніше» → `/profile` is available during loading, enrolment error and ready state; backup setup offers «Скасувати» → `/profile` in the same states. Mobile target is at least 44×44 px.
+- Given either exit, When clicked, Then leave setup without verifying a factor, increasing assurance, changing grants or reporting setup success. An unverified factor never becomes an enrolled device; existing enrolment cleanup rules remain in force.
+- (negative) Required first-factor setup for a pure Admin/Finance user gains no skip action. Required setup for a mixed-role user retains only the existing D63 option to use nonprivileged grants; it never bypasses MFA for Admin/Finance permissions. Backup setup still requires the existing aal2 guard.
+
+**Step-C data and effects:** current permitted navigation, URL filters and existing MFA status only; no new DB/API fields, notifications, timeline events or statistics. Existing endpoint validation and authz remain authoritative. Search/deep-link/draft concurrency and expired/deactivated sessions retain the existing server rules. QA: filter apply/reset/cancel/Back/reload + legacy/multi URL, native touch geometry, mandatory/mixed-role MFA denial, optional/backup exit in all states, updated desktop/mobile × light/dark screenshots.
+
+---
+
 ## 9. Seed data
 
 ### STORY-SEED-1: Phase 1 seed
@@ -574,12 +615,13 @@ As the **UX designer**, I want stable diffs between runs (SHOT-03).
 | VIS-03 | VIS-03-1 | — |
 | AUD | AUD-1, AUD-2, AUD-3, AUD-4 (newer-window navigation) | — |
 | HIST-01, HIST-03 | HIST-03-1 | — |
-| SEC (auth, sessions, 2FA, rate limit, CSP, PII logs) | SEC-AUTH-1..4, FND-3, FND-5 | — |
+| SEC (auth, sessions, 2FA, rate limit, CSP, PII logs) | SEC-AUTH-1..5, FND-3, FND-5 | Step C: `tests/unit/auth/mfa-setup-exit.test.ts`, `tests/e2e/mfa.spec.ts` |
 | API | FND-4 | — |
 | PERF-03, PERF-06 | FND-2, FND-3 | — |
-| UI-04, STAT-08 (nav) | UI-04-1 | — |
-| UI-05 | UI-05-1, ROLE-05-6 | — |
-| UI-06 | UI-06-1 | — |
+| UI-04, STAT-08 (nav) | UI-04-1, UI-05-2 | `tests/unit/shell/nav.test.ts`, `bottom-nav.test.ts`; `tests/e2e/shell-navigation.spec.ts` |
+| UI-05 | UI-05-1..2, ROLE-05-6 | Step C: native touch geometry in `tests/e2e/settings-users.spec.ts`, `shell-navigation.spec.ts` |
+| UI-06 | UI-06-1..2 | Step C: `tests/e2e/auth.spec.ts`, `tests/screens/auth.spec.ts` |
+| ROLE-05, VIS-01..03 (mobile filters) | ROLE-05-8 | `tests/unit/user-filters.test.ts`; multi-value URL/draft scenario in `tests/e2e/settings-users.spec.ts` |
 | SHOT-01..03 | SHOT-01-1, SHOT-02-1, SHOT-03-1 | — |
 | CLAUDE.md §8 seed / dev login | SEED-1, DEV-1 | — |
 

@@ -610,7 +610,12 @@ export function AuditView({
           </span>
         ))}
         {filtered && (
-          <Button variant="ghost" size="sm" onClick={reset}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="min-h-11 md:min-h-0"
+            onClick={reset}
+          >
             {t('filters.reset')}
           </Button>
         )}

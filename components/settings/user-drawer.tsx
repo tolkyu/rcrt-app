@@ -592,7 +592,7 @@ export function UserDrawer({
             {canReadAudit && (
               <Link
                 href={`/settings/audit?entityType=user&entityId=${userId}&period=365d`}
-                className="text-link self-start text-sm hover:underline"
+                className="text-link inline-flex min-h-11 items-center self-start text-sm hover:underline md:min-h-0"
               >
                 {t('auditLink')}
               </Link>

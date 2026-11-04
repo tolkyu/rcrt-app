@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { copyFileSync } from 'node:fs';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import { DEMO_HISTORY, DEMO_USERS } from '../../server/db/seed/index';
@@ -7,7 +8,12 @@ import { shotSignIn } from '../support/shot-timeline';
 import { userActivationPage } from '../support/user-activation-page';
 import { userInvitePage } from '../support/user-invite-page';
 import { userRolesPage } from '../support/user-roles-page';
-import { captureScreen, forEachTheme, viewportOf } from './screens';
+import {
+  captureScreen,
+  forEachTheme,
+  settleRendering,
+  viewportOf,
+} from './screens';
 
 const t = messages.settings.users;
 const roles = messages.common.roles;
@@ -24,6 +30,41 @@ const cards = (page: Page) =>
   page.getByRole('list', { name: t.caption }).locator('> li');
 const listed = (page: Page, isMobile: boolean) =>
   isMobile ? cards(page) : rows(page);
+const filterTrigger = (page: Page) =>
+  page.getByRole('button', {
+    name: new RegExp(`^${t.filters}(?: \\(\\d+\\))?$`),
+  });
+const filterSheet = (page: Page) =>
+  page.getByRole('dialog', { name: t.filtersLabel });
+
+async function touchTarget(control: Locator) {
+  const box = (await control.boundingBox())!;
+  expect(box.width).toBeGreaterThanOrEqual(44);
+  expect(box.height).toBeGreaterThanOrEqual(44);
+}
+
+async function selectFilter(
+  page: Page,
+  mobile: boolean,
+  label: string,
+  value: string,
+  option?: string,
+) {
+  if (!mobile)
+    return page.getByLabel(label, { exact: true }).selectOption(value);
+  await filterTrigger(page).click();
+  const sheet = filterSheet(page);
+  const group = sheet.getByRole('group', { name: label, exact: true });
+  await expect(group).toBeVisible();
+  for (const checkbox of await group
+    .getByRole('checkbox', { checked: true })
+    .all())
+    await checkbox.uncheck();
+  if (option)
+    await group.getByRole('checkbox', { name: option, exact: true }).check();
+  await sheet.getByRole('button', { name: t.applyFilters }).click();
+  await expect(sheet).toHaveCount(0);
+}
 
 function deferred() {
   let resolve!: () => void;
@@ -109,27 +150,37 @@ test('search and filters live in the URL and narrow the list; reset brings every
   await expect(items).toContainText('Тарас Лисенко');
   await expect(page.getByText(/^Показано 1 з 1$/)).toBeVisible();
 
+  if (isMobile)
+    await touchTarget(page.getByRole('button', { name: t.resetFilters }));
   await page.getByRole('button', { name: t.resetFilters }).click();
   await expect(page.getByLabel(t.searchLabel, { exact: true })).toHaveValue('');
   await expect(page).toHaveURL(/\/settings\/users$/);
   await expect(items).toHaveCount(13);
 
-  await page
-    .getByLabel(t.filterStatus, { exact: true })
-    .selectOption('DEACTIVATED');
+  await selectFilter(
+    page,
+    isMobile,
+    t.filterStatus,
+    'DEACTIVATED',
+    t.status.DEACTIVATED,
+  );
   await expect(page).toHaveURL(/status=DEACTIVATED/);
   await expect(items).toHaveCount(1);
   await expect(items).toContainText('Юлія Петренко');
 
-  await page.getByLabel(t.filterStatus, { exact: true }).selectOption('');
-  await page
-    .getByLabel(t.filterVertical, { exact: true })
-    .selectOption('GLOBAL');
+  await selectFilter(page, isMobile, t.filterStatus, '');
+  await selectFilter(
+    page,
+    isMobile,
+    t.filterVertical,
+    'GLOBAL',
+    t.globalVertical,
+  );
   await expect(items).toHaveCount(2);
   await expect(items.nth(0)).toContainText('Іван Коваленко');
   await expect(items.nth(1)).toContainText('Ірина Романенко');
 
-  await page.getByLabel(t.filterVertical, { exact: true }).selectOption('');
+  await selectFilter(page, isMobile, t.filterVertical, '');
   await page.getByLabel(t.searchLabel, { exact: true }).fill('немає-такого');
   await expect(page.getByText(t.empty.title, { exact: true })).toBeVisible();
 
@@ -138,6 +189,112 @@ test('search and filters live in the URL and narrow the list; reset brings every
     'немає-такого',
   );
   await expect(page.getByText(t.empty.title, { exact: true })).toBeVisible();
+});
+
+test('multi-value links survive reload, drawer navigation and mobile draft apply/cancel/reset [STORY-ROLE-05-8]', async ({
+  page,
+  isMobile,
+}) => {
+  const initial =
+    '/settings/users?status=ACTIVE&status=DEACTIVATED&role=RECRUITER&role=TEAM_LEAD';
+  await page.goto(initial);
+  const items = listed(page, isMobile);
+  await expect(items).toHaveCount(7);
+  await page.reload();
+  await expect(items).toHaveCount(7);
+  await items.filter({ hasText: 'Василь Мороз' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  expect(new URL(page.url()).searchParams.getAll('status')).toEqual([
+    'ACTIVE',
+    'DEACTIVATED',
+  ]);
+  expect(new URL(page.url()).searchParams.getAll('role')).toEqual([
+    'RECRUITER',
+    'TEAM_LEAD',
+  ]);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  if (!isMobile) {
+    await expect(page.getByLabel(t.filterStatus, { exact: true })).toHaveValue(
+      '__multiple',
+    );
+    await expect(page.getByLabel(t.filterRole, { exact: true })).toHaveValue(
+      '__multiple',
+    );
+    await page
+      .getByLabel(t.filterVertical, { exact: true })
+      .selectOption('GLOBAL');
+    expect(new URL(page.url()).searchParams.getAll('status')).toEqual([
+      'ACTIVE',
+      'DEACTIVATED',
+    ]);
+    expect(new URL(page.url()).searchParams.getAll('role')).toEqual([
+      'RECRUITER',
+      'TEAM_LEAD',
+    ]);
+    return;
+  }
+  const trigger = filterTrigger(page);
+  await expect(trigger).toHaveText(t.filtersCount.replace('{count}', '4'));
+  await touchTarget(trigger);
+  const requests: string[] = [];
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/v1/users')
+      requests.push(request.url());
+  });
+  const before = page.url();
+  const beforeRequests = requests.length;
+  await trigger.click();
+  const sheet = filterSheet(page);
+  const hr = sheet.getByRole('checkbox', { name: roles.HR, exact: true });
+  await hr.check();
+  await touchTarget(hr.locator('..'));
+  await page.keyboard.press('Escape');
+  await expect(sheet).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  expect(page.url()).toBe(before);
+  expect(requests).toHaveLength(beforeRequests);
+  await trigger.click();
+  await expect(hr).not.toBeChecked();
+  await hr.check();
+  const response = page.waitForResponse((reply) => {
+    const url = new URL(reply.url());
+    return (
+      url.pathname === '/api/v1/users' &&
+      url.searchParams.getAll('role').includes('HR')
+    );
+  });
+  await sheet.getByRole('button', { name: t.applyFilters }).click();
+  const applied = new URL((await response).url()).searchParams;
+  expect(applied.getAll('status')).toEqual(['ACTIVE', 'DEACTIVATED']);
+  expect(applied.getAll('role')).toEqual(['HR', 'RECRUITER', 'TEAM_LEAD']);
+  await expect(sheet).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await expect(trigger).toHaveText(t.filtersCount.replace('{count}', '5'));
+  await expect(items.filter({ hasText: 'Оксана Олійник' })).toHaveCount(1);
+  await trigger.click();
+  await sheet
+    .getByRole('checkbox', { name: t.status.INVITE_EXPIRED, exact: true })
+    .check();
+  await page.evaluate(() =>
+    window.history.pushState(null, '', '/settings/users?role=TEAM_LEAD'),
+  );
+  await expect(sheet).toHaveCount(0);
+  await expect(trigger).toHaveText(t.filtersCount.replace('{count}', '1'));
+  await expect(items).toHaveCount(3);
+  await page.goBack();
+  await expect(trigger).toHaveText(t.filtersCount.replace('{count}', '5'));
+  await page.goForward();
+  await expect(trigger).toHaveText(t.filtersCount.replace('{count}', '1'));
+  await page.getByLabel(t.searchLabel, { exact: true }).fill('Василь');
+  await expect(items).toHaveCount(1);
+  await trigger.click();
+  await sheet.getByRole('button', { name: t.resetFilters }).click();
+  await expect(sheet).toHaveCount(0);
+  await expect(page).toHaveURL(/\/settings\/users$/);
+  await expect(page.getByLabel(t.searchLabel, { exact: true })).toHaveValue('');
+  await expect(trigger).toHaveText(t.filters);
+  await expect(items).toHaveCount(13);
 });
 
 test('Head Recruiter and Finance get not-found for the users screen, user card and API [VIS-01..03, STORY-ROLE-05-4]', async ({
@@ -227,11 +384,34 @@ test('captures the users list screenshots with fixed sign-in times [SHOT-01..03]
     const refetched = page.waitForResponse((response) =>
       response.url().includes('/api/v1/users?'),
     );
-    await page.getByLabel(t.filterStatus, { exact: true }).selectOption('');
+    await selectFilter(page, isMobile, t.filterStatus, '');
     await refetched;
     await expect(listed(page, isMobile)).toHaveCount(13);
     const file = `08-admin-users-list-${viewportOf(testInfo)}-${theme}.png`;
     await captureScreen(page, testInfo, file);
+    if (isMobile) {
+      await filterTrigger(page).click();
+      const sheet = filterSheet(page);
+      await sheet
+        .getByRole('checkbox', { name: t.status.ACTIVE, exact: true })
+        .check();
+      await sheet
+        .getByRole('checkbox', { name: roles.TEAM_LEAD, exact: true })
+        .check();
+      await page.setViewportSize({ width: 390, height: 844 });
+      await page.mouse.move(0, 0);
+      await sheet
+        .getByRole('checkbox', { name: roles.TEAM_LEAD, exact: true })
+        .blur();
+      await sheet
+        .getByRole('group', { name: t.filterStatus, exact: true })
+        .evaluate((group) => group.parentElement?.scrollTo(0, 0));
+      await settleRendering(page);
+      const path = `screenshots/phase-1/08-admin-users-filters-mobile-${theme}.png`;
+      await page.screenshot({ path, animations: 'disabled', scale: 'css' });
+      copyFileSync(path, path.replace('/phase-1/', '/latest/'));
+      await page.keyboard.press('Escape');
+    }
   });
 });
 
@@ -451,6 +631,8 @@ test('captures the invite dialog screenshots [SHOT-01..03]', async ({
     await dialog.getByLabel(`${roles.RECRUITER} · Гемблінг`).check();
     await dialog.getByLabel(`${roles.RECRUITER} · Крипто`).check();
     await dialog.getByLabel(`${roles.TEAM_LEAD} · Гемблінг`).check();
+    if (viewportOf(testInfo) === 'mobile')
+      await touchTarget(dialog.getByLabel(`${roles.RECRUITER} · Гемблінг`));
     const file = `09-admin-invite-dialog-${viewportOf(testInfo)}-${theme}.png`;
     await captureScreen(page, testInfo, file);
   });
@@ -497,7 +679,7 @@ test('user card opens by click and by Enter, lives in ?user=, closes with Esc, B
   await expect(page).toHaveURL(/\/settings\/users$/);
   await expect(opener).toBeFocused();
 
-  await page.getByLabel(t.filterStatus, { exact: true }).selectOption('ACTIVE');
+  await selectFilter(page, isMobile, t.filterStatus, 'ACTIVE', t.status.ACTIVE);
   await expect(page).toHaveURL(/status=ACTIVE/);
   await row.click();
   await expect(page).toHaveURL(withUser(id));
@@ -570,6 +752,14 @@ test('Team Lead card: roles with «Змінити ролі», TL priority, sign-
     'href',
     `/settings/audit?entityType=user&entityId=${id}&period=365d`,
   );
+  if (isMobile) {
+    await touchTarget(card.getByRole('link', { name: drawerT.auditLink }));
+    await touchTarget(
+      card.getByRole('link', {
+        name: drawerT.priorityEditLabel.replace('{vertical}', 'Гемблінг'),
+      }),
+    );
+  }
   await expect(card.getByRole('tab')).toHaveCount(2);
   await expect(card.getByRole('button')).toHaveCount(3);
   await expect(
@@ -1749,6 +1939,14 @@ test('reactivate: previous roles start checked, all may be unchecked, Escape clo
   await expect(recruiter).toBeChecked();
   await expect(hr).toBeChecked();
   await expect(dialog.getByRole('checkbox')).toHaveCount(2);
+  if (isMobile) {
+    const row = recruiter.locator('..');
+    await touchTarget(row);
+    const box = (await row.boundingBox())!;
+    await row.click({ position: { x: box.width - 8, y: box.height / 2 } });
+    await expect(recruiter).not.toBeChecked();
+    await recruiter.check();
+  }
   await recruiter.uncheck();
   await hr.uncheck();
   await expect(
@@ -2115,7 +2313,7 @@ test('captures the user card screenshots with fixed sign-in times [SHOT-01..03]'
     const refetched = page.waitForResponse((response) =>
       response.url().includes('/api/v1/users?'),
     );
-    await page.getByLabel(t.filterStatus, { exact: true }).selectOption('');
+    await selectFilter(page, isMobile, t.filterStatus, '');
     await refetched;
     await expect(listed(page, isMobile)).toHaveCount(13);
     await listedUser(page, isMobile, 'Василь Мороз').click();

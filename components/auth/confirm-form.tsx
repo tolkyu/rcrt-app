@@ -50,16 +50,13 @@ export function ConfirmForm() {
 
   if (!tokenHash || state === 'invalid') {
     return (
-      <AuthCard title={t('confirm.title')}>
+      <AuthCard title={t('confirm.invalidTitle')}>
         <FormMessage tone="error">
           {!tokenHash ? t('confirm.missing') : t('confirm.invalid')}
         </FormMessage>
-        <Link
-          href="/login"
-          className="text-link text-sm font-medium underline-offset-4 hover:underline"
-        >
-          {t('backToLogin')}
-        </Link>
+        <Button asChild variant="secondary" size="lg" className="w-full">
+          <Link href="/login">{t('confirm.newLink')}</Link>
+        </Button>
       </AuthCard>
     );
   }

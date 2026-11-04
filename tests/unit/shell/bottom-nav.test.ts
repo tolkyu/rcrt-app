@@ -7,7 +7,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { createElement, type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BottomNav } from '@/components/shell/bottom-nav';
-import { mobileNav, type NavItem, type NavItemId } from '@/lib/nav';
+import { mobileNav, NAV_ITEMS, type NavItem, type NavItemId } from '@/lib/nav';
 import messages from '@/messages/uk.json';
 
 const pathname = vi.hoisted(() => ({ current: '/' }));
@@ -32,9 +32,9 @@ const sections = ['/a', '/b', '/c', '/d', '/e', '/f'].map((href): NavItem => ({
   anyOf: null,
 }));
 
-function renderNav(current: string) {
+function renderNav(current: string, items: readonly NavItem[] = sections) {
   pathname.current = current;
-  const nav = mobileNav(sections)!;
+  const nav = mobileNav(items)!;
   render(
     createElement(NextIntlClientProvider, {
       locale: 'uk',
@@ -54,6 +54,22 @@ const hrefs = (links: HTMLElement[]) =>
 afterEach(cleanup);
 
 describe('BottomNav: 4 slots + «Ще» sheet with the overflow and «Вийти» [A-46, screens.md §1]', () => {
+  it('shows the Admin destinations directly without an overflow trigger [UX-G-07]', () => {
+    const nav = renderNav('/settings/users', NAV_ITEMS);
+    expect(hrefs(within(nav).getAllByRole('link'))).toEqual([
+      '/profile',
+      '/settings',
+    ]);
+    expect(
+      within(nav)
+        .getByRole('link', { name: messages.nav.settings })
+        .getAttribute('aria-current'),
+    ).toBe('page');
+    expect(
+      within(nav).queryByRole('button', { name: messages.shell.more }),
+    ).toBeNull();
+  });
+
   it('renders four bar links and the «Ще» trigger', () => {
     const nav = renderNav('/b');
     expect(hrefs(within(nav).getAllByRole('link'))).toEqual([

@@ -7,7 +7,7 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 | Phase | Scope (PRD §15) | Status | Gallery |
 |---|---|---|---|
 | 0 | Discovery & design | ✅ Done 2026-10-31 — owner approved Phase 1 | — |
-| 1 | Foundation | 🔄 In progress (branch `phase-1`) | `screenshots/phase-1/index.html` (auth + audit; full role gallery pending T7) |
+| 1 | Foundation | 🔄 In progress (branch `phase-1`) | `screenshots/phase-1/index.html` (auth, settings, role profiles; 206 PNGs) |
 | 2 | Vacancies & candidates | ⏳ | |
 | 3 | Pipeline + routing | ⏳ | |
 | 4 | Bonuses & statistics | ⏳ | |
@@ -48,6 +48,14 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 | T7 | Tests (integration, E2E, Newman), screenshots + gallery | qa-engineer | ⏳ Full E2E green; Newman all 37 operations done; byte-stable screenshots done; CI wiring of test:api pending (devops) |
 | T8 | Perf seed + perf:check | performance-engineer | 🔄 Initial-JS gate (PERF-04) green 2026-11-01 (`e251de6`, `5be02ea`): all routes ≤ 180 kB. Pending: API P95, Web Vitals/Lighthouse, perf seed (Phase 2) |
 | T9 | Security review, code review, fixes, verify | security-engineer, code-reviewer | ⏳ Carry-over from foundation review: route framework validates query/body before `requirePermission` → non-admin gets 400 instead of 404 for malformed input (add `permission` to `RouteSpec`, SEC review of users list S2); deploy smoke `set role app_rw; select count(*) from app.auth_mfa_totp` and runbook note that GoTrue tables must exist before app migrations (0002/0007 skip silently otherwise); CI action SHA pins, `pnpm audit` gate, Drizzle drift check, `format:check`, `NEXT_PUBLIC_`/static secret grep; DG-03 storage policy test on local Supabase; AGENTS.md/.codex duplication (owner call) |
+
+## Implementation checkpoint — 2026-11-04 (Codex team, gallery step C)
+
+- Closed UX-G-07/08/09/12 and the optional/backup 2FA exit finding [UI-04..06, STORY-ROLE-05-8, STORY-SEC-AUTH-5, D63]. Mobile navigation shows up to four permitted destinations directly; the profile-only shell stays unchanged. Users get a lazy filter sheet with checkbox groups, draft Apply/discard/reset, repeated-value URL filters and desktop multi-value summaries. Invalid sign-in/invite links have clear recovery actions; small reset/audit-link targets are at least 44 px.
+- Optional 2FA offers «Пізніше» and backup setup «Скасувати», both to `/profile` during loading/error/ready. Required and mixed-role MFA rules and backup aal2 guards are unchanged. TOTP aborts the client request on unmount and ignores late redirects; this does not undo a verification already submitted to the server.
+- Verified: lint, typecheck, 2,225 Vitest, production build, all initial-JS gates (users 179.15, audit 179.28 / 180 kB), 205 unique E2E scenarios + 2 existing skips, screens 36/36, Newman 285 requests / 1,660 assertions. Full E2E had 203 passes and two screenshot-helper timing failures; awaiting the lazy sheet fixed both, then focused multi/filter/card checks passed 3/3 without new sign-ins. Changed code formatting and `git diff --check` passed; existing repository-wide formatting debt remains T9.
+- Galleries: 206 PNGs each, no missing/unlisted files, identical phase/latest copies. New native mobile filter-sheet shots and direct navigation replace the old mobile «Ще» shots. Designer reviewed 24 final PNGs; QA checked native geometry. BA → engineer → QA → code/security/perf reviews → fixes; all APPROVED. Reports: `docs/ux/review-phase-1-mobile-polish.md`, `docs/security/review-phase-1-mobile-polish.md`, `docs/perf/report-phase-1-mobile-polish.md`.
+- Demo: `admin@demo` → «Налаштування» → «Користувачі та ролі» on mobile → «Фільтри» → choose values → «Показати результати». `vasyl.tl@demo` → «Профіль» → 2FA setup → «Пізніше». Next: remaining gallery P3 polish, then T8/T9. Phase 1 remains in progress.
 
 ## Implementation checkpoint — 2026-11-04 (Codex, demo seed timeline)
 

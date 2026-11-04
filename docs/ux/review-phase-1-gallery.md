@@ -128,3 +128,7 @@ Gallery now has 204 PNGs, uncommitted. Checked every new stem in light/dark × d
 | RB-09 | P3 | `index.html` | RA-03 is partly fixed: the intro now says «демо-дані», but the `.screen` section labels are still CSS `uppercase`. | Drop `text-transform`. `scripts/screenshot-gallery.mjs`. |
 
 Still open from earlier: UX-G-26 (the 404 title and body repeat each other, now also in 16-denied); UX-G-33 (the «Створено» prefix in vertical table cells, 17-list desktop); UX-G-07 (the lone «Ще» in the Admin bottom nav, 17/18 mobile).
+
+## Re-check (step C), 2026-11-04
+
+**APPROVED for step C:** G-07/08/09/12 and the step-B optional/backup 2FA exit finding are closed. Reviewed fresh invalid-link, direct-navigation, compact user-list/filter-sheet and MFA PNGs in light/dark, with desktop/mobile coverage where applicable. Touch-target checks combine code inspection and QA geometry assertions. The filter sheet uses native 390×844 captures. Detailed evidence: `review-phase-1-mobile-polish.md`. Existing P3 findings remain open.

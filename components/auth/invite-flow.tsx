@@ -1,6 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ApiError, apiRequest } from '@/lib/api-client';
@@ -125,6 +126,9 @@ export function InviteFlow({ googleEnabled }: { googleEnabled: boolean }) {
             ? t('invite.missing')
             : t('invite.invalid')}
         </FormMessage>
+        <Button asChild variant="secondary" size="lg" className="w-full">
+          <Link href="/login">{t('invite.toLogin')}</Link>
+        </Button>
       </AuthCard>
     );
   if (view.kind === 'error')

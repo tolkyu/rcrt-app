@@ -113,6 +113,7 @@ const BAR_SLOTS = 4;
 /** Bottom nav = up to 4 bar sections + «Ще»; hidden when there is only one section to go to. */
 export function mobileNav(items: readonly NavItem[]): MobileNav | null {
   if (items.length < 2) return null;
+  if (items.length <= BAR_SLOTS) return { bar: [...items], more: [] };
   const bar = items.filter((item) => item.mobile === 'bar');
   return {
     bar: bar.slice(0, BAR_SLOTS),

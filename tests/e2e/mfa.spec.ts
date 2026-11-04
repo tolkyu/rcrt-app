@@ -77,11 +77,19 @@ for (const [email, mode] of [
         );
         await expect(page.getByText(enrolment.secret)).toBeVisible();
         await expect(page.getByText(t.skip)).toHaveCount(0);
+        const exit = page.getByRole('link', {
+          name: mode === 'optional' ? t.later : messages.common.cancel,
+          exact: true,
+        });
+        await expect(exit).toHaveAttribute('href', '/profile');
+        expect((await exit.boundingBox())!.height).toBeGreaterThanOrEqual(48);
         await captureScreen(
           page,
           testInfo,
           `19-${role}-mfa-setup-${mode}-${viewportOf(testInfo)}-${theme}.png`,
         );
+        await exit.click();
+        await expect(page).toHaveURL(/\/profile$/);
       });
       expect(enrolments).toBe(2);
       expect(checks.count).toBe(0);

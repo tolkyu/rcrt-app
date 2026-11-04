@@ -10,16 +10,40 @@ import {
 /** «Користувачі та ролі» filters kept in the URL (wireframe settings-admin §0); also the API query. */
 export interface UserSearch {
   readonly q?: string | undefined;
-  readonly status?: UserStatus | undefined;
-  readonly role?: BuiltinRole | undefined;
+  readonly status?: UserStatus | UserStatus[] | undefined;
+  readonly role?: BuiltinRole | BuiltinRole[] | undefined;
   /** A vertical id or `GLOBAL`. */
-  readonly vertical?: string | undefined;
+  readonly vertical?: string | string[] | undefined;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const KEYS = ['q', 'status', 'role', 'vertical'] as const;
 
 type SearchSource = Readonly<Record<string, string | string[] | undefined>>;
+
+export const userFilterList = <T extends string>(
+  value: T | T[] | undefined,
+): T[] => (value === undefined ? [] : Array.isArray(value) ? value : [value]);
+
+/** Stable order makes repeated URL filters share the same RSC/client cache key. */
+function selected<T extends string>(
+  value: string | string[] | undefined,
+  valid: (entry: string) => entry is T,
+) {
+  const values = [...new Set(userFilterList(value).filter(valid))]
+    .sort()
+    .slice(0, 10);
+  return values.length > 1 ? values : values[0];
+}
+
+export function userSearchSource(params: URLSearchParams): SearchSource {
+  return Object.fromEntries(
+    [...new Set(params.keys())].map((key) => {
+      const values = params.getAll(key);
+      return [key, values.length > 1 ? values : values[0]];
+    }),
+  );
+}
 
 function one(source: SearchSource, key: string) {
   const value = source[key];
@@ -34,17 +58,21 @@ export function normalizeUserQuery(value: string | undefined) {
 
 /** Unknown or malformed values are dropped instead of failing the page. */
 export function parseUserSearch(source: SearchSource): UserSearch {
-  const status = one(source, 'status');
-  const role = one(source, 'role');
-  const vertical = one(source, 'vertical');
   return {
     q: normalizeUserQuery(one(source, 'q')),
-    status: USER_STATUSES.find((known) => known === status),
-    role: BUILTIN_ROLE_CODES.find((known) => known === role),
-    vertical:
-      vertical && (vertical === GLOBAL_VERTICAL || UUID.test(vertical))
-        ? vertical
-        : undefined,
+    status: selected(source.status, (value): value is UserStatus =>
+      USER_STATUSES.some((known) => known === value),
+    ),
+    role: selected(source.role, (value): value is BuiltinRole =>
+      BUILTIN_ROLE_CODES.some((known) => known === value),
+    ),
+    vertical: selected(
+      source.vertical &&
+        userFilterList(source.vertical).map((value) =>
+          value === GLOBAL_VERTICAL ? value : value.toLowerCase(),
+        ),
+      (value): value is string => value === GLOBAL_VERTICAL || UUID.test(value),
+    ),
   };
 }
 
@@ -56,9 +84,10 @@ export function parseDrawerUser(source: SearchSource): string | undefined {
 
 export function userSearchParams(search: UserSearch, user?: string) {
   const params = new URLSearchParams();
+  const canonical = parseUserSearch({ ...search });
   for (const key of KEYS) {
-    const value = search[key];
-    if (value) params.set(key, value);
+    const value = canonical[key];
+    for (const entry of userFilterList(value)) params.append(key, entry);
   }
   if (user) params.set('user', user);
   return params;
@@ -67,5 +96,5 @@ export function userSearchParams(search: UserSearch, user?: string) {
 export function userFilterValues(search: UserSearch) {
   return Object.fromEntries(
     KEYS.flatMap((key) => (search[key] ? [[key, search[key]]] : [])),
-  ) as Readonly<Record<(typeof KEYS)[number], string | undefined>>;
+  ) as Readonly<Record<(typeof KEYS)[number], string | string[] | undefined>>;
 }

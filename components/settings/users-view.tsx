@@ -37,10 +37,13 @@ import {
   parseDrawerUser,
   parseUserSearch,
   userFilterValues,
+  userFilterList,
+  userSearchSource,
   userSearchParams,
   type UserSearch,
 } from '@/lib/user-filters';
 import { cn } from '@/lib/utils';
+import { loadOrReload } from '@/lib/load-or-reload';
 import { MfaStatus, StatusChip } from './user-status';
 
 const loadInviteDialog = () => import('./invite-user-dialog');
@@ -57,6 +60,18 @@ const UserDrawer = dynamic(() =>
 const preloadUserDrawer = () => {
   loadUserDrawer().catch(() => undefined);
 };
+const loadFilterSheet = () => import('./users-filter-sheet');
+const preloadFilterSheet = () => {
+  loadFilterSheet().catch(() => undefined);
+};
+function FilterSheetLoading() {
+  const t = useTranslations('auth');
+  return <p role="status">{t('loading')}</p>;
+}
+const UsersFilterSheet = dynamic(
+  () => loadOrReload(loadFilterSheet).then((module) => module.UsersFilterSheet),
+  { loading: FilterSheetLoading },
+);
 
 const selectClass =
   'border-input bg-surface text-foreground h-11 w-full rounded-lg border px-3 text-base md:h-10 md:text-sm';
@@ -83,22 +98,29 @@ function FilterSelect({
   children,
 }: {
   label: string;
-  value: string;
+  value: string | string[] | undefined;
   onChange: (value: string) => void;
   children: ReactNode;
 }) {
   const id = useId();
+  const t = useTranslations('settings.users');
+  const values = userFilterList(value);
   return (
-    <div className="flex min-w-0 flex-col gap-1">
+    <div className="hidden min-w-0 flex-col gap-1 md:flex">
       <Label htmlFor={id} className="text-xs">
         {label}
       </Label>
       <select
         id={id}
-        value={value}
+        value={values.length > 1 ? '__multiple' : (values[0] ?? '')}
         onChange={(event) => onChange(event.target.value)}
         className={selectClass}
       >
+        {values.length > 1 && (
+          <option value="__multiple" disabled>
+            {t('filterSelectionCount', { count: values.length })}
+          </option>
+        )}
         {children}
       </select>
     </div>
@@ -198,8 +220,11 @@ export function UsersView({
   const lastLogin = useLastLogin();
   const params = useSearchParams();
   const searchKey = params.toString();
+  const [filtersAt, setFiltersAt] = useState<string | null>(null);
+  const filterTrigger = useRef<HTMLButtonElement>(null);
+  if (filtersAt !== null && filtersAt !== searchKey) setFiltersAt(null);
   const [search, drawerUser] = useMemo(() => {
-    const source = Object.fromEntries(new URLSearchParams(searchKey));
+    const source = userSearchSource(new URLSearchParams(searchKey));
     return [parseUserSearch(source), parseDrawerUser(source)] as const;
   }, [searchKey]);
   const filters = useMemo(() => userFilterValues(search), [search]);
@@ -225,11 +250,9 @@ export function UsersView({
     user: (current: string | undefined) => string | undefined,
     mode: 'pushState' | 'replaceState' = 'replaceState',
   ) => {
-    const live = Object.fromEntries(
-      new URLSearchParams(window.location.search),
-    );
+    const live = userSearchSource(new URLSearchParams(window.location.search));
     const next = userSearchParams(
-      { ...parseUserSearch(live), ...patch },
+      parseUserSearch({ ...parseUserSearch(live), ...patch }),
       user(parseDrawerUser(live)),
     ).toString();
     window.history[mode](
@@ -279,9 +302,12 @@ export function UsersView({
 
   const items = query.data?.pages.flatMap((page) => page.items) ?? [];
   const total = query.data?.pages[0]?.total ?? 0;
-  const filtered = Boolean(
-    search.q || search.status || search.role || search.vertical,
-  );
+  const filterCount = [
+    search.status,
+    search.role,
+    search.vertical,
+  ].reduce<number>((count, value) => count + userFilterList(value).length, 0);
+  const filtered = Boolean(search.q || filterCount);
   /** From the invite dialog or a user card: the card (if any) closes so the matching row is visible. */
   const showUser = (email: string) => {
     clearTimeout(timer.current);
@@ -481,9 +507,9 @@ export function UsersView({
       />
       <section
         aria-label={t('filtersLabel')}
-        className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr]"
+        className="mb-4 grid grid-cols-[minmax(0,1fr)_auto] gap-3 md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr]"
       >
-        <div className="flex min-w-0 flex-col gap-1 sm:col-span-2 xl:col-span-1">
+        <div className="flex min-w-0 flex-col gap-1 md:col-span-2 xl:col-span-1">
           <Label htmlFor="users-search" className="text-xs">
             {t('searchLabel')}
           </Label>
@@ -508,6 +534,20 @@ export function UsersView({
             {t('searchHint')}
           </span>
         </div>
+        <Button
+          ref={filterTrigger}
+          variant="outline"
+          className="h-11 self-end md:hidden"
+          aria-haspopup="dialog"
+          aria-expanded={filtersAt !== null}
+          onPointerEnter={preloadFilterSheet}
+          onFocus={preloadFilterSheet}
+          onClick={() => setFiltersAt(searchKey)}
+        >
+          {filterCount
+            ? t('filtersCount', { count: filterCount })
+            : t('filters')}
+        </Button>
         <FilterSelect
           label={t('filterStatus')}
           value={search.status ?? ''}
@@ -547,20 +587,47 @@ export function UsersView({
               {vertical.name}
             </option>
           ))}
-          {search.vertical &&
-            search.vertical !== GLOBAL_VERTICAL &&
-            !verticals.data?.items.some((v) => v.id === search.vertical) && (
-              <option value={search.vertical}>{t('unknownVertical')}</option>
-            )}
+          {userFilterList(search.vertical)
+            .filter(
+              (id) =>
+                id !== GLOBAL_VERTICAL &&
+                !verticals.data?.items.some((v) => v.id === id),
+            )
+            .map((id) => (
+              <option key={id} value={id}>
+                {t('unknownVertical')}
+              </option>
+            ))}
           <option value={GLOBAL_VERTICAL}>{t('globalVertical')}</option>
         </FilterSelect>
       </section>
       {filtered && (
         <div className="mb-4">
-          <Button variant="ghost" size="sm" onClick={reset}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="min-h-11 md:min-h-0"
+            onClick={reset}
+          >
             {t('resetFilters')}
           </Button>
         </div>
+      )}
+      {filtersAt !== null && (
+        <UsersFilterSheet
+          search={search}
+          verticals={verticals.data?.items ?? []}
+          onClose={() => setFiltersAt(null)}
+          onRestoreFocus={() => filterTrigger.current?.focus()}
+          onReset={() => {
+            reset();
+            setFiltersAt(null);
+          }}
+          onApply={(draft) => {
+            apply(draft);
+            setFiltersAt(null);
+          }}
+        />
       )}
       <Card className="overflow-hidden p-0">{body}</Card>
       {query.isError && query.data && (

@@ -72,7 +72,7 @@ export const auditQuery = (filters: AuditFilterValues) =>
   });
 
 export const usersQuery = (
-  filters: Readonly<Record<string, string | undefined>>,
+  filters: Readonly<Record<string, string | string[] | undefined>>,
 ) =>
   infiniteQueryOptions({
     queryKey: queryKeys.settingsUsers(filters),
@@ -80,7 +80,8 @@ export const usersQuery = (
     queryFn: ({ pageParam, signal }) => {
       const params = new URLSearchParams();
       for (const [key, value] of Object.entries(filters))
-        if (value) params.set(key, value);
+        for (const entry of Array.isArray(value) ? value : value ? [value] : [])
+          params.append(key, entry);
       if (pageParam) params.set('cursor', pageParam);
       return apiRequest(`/users?${params}`, {
         schema: async () => (await import('@/lib/schemas/user')).userPageSchema,
