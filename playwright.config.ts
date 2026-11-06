@@ -55,7 +55,15 @@ export default defineConfig({
     },
     {
       name: 'e2e-admin-mobile',
-      testMatch: ['e2e/settings-audit.spec.ts', 'e2e/settings-users.spec.ts'],
+      testMatch: [
+        'e2e/settings-audit.spec.ts',
+        'e2e/settings-users.spec.ts',
+        'e2e/settings-users-virtual.spec.ts',
+        'e2e/settings-accessibility.spec.ts',
+        'e2e/settings-states.spec.ts',
+        'e2e/settings-audit-states.spec.ts',
+        'e2e/settings-audit-detail.spec.ts',
+      ],
       workers: 1,
       dependencies: ['e2e-admin-desktop'],
       use: { ...devices['Pixel 7'], viewport: MOBILE },

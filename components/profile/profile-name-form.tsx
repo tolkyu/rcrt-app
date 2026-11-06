@@ -36,6 +36,7 @@ export function ProfileNameForm({ fullName }: { fullName: string }) {
   const errorId = `${inputId}-error`;
   const [value, setValue] = useState(fullName);
   const [error, setError] = useState<NameError | null>(null);
+  const [savedName, setSavedName] = useState(fullName);
 
   const mutation = useMutation({
     mutationFn: (name: string) =>
@@ -77,6 +78,12 @@ export function ProfileNameForm({ fullName }: { fullName: string }) {
       toast.success(t('saved'));
     },
   });
+
+  if (!mutation.isPending && savedName !== fullName) {
+    setSavedName(fullName);
+    setValue(fullName);
+    setError(null);
+  }
 
   const normalized = normalizeFullName(value);
   const unchanged = normalized === fullName;

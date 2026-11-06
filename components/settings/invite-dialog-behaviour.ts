@@ -48,7 +48,13 @@ export function useNestedDialog({
 }) {
   const focusHeadingRef = useRef(false);
   const contentProps = {
-    onEscapeKeyDown: (event: KeyboardEvent) => event.preventDefault(),
+    onEscapeKeyDown: (event: KeyboardEvent) => {
+      event.preventDefault();
+      if (!busy) {
+        focusHeadingRef.current = false;
+        close();
+      }
+    },
     // Radix attaches its Escape listener to a new layer only after a re-render, so a fast Escape would be lost.
     onKeyDown: (event: ReactKeyboardEvent) => {
       if (event.key !== 'Escape' || busy) return;

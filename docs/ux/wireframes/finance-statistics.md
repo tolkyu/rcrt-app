@@ -21,6 +21,7 @@ Visual style and Огляд layout = `statistics.md` (`reference/07-statistics.w
 │              │ ...                                      │ ...                                     │
 └──────────────┴────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
 - KPI deltas: text + arrow + colour (never colour alone).
 
 ## Бонуси tab (STAT-06)
@@ -36,6 +37,7 @@ Visual style and Огляд layout = `statistics.md` (`reference/07-statistics.w
 │ Найближчі виплати                                                                                 │
 │ Лист. 2026 ▓▓▓ 1 625 $ │ Груд. 2026 ▓▓ 875 $ │ Січ. 2027 ▓ 375 $   (expected-date calendar strip)  │
 ```
+
 - Mixed currencies: one column group per currency, never auto-summed across currencies ⚠ OPEN-FN2 (reporting currency for totals?).
 
 ## Виплати tab (BONUS-13) — payout report
@@ -52,18 +54,22 @@ Visual style and Огляд layout = `statistics.md` (`reference/07-statistics.w
 │ │ Разом до виплати                                               │ 1 100 $│           │           │ │
 │ └────────────────────────────────────────────────────────────────┴────────┴───────────┴───────────┘ │
 ```
+
 - No checkboxes, no «Позначити виплаченими» (Admin-only action is hidden, not disabled).
 - Candidate cell is plain text (no link). Purged candidates show «Кандидат #1234 (видалено)».
 - Export filename: `vyplaty-2026-11.xlsx`; export respects current filters; columns = table columns + currency + payout period.
 
 ## Mobile 390
+
 - Tabs scroll horizontally; KPI tiles 2 per row; tables become stacked rows (recruiter + amount + status), horizontal scroll fallback for payout report; export in `[⋯]`.
 
 ## States
+
 - Loading: tab bar real, KPI tiles skeleton, table 8 rows skeleton.
 - No data: «За обраний період даних немає».
 - Export in progress: button spinner → toast «Файл готовий» (download starts); error «Не вдалося сформувати файл» [Спробувати ще раз].
 - Error per widget, others keep rendering.
 
 ## ⚠ OPEN
+
 FN1 does Finance see candidate full names in payout report / "who brought whom" (PII minimisation) or only IDs? · FN2 totals across currencies (convert to reporting currency or per-currency subtotals).

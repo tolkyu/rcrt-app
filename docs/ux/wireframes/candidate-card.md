@@ -54,16 +54,16 @@ Reference: `reference/04-candidate-card.webp`. Adoption: A-03, A-04, A-05, A-17,
 
 ## Timeline stepper (HIST-02; 8-step variant ⏳ A-18)
 
-| Step | Stage(s) | Caption when reached (date + actor always) |
-|---|---|---|
-| Новий | NEW | date · creator |
-| В роботі | IN_WORK | date · recruiter · «Скринінг ↗Meet» in tooltip |
-| У тімліда | SUBMITTED_TO_TL | date sent · «Прийнято 07.10» / «Відхилено» |
-| Співбесіда | TL_INTERVIEW | date ↗Meet · TL · result |
-| Поліграф | POLYGRAPH | place · date · result · PDF icon (permitted roles) |
-| Офер | OFFER | salary (if permitted) · version · outcome |
-| Випробування | PROBATION | start–end · «День X з Y» (ProbationProgress in tooltip/panel) |
-| Найнято | PROBATION_PASSED | date · who («Достроково» tag) |
+| Step         | Stage(s)         | Caption when reached (date + actor always)                    |
+| ------------ | ---------------- | ------------------------------------------------------------- |
+| Новий        | NEW              | date · creator                                                |
+| В роботі     | IN_WORK          | date · recruiter · «Скринінг ↗Meet» in tooltip                |
+| У тімліда    | SUBMITTED_TO_TL  | date sent · «Прийнято 07.10» / «Відхилено»                    |
+| Співбесіда   | TL_INTERVIEW     | date ↗Meet · TL · result                                      |
+| Поліграф     | POLYGRAPH        | place · date · result · PDF icon (permitted roles)            |
+| Офер         | OFFER            | salary (if permitted) · version · outcome                     |
+| Випробування | PROBATION        | start–end · «День X з Y» (ProbationProgress in tooltip/panel) |
+| Найнято      | PROBATION_PASSED | date · who («Достроково» tag)                                 |
 
 - Fallback if the owner keeps HIST-02 literally: merge «У тімліда» into «Співбесіда» (7 steps). The layout is unchanged.
 - Step states per `design-system.md` §1.5. Terminal REJECTED/WITHDRAWN/PROBATION_FAILED: the failed step shows a red ✕ with the reason; later steps are hidden behind «—».
@@ -74,17 +74,18 @@ Reference: `reference/04-candidate-card.webp`. Adoption: A-03, A-04, A-05, A-17,
 
 ## Stage action panel by stage × role
 
-| Stage | Recruiter | TL | HR | Head HR | Head Rec / Admin |
-|---|---|---|---|---|---|
-| Новий | Взяти в роботу (D-01) · Відмовити · Видалити | — | — | — | same as Rec |
-| В роботі | Передати тімліду (D-02) · Відмовити · Самовідвід | — | — | — | same |
-| У тімліда | «Очікує рішення тімліда» (info) / after accept: Призначити співбесіду (D-04) | Прийняти · Відхилити | — | — | same as Rec |
-| Співбесіда | Неявка (D-08) · (Результат ⚠ OPEN-S6) | Перенести (D-06) · Результат (D-05) | — | — | + Повернути на попередній |
-| Поліграф | (info: date / result) | (info) | Призначити (D-09) · Внести результат (D-10) | Призначити HR · Перевірити (D-10a) | — / Admin all |
-| Офер | (info: salary, status) | (info) | Створити чернетку · Відповідь кандидата | Створити · Надіслати · Відповідь · Повернути на попередній | Admin all |
-| Випробування | (info) | Завершити достроково (≥30) · Не пройдено | Підтвердити перший день | Завершити · Завершити з винятком · Не пройдено | Admin all |
+| Stage        | Recruiter                                                                    | TL                                       | HR                                          | Head HR                                                    | Head Rec / Admin          |
+| ------------ | ---------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------- | ---------------------------------------------------------- | ------------------------- |
+| Новий        | Взяти в роботу (D-01) · Відмовити · Видалити                                 | —                                        | —                                           | —                                                          | same as Rec               |
+| В роботі     | Передати тімліду (D-02) · Відмовити · Самовідвід                             | —                                        | —                                           | —                                                          | same                      |
+| У тімліда    | «Очікує рішення тімліда» (info) / after accept: Призначити співбесіду (D-04) | Прийняти · Відхилити                     | —                                           | —                                                          | same as Rec               |
+| Співбесіда   | Неявка (D-08) · (Результат ⚠ OPEN-S6)                                        | Перенести (D-06) · Результат (D-05)      | —                                           | —                                                          | + Повернути на попередній |
+| Поліграф     | (info: date / result)                                                        | (info)                                   | Призначити (D-09) · Внести результат (D-10) | Призначити HR · Перевірити (D-10a)                         | — / Admin all             |
+| Офер         | (info: salary, status)                                                       | (info)                                   | Створити чернетку · Відповідь кандидата     | Створити · Надіслати · Відповідь · Повернути на попередній | Admin all                 |
+| Випробування | (info)                                                                       | Завершити достроково (≥30) · Не пройдено | Підтвердити перший день                     | Завершити · Завершити з винятком · Не пройдено             | Admin all                 |
 
 Disabled examples (tooltip; helper text on mobile):
+
 - «Завершити достроково» — «Дострокове завершення доступне з 30-го дня — з 03.12.2026.»
 - «Зберегти результат» (поліграф) — «Спершу завантажте висновок (PDF).»
 - «Надіслати офер» (HR) — «Надіслати офер може лише керівник HR.»
@@ -92,6 +93,7 @@ Disabled examples (tooltip; helper text on mobile):
 - «Призначити співбесіду» before accept — «Спершу тімлід має прийняти кандидата.»
 
 ## Tab «Бонус» (Admin, Head Recruiter in vertical, Recruiter own)
+
 ```
 Схема: Стандартна 30/70 · Зафіксовано 20.10.2026 · База: Фіксована сума 1 000 $
 Множник для термінових ×1,25 · Курс 1 $ = 41,20 ₴
@@ -102,6 +104,7 @@ Disabled examples (tooltip; helper text on mobile):
 └────────┴──────────────────┴───────────┴─────────────┴──────────────┴─────────────────┘
 [Розподіл бонусу] (HRec) [Коригування] (Admin)
 ```
+
 - Hidden tab (not disabled) for HR, Head HR, TL. Flags: «Власна рекомендація — потребує погодження адміністратора», «Колишній працівник < 12 міс. — бонус не нараховується».
 
 ## Mobile 390 — Team Lead, interview today
@@ -127,6 +130,7 @@ Disabled examples (tooltip; helper text on mobile):
 ```
 
 ## Interview result sheet (TL, mobile; A-17)
+
 ```
 ┌──────────────────────────────┐
 │ ─── handle                   │
@@ -144,12 +148,15 @@ Disabled examples (tooltip; helper text on mobile):
 │ [        Підтвердити       ] │  48 px, disabled until option + feedback
 └──────────────────────────────┘
 ```
+
 - No «Потрібно ще інтерв'ю» option; another meeting = «Перенести» (RESCH-01).
 
 ## Mobile — Probation day 18 (TL)
+
 - Sticky helper above the action button: «Дострокове завершення — з 03.12.2026 (30-й день)»; «Дії з кандидатом» sheet lists «Завершити достроково» disabled with the same reason and «Не пройдено» enabled.
 
 ## States
+
 - Loading: header (circle 96 + 3 lines), info strip 5 cells, stepper 8 circles, action panel 1 line, feed 6 rows, right column 2 blocks.
 - No applications (резерв): stepper replaced by «Кандидат у кадровому резерві» + [Подати на посаду] [Додати до вакансії].
 - No next event: right column shows only «Приватні нотатки».
@@ -158,4 +165,5 @@ Disabled examples (tooltip; helper text on mobile):
 - Purged: «Кандидат #1234 (видалено)», no PII or photo; stepper + feed actor names kept ⚠ OPEN-C2.
 
 ## ⚠ OPEN
+
 C1 minimum feedback length for TL interview result · C2 what a purged stub shows (stages/dates only?).

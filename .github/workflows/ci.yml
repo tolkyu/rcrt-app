@@ -15,22 +15,16 @@ concurrency:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     env:
       APP_ENV: test
       APP_URL: http://localhost:3100
-      DATABASE_URL: postgresql://app_rw:local_app_only@127.0.0.1:55332/recruiting_test
-      DATABASE_MIGRATION_URL: postgresql://recruiting_test:local_test_only@127.0.0.1:55332/recruiting_test
       TEST_DATABASE_URL: postgresql://recruiting_test:local_test_only@127.0.0.1:55332/recruiting_test
       TEST_DATABASE_RUNTIME_URL: postgresql://app_rw:local_app_only@127.0.0.1:55332/recruiting_test
       NEXT_TELEMETRY_DISABLED: '1'
-      SUPABASE_URL: http://127.0.0.1:55321
-      # Public-page browser tests intercept auth requests; these are nonfunctional fixtures.
-      SUPABASE_PUBLISHABLE_KEY: ci-publishable-fixture-not-a-key
-      SUPABASE_SECRET_KEY: ci-secret-fixture-not-a-key
-      AUTH_RATE_LIMIT_SECRET: ci-only-rate-limit-fixture-at-least-32-characters
       EMAIL_FROM: auth@fixture.test
-      MAILPIT_URL: http://127.0.0.1:55324
+      AUTH_GOOGLE_ENABLED: 'false'
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_ENABLED: 'false'
     services:
       postgres:
         image: postgres:17.11-bookworm@sha256:839fbb5a4942a7758dd93e18b42ea5649807491a0545b5eeeb8f0b8bb11857a5
@@ -44,36 +38,65 @@ jobs:
           --health-cmd "pg_isready -U recruiting_test -d recruiting_test"
           --health-interval 2s --health-timeout 5s --health-retries 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm audit:check
       - run: pnpm lint
+      - run: pnpm format:check
       - run: pnpm typecheck
+      - run: pnpm db:check
+      - name: Start disposable Supabase
+        shell: bash
+        run: |
+          mkdir -p .cache
+          if ! pnpm exec supabase start > .cache/supabase-start.log 2>&1; then
+            echo 'Local Supabase startup failed; credential-bearing startup output is not published.'
+            exit 1
+          fi
+      - run: pnpm exec tsx scripts/ci-env.ts
+      - name: Migrate and seed local application and Auth
+        env:
+          APP_ENV: local
+        run: pnpm db:migrate && pnpm db:provision:local && pnpm db:seed && pnpm db:seed:auth
       - run: pnpm test
-      - run: pnpm perf:check
+      - run: pnpm test:storage
+        env:
+          APP_ENV: local
       - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm perf:check
+      - run: pnpm security:check
+      - name: Check generated API contracts
+        run: |
+          pnpm api:postman
+          git diff --exit-code -- openapi/openapi.json tests/postman/collection.json
       - run: pnpm test:e2e
       - run: pnpm test:screens
-      - uses: actions/upload-artifact@v4
+      - run: pnpm test:api
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: foundation-browser-results
           path: |
             playwright-report/
             test-results/
+            tests/perf/results/
             screenshots/foundation/
             screenshots/phase-1/
           retention-days: 14
+      - name: Stop disposable Supabase
+        if: always()
+        run: pnpm exec supabase stop
 
   secrets:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
       - name: Reject tracked environment files

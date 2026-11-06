@@ -1,6 +1,23 @@
 [
   {
     "operation": "listUsers",
+    "name": "Finance cannot probe query validation",
+    "as": "finance",
+    "query": { "limit": "invalid", "unknown": "1" },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateUserRoles",
+    "name": "Head Recruiter cannot probe path or JSON validation",
+    "as": "head_recruiter_gambling",
+    "params": { "userId": "not-a-uuid" },
+    "body": "{invalid-json",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listUsers",
     "name": "Admin lists every seeded user",
     "as": "admin",
     "query": {
@@ -268,14 +285,8 @@
     "params": {
       "userId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     },
-    "status": 400,
-    "code": "VALIDATION_FAILED",
-    "errors": [
-      {
-        "path": "params.userId",
-        "code": "too_big"
-      }
-    ]
+    "status": 404,
+    "code": "NOT_FOUND"
   },
   {
     "operation": "getUser",
@@ -1756,14 +1767,8 @@
     "body": {
       "reason": "Перевірка API: без змін"
     },
-    "status": 400,
-    "code": "VALIDATION_FAILED",
-    "errors": [
-      {
-        "path": "params.userId",
-        "code": "invalid_format"
-      }
-    ]
+    "status": 404,
+    "code": "NOT_FOUND"
   },
   {
     "operation": "resetUserMfa",

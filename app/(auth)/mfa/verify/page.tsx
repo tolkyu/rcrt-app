@@ -22,7 +22,9 @@ export default async function MfaVerifyPage({
   if (ctx.identity.aal === 'aal2') redirect(next || '/');
   const status = await mfaStatus(authDependencies, ctx);
   if (status.factors.length === 0)
-    redirect(next ? `/mfa/setup?next=${encodeURIComponent(next)}` : '/mfa/setup');
+    redirect(
+      next ? `/mfa/setup?next=${encodeURIComponent(next)}` : '/mfa/setup',
+    );
   return (
     <MfaVerifyForm
       factors={status.factors}

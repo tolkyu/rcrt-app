@@ -46,7 +46,10 @@ export function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn('text-heading-lg text-foreground pr-10', className)}
+      className={cn(
+        'text-heading-lg text-foreground pr-10 text-balance',
+        className,
+      )}
       {...props}
     />
   );

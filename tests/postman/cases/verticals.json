@@ -1,5 +1,14 @@
 [
   {
+    "operation": "renameVertical",
+    "name": "Recruiter cannot probe path or body validation",
+    "as": "recruiter_crypto",
+    "params": { "verticalId": "not-a-uuid" },
+    "body": {},
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
     "operation": "listSettingsVerticals",
     "name": "Admin lists all verticals with user counts",
     "as": "admin",
@@ -149,14 +158,8 @@
       "name": " Г ",
       "expectedVersion": 0
     },
-    "status": 400,
-    "code": "VALIDATION_FAILED",
-    "errors": [
-      {
-        "path": "params.verticalId",
-        "code": "invalid_format"
-      }
-    ]
+    "status": 404,
+    "code": "NOT_FOUND"
   },
   {
     "operation": "renameVertical",

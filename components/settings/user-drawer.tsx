@@ -70,6 +70,9 @@ const EditRolesDialog = dynamic(() =>
 const preloadEditRolesDialog = () => {
   loadEditRolesDialog().catch(() => undefined);
 };
+const ResetMfaDialog = dynamic(() =>
+  import('./reset-mfa-dialog').then((module) => module.ResetMfaDialog),
+);
 /** Email can change only before activation (D69); activated users get it in Phase 5. */
 const EMAIL_EDITABLE = new Set<UserStatus>([
   'INVITED',
@@ -241,7 +244,7 @@ function DetailSections({ detail }: { detail: UserDetail }) {
                     })}
               </li>
             )}
-            {detail.status !== 'REVOKED' && (
+            {detail.status !== 'REVOKED' && invitation.resendCount > 0 && (
               <li className="text-muted-foreground">
                 {t('inviteResentCount', { count: invitation.resendCount })}
               </li>
@@ -261,6 +264,57 @@ function DetailSections({ detail }: { detail: UserDetail }) {
         </Section>
       )}
     </>
+  );
+}
+
+function ResetMfa({
+  detail,
+  isSelf,
+  onFocusHeading,
+}: {
+  detail: UserDetail;
+  isSelf: boolean;
+  onFocusHeading: () => void;
+}) {
+  const t = useTranslations('settings.users.drawer.resetMfa');
+  const reasonId = useId();
+  const trigger = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const busy =
+    useIsMutating({ mutationKey: userCardMutationKey(detail.id) }) > 0;
+  if (detail.status !== 'ACTIVE') return null;
+  const reason = isSelf
+    ? t('selfReason')
+    : detail.mfa.factors === 0
+      ? t('noFactors')
+      : null;
+  return (
+    <div className="flex flex-col items-start gap-2">
+      <Button
+        ref={trigger}
+        variant="outline"
+        className="h-11"
+        aria-disabled={Boolean(reason) || undefined}
+        aria-describedby={reason ? reasonId : undefined}
+        disabled={busy}
+        onClick={() => !reason && setOpen(true)}
+      >
+        {t('submit')}
+      </Button>
+      {reason && (
+        <p id={reasonId} className="text-muted-foreground text-xs">
+          {reason}
+        </p>
+      )}
+      {open && (
+        <ResetMfaDialog
+          detail={detail}
+          onClose={() => setOpen(false)}
+          onFocusHeading={onFocusHeading}
+          onFocusTrigger={() => trigger.current?.focus()}
+        />
+      )}
+    </div>
   );
 }
 
@@ -627,7 +681,14 @@ export function UserDrawer({
               }
             />
             {detail.data ? (
-              <DetailSections detail={detail.data} />
+              <>
+                <DetailSections detail={detail.data} />
+                <ResetMfa
+                  detail={detail.data}
+                  isSelf={userId === currentUserId}
+                  onFocusHeading={() => heading.current?.focus()}
+                />
+              </>
             ) : detail.isError ? (
               <SectionError
                 onRetry={() => void detail.refetch()}

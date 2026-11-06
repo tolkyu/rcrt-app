@@ -1,0 +1,146 @@
+[
+  {
+    "ghsa": "GHSA-554w-wpv2-vw27",
+    "module": "node-forge",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-5gfm-wpxj-wjgq",
+    "module": "node-forge",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-25h7-pfq9-p65f",
+    "module": "flatted",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-3mfm-83xf-c92r",
+    "module": "handlebars",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-2w6w-674q-4c4q",
+    "module": "handlebars",
+    "severity": "critical",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-2328-f5f3-gj25",
+    "module": "node-forge",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-q67f-28xg-22rw",
+    "module": "node-forge",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-5m6q-g25r-mvwx",
+    "module": "node-forge",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-ppp5-5v6c-4jwp",
+    "module": "node-forge",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-xhpv-hc6g-r9c6",
+    "module": "handlebars",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-9cx6-37pm-9jff",
+    "module": "handlebars",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-r5fr-rjxr-66jc",
+    "module": "lodash",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-xjpj-3mr7-gcpf",
+    "module": "handlebars",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-qpx9-hpmf-5gmw",
+    "module": "underscore",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-qxc2-j82w-r537",
+    "module": "@faker-js/faker",
+    "severity": "high",
+    "pathPrefixes": [".>newman>", ".>openapi-to-postmanv2>"]
+  },
+  {
+    "ghsa": "GHSA-86w9-cpqp-85rv",
+    "module": "node-forge",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-rf6f-7fwh-wjgh",
+    "module": "flatted",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-8r5x-fm3f-whwj",
+    "module": "handlebars",
+    "severity": "critical",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-p8wg-vrv2-v86f",
+    "module": "handlebars",
+    "severity": "critical",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-7wch-p9px-956x",
+    "module": "node-forge",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-jc66-7q78-782g",
+    "module": "node-forge",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-8hrf-8g6f-7xwp",
+    "module": "node-forge",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-hqq3-7jhf-c5jx",
+    "module": "node-forge",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-5x38-2vff-x55p",
+    "module": "node-forge",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  }
+]

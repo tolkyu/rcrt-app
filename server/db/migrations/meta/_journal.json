@@ -71,6 +71,13 @@
       "when": 1793640731606,
       "tag": "0009_team_lead_priority_bounds",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793797200000,
+      "tag": "0010_invite_job_delete_privileges",
+      "breakpoints": true
     }
   ]
 }

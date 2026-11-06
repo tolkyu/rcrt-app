@@ -402,9 +402,11 @@ export function EditRolesDialog({
             submitRef.current?.focus();
           }}
         >
-          <AlertDialogTitle>{t('confirmTitle')}</AlertDialogTitle>
+          <AlertDialogTitle>
+            {t('confirmTitle', { count: removed.length })}
+          </AlertDialogTitle>
           <AlertDialogDescription className="[overflow-wrap:anywhere]">
-            {t('confirmBody', { name: detail.fullName })}
+            {t('confirmBody', { name: detail.fullName, count: removed.length })}
           </AlertDialogDescription>
           <RoleChips roles={removed} tone="removed" namedGlobal />
           <AlertDialogFooter>

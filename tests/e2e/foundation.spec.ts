@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import messages from '../../messages/uk.json' with { type: 'json' };
 
 test('health exposes liveness only and prevents response caching', async ({
   request,
@@ -19,7 +20,10 @@ test('unknown pages use Ukrainian copy and a fresh script nonce', async ({
   expect(response?.status()).toBe(404);
   await expect(page.locator('html')).toHaveAttribute('lang', 'uk');
   await expect(
-    page.getByRole('heading', { name: 'Сторінку не знайдено', exact: true }),
+    page.getByRole('heading', {
+      name: messages.errors.notFoundTitle,
+      exact: true,
+    }),
   ).toBeVisible();
 
   const csp = response?.headers()['content-security-policy'];

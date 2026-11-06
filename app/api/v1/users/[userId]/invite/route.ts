@@ -13,6 +13,7 @@ export const POST = defineRoute(
     method: 'POST',
     path: '/users/{userId}/invite',
     operationId: 'reinviteUser',
+    permission: 'settings.users.manage',
     summary:
       'Invite again after a revoked invite: new 72 h link with the current roles (Admin with aal2, D70)',
     tags: ['Users'],

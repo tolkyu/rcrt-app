@@ -9,6 +9,7 @@ export const GET = defineRoute(
     method: 'GET',
     path: '/users/{userId}',
     operationId: 'getUser',
+    permission: 'settings.users.manage',
     summary:
       'One user: profile, roles, TL priorities, invite state and 2FA state (Admin)',
     tags: ['Users'],

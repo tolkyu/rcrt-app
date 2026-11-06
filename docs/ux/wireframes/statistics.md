@@ -43,6 +43,7 @@ Reference: `reference/07-statistics.webp`. Finance variant: `finance-statistics.
 - **Export (A-39):** one «Експорт ▾» → CSV / XLSX for the current tab + filters.
 
 ## Other tabs (layout pattern)
+
 - Воронка: big FunnelChart + conversion table by vertical/position/recruiter/TL (STAT-02).
 - Час: KPI per metric (time-to-submit, time-to-interview, time-in-stage, time-to-offer, time-to-fill) + line chart + table (STAT-03).
 - Джерела: hires per source, bar chart + table (STAT-04).
@@ -51,9 +52,11 @@ Reference: `reference/07-statistics.webp`. Finance variant: `finance-statistics.
 - Бонуси / Виплати: per `finance-statistics.md` (with Admin/HRec actions per `screens.md` S-12).
 
 ## Mobile 390
+
 - Tabs scroll horizontally; period chip + filter icon (sheet with filters); KPI 2×2 tiles; widgets stacked full width; tables become stacked rows; export in ⋯.
 
 ## States
+
 - Loading: tabs + filters real; KPI skeletons; chart boxes fixed height (no CLS).
 - No data: «За обраний період даних немає».
 - Error per widget; others keep rendering.

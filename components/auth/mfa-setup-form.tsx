@@ -38,6 +38,9 @@ export function MfaSetupForm({
   const tCommon = useTranslations('common');
   const [enrollment, setEnrollment] = useState<MfaEnrollment | null>(null);
   const [failed, setFailed] = useState(false);
+  const [copyState, setCopyState] = useState<
+    'idle' | 'copying' | 'copied' | 'failed'
+  >('idle');
 
   const enroll = useCallback(async () => {
     setFailed(false);
@@ -84,15 +87,48 @@ export function MfaSetupForm({
               alt={t('mfa.qrAlt')}
               width={192}
               height={192}
-              className="border-border rounded-lg border bg-white p-2"
+              className="border-border order-2 rounded-lg border bg-white p-2 md:order-1"
             />
-            <div className="flex w-full flex-col gap-1 text-center">
+            <div className="order-1 flex w-full flex-col gap-2 text-center md:order-2">
               <span className="text-muted-foreground text-xs">
                 {t('mfa.secretLabel')}
               </span>
-              <code className="bg-surface-muted text-foreground rounded-md px-2 py-1 font-mono text-sm break-all select-all">
-                {enrollment.secret}
+              <code className="bg-surface-muted text-foreground rounded-md px-2 py-1 font-mono text-sm select-all">
+                {enrollment.secret.match(/.{1,4}/g)?.join(' ') ??
+                  enrollment.secret}
               </code>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-11"
+                disabled={copyState === 'copying'}
+                onClick={async () => {
+                  setCopyState('copying');
+                  try {
+                    await navigator.clipboard.writeText(enrollment.secret);
+                    setCopyState('copied');
+                  } catch {
+                    setCopyState('failed');
+                  }
+                }}
+              >
+                {t('mfa.copySecret')}
+              </Button>
+              {copyState === 'copied' || copyState === 'failed' ? (
+                <p role="status" className="text-muted-foreground text-xs">
+                  {t(
+                    copyState === 'copied'
+                      ? 'mfa.secretCopied'
+                      : 'mfa.copyFailed',
+                  )}
+                </p>
+              ) : null}
+              <a
+                className="text-link inline-flex min-h-11 items-center justify-center text-sm font-medium hover:underline md:hidden"
+                href={`otpauth://totp/Hiring?secret=${encodeURIComponent(enrollment.secret)}&issuer=Hiring`}
+              >
+                {t('mfa.openAuthenticator')}
+              </a>
             </div>
           </div>
         </TotpCodeForm>

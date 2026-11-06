@@ -1,7 +1,7 @@
 'use client';
 
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
-import { Plus, Search, UsersRound } from 'lucide-react';
+import { MoreHorizontal, Plus, Search, UsersRound } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
@@ -43,6 +43,8 @@ import {
   type UserSearch,
 } from '@/lib/user-filters';
 import { cn } from '@/lib/utils';
+import { useMobile } from '@/lib/use-mobile';
+import type { UserVirtualAttributes } from './users-virtual-list';
 import { loadOrReload } from '@/lib/load-or-reload';
 import { MfaStatus, StatusChip } from './user-status';
 
@@ -73,6 +75,14 @@ const UsersFilterSheet = dynamic(
   { loading: FilterSheetLoading },
 );
 
+const UsersVirtualList = dynamic(
+  () =>
+    loadOrReload(() => import('./users-virtual-list')).then(
+      (module) => module.UsersVirtualList,
+    ),
+  { ssr: false, loading: FilterSheetLoading },
+);
+
 const selectClass =
   'border-input bg-surface text-foreground h-11 w-full rounded-lg border px-3 text-base md:h-10 md:text-sm';
 const SEARCH_DEBOUNCE_MS = 200;
@@ -83,6 +93,7 @@ const COLUMNS = [
   ['status', ''],
   ['mfa', ''],
   ['lastLogin', ''],
+  ['actions', 'w-14'],
 ] as const;
 
 /** Last sign-in is shown in Kyiv time, so «this year» is decided in Kyiv time too. */
@@ -215,6 +226,7 @@ export function UsersView({
   canReadAudit: boolean;
 }) {
   const [inviting, setInviting] = useState(false);
+  const mobile = useMobile();
   const t = useTranslations('settings.users');
   const tRole = useTranslations('common.roles');
   const lastLogin = useLastLogin();
@@ -344,6 +356,132 @@ export function UsersView({
     });
   };
 
+  const desktopUser = (
+    user: UserListItem,
+    attributes: UserVirtualAttributes = {},
+  ) => (
+    <tr
+      {...attributes}
+      key={user.id}
+      onClick={(event) => {
+        // A drag that selected text is not a click; keyboard clicks (detail 0) always open.
+        if (event.detail > 0 && window.getSelection()?.toString()) return;
+        openFromRow(event.currentTarget.querySelector('button'), user.id);
+      }}
+      onPointerEnter={preloadUserDrawer}
+      className={cn(
+        'border-border hover:bg-surface-muted h-14 cursor-pointer border-b align-middle last:border-0',
+        drawerUser === user.id && 'bg-primary-subtle',
+      )}
+    >
+      <th scope="row" className="px-4 py-2 text-left font-normal">
+        <button
+          type="button"
+          onFocus={preloadUserDrawer}
+          aria-haspopup="dialog"
+          data-user-id={user.id}
+          className="rounded-md text-left"
+        >
+          <UserName user={user} self={user.id === currentUserId} />
+        </button>
+      </th>
+      <td className="px-4 py-2">
+        <RoleChips user={user} />
+      </td>
+      <td className="px-4 py-2">
+        <StatusChip user={user} />
+      </td>
+      <td className="px-4 py-2">
+        <MfaStatus mfa={user.mfa} />
+      </td>
+      <td
+        className="text-muted-foreground px-4 py-2 whitespace-nowrap tabular-nums"
+        title={
+          user.lastLoginAt
+            ? t('lastLoginFull', { at: new Date(user.lastLoginAt) })
+            : undefined
+        }
+      >
+        {lastLogin(user.lastLoginAt)}
+      </td>
+      <td className="px-2 py-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={t('rowActions', { name: user.fullName })}
+          aria-haspopup="dialog"
+          onFocus={preloadUserDrawer}
+          onClick={(event) => {
+            event.stopPropagation();
+            openFromRow(event.currentTarget, user.id);
+          }}
+        >
+          <MoreHorizontal aria-hidden="true" />
+        </Button>
+      </td>
+    </tr>
+  );
+  const mobileUser = (
+    user: UserListItem,
+    attributes: UserVirtualAttributes = {},
+  ) => (
+    <li
+      {...attributes}
+      key={user.id}
+      onPointerEnter={preloadUserDrawer}
+      className={cn(
+        'hover:bg-surface-muted relative flex flex-col gap-2 p-4',
+        drawerUser === user.id && 'bg-primary-subtle',
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <button
+          type="button"
+          onClick={(event) => openFromRow(event.currentTarget, user.id)}
+          onFocus={preloadUserDrawer}
+          aria-haspopup="dialog"
+          data-user-id={user.id}
+          className="min-w-0 rounded-md text-left after:absolute after:inset-0"
+        >
+          <UserName user={user} self={user.id === currentUserId} />
+        </button>
+      </div>
+      <div>
+        <StatusChip user={user} />
+      </div>
+      <RoleChips user={user} />
+      <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+        <span className="inline-flex items-center gap-1">
+          {t('mfaLabel')}
+          <MfaStatus mfa={user.mfa} />
+        </span>
+        <span className="tabular-nums">
+          {user.lastLoginAt
+            ? t('lastLoginMobile', { at: lastLogin(user.lastLoginAt) })
+            : t('lastLoginNever')}
+        </span>
+      </div>
+    </li>
+  );
+  const listHeader = (
+    <>
+      <caption className="sr-only">{t('caption')}</caption>
+      <thead>
+        <tr className="border-border text-muted-foreground border-b text-left text-xs">
+          {COLUMNS.map(([column, width]) => (
+            <th
+              key={column}
+              scope="col"
+              className={cn('px-4 py-3 font-medium', width)}
+            >
+              {t(`columns.${column}`)}
+            </th>
+          ))}
+        </tr>
+      </thead>
+    </>
+  );
+
   let body: ReactNode;
   if (!query.data) {
     body = query.isError ? (
@@ -373,119 +511,27 @@ export function UsersView({
         }
       />
     );
-  } else {
+  } else if (items.length > 100) {
     body = (
-      <>
-        <div className="hidden overflow-x-auto md:block">
-          <table className="w-full text-sm">
-            <caption className="sr-only">{t('caption')}</caption>
-            <thead>
-              <tr className="border-border text-muted-foreground border-b text-left text-xs">
-                {COLUMNS.map(([column, width]) => (
-                  <th
-                    key={column}
-                    scope="col"
-                    className={cn('px-4 py-3 font-medium', width)}
-                  >
-                    {t(`columns.${column}`)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((user) => (
-                <tr
-                  key={user.id}
-                  onClick={(event) => {
-                    // A drag that selected text is not a click; keyboard clicks (detail 0) always open.
-                    if (event.detail > 0 && window.getSelection()?.toString())
-                      return;
-                    openFromRow(
-                      event.currentTarget.querySelector('button'),
-                      user.id,
-                    );
-                  }}
-                  onPointerEnter={preloadUserDrawer}
-                  className={cn(
-                    'border-border hover:bg-surface-muted h-14 cursor-pointer border-b align-middle last:border-0',
-                    drawerUser === user.id && 'bg-primary-subtle',
-                  )}
-                >
-                  <th scope="row" className="px-4 py-2 text-left font-normal">
-                    <button
-                      type="button"
-                      onFocus={preloadUserDrawer}
-                      aria-haspopup="dialog"
-                      data-user-id={user.id}
-                      className="rounded-md text-left"
-                    >
-                      <UserName user={user} self={user.id === currentUserId} />
-                    </button>
-                  </th>
-                  <td className="px-4 py-2">
-                    <RoleChips user={user} />
-                  </td>
-                  <td className="px-4 py-2">
-                    <StatusChip user={user} />
-                  </td>
-                  <td className="px-4 py-2">
-                    <MfaStatus mfa={user.mfa} />
-                  </td>
-                  <td
-                    className="text-muted-foreground px-4 py-2 whitespace-nowrap tabular-nums"
-                    title={
-                      user.lastLoginAt
-                        ? t('lastLoginFull', { at: new Date(user.lastLoginAt) })
-                        : undefined
-                    }
-                  >
-                    {lastLogin(user.lastLoginAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <ul
-          className="divide-border divide-y md:hidden"
-          aria-label={t('caption')}
-        >
-          {items.map((user) => (
-            <li
-              key={user.id}
-              onPointerEnter={preloadUserDrawer}
-              className={cn(
-                'hover:bg-surface-muted relative flex flex-col gap-2 p-4',
-                drawerUser === user.id && 'bg-primary-subtle',
-              )}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={(event) => openFromRow(event.currentTarget, user.id)}
-                  onFocus={preloadUserDrawer}
-                  aria-haspopup="dialog"
-                  data-user-id={user.id}
-                  className="min-w-0 rounded-md text-left after:absolute after:inset-0"
-                >
-                  <UserName user={user} self={user.id === currentUserId} />
-                </button>
-                <StatusChip user={user} />
-              </div>
-              <RoleChips user={user} />
-              <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                <span className="inline-flex items-center gap-1">
-                  {t('mfaLabel')}
-                  <MfaStatus mfa={user.mfa} />
-                </span>
-                <span className="tabular-nums">
-                  {t('lastLoginMobile', { at: lastLogin(user.lastLoginAt) })}
-                </span>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </>
+      <UsersVirtualList
+        items={items}
+        header={listHeader}
+        renderDesktop={desktopUser}
+        renderMobile={mobileUser}
+      />
+    );
+  } else {
+    body = mobile ? (
+      <ul className="divide-border divide-y" aria-label={t('caption')}>
+        {items.map((user) => mobileUser(user))}
+      </ul>
+    ) : (
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          {listHeader}
+          <tbody>{items.map((user) => desktopUser(user))}</tbody>
+        </table>
+      </div>
     );
   }
 

@@ -3,7 +3,20 @@
 > Read order: `CLAUDE.md` → this file → `docs/PROGRESS.md` → `docs/PRD.md` §14 (owner decisions D1–D70).
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
-## State — 2026-11-04
+## Closure checkpoint — 2026-11-06 (local Phase 1 complete)
+
+- Local Phase 1 is complete. Foundation polish, MFA recovery/reset, actual protected HTTP 404, bounded audit keyboard navigation, lazy users virtualization, CI/local Supabase tooling and additive migration 0010 are implemented. Independent code/security/database/visual reviews approve the local implementation; all local combined gates pass.
+- Phase 2 is not started. The next work is vacancies/candidates under PRD §15; wait for the owner's «go phase 2» before starting it.
+- Fresh verification: lint, TypeScript, production build, **2,293 Vitest tests**, schema consistency, secret/dev-route scan and dependency audit pass. All initial JavaScript is ≤180 kB: users **166.10**, audit **166.41**, login **179.32** kB. Audit: zero production advisories, 48 reviewed tooling advisories.
+- Fresh native runtime **5/5** and authenticated Lighthouse **10/10** pass on 2026-11-06 (`docs/perf/report-phase-1.md`). Runtime list/detail/write P95 ≤42.57/30.79/40.61 ms; desktop/mobile median LCP ≤508/1,100 ms, CLS 0; route interaction ≤64/160 ms, 100-row interaction 48/168 ms and warm navigation 65.7/118.5 ms. Lighthouse uses three samples per screen/device. Lab interaction is not field INP; hosted performance remains unverified.
+- Fresh browser gates pass: default-order E2E **228 passed + one existing mobile hover skip**; public screenshot suite **52/52**; corrected dialog screenshot spec **2/2 on two repeated runs**. Do not use `--no-deps` across the whole suite; it removes required desktop-before-mobile mutation sequencing.
+- Gallery: **274 Phase-1 PNGs plus four Foundation 404 captures**, 278 unique valid image links. Independent QA approves repeat determinism: 270 Phase-1 + four Foundation images match the old baseline; four desktop JSON/missing-record captures intentionally changed to a fixed backdrop and remain stable on repeat. Phase/latest PNG and HTML bytes match. Local visual review is approved; G-21/G-14 horizontal-scroll polish has an explicit nonblocking disposition.
+- Newman: **289 requests / 1,679 assertions, zero failures**. OpenAPI/Postman generated twice with identical bytes. Final source formatting/lint/TypeScript pass after the test-only screenshot fixture correction.
+- T7 tests/gallery, T8 Foundation performance and T9 applicable hardening/reviews are complete locally. The orchestrator records the reviewed closure commit and Ukrainian owner report. Remote CI execution and hosted verification remain separate evidence; no demo-data reset or deployment was performed.
+- Boundaries: hosted Auth/Google/Frankfurt verification remains pre-deployment; candidate/vacancy volume and reassignment Phase 2–3; orphan Auth/rate-bucket cleanup Phase 6 jobs; backups/monitoring/final launch checks Phase 7. Telegram requires owner answers first. See `docs/phase-1-completion.md` and final security review.
+- Owner demo: local `admin@demo` → «Налаштування» → «Користувачі та ролі» → user card/roles/invite; «Журнал» → filters/detail; «Профіль» → theme/security. Gallery: `screenshots/phase-1/index.html`. No new product question remains for this closure.
+
+## Previous state — 2026-11-04
 
 - **Working mode (owner):** one small slice end-to-end → commit → report → wait for «далі».
 - **Working mode:** owner wants the team agents used (engineer → QA → code-reviewer + security → engineer fixes); orchestrator verifies, commits, reports in Ukrainian only.

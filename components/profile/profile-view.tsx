@@ -60,8 +60,11 @@ function AppearanceCard() {
                     onChange={() => setTheme(option)}
                     className="sr-only"
                   />
-                  <Icon className="size-4 shrink-0" aria-hidden="true" />
-                  <span className="truncate">{tTheme(option)}</span>
+                  <Icon
+                    className="hidden size-4 shrink-0 min-[400px]:block"
+                    aria-hidden="true"
+                  />
+                  <span>{tTheme(option)}</span>
                 </label>
               );
             })}
@@ -89,7 +92,7 @@ export function ProfileView() {
     );
   const roles = sortRoles(me.roles);
   return (
-    <div className="grid gap-6 lg:grid-cols-12">
+    <div className="grid items-start gap-6 lg:grid-cols-12">
       <Card className="lg:col-span-7">
         <CardHeader>
           <CardTitle>{t('personalTitle')}</CardTitle>
@@ -106,7 +109,7 @@ export function ProfileView() {
               </p>
             </div>
           </div>
-          <ProfileNameForm key={me.user.fullName} fullName={me.user.fullName} />
+          <ProfileNameForm fullName={me.user.fullName} />
           <div className="flex flex-col gap-1">
             <span className="text-foreground text-sm font-medium">
               {t('emailLabel')}
@@ -114,7 +117,15 @@ export function ProfileView() {
             <p className="bg-surface-muted text-foreground rounded-lg px-3 py-2.5 text-sm break-all">
               {me.user.email}
             </p>
-            <p className="text-muted-foreground text-xs">{t('emailHint')}</p>
+            <p className="text-muted-foreground text-xs">
+              {t(
+                me.grants.some(
+                  (grant) => grant.permission === 'settings.users.manage',
+                )
+                  ? 'emailHintAdmin'
+                  : 'emailHint',
+              )}
+            </p>
           </div>
         </CardContent>
       </Card>

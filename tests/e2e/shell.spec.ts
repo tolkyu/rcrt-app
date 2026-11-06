@@ -371,38 +371,48 @@ test('deferred theme menu works by pointer and applies the choice [UI-05, PERF-0
   expect(await themeCookie(page)).toBe('dark');
 });
 
-test('vertical switcher stores the chosen vertical and shows it on the trigger [design-system §5, PERF-04]', async ({
+test('Phase-1 profile and settings omit a vertical selector that cannot filter their content [RB-05, UI-05]', async ({
   browser,
+  page: fixturePage,
   isMobile,
 }) => {
-  test.skip(isMobile, 'the switcher lives in the desktop top bar');
-  const context = await browser.newContext({
-    baseURL: E2E_ORIGIN,
-    storageState: sessionFile('head.hr@demo'),
-  });
-  try {
-    const page = await context.newPage();
-    await page.goto('/profile');
-    await page
-      .getByRole('button', {
-        name: t.shell.verticalFilter.replace('{name}', t.shell.allVerticals),
-      })
-      .click();
-    await page
-      .getByRole('menu')
-      .getByRole('menuitemradio', { name: 'Крипто', exact: true })
-      .click();
-    await expect(
-      page.getByRole('button', {
-        name: t.shell.verticalFilter.replace('{name}', 'Крипто'),
-      }),
-    ).toBeVisible();
-    const vertical = (await context.cookies()).find(
-      (cookie) => cookie.name === 'vertical',
-    );
-    expect(vertical?.value).toMatch(/^[0-9a-f-]{36}$/);
-  } finally {
-    await context.close();
+  for (const [email, paths] of [
+    ['head.hr@demo', ['/profile']],
+    [
+      'admin@demo',
+      [
+        '/profile',
+        '/settings/users',
+        '/settings/verticals',
+        '/settings/priorities',
+        '/settings/audit',
+      ],
+    ],
+  ] as const) {
+    const context = await browser.newContext({
+      baseURL: E2E_ORIGIN,
+      storageState: sessionFile(email),
+      viewport: fixturePage.viewportSize()!,
+      isMobile,
+      hasTouch: isMobile,
+    });
+    try {
+      const page = await context.newPage();
+      for (const path of paths) {
+        await page.goto(path);
+        await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+        await expect(
+          page.getByRole('button', {
+            name: new RegExp(`^${t.shell.verticalFilter.split('{name}')[0]}`),
+          }),
+        ).toHaveCount(0);
+      }
+      expect(
+        (await context.cookies()).find((cookie) => cookie.name === 'vertical'),
+      ).toBeUndefined();
+    } finally {
+      await context.close();
+    }
   }
 });
 

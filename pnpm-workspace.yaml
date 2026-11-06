@@ -5,3 +5,6 @@ allowBuilds:
 engineStrict: true
 minimumReleaseAge: 1440
 strictPeerDependencies: false
+overrides:
+  'next>postcss': 8.5.23
+  'openapi-to-postmanv2>js-yaml': 4.3.2

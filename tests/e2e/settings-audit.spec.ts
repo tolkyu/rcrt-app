@@ -376,16 +376,12 @@ test('changing action or view filters restarts a previously evicted cache window
   );
   await page.goto('/settings/audit');
   await selectAction(page, 'vertical.created');
-  const firstPage = page.getByRole('button', {
-    name: /^Відкрити запис:.*:01:00/,
-  });
-  const thirdPage = page.getByRole('button', {
-    name: /^Відкрити запис:.*:03:00/,
-  });
+  const firstPage = page.locator('[data-audit-row="9001"] [data-row-open]');
+  const thirdPage = page.locator('[data-audit-row="9003"] [data-row-open]');
   await expect(firstPage).toBeVisible();
   await page.getByRole('button', { name: t.loadMore, exact: true }).click();
   await expect(
-    page.getByRole('button', { name: /^Відкрити запис:.*:02:00/ }),
+    page.locator('[data-audit-row="9002"] [data-row-open]'),
   ).toBeVisible();
   await page.getByRole('button', { name: t.loadMore, exact: true }).click();
   await expect(thirdPage).toBeVisible();
@@ -504,6 +500,61 @@ function auditWindow(page: Page, rows: readonly AuditRow[]) {
 const newerRequests = (calls: readonly URL[]) =>
   calls.filter((url) => url.searchParams.get('direction') === 'newer');
 
+test('j/k follow retained audit rows in the open sheet without paging or changing filters [STORY-AUD-2/4]', async ({
+  page,
+}) => {
+  const rows = deniedRows(8);
+  const calls = await routeAuditWindow(page, rows, { pageSize: 3 });
+  await page.route(/\/api\/v1\/audit\/\d+$/, (route) => {
+    const id = new URL(route.request().url()).pathname.split('/').at(-1);
+    return route.fulfill({
+      json: {
+        ...rows.find((row) => row.id === id)!,
+        before: null,
+        after: null,
+        details: null,
+        userAgent: null,
+        requestId: null,
+        detailLabels: {},
+      } satisfies AuditRecord,
+    });
+  });
+  await page.goto('/settings/audit');
+  await page
+    .getByLabel(t.filters.result, { exact: true })
+    .selectOption('DENIED');
+  await expect(page.locator('[data-audit-row]:visible')).toHaveCount(3);
+  await page.locator('[data-row-open]:visible').first().click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  const before = calls.length;
+  await page.keyboard.press('k');
+  await expect(page).toHaveURL(new RegExp(`record=${rows[0]!.id}`));
+  await page.keyboard.press('j');
+  await expect(page).toHaveURL(new RegExp(`record=${rows[1]!.id}`));
+  await page.keyboard.press('Shift+J');
+  await expect(page).toHaveURL(new RegExp(`record=${rows[1]!.id}`));
+  await page.keyboard.press('j');
+  await expect(page).toHaveURL(new RegExp(`record=${rows[2]!.id}`));
+  await page.keyboard.press('j');
+  await expect(page).toHaveURL(new RegExp(`record=${rows[2]!.id}`));
+  await page.keyboard.press('k');
+  await expect(page).toHaveURL(new RegExp(`record=${rows[1]!.id}`));
+  expect(new URL(page.url()).searchParams.get('result')).toBe('DENIED');
+  expect(calls.length).toBe(before);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByLabel(t.filters.period, { exact: true }).focus();
+  await page.keyboard.press('j');
+  expect(new URL(page.url()).searchParams.has('record')).toBe(false);
+  const viewport = page.viewportSize()!;
+  for (const width of [390, 1440]) {
+    await page.setViewportSize({ width, height: viewport.height });
+    await expect(page.locator('[data-audit-row]')).toHaveCount(3);
+    await expect(page.locator('table')).toHaveCount(width < 768 ? 0 : 1);
+  }
+  await page.setViewportSize(viewport);
+});
+
 test('«Показати новіші» returns from an evicted window to the newest records with a stable anchor row and focus [STORY-AUD-4]', async ({
   page,
   isMobile,
@@ -561,7 +612,7 @@ test('«Показати новіші» returns from an evicted window to the ne
   expect(await shownIds()).toEqual(idsOf(50, 150));
   await expect(loadNewer).toBeFocused();
   await expect(loadMore).toBeVisible();
-  const shown = page.getByText(t.shown.replace('{shown}', '100'), {
+  const shown = page.getByText('Показано 100 записів', {
     exact: true,
   });
   await expect(shown).toBeVisible();
@@ -1284,7 +1335,7 @@ test('audit list and detail render without overflow in both themes [SHOT-01..03,
     await capture('list');
     await page
       .getByRole('button', {
-        name: new RegExp(`^Відкрити запис: ${t.actions.vertical.renamed},`),
+        name: new RegExp(`^Відкрити запис: ${t.actions.vertical.renamed}`),
       })
       .click();
     await expect(
@@ -1297,7 +1348,7 @@ test('audit list and detail render without overflow in both themes [SHOT-01..03,
     await page
       .getByRole('button', {
         name: new RegExp(
-          `^Відкрити запис: ${t.actions.auth.mfa_challenge_failed},`,
+          `^Відкрити запис: ${t.actions.auth.mfa_challenge_failed}`,
         ),
       })
       .click();

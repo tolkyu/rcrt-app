@@ -578,6 +578,21 @@ describe('defineRoute: transport checks, context and problem+json mapping [FND-4
             return query;
           },
         ),
+        protected: defineRoute(
+          {
+            method: 'POST',
+            path: '/protected',
+            operationId: 'protected',
+            permission: 'settings.users.manage',
+            summary: 'protected',
+            tags: ['t'],
+            query: z.object({ limit: z.coerce.number().int().max(100) }),
+            body: z.object({ name: z.string().min(2) }).strict(),
+            response: z.object({ ok: z.boolean() }),
+            errors: [400, 404],
+          },
+          async () => ({ ok: true }),
+        ),
         create: defineRoute(
           {
             method: 'POST',
@@ -607,7 +622,7 @@ describe('defineRoute: transport checks, context and problem+json mapping [FND-4
         const route =
           name === 'things'
             ? routes.create
-            : routes[name as 'me' | 'verticals' | 'page'];
+            : routes[name as 'me' | 'verticals' | 'page' | 'protected'];
         const headers = new Headers(init.headers);
         if (init.actor) headers.set('x-test-actor', init.actor);
         if (init.aal) headers.set('x-test-aal', init.aal);
@@ -618,7 +633,7 @@ describe('defineRoute: transport checks, context and problem+json mapping [FND-4
       await fn(call, log);
       expect(
         Object.keys(buildOpenApiDocument(registry).paths ?? {}).sort(),
-      ).toEqual(['/me', '/page', '/things/{id}', '/verticals']);
+      ).toEqual(['/me', '/page', '/protected', '/things/{id}', '/verticals']);
     });
   }
   const unsafeHeaders = {
@@ -632,6 +647,48 @@ describe('defineRoute: transport checks, context and problem+json mapping [FND-4
     );
     return response.json();
   };
+
+  it('checks permission before query, JSON and body validation [VIS-02, SEC-INV-01]', async () => {
+    await withRoutes(async (call) => {
+      for (const actor of [
+        'finance',
+        'headA',
+        'recruiterB',
+        'noRole',
+      ] as const) {
+        for (const body of ['{invalid json', '{}', '{"name":"ok"}']) {
+          const response = await call('/protected?limit=invalid', {
+            actor,
+            aal: 'aal2',
+            method: 'POST',
+            headers: unsafeHeaders,
+            body,
+          });
+          expect(await problem(response)).toMatchObject({
+            status: 404,
+            code: 'NOT_FOUND',
+          });
+        }
+      }
+      const callAsAdmin = (aal: 'aal1' | 'aal2', body: string) =>
+        call('/protected?limit=5', {
+          actor: 'admin',
+          aal,
+          method: 'POST',
+          headers: unsafeHeaders,
+          body,
+        });
+      expect(await problem(await callAsAdmin('aal1', '{bad'))).toMatchObject({
+        status: 401,
+        code: 'MFA_REQUIRED',
+      });
+      expect(await problem(await callAsAdmin('aal2', '{}'))).toMatchObject({
+        status: 400,
+        code: 'VALIDATION_FAILED',
+      });
+      expect((await callAsAdmin('aal2', '{"name":"ok"}')).status).toBe(200);
+    });
+  });
 
   it('maps authentication failures to 401 codes', async () => {
     await withRoutes(async (call) => {
@@ -648,6 +705,19 @@ describe('defineRoute: transport checks, context and problem+json mapping [FND-4
       expect(
         (await problem(await call('/verticals', { actor: 'admin' }))).code,
       ).toBe('MFA_REQUIRED');
+    });
+  });
+
+  it('reports only elapsed application time for successful and denied requests [PERF-02]', async () => {
+    await withRoutes(async (call, log) => {
+      for (const actor of ['multi', undefined] as const) {
+        const response = await call('/me', { actor });
+        const timing = response.headers.get('server-timing');
+        expect(timing).toMatch(/^app;dur=\d+\.\d{2}$/);
+        const duration = Number(timing!.split('=')[1]);
+        expect(duration).toBeGreaterThanOrEqual(0);
+        expect(Math.abs(duration - log.at(-1)!.ms)).toBeLessThanOrEqual(0.51);
+      }
     });
   });
 
@@ -734,12 +804,10 @@ describe('defineRoute: transport checks, context and problem+json mapping [FND-4
         (await problem(await post(`/things/${id}`, '{not json'))).errors,
       ).toEqual([{ path: 'body', code: 'invalid_json' }]);
       expect(
-        (
-          await problem(
-            await post('/things/not-a-uuid', JSON.stringify({ name: 'ok' })),
-          )
-        ).errors[0].path,
-      ).toBe('params.id');
+        await problem(
+          await post('/things/not-a-uuid', JSON.stringify({ name: 'ok' })),
+        ),
+      ).toMatchObject({ status: 404, code: 'NOT_FOUND' });
       expect(
         await problem(
           await post(`/things/${id}`, JSON.stringify({ name: 'conflict' })),

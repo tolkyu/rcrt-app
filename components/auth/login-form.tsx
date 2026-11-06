@@ -14,6 +14,7 @@ import {
   oauthStartResponseSchema,
 } from '@/lib/schemas/auth';
 import { AuthCard, FormMessage } from './auth-card';
+import { GoogleMark } from './google-mark';
 import { rememberNextPath } from './next-path';
 
 type Reason =
@@ -148,6 +149,7 @@ export function LoginForm({
             onClick={startGoogle}
             disabled={googlePending}
           >
+            <GoogleMark />
             {googlePending ? t('login.googleStarting') : t('login.google')}
           </Button>
         </>

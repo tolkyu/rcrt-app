@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { lazy, type ComponentProps } from 'react';
-import { Avatar } from '@/components/ui/avatar';
+import { Avatar, initials } from '@/components/ui/avatar';
 import { DeferredMenu, useDeferredMenu } from '@/components/ui/deferred-menu';
 import { Skeleton } from '@/components/ui/skeleton';
 import { meQuery } from '@/lib/queries/me';
@@ -24,15 +24,19 @@ export function UserMenu() {
   const trigger = (props: ComponentProps<'button'>) => (
     <button
       type="button"
-      aria-label={t('userMenu')}
+      aria-label={t('userMenuFor', {
+        initials: initials(me.user.fullName),
+        name: me.user.fullName,
+        roles: roleText,
+      })}
       className="hover:bg-surface-muted flex min-h-11 items-center gap-3 rounded-lg px-1 text-left md:px-2"
       {...props}
     >
-      <Avatar name={me.user.fullName} />
+      <Avatar name={me.user.fullName} />{' '}
       <span className="hidden max-w-56 min-w-0 flex-col md:flex">
         <span className="text-foreground truncate text-sm font-semibold">
           {me.user.fullName}
-        </span>
+        </span>{' '}
         {roleText && (
           <span className="text-muted-foreground truncate text-xs">
             {roleText}

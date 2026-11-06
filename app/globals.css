@@ -9,7 +9,7 @@
 :root {
   color-scheme: light dark;
 
-  --brand: light-dark(#6366f1, #818cf8);
+  --brand: light-dark(#6366f1, #5558ef);
   --cyan: light-dark(#06b6d4, #22d3ee);
   --magenta: light-dark(#ec4899, #f472b6);
   --yellow: light-dark(#f59e0b, #fbbf24);
@@ -17,7 +17,7 @@
   --surface: light-dark(#ffffff, #111827);
   --surface-muted: light-dark(#f1f5f9, #1f2937);
   --foreground: light-dark(#0f172a, #f8fafc);
-  --muted-foreground: light-dark(#64748b, #94a3b8);
+  --muted-foreground: light-dark(#5b6b82, #94a3b8);
   --muted-foreground-strong: light-dark(#475569, #94a3b8);
   --border: light-dark(#e2e8f0, #334155);
   --success: light-dark(#22c55e, #34d399);
@@ -33,8 +33,8 @@
   --primary-subtle: light-dark(#eef2ff, #232b48);
   --ring: light-dark(#6366f1, #818cf8);
   --input: light-dark(#7b8698, #64748b);
-  --success-text: light-dark(#15803d, #34d399);
-  --warning-text: light-dark(#b45309, #fbbf24);
+  --success-text: light-dark(#166534, #34d399);
+  --warning-text: light-dark(#92400e, #fbbf24);
   --error-text: light-dark(#b91c1c, #f87171);
   --destructive: #dc2626;
   --destructive-subtle: light-dark(#fef2f2, #3a1d24);

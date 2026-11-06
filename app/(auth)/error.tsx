@@ -13,7 +13,10 @@ export default function AuthError({ reset }: { reset: () => void }) {
       <Button variant="secondary" onClick={reset}>
         {t('retry')}
       </Button>
-      <Link href="/login" className="text-sm font-medium text-link underline-offset-4 hover:underline">
+      <Link
+        href="/login"
+        className="text-link text-sm font-medium underline-offset-4 hover:underline"
+      >
         {t('backToLogin')}
       </Link>
     </AuthCard>

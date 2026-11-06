@@ -124,6 +124,9 @@ describe('MFA session binding and failure recovery [D22, D63, T4-F04/F05]', () =
             verifyTotp: challenge,
           }),
         };
+        const bucketsBefore = await ctx.db
+          .select()
+          .from(schema.rateLimitBucket);
         await expect(enrollTotp(deps, request, cookies)).rejects.toMatchObject({
           code: 'UNAUTHENTICATED',
           status: 401,
@@ -139,6 +142,8 @@ describe('MFA session binding and failure recovery [D22, D63, T4-F04/F05]', () =
         expect(list).not.toHaveBeenCalled();
         expect(enroll).not.toHaveBeenCalled();
         expect(challenge).not.toHaveBeenCalled();
+        const buckets = await ctx.db.select().from(schema.rateLimitBucket);
+        expect(buckets).toEqual(bucketsBefore);
       });
     },
   );

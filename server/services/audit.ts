@@ -29,6 +29,8 @@ import {
   listAuditEntries,
 } from '../repositories/audit';
 import { listUserOptions } from '../repositories/user';
+import { rateLimitSecret } from '../config/runtime';
+import { consumeSearchRateLimit } from '../security/rate-limit';
 
 /** Detail keys whose value is a user id that the record view names (`vertical.tl_priority_changed`). */
 const USER_DETAIL_KEYS = ['teamLead'] as const;
@@ -137,6 +139,7 @@ export async function listAuditActors(
 ): Promise<AuditActorPage> {
   requirePermission(ctx.auth, 'audit.read');
   const query = auditActorQuerySchema.parse(input);
+  if (query.q) await consumeSearchRateLimit(ctx, rateLimitSecret());
   const rows = await listUserOptions(
     ctx.db,
     query.q,

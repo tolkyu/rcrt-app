@@ -8,18 +8,10 @@
   "servers": [
     {
       "url": "{origin}/api/v1",
-      "variables": {
-        "origin": {
-          "default": "http://localhost:3000"
-        }
-      }
+      "variables": { "origin": { "default": "http://localhost:3000" } }
     }
   ],
-  "security": [
-    {
-      "bearerAuth": []
-    }
-  ],
+  "security": [{ "bearerAuth": [] }],
   "components": {
     "securitySchemes": {
       "bearerAuth": {
@@ -33,133 +25,47 @@
       "AuditRecord": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string"
-          },
-          "occurredAt": {
-            "type": "string",
-            "format": "date-time"
-          },
+          "id": { "type": "string" },
+          "occurredAt": { "type": "string", "format": "date-time" },
           "actor": {
-            "type": [
-              "object",
-              "null"
-            ],
+            "type": ["object", "null"],
             "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "fullName": {
-                "type": "string"
-              },
-              "isActive": {
-                "type": "boolean"
-              }
+              "id": { "type": "string", "format": "uuid" },
+              "fullName": { "type": "string" },
+              "isActive": { "type": "boolean" }
             },
-            "required": [
-              "id",
-              "fullName",
-              "isActive"
-            ]
+            "required": ["id", "fullName", "isActive"]
           },
           "actorKind": {
             "type": "string",
-            "enum": [
-              "USER",
-              "SYSTEM",
-              "ADMIN_FORCE"
-            ]
+            "enum": ["USER", "SYSTEM", "ADMIN_FORCE"]
           },
-          "action": {
-            "type": "string"
-          },
-          "result": {
-            "type": "string",
-            "enum": [
-              "SUCCESS",
-              "DENIED"
-            ]
-          },
+          "action": { "type": "string" },
+          "result": { "type": "string", "enum": ["SUCCESS", "DENIED"] },
           "entity": {
-            "type": [
-              "object",
-              "null"
-            ],
+            "type": ["object", "null"],
             "properties": {
-              "type": {
-                "type": "string"
-              },
-              "id": {
-                "type": "string"
-              },
-              "label": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              }
+              "type": { "type": "string" },
+              "id": { "type": "string" },
+              "label": { "type": ["string", "null"] }
             },
-            "required": [
-              "type",
-              "id",
-              "label"
-            ]
+            "required": ["type", "id", "label"]
           },
-          "ip": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
+          "ip": { "type": ["string", "null"] },
           "before": {
-            "type": [
-              "object",
-              "array",
-              "string",
-              "number",
-              "boolean",
-              "null"
-            ]
+            "type": ["object", "array", "string", "number", "boolean", "null"]
           },
           "after": {
-            "type": [
-              "object",
-              "array",
-              "string",
-              "number",
-              "boolean",
-              "null"
-            ]
+            "type": ["object", "array", "string", "number", "boolean", "null"]
           },
           "details": {
-            "type": [
-              "object",
-              "array",
-              "string",
-              "number",
-              "boolean",
-              "null"
-            ]
+            "type": ["object", "array", "string", "number", "boolean", "null"]
           },
-          "userAgent": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "requestId": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uuid"
-          },
+          "userAgent": { "type": ["string", "null"] },
+          "requestId": { "type": ["string", "null"], "format": "uuid" },
           "detailLabels": {
             "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            },
+            "additionalProperties": { "type": "string" },
             "description": "Current names for user ids in `details` (e.g. `teamLead`), Admin-only like entity labels."
           }
         },
@@ -183,51 +89,28 @@
       "Problem": {
         "type": "object",
         "properties": {
-          "type": {
-            "type": "string"
-          },
-          "status": {
-            "type": "integer"
-          },
-          "code": {
-            "type": "string"
-          },
-          "requestId": {
-            "type": "string",
-            "format": "uuid"
-          },
+          "type": { "type": "string" },
+          "status": { "type": "integer" },
+          "code": { "type": "string" },
+          "requestId": { "type": "string", "format": "uuid" },
           "errors": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "path": {
-                  "type": "string"
-                },
-                "code": {
-                  "type": "string"
-                }
+                "path": { "type": "string" },
+                "code": { "type": "string" }
               },
-              "required": [
-                "path",
-                "code"
-              ]
+              "required": ["path", "code"]
             }
           },
           "details": {
             "type": "object",
-            "additionalProperties": {
-              "type": "string"
-            },
+            "additionalProperties": { "type": "string" },
             "description": "Ids the caller may act on next, e.g. `userId` of the deactivated holder of an invited address."
           }
         },
-        "required": [
-          "type",
-          "status",
-          "code",
-          "requestId"
-        ],
+        "required": ["type", "status", "code", "requestId"],
         "description": "RFC 9457 problem details; `code` is a stable error code."
       },
       "AuditActorPage": {
@@ -235,155 +118,69 @@
         "properties": {
           "items": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AuditActor"
-            }
+            "items": { "$ref": "#/components/schemas/AuditActor" }
           },
-          "nextCursor": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "uuid"
-          }
+          "nextCursor": { "type": ["string", "null"], "format": "uuid" }
         },
-        "required": [
-          "items",
-          "nextCursor"
-        ]
+        "required": ["items", "nextCursor"]
       },
       "AuditActor": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "fullName": {
-            "type": "string"
-          },
-          "isActive": {
-            "type": "boolean"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "fullName": { "type": "string" },
+          "isActive": { "type": "boolean" }
         },
-        "required": [
-          "id",
-          "fullName",
-          "isActive"
-        ]
+        "required": ["id", "fullName", "isActive"]
       },
       "AuditPage": {
         "type": "object",
         "properties": {
           "items": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AuditEntry"
-            }
+            "items": { "$ref": "#/components/schemas/AuditEntry" }
           },
           "nextCursor": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "description": "Older matching records exist after the last item; pass as `cursor`."
           },
           "prevCursor": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "description": "Newer matching records exist before the first item; pass as `cursor` with `direction=newer`. Always null without `cursor`."
           }
         },
-        "required": [
-          "items",
-          "nextCursor",
-          "prevCursor"
-        ]
+        "required": ["items", "nextCursor", "prevCursor"]
       },
       "AuditEntry": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string"
-          },
-          "occurredAt": {
-            "type": "string",
-            "format": "date-time"
-          },
+          "id": { "type": "string" },
+          "occurredAt": { "type": "string", "format": "date-time" },
           "actor": {
-            "type": [
-              "object",
-              "null"
-            ],
+            "type": ["object", "null"],
             "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "fullName": {
-                "type": "string"
-              },
-              "isActive": {
-                "type": "boolean"
-              }
+              "id": { "type": "string", "format": "uuid" },
+              "fullName": { "type": "string" },
+              "isActive": { "type": "boolean" }
             },
-            "required": [
-              "id",
-              "fullName",
-              "isActive"
-            ]
+            "required": ["id", "fullName", "isActive"]
           },
           "actorKind": {
             "type": "string",
-            "enum": [
-              "USER",
-              "SYSTEM",
-              "ADMIN_FORCE"
-            ]
+            "enum": ["USER", "SYSTEM", "ADMIN_FORCE"]
           },
-          "action": {
-            "type": "string"
-          },
-          "result": {
-            "type": "string",
-            "enum": [
-              "SUCCESS",
-              "DENIED"
-            ]
-          },
+          "action": { "type": "string" },
+          "result": { "type": "string", "enum": ["SUCCESS", "DENIED"] },
           "entity": {
-            "type": [
-              "object",
-              "null"
-            ],
+            "type": ["object", "null"],
             "properties": {
-              "type": {
-                "type": "string"
-              },
-              "id": {
-                "type": "string"
-              },
-              "label": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              }
+              "type": { "type": "string" },
+              "id": { "type": "string" },
+              "label": { "type": ["string", "null"] }
             },
-            "required": [
-              "type",
-              "id",
-              "label"
-            ]
+            "required": ["type", "id", "label"]
           },
-          "ip": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
+          "ip": { "type": ["string", "null"] }
         },
         "required": [
           "id",
@@ -398,27 +195,14 @@
       },
       "AuthRedirect": {
         "type": "object",
-        "properties": {
-          "redirectTo": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "redirectTo"
-        ],
+        "properties": { "redirectTo": { "type": "string" } },
+        "required": ["redirectTo"],
         "additionalProperties": false
       },
       "OAuthStart": {
         "type": "object",
-        "properties": {
-          "url": {
-            "type": "string",
-            "format": "uri"
-          }
-        },
-        "required": [
-          "url"
-        ],
+        "properties": { "url": { "type": "string", "format": "uri" } },
+        "required": ["url"],
         "additionalProperties": false
       },
       "InviteInspection": {
@@ -426,61 +210,31 @@
           {
             "type": "object",
             "properties": {
-              "state": {
-                "type": "string",
-                "enum": [
-                  "VALID"
-                ]
-              },
-              "fullName": {
-                "type": "string"
-              },
-              "email": {
-                "type": "string"
-              },
+              "state": { "type": "string", "enum": ["VALID"] },
+              "fullName": { "type": "string" },
+              "email": { "type": "string" },
+              "expiresAt": { "type": "string", "format": "date-time" },
               "roles": {
                 "type": "array",
                 "items": {
                   "type": "object",
                   "properties": {
-                    "role": {
-                      "type": "string"
-                    },
-                    "vertical": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    }
+                    "role": { "type": "string" },
+                    "vertical": { "type": ["string", "null"] }
                   },
-                  "required": [
-                    "role",
-                    "vertical"
-                  ]
+                  "required": ["role", "vertical"]
                 }
               }
             },
-            "required": [
-              "state",
-              "fullName",
-              "email",
-              "roles"
-            ],
+            "required": ["state", "fullName", "email", "expiresAt", "roles"],
             "additionalProperties": false
           },
           {
             "type": "object",
             "properties": {
-              "state": {
-                "type": "string",
-                "enum": [
-                  "INVALID"
-                ]
-              }
+              "state": { "type": "string", "enum": ["INVALID"] }
             },
-            "required": [
-              "state"
-            ],
+            "required": ["state"],
             "additionalProperties": false
           }
         ]
@@ -493,13 +247,8 @@
             "items": {
               "type": "object",
               "properties": {
-                "id": {
-                  "type": "string"
-                },
-                "occurredAt": {
-                  "type": "string",
-                  "format": "date-time"
-                },
+                "id": { "type": "string" },
+                "occurredAt": { "type": "string", "format": "date-time" },
                 "action": {
                   "type": "string",
                   "enum": [
@@ -510,37 +259,11 @@
                     "mfa_challenge_failed"
                   ]
                 },
-                "result": {
-                  "type": "string",
-                  "enum": [
-                    "SUCCESS",
-                    "DENIED"
-                  ]
-                },
-                "method": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "reason": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "ip": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "userAgent": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                }
+                "result": { "type": "string", "enum": ["SUCCESS", "DENIED"] },
+                "method": { "type": ["string", "null"] },
+                "reason": { "type": ["string", "null"] },
+                "ip": { "type": ["string", "null"] },
+                "userAgent": { "type": ["string", "null"] }
               },
               "required": [
                 "id",
@@ -555,79 +278,37 @@
               "additionalProperties": false
             }
           },
-          "nextCursor": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
+          "nextCursor": { "type": ["string", "null"] }
         },
-        "required": [
-          "items",
-          "nextCursor"
-        ],
+        "required": ["items", "nextCursor"],
         "additionalProperties": false
       },
       "MfaEnrollment": {
         "type": "object",
         "properties": {
-          "factorId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "qrCode": {
-            "type": "string"
-          },
-          "secret": {
-            "type": "string"
-          }
+          "factorId": { "type": "string", "format": "uuid" },
+          "qrCode": { "type": "string" },
+          "secret": { "type": "string" }
         },
-        "required": [
-          "factorId",
-          "qrCode",
-          "secret"
-        ],
+        "required": ["factorId", "qrCode", "secret"],
         "additionalProperties": false
       },
       "MfaStatus": {
         "type": "object",
         "properties": {
-          "aal": {
-            "type": "string",
-            "enum": [
-              "aal1",
-              "aal2"
-            ]
-          },
-          "required": {
-            "type": "boolean"
-          },
-          "hasOtherGrants": {
-            "type": "boolean"
-          },
-          "canAddFactor": {
-            "type": "boolean"
-          },
+          "aal": { "type": "string", "enum": ["aal1", "aal2"] },
+          "required": { "type": "boolean" },
+          "hasOtherGrants": { "type": "boolean" },
+          "canAddFactor": { "type": "boolean" },
           "factors": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "id": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "name": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                }
+                "id": { "type": "string", "format": "uuid" },
+                "name": { "type": ["string", "null"] }
               },
-              "required": [
-                "id",
-                "name"
-              ]
+              "required": ["id", "name"]
             }
           }
         },
@@ -648,36 +329,15 @@
             "items": {
               "type": "object",
               "properties": {
-                "id": {
-                  "type": "string",
-                  "format": "uuid"
-                },
+                "id": { "type": "string", "format": "uuid" },
                 "method": {
                   "type": "string",
-                  "enum": [
-                    "MAGIC_LINK",
-                    "GOOGLE",
-                    "INVITE",
-                    "DEV"
-                  ]
+                  "enum": ["MAGIC_LINK", "GOOGLE", "INVITE", "DEV"]
                 },
-                "startedAt": {
-                  "type": "string",
-                  "format": "date-time"
-                },
-                "lastSeenAt": {
-                  "type": "string",
-                  "format": "date-time"
-                },
-                "userAgent": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "current": {
-                  "type": "boolean"
-                }
+                "startedAt": { "type": "string", "format": "date-time" },
+                "lastSeenAt": { "type": "string", "format": "date-time" },
+                "userAgent": { "type": ["string", "null"] },
+                "current": { "type": "boolean" }
               },
               "required": [
                 "id",
@@ -691,36 +351,18 @@
             }
           }
         },
-        "required": [
-          "items"
-        ],
+        "required": ["items"],
         "additionalProperties": false
       },
       "InviteCreated": {
         "type": "object",
         "properties": {
-          "userId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "inviteId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "delivered": {
-            "type": "boolean"
-          }
+          "userId": { "type": "string", "format": "uuid" },
+          "inviteId": { "type": "string", "format": "uuid" },
+          "expiresAt": { "type": "string", "format": "date-time" },
+          "delivered": { "type": "boolean" }
         },
-        "required": [
-          "userId",
-          "inviteId",
-          "expiresAt",
-          "delivered"
-        ],
+        "required": ["userId", "inviteId", "expiresAt", "delivered"],
         "additionalProperties": false
       },
       "Me": {
@@ -729,59 +371,29 @@
           "user": {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "email": {
-                "type": "string"
-              },
-              "fullName": {
-                "type": "string"
-              },
-              "timezone": {
-                "type": "string"
-              }
+              "id": { "type": "string", "format": "uuid" },
+              "email": { "type": "string" },
+              "fullName": { "type": "string" },
+              "timezone": { "type": "string" }
             },
-            "required": [
-              "id",
-              "email",
-              "fullName",
-              "timezone"
-            ]
+            "required": ["id", "email", "fullName", "timezone"]
           },
           "roles": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "role": {
-                  "type": "string"
-                },
+                "role": { "type": "string" },
                 "vertical": {
-                  "type": [
-                    "object",
-                    "null"
-                  ],
+                  "type": ["object", "null"],
                   "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "name": {
-                      "type": "string"
-                    }
+                    "id": { "type": "string", "format": "uuid" },
+                    "name": { "type": "string" }
                   },
-                  "required": [
-                    "id",
-                    "name"
-                  ]
+                  "required": ["id", "name"]
                 }
               },
-              "required": [
-                "role",
-                "vertical"
-              ]
+              "required": ["role", "vertical"]
             }
           },
           "mfaRequired": {
@@ -790,17 +402,10 @@
           },
           "grants": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EffectiveGrant"
-            }
+            "items": { "$ref": "#/components/schemas/EffectiveGrant" }
           }
         },
-        "required": [
-          "user",
-          "roles",
-          "mfaRequired",
-          "grants"
-        ]
+        "required": ["user", "roles", "mfaRequired", "grants"]
       },
       "EffectiveGrant": {
         "type": "object",
@@ -822,41 +427,19 @@
               "SUBMITTED_TO_ME"
             ]
           },
-          "stage": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
+          "stage": { "type": ["string", "null"] },
           "verticalIds": {
-            "type": [
-              "array",
-              "null"
-            ],
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
+            "type": ["array", "null"],
+            "items": { "type": "string", "format": "uuid" },
             "description": "`null` = all verticals (global grant)."
           }
         },
-        "required": [
-          "permission",
-          "scope",
-          "stage",
-          "verticalIds"
-        ]
+        "required": ["permission", "scope", "stage", "verticalIds"]
       },
       "UpdateMe": {
         "type": "object",
-        "properties": {
-          "fullName": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "fullName"
-        ],
+        "properties": { "fullName": { "type": "string" } },
+        "required": ["fullName"],
         "additionalProperties": false
       },
       "TeamLeadPriorityVerticals": {
@@ -867,151 +450,75 @@
             "items": {
               "type": "object",
               "properties": {
-                "id": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "name": {
-                  "type": "string"
-                }
+                "id": { "type": "string", "format": "uuid" },
+                "name": { "type": "string" }
               },
-              "required": [
-                "id",
-                "name"
-              ]
+              "required": ["id", "name"]
             }
           }
         },
-        "required": [
-          "items"
-        ]
+        "required": ["items"]
       },
       "SettingsVerticalList": {
         "type": "object",
         "properties": {
           "items": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SettingsVertical"
-            }
+            "items": { "$ref": "#/components/schemas/SettingsVertical" }
           }
         },
-        "required": [
-          "items"
-        ]
+        "required": ["items"]
       },
       "SettingsVertical": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "usersCount": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "version": {
-            "type": "integer",
-            "exclusiveMinimum": 0
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "usersCount": { "type": "integer", "minimum": 0 },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "version": { "type": "integer", "exclusiveMinimum": 0 }
         },
-        "required": [
-          "id",
-          "name",
-          "usersCount",
-          "createdAt",
-          "version"
-        ]
+        "required": ["id", "name", "usersCount", "createdAt", "version"]
       },
       "UserActivationUpdated": {
         "type": "object",
         "properties": {
-          "version": {
-            "type": "integer",
-            "exclusiveMinimum": 0
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "ACTIVE",
-              "DEACTIVATED"
-            ]
-          }
+          "version": { "type": "integer", "exclusiveMinimum": 0 },
+          "status": { "type": "string", "enum": ["ACTIVE", "DEACTIVATED"] }
         },
-        "required": [
-          "version",
-          "status"
-        ],
+        "required": ["version", "status"],
         "additionalProperties": false
       },
       "DeactivateUser": {
         "type": "object",
         "properties": {
-          "expectedVersion": {
-            "type": "integer",
-            "exclusiveMinimum": 0
-          },
-          "reason": {
-            "type": "string",
-            "maxLength": 500
-          }
+          "expectedVersion": { "type": "integer", "exclusiveMinimum": 0 },
+          "reason": { "type": "string", "maxLength": 500 }
         },
-        "required": [
-          "expectedVersion"
-        ],
+        "required": ["expectedVersion"],
         "additionalProperties": false
       },
       "UserEmailChanged": {
         "type": "object",
         "properties": {
-          "inviteId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          },
+          "inviteId": { "type": "string", "format": "uuid" },
+          "expiresAt": { "type": "string", "format": "date-time" },
           "delivered": {
             "type": "boolean",
             "description": "False when the email provider refused the message."
           },
-          "version": {
-            "type": "integer",
-            "exclusiveMinimum": 0
-          }
+          "version": { "type": "integer", "exclusiveMinimum": 0 }
         },
-        "required": [
-          "inviteId",
-          "expiresAt",
-          "delivered",
-          "version"
-        ],
+        "required": ["inviteId", "expiresAt", "delivered", "version"],
         "additionalProperties": false
       },
       "ChangeUserEmail": {
         "type": "object",
         "properties": {
-          "email": {
-            "type": "string"
-          },
-          "expectedVersion": {
-            "type": "integer",
-            "exclusiveMinimum": 0
-          }
+          "email": { "type": "string" },
+          "expectedVersion": { "type": "integer", "exclusiveMinimum": 0 }
         },
-        "required": [
-          "email",
-          "expectedVersion"
-        ],
+        "required": ["email", "expectedVersion"],
         "additionalProperties": false
       },
       "UserEventPage": {
@@ -1019,167 +526,73 @@
         "properties": {
           "items": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UserEvent"
-            }
+            "items": { "$ref": "#/components/schemas/UserEvent" }
           },
-          "nextCursor": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
+          "nextCursor": { "type": ["string", "null"] }
         },
-        "required": [
-          "items",
-          "nextCursor"
-        ]
+        "required": ["items", "nextCursor"]
       },
       "UserEvent": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string"
-          },
-          "type": {
-            "type": "string"
-          },
-          "occurredAt": {
-            "type": "string",
-            "format": "date-time"
-          },
+          "id": { "type": "string" },
+          "type": { "type": "string" },
+          "occurredAt": { "type": "string", "format": "date-time" },
           "actorKind": {
             "type": "string",
-            "enum": [
-              "USER",
-              "SYSTEM",
-              "ADMIN_FORCE"
-            ]
+            "enum": ["USER", "SYSTEM", "ADMIN_FORCE"]
           },
           "actor": {
-            "type": [
-              "object",
-              "null"
-            ],
+            "type": ["object", "null"],
             "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "fullName": {
-                "type": "string"
-              },
-              "isActive": {
-                "type": "boolean"
-              }
+              "id": { "type": "string", "format": "uuid" },
+              "fullName": { "type": "string" },
+              "isActive": { "type": "boolean" }
             },
-            "required": [
-              "id",
-              "fullName",
-              "isActive"
-            ]
+            "required": ["id", "fullName", "isActive"]
           },
           "roles": {
-            "type": [
-              "array",
-              "null"
-            ],
+            "type": ["array", "null"],
             "items": {
               "type": "object",
               "properties": {
-                "role": {
-                  "type": "string"
-                },
+                "role": { "type": "string" },
                 "vertical": {
-                  "type": [
-                    "object",
-                    "null"
-                  ],
+                  "type": ["object", "null"],
                   "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "name": {
-                      "type": [
-                        "string",
-                        "null"
-                      ]
-                    }
+                    "id": { "type": "string", "format": "uuid" },
+                    "name": { "type": ["string", "null"] }
                   },
-                  "required": [
-                    "id",
-                    "name"
-                  ]
+                  "required": ["id", "name"]
                 }
               },
-              "required": [
-                "role",
-                "vertical"
-              ]
+              "required": ["role", "vertical"]
             },
             "description": "Roles invited with, assigned, removed or restored."
           },
           "fields": {
-            "type": [
-              "array",
-              "null"
-            ],
+            "type": ["array", "null"],
             "items": {
               "type": "string",
-              "enum": [
-                "fullName",
-                "email",
-                "timezone"
-              ]
+              "enum": ["fullName", "email", "timezone"]
             },
             "description": "Changed profile fields; values are never exposed."
           },
           "priorityChange": {
-            "type": [
-              "object",
-              "null"
-            ],
+            "type": ["object", "null"],
             "properties": {
               "vertical": {
                 "type": "object",
                 "properties": {
-                  "id": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "name": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  }
+                  "id": { "type": "string", "format": "uuid" },
+                  "name": { "type": ["string", "null"] }
                 },
-                "required": [
-                  "id",
-                  "name"
-                ]
+                "required": ["id", "name"]
               },
-              "old": {
-                "type": [
-                  "integer",
-                  "null"
-                ],
-                "minimum": 0
-              },
-              "new": {
-                "type": [
-                  "integer",
-                  "null"
-                ],
-                "minimum": 0
-              }
+              "old": { "type": ["integer", "null"], "minimum": 0 },
+              "new": { "type": ["integer", "null"], "minimum": 0 }
             },
-            "required": [
-              "vertical",
-              "old",
-              "new"
-            ],
+            "required": ["vertical", "old", "new"],
             "description": "Team Lead priority old → new in one vertical (null = not set, D47, D73)."
           }
         },
@@ -1197,113 +610,59 @@
       "UserInviteSent": {
         "type": "object",
         "properties": {
-          "inviteId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          },
+          "inviteId": { "type": "string", "format": "uuid" },
+          "expiresAt": { "type": "string", "format": "date-time" },
           "delivered": {
             "type": "boolean",
             "description": "False when the email provider refused the message."
           }
         },
-        "required": [
-          "inviteId",
-          "expiresAt",
-          "delivered"
-        ],
+        "required": ["inviteId", "expiresAt", "delivered"],
         "additionalProperties": false
       },
       "UserInviteRevoked": {
         "type": "object",
         "properties": {
-          "inviteId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "revokedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
+          "inviteId": { "type": "string", "format": "uuid" },
+          "revokedAt": { "type": "string", "format": "date-time" }
         },
-        "required": [
-          "inviteId",
-          "revokedAt"
-        ],
+        "required": ["inviteId", "revokedAt"],
         "additionalProperties": false
       },
       "ReactivateUser": {
         "type": "object",
         "properties": {
-          "expectedVersion": {
-            "type": "integer",
-            "exclusiveMinimum": 0
-          },
+          "expectedVersion": { "type": "integer", "exclusiveMinimum": 0 },
           "roles": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "role": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 64
-                },
-                "verticalId": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "format": "uuid"
-                }
+                "role": { "type": "string", "minLength": 1, "maxLength": 64 },
+                "verticalId": { "type": ["string", "null"], "format": "uuid" }
               },
-              "required": [
-                "role",
-                "verticalId"
-              ],
+              "required": ["role", "verticalId"],
               "additionalProperties": false
             },
             "maxItems": 50
           }
         },
-        "required": [
-          "expectedVersion",
-          "roles"
-        ],
+        "required": ["expectedVersion", "roles"],
         "additionalProperties": false
       },
       "UserRolesUpdated": {
         "type": "object",
         "properties": {
-          "version": {
-            "type": "integer",
-            "exclusiveMinimum": 0
-          },
+          "version": { "type": "integer", "exclusiveMinimum": 0 },
           "added": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "role": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 64
-                },
-                "verticalId": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "format": "uuid"
-                }
+                "role": { "type": "string", "minLength": 1, "maxLength": 64 },
+                "verticalId": { "type": ["string", "null"], "format": "uuid" }
               },
-              "required": [
-                "role",
-                "verticalId"
-              ],
+              "required": ["role", "verticalId"],
               "additionalProperties": false
             }
           },
@@ -1312,32 +671,15 @@
             "items": {
               "type": "object",
               "properties": {
-                "role": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 64
-                },
-                "verticalId": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "format": "uuid"
-                }
+                "role": { "type": "string", "minLength": 1, "maxLength": 64 },
+                "verticalId": { "type": ["string", "null"], "format": "uuid" }
               },
-              "required": [
-                "role",
-                "verticalId"
-              ],
+              "required": ["role", "verticalId"],
               "additionalProperties": false
             }
           }
         },
-        "required": [
-          "version",
-          "added",
-          "removed"
-        ],
+        "required": ["version", "added", "removed"],
         "additionalProperties": false
       },
       "UpdateUserRoles": {
@@ -1348,51 +690,25 @@
             "items": {
               "type": "object",
               "properties": {
-                "role": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 64
-                },
-                "verticalId": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "format": "uuid"
-                }
+                "role": { "type": "string", "minLength": 1, "maxLength": 64 },
+                "verticalId": { "type": ["string", "null"], "format": "uuid" }
               },
-              "required": [
-                "role",
-                "verticalId"
-              ],
+              "required": ["role", "verticalId"],
               "additionalProperties": false
             },
             "maxItems": 50
           },
-          "expectedVersion": {
-            "type": "integer",
-            "exclusiveMinimum": 0
-          }
+          "expectedVersion": { "type": "integer", "exclusiveMinimum": 0 }
         },
-        "required": [
-          "roles",
-          "expectedVersion"
-        ],
+        "required": ["roles", "expectedVersion"],
         "additionalProperties": false
       },
       "UserDetail": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "fullName": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
+          "id": { "type": "string", "format": "uuid" },
+          "fullName": { "type": "string" },
+          "email": { "type": "string" },
           "status": {
             "type": "string",
             "enum": [
@@ -1403,63 +719,29 @@
               "DEACTIVATED"
             ]
           },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "activatedAt": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "activatedAt": { "type": ["string", "null"], "format": "date-time" },
           "deactivatedAt": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "format": "date-time"
           },
-          "lastLoginAt": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          },
+          "lastLoginAt": { "type": ["string", "null"], "format": "date-time" },
           "roles": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "role": {
-                  "type": "string"
-                },
+                "role": { "type": "string" },
                 "vertical": {
-                  "type": [
-                    "object",
-                    "null"
-                  ],
+                  "type": ["object", "null"],
                   "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "name": {
-                      "type": "string"
-                    }
+                    "id": { "type": "string", "format": "uuid" },
+                    "name": { "type": "string" }
                   },
-                  "required": [
-                    "id",
-                    "name"
-                  ]
+                  "required": ["id", "name"]
                 }
               },
-              "required": [
-                "role",
-                "vertical"
-              ]
+              "required": ["role", "vertical"]
             }
           },
           "teamLeadPriorities": {
@@ -1470,81 +752,35 @@
                 "vertical": {
                   "type": "object",
                   "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "name": {
-                      "type": "string"
-                    }
+                    "id": { "type": "string", "format": "uuid" },
+                    "name": { "type": "string" }
                   },
-                  "required": [
-                    "id",
-                    "name"
-                  ]
+                  "required": ["id", "name"]
                 },
-                "priority": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
-                  "minimum": 0
-                }
+                "priority": { "type": ["integer", "null"], "minimum": 0 }
               },
-              "required": [
-                "vertical",
-                "priority"
-              ]
+              "required": ["vertical", "priority"]
             },
             "description": "One row per TEAM_LEAD vertical (priority null = not set); empty without `settings.priorities.manage`."
           },
           "invitation": {
-            "type": [
-              "object",
-              "null"
-            ],
+            "type": ["object", "null"],
             "properties": {
-              "sentAt": {
-                "type": "string",
-                "format": "date-time"
-              },
-              "expiresAt": {
-                "type": "string",
-                "format": "date-time"
-              },
-              "resendCount": {
-                "type": "integer",
-                "minimum": 0
-              },
+              "sentAt": { "type": "string", "format": "date-time" },
+              "expiresAt": { "type": "string", "format": "date-time" },
+              "resendCount": { "type": "integer", "minimum": 0 },
               "revokedAt": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "format": "date-time"
               },
               "revokedBy": {
-                "type": [
-                  "object",
-                  "null"
-                ],
+                "type": ["object", "null"],
                 "properties": {
-                  "id": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "fullName": {
-                    "type": "string"
-                  },
-                  "isActive": {
-                    "type": "boolean"
-                  }
+                  "id": { "type": "string", "format": "uuid" },
+                  "fullName": { "type": "string" },
+                  "isActive": { "type": "boolean" }
                 },
-                "required": [
-                  "id",
-                  "fullName",
-                  "isActive"
-                ]
+                "required": ["id", "fullName", "isActive"]
               }
             },
             "required": [
@@ -1561,35 +797,17 @@
             "properties": {
               "state": {
                 "type": "string",
-                "enum": [
-                  "ENABLED",
-                  "OFF",
-                  "REQUIRED_MISSING",
-                  "LOCKED",
-                  "NONE"
-                ]
+                "enum": ["ENABLED", "OFF", "REQUIRED_MISSING", "LOCKED", "NONE"]
               },
-              "factors": {
-                "type": "integer",
-                "minimum": 0
-              },
+              "factors": { "type": "integer", "minimum": 0 },
               "lockedUntil": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "format": "date-time"
               }
             },
-            "required": [
-              "state",
-              "factors",
-              "lockedUntil"
-            ]
+            "required": ["state", "factors", "lockedUntil"]
           },
-          "mfaRequired": {
-            "type": "boolean"
-          },
+          "mfaRequired": { "type": "boolean" },
           "lastActiveAdmin": {
             "type": "boolean",
             "description": "True when this user is the only active Admin: the ADMIN role cannot be removed (D45)."
@@ -1623,44 +841,23 @@
         "properties": {
           "items": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/UserListItem"
-            }
+            "items": { "$ref": "#/components/schemas/UserListItem" }
           },
           "total": {
-            "type": [
-              "integer",
-              "null"
-            ],
+            "type": ["integer", "null"],
             "minimum": 0,
             "description": "Matching users on the first page; null on cursor pages (unchanged filters, no recount)."
           },
-          "nextCursor": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
+          "nextCursor": { "type": ["string", "null"] }
         },
-        "required": [
-          "items",
-          "total",
-          "nextCursor"
-        ]
+        "required": ["items", "total", "nextCursor"]
       },
       "UserListItem": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "fullName": {
-            "type": "string"
-          },
-          "email": {
-            "type": "string"
-          },
+          "id": { "type": "string", "format": "uuid" },
+          "fullName": { "type": "string" },
+          "email": { "type": "string" },
           "status": {
             "type": "string",
             "enum": [
@@ -1672,10 +869,7 @@
             ]
           },
           "inviteExpiresAt": {
-            "type": [
-              "string",
-              "null"
-            ],
+            "type": ["string", "null"],
             "format": "date-time"
           },
           "roles": {
@@ -1683,33 +877,17 @@
             "items": {
               "type": "object",
               "properties": {
-                "role": {
-                  "type": "string"
-                },
+                "role": { "type": "string" },
                 "vertical": {
-                  "type": [
-                    "object",
-                    "null"
-                  ],
+                  "type": ["object", "null"],
                   "properties": {
-                    "id": {
-                      "type": "string",
-                      "format": "uuid"
-                    },
-                    "name": {
-                      "type": "string"
-                    }
+                    "id": { "type": "string", "format": "uuid" },
+                    "name": { "type": "string" }
                   },
-                  "required": [
-                    "id",
-                    "name"
-                  ]
+                  "required": ["id", "name"]
                 }
               },
-              "required": [
-                "role",
-                "vertical"
-              ]
+              "required": ["role", "vertical"]
             }
           },
           "mfa": {
@@ -1717,39 +895,17 @@
             "properties": {
               "state": {
                 "type": "string",
-                "enum": [
-                  "ENABLED",
-                  "OFF",
-                  "REQUIRED_MISSING",
-                  "LOCKED",
-                  "NONE"
-                ]
+                "enum": ["ENABLED", "OFF", "REQUIRED_MISSING", "LOCKED", "NONE"]
               },
-              "factors": {
-                "type": "integer",
-                "minimum": 0
-              },
+              "factors": { "type": "integer", "minimum": 0 },
               "lockedUntil": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": ["string", "null"],
                 "format": "date-time"
               }
             },
-            "required": [
-              "state",
-              "factors",
-              "lockedUntil"
-            ]
+            "required": ["state", "factors", "lockedUntil"]
           },
-          "lastLoginAt": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "date-time"
-          }
+          "lastLoginAt": { "type": ["string", "null"], "format": "date-time" }
         },
         "required": [
           "id",
@@ -1765,20 +921,10 @@
       "RenameVertical": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 2,
-            "maxLength": 50
-          },
-          "expectedVersion": {
-            "type": "integer",
-            "exclusiveMinimum": 0
-          }
+          "name": { "type": "string", "minLength": 2, "maxLength": 50 },
+          "expectedVersion": { "type": "integer", "exclusiveMinimum": 0 }
         },
-        "required": [
-          "name",
-          "expectedVersion"
-        ],
+        "required": ["name", "expectedVersion"],
         "additionalProperties": false
       },
       "VerticalTeamLeadPriorities": {
@@ -1787,53 +933,26 @@
           "vertical": {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "name": {
-                "type": "string"
-              }
+              "id": { "type": "string", "format": "uuid" },
+              "name": { "type": "string" }
             },
-            "required": [
-              "id",
-              "name"
-            ]
+            "required": ["id", "name"]
           },
           "items": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "userId": {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                "fullName": {
-                  "type": "string"
-                },
-                "priority": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
-                  "minimum": 0
-                },
+                "userId": { "type": "string", "format": "uuid" },
+                "fullName": { "type": "string" },
+                "priority": { "type": ["integer", "null"], "minimum": 0 },
                 "version": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
+                  "type": ["integer", "null"],
                   "exclusiveMinimum": 0,
                   "description": "Send back as `version` with a change; null = no priority row yet."
                 }
               },
-              "required": [
-                "userId",
-                "fullName",
-                "priority",
-                "version"
-              ]
+              "required": ["userId", "fullName", "priority", "version"]
             }
           },
           "pendingInvites": {
@@ -1842,11 +961,7 @@
             "description": "Team Leads in this vertical who have not accepted their invite yet."
           }
         },
-        "required": [
-          "vertical",
-          "items",
-          "pendingInvites"
-        ]
+        "required": ["vertical", "items", "pendingInvites"]
       },
       "UpdateTeamLeadPriorities": {
         "type": "object",
@@ -1856,42 +971,27 @@
             "items": {
               "type": "object",
               "properties": {
-                "userId": {
-                  "type": "string",
-                  "format": "uuid"
-                },
+                "userId": { "type": "string", "format": "uuid" },
                 "priority": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
+                  "type": ["integer", "null"],
                   "minimum": 0,
                   "maximum": 99,
                   "description": "New priority; null clears it («Пріоритет не задано», D47)."
                 },
                 "version": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
+                  "type": ["integer", "null"],
                   "exclusiveMinimum": 0,
                   "description": "Version of the stored priority row the edit started from; null when the Team Lead had no priority."
                 }
               },
-              "required": [
-                "userId",
-                "priority",
-                "version"
-              ],
+              "required": ["userId", "priority", "version"],
               "additionalProperties": false
             },
             "minItems": 1,
             "maxItems": 200
           }
         },
-        "required": [
-          "changes"
-        ],
+        "required": ["changes"],
         "additionalProperties": false
       },
       "VerticalList": {
@@ -1899,43 +999,25 @@
         "properties": {
           "items": {
             "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Vertical"
-            }
+            "items": { "$ref": "#/components/schemas/Vertical" }
           }
         },
-        "required": [
-          "items"
-        ]
+        "required": ["items"]
       },
       "Vertical": {
         "type": "object",
         "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          }
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" }
         },
-        "required": [
-          "id",
-          "name"
-        ]
+        "required": ["id", "name"]
       },
       "CreateVertical": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 2,
-            "maxLength": 50
-          }
+          "name": { "type": "string", "minLength": 2, "maxLength": 50 }
         },
-        "required": [
-          "name"
-        ],
+        "required": ["name"],
         "additionalProperties": false
       }
     },
@@ -1946,15 +1028,10 @@
       "get": {
         "operationId": "getAuditRecord",
         "summary": "One audit record with before/after and details (Admin)",
-        "tags": [
-          "Audit"
-        ],
+        "tags": ["Audit"],
         "parameters": [
           {
-            "schema": {
-              "type": "string",
-              "pattern": "^\\d{1,19}$"
-            },
+            "schema": { "type": "string", "pattern": "^\\d{1,19}$" },
             "required": true,
             "name": "recordId",
             "in": "path"
@@ -1965,9 +1042,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuditRecord"
-                }
+                "schema": { "$ref": "#/components/schemas/AuditRecord" }
               }
             }
           },
@@ -1975,9 +1050,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -1985,9 +1058,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -1995,9 +1066,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2005,9 +1074,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -2018,9 +1085,7 @@
       "get": {
         "operationId": "listAuditActors",
         "summary": "Users for the audit «Хто» filter by full name or email, active first (Admin)",
-        "tags": [
-          "Audit"
-        ],
+        "tags": ["Audit"],
         "parameters": [
           {
             "schema": {
@@ -2062,9 +1127,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuditActorPage"
-                }
+                "schema": { "$ref": "#/components/schemas/AuditActorPage" }
               }
             }
           },
@@ -2072,9 +1135,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2082,9 +1143,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2092,9 +1151,15 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2102,9 +1167,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -2115,17 +1178,12 @@
       "get": {
         "operationId": "listAudit",
         "summary": "Audit log, newest first, filtered by view, Kyiv period, actor, action(s) and entity (Admin)",
-        "tags": [
-          "Audit"
-        ],
+        "tags": ["Audit"],
         "parameters": [
           {
             "schema": {
               "type": "string",
-              "enum": [
-                "all",
-                "security"
-              ],
+              "enum": ["all", "security"],
               "description": "Security view restricts results to auth.* or user.mfa_* actions, intersected with all other filters. Default is all."
             },
             "required": false,
@@ -2134,19 +1192,13 @@
             "in": "query"
           },
           {
-            "schema": {
-              "type": "string",
-              "format": "date"
-            },
+            "schema": { "type": "string", "format": "date" },
             "required": false,
             "name": "from",
             "in": "query"
           },
           {
-            "schema": {
-              "type": "string",
-              "format": "date"
-            },
+            "schema": { "type": "string", "format": "date" },
             "required": false,
             "name": "to",
             "in": "query"
@@ -2154,16 +1206,8 @@
           {
             "schema": {
               "anyOf": [
-                {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "system"
-                  ]
-                }
+                { "type": "string", "format": "uuid" },
+                { "type": "string", "enum": ["system"] }
               ],
               "description": "User id, or `system` for system rows (`actorKind = SYSTEM`) except `auth.login_failed` without an entity (unknown user)."
             },
@@ -2173,10 +1217,7 @@
             "in": "query"
           },
           {
-            "schema": {
-              "type": "string",
-              "pattern": "^[a-z_]+\\.[a-z_]+$"
-            },
+            "schema": { "type": "string", "pattern": "^[a-z_]+\\.[a-z_]+$" },
             "required": false,
             "name": "action",
             "in": "query"
@@ -2192,35 +1233,19 @@
             "in": "query"
           },
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "user",
-                "vertical"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["user", "vertical"] },
             "required": false,
             "name": "entityType",
             "in": "query"
           },
           {
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 64
-            },
+            "schema": { "type": "string", "minLength": 1, "maxLength": 64 },
             "required": false,
             "name": "entityId",
             "in": "query"
           },
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "SUCCESS",
-                "DENIED"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["SUCCESS", "DENIED"] },
             "required": false,
             "name": "result",
             "in": "query"
@@ -2241,10 +1266,7 @@
           {
             "schema": {
               "type": "string",
-              "enum": [
-                "older",
-                "newer"
-              ],
+              "enum": ["older", "newer"],
               "description": "Side of `cursor` to read: `older` (default, pass `nextCursor`) or `newer` (pass `prevCursor`; requires `cursor`). Items are newest first either way."
             },
             "required": false,
@@ -2269,9 +1291,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuditPage"
-                }
+                "schema": { "$ref": "#/components/schemas/AuditPage" }
               }
             }
           },
@@ -2279,9 +1299,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2289,9 +1307,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2299,9 +1315,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2309,9 +1323,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -2322,18 +1334,11 @@
       "post": {
         "operationId": "confirmMagicLink",
         "summary": "Consume a sign-in link after the explicit button press",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [],
         "parameters": [
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -2356,9 +1361,7 @@
                     "description": "Same-origin path to return to; anything else is ignored."
                   }
                 },
-                "required": [
-                  "token_hash"
-                ],
+                "required": ["token_hash"],
                 "additionalProperties": false
               }
             }
@@ -2369,9 +1372,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthRedirect"
-                }
+                "schema": { "$ref": "#/components/schemas/AuthRedirect" }
               }
             }
           },
@@ -2379,9 +1380,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2389,9 +1388,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2399,9 +1396,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2409,9 +1404,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2419,9 +1412,7 @@
             "description": "Rate limited",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2429,9 +1420,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -2442,18 +1431,11 @@
       "post": {
         "operationId": "startGoogleSignIn",
         "summary": "Start Google sign-in (PKCE); 404 when Google is not configured",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [],
         "parameters": [
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -2476,9 +1458,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OAuthStart"
-                }
+                "schema": { "$ref": "#/components/schemas/OAuthStart" }
               }
             }
           },
@@ -2486,9 +1466,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2496,9 +1474,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2506,9 +1482,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2516,9 +1490,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2526,9 +1498,7 @@
             "description": "Rate limited",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2536,9 +1506,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -2549,18 +1517,11 @@
       "post": {
         "operationId": "acceptInvite",
         "summary": "Accept an invite and sign in as the invited email",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [],
         "parameters": [
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -2578,9 +1539,7 @@
                     "pattern": "^[A-Za-z0-9_-]{43}$"
                   }
                 },
-                "required": [
-                  "token"
-                ],
+                "required": ["token"],
                 "additionalProperties": false
               }
             }
@@ -2591,9 +1550,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthRedirect"
-                }
+                "schema": { "$ref": "#/components/schemas/AuthRedirect" }
               }
             }
           },
@@ -2601,9 +1558,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2611,9 +1566,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2621,9 +1574,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2631,9 +1582,7 @@
             "description": "Conflict",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2641,9 +1590,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2651,9 +1598,7 @@
             "description": "Rate limited",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2661,9 +1606,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -2674,18 +1617,11 @@
       "post": {
         "operationId": "startInviteGoogle",
         "summary": "Accept an invite with Google; consumed only if the Google email matches",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [],
         "parameters": [
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -2703,9 +1639,7 @@
                     "pattern": "^[A-Za-z0-9_-]{43}$"
                   }
                 },
-                "required": [
-                  "token"
-                ],
+                "required": ["token"],
                 "additionalProperties": false
               }
             }
@@ -2716,9 +1650,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OAuthStart"
-                }
+                "schema": { "$ref": "#/components/schemas/OAuthStart" }
               }
             }
           },
@@ -2726,9 +1658,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2736,9 +1666,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2746,9 +1674,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2756,9 +1682,7 @@
             "description": "Conflict",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2766,9 +1690,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2776,9 +1698,7 @@
             "description": "Rate limited",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2786,9 +1706,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -2799,18 +1717,11 @@
       "post": {
         "operationId": "inspectInvite",
         "summary": "Show the invited name and roles; one INVALID state for any unusable invite",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [],
         "parameters": [
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -2828,9 +1739,7 @@
                     "pattern": "^[A-Za-z0-9_-]{43}$"
                   }
                 },
-                "required": [
-                  "token"
-                ],
+                "required": ["token"],
                 "additionalProperties": false
               }
             }
@@ -2841,9 +1750,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InviteInspection"
-                }
+                "schema": { "$ref": "#/components/schemas/InviteInspection" }
               }
             }
           },
@@ -2851,9 +1758,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2861,9 +1766,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2871,9 +1774,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2881,9 +1782,7 @@
             "description": "Rate limited",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2891,9 +1790,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -2904,9 +1801,7 @@
       "get": {
         "operationId": "listMyLoginHistory",
         "summary": "Own sign-in history, newest first, cursor-paginated",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "parameters": [
           {
             "schema": {
@@ -2938,9 +1833,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoginHistory"
-                }
+                "schema": { "$ref": "#/components/schemas/LoginHistory" }
               }
             }
           },
@@ -2948,9 +1841,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2958,9 +1849,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -2968,9 +1857,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -2981,18 +1868,11 @@
       "post": {
         "operationId": "logout",
         "summary": "End the current session and clear the session cookies",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [],
         "parameters": [
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -3015,9 +1895,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthRedirect"
-                }
+                "schema": { "$ref": "#/components/schemas/AuthRedirect" }
               }
             }
           },
@@ -3025,9 +1903,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3035,9 +1911,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3045,9 +1919,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3055,9 +1927,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -3068,18 +1938,11 @@
       "post": {
         "operationId": "requestMagicLink",
         "summary": "Request a sign-in link; report delivery failures for eligible users",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "security": [],
         "parameters": [
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -3091,14 +1954,8 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": {
-                  "email": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "email"
-                ],
+                "properties": { "email": { "type": "string" } },
+                "required": ["email"],
                 "additionalProperties": false
               }
             }
@@ -3112,16 +1969,9 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "accepted": {
-                      "type": "boolean",
-                      "enum": [
-                        true
-                      ]
-                    }
+                    "accepted": { "type": "boolean", "enum": [true] }
                   },
-                  "required": [
-                    "accepted"
-                  ],
+                  "required": ["accepted"],
                   "additionalProperties": false
                 }
               }
@@ -3131,9 +1981,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3141,9 +1989,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3151,9 +1997,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3161,9 +2005,7 @@
             "description": "Rate limited",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3171,9 +2013,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3181,9 +2021,7 @@
             "description": "Service temporarily unavailable",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -3194,22 +2032,11 @@
       "post": {
         "operationId": "enrollTotp",
         "summary": "Start TOTP enrolment; adding a second device needs aal2",
-        "tags": [
-          "Auth"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "tags": ["Auth"],
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -3232,9 +2059,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MfaEnrollment"
-                }
+                "schema": { "$ref": "#/components/schemas/MfaEnrollment" }
               }
             }
           },
@@ -3242,9 +2067,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3252,9 +2075,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3262,9 +2083,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3272,9 +2091,7 @@
             "description": "Conflict",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3282,9 +2099,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3292,9 +2107,7 @@
             "description": "Rate limited",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3302,9 +2115,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -3315,17 +2126,13 @@
       "get": {
         "operationId": "getMfaStatus",
         "summary": "Own TOTP factors and whether Admin/Finance grants wait for aal2",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "responses": {
           "200": {
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MfaStatus"
-                }
+                "schema": { "$ref": "#/components/schemas/MfaStatus" }
               }
             }
           },
@@ -3333,9 +2140,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3343,9 +2148,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -3356,22 +2159,11 @@
       "post": {
         "operationId": "verifyTotp",
         "summary": "Verify a TOTP code and raise the session to aal2; 5 failures lock for 15 min",
-        "tags": [
-          "Auth"
-        ],
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
+        "tags": ["Auth"],
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -3384,24 +2176,15 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "factorId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "code": {
-                    "type": "string",
-                    "pattern": "^\\d{6}$"
-                  },
+                  "factorId": { "type": "string", "format": "uuid" },
+                  "code": { "type": "string", "pattern": "^\\d{6}$" },
                   "next": {
                     "type": "string",
                     "maxLength": 512,
                     "description": "Same-origin path to return to; anything else is ignored."
                   }
                 },
-                "required": [
-                  "factorId",
-                  "code"
-                ],
+                "required": ["factorId", "code"],
                 "additionalProperties": false
               }
             }
@@ -3412,9 +2195,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthRedirect"
-                }
+                "schema": { "$ref": "#/components/schemas/AuthRedirect" }
               }
             }
           },
@@ -3422,9 +2203,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3432,9 +2211,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3442,9 +2219,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3452,9 +2227,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3462,9 +2235,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3472,9 +2243,7 @@
             "description": "Rate limited",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3482,9 +2251,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -3495,17 +2262,10 @@
       "post": {
         "operationId": "endOtherSessions",
         "summary": "End every other session of the current user",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "parameters": [
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -3519,14 +2279,9 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "count": {
-                      "type": "integer",
-                      "minimum": 0
-                    }
+                    "count": { "type": "integer", "minimum": 0 }
                   },
-                  "required": [
-                    "count"
-                  ],
+                  "required": ["count"],
                   "additionalProperties": false
                 }
               }
@@ -3536,9 +2291,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3546,9 +2299,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3556,9 +2307,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3566,9 +2315,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -3579,17 +2326,13 @@
       "get": {
         "operationId": "listMySessions",
         "summary": "Own active sessions",
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "responses": {
           "200": {
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SessionList"
-                }
+                "schema": { "$ref": "#/components/schemas/SessionList" }
               }
             }
           },
@@ -3597,9 +2340,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3607,9 +2348,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -3620,17 +2359,10 @@
       "post": {
         "operationId": "createInvite",
         "summary": "Invite a person with roles (Admin with aal2 only)",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "parameters": [
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -3643,12 +2375,8 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "email": {
-                    "type": "string"
-                  },
-                  "fullName": {
-                    "type": "string"
-                  },
+                  "email": { "type": "string" },
+                  "fullName": { "type": "string" },
                   "roles": {
                     "type": "array",
                     "items": {
@@ -3660,28 +2388,18 @@
                           "maxLength": 64
                         },
                         "verticalId": {
-                          "type": [
-                            "string",
-                            "null"
-                          ],
+                          "type": ["string", "null"],
                           "format": "uuid"
                         }
                       },
-                      "required": [
-                        "role",
-                        "verticalId"
-                      ],
+                      "required": ["role", "verticalId"],
                       "additionalProperties": false
                     },
                     "minItems": 1,
                     "maxItems": 20
                   }
                 },
-                "required": [
-                  "email",
-                  "fullName",
-                  "roles"
-                ],
+                "required": ["email", "fullName", "roles"],
                 "additionalProperties": false
               }
             }
@@ -3692,9 +2410,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InviteCreated"
-                }
+                "schema": { "$ref": "#/components/schemas/InviteCreated" }
               }
             }
           },
@@ -3702,9 +2418,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3712,9 +2426,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3722,9 +2434,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3732,9 +2442,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3742,9 +2450,7 @@
             "description": "Conflict",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3752,9 +2458,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3762,9 +2466,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -3775,17 +2477,13 @@
       "get": {
         "operationId": "getMe",
         "summary": "Current user, role assignments and effective permissions",
-        "tags": [
-          "Profile"
-        ],
+        "tags": ["Profile"],
         "responses": {
           "200": {
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Me"
-                }
+                "schema": { "$ref": "#/components/schemas/Me" }
               }
             }
           },
@@ -3793,9 +2491,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3803,9 +2499,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -3814,17 +2508,10 @@
       "patch": {
         "operationId": "updateMe",
         "summary": "Change own display name (audited, user.profile_updated)",
-        "tags": [
-          "Profile"
-        ],
+        "tags": ["Profile"],
         "parameters": [
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -3834,9 +2521,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateMe"
-              }
+              "schema": { "$ref": "#/components/schemas/UpdateMe" }
             }
           }
         },
@@ -3845,9 +2530,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Me"
-                }
+                "schema": { "$ref": "#/components/schemas/Me" }
               }
             }
           },
@@ -3855,9 +2538,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3865,9 +2546,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3875,9 +2554,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3885,9 +2562,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3895,9 +2570,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -3908,9 +2581,7 @@
       "get": {
         "operationId": "listTeamLeadPriorityVerticals",
         "summary": "Vertical tabs for Team Lead priority settings (Admin aal2)",
-        "tags": [
-          "Priorities"
-        ],
+        "tags": ["Priorities"],
         "responses": {
           "200": {
             "description": "Success",
@@ -3926,9 +2597,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3936,9 +2605,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3946,9 +2613,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -3959,9 +2624,7 @@
       "get": {
         "operationId": "listSettingsVerticals",
         "summary": "All verticals with active user counts (Admin settings)",
-        "tags": [
-          "Verticals"
-        ],
+        "tags": ["Verticals"],
         "responses": {
           "200": {
             "description": "Success",
@@ -3977,9 +2640,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3987,9 +2648,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -3997,9 +2656,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -4010,9 +2667,7 @@
       "post": {
         "operationId": "deactivateUser",
         "summary": "Deactivate an accepted user and end every session (Admin aal2, D44/D45)",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "parameters": [
           {
             "schema": {
@@ -4026,12 +2681,7 @@
             "in": "path"
           },
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -4041,9 +2691,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DeactivateUser"
-              }
+              "schema": { "$ref": "#/components/schemas/DeactivateUser" }
             }
           }
         },
@@ -4062,9 +2710,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4072,9 +2718,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4082,9 +2726,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4092,9 +2734,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4102,9 +2742,7 @@
             "description": "Conflict",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4112,9 +2750,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4122,9 +2758,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4132,9 +2766,7 @@
             "description": "Service temporarily unavailable",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -4145,9 +2777,7 @@
       "put": {
         "operationId": "changeUserEmail",
         "summary": "Change the email of a never-activated user: the current link stops working, a new 72 h invite goes to the new address (Admin with aal2, D69)",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "parameters": [
           {
             "schema": {
@@ -4161,12 +2791,7 @@
             "in": "path"
           },
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -4176,9 +2801,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChangeUserEmail"
-              }
+              "schema": { "$ref": "#/components/schemas/ChangeUserEmail" }
             }
           }
         },
@@ -4187,9 +2810,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserEmailChanged"
-                }
+                "schema": { "$ref": "#/components/schemas/UserEmailChanged" }
               }
             }
           },
@@ -4197,9 +2818,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4207,9 +2826,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4217,9 +2834,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4227,9 +2842,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4237,9 +2850,7 @@
             "description": "Conflict",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4247,9 +2858,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4257,9 +2866,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -4270,9 +2877,7 @@
       "get": {
         "operationId": "listUserEvents",
         "summary": "User timeline, newest first, by cursor (Admin)",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "parameters": [
           {
             "schema": {
@@ -4315,9 +2920,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserEventPage"
-                }
+                "schema": { "$ref": "#/components/schemas/UserEventPage" }
               }
             }
           },
@@ -4325,9 +2928,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4335,9 +2936,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4345,9 +2944,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4355,9 +2952,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -4368,9 +2963,7 @@
       "post": {
         "operationId": "resendUserInvite",
         "summary": "Resend the pending or expired invite: new 72 h link, the previous one stops working (Admin with aal2)",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "parameters": [
           {
             "schema": {
@@ -4384,12 +2977,7 @@
             "in": "path"
           },
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -4412,9 +3000,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserInviteSent"
-                }
+                "schema": { "$ref": "#/components/schemas/UserInviteSent" }
               }
             }
           },
@@ -4422,9 +3008,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4432,9 +3016,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4442,9 +3024,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4452,9 +3032,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4462,9 +3040,7 @@
             "description": "Conflict",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4472,9 +3048,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4482,9 +3056,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -4495,9 +3067,7 @@
       "post": {
         "operationId": "revokeUserInvite",
         "summary": "Revoke the pending or expired invite; its link stops working (Admin with aal2)",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "parameters": [
           {
             "schema": {
@@ -4511,12 +3081,7 @@
             "in": "path"
           },
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -4539,9 +3104,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserInviteRevoked"
-                }
+                "schema": { "$ref": "#/components/schemas/UserInviteRevoked" }
               }
             }
           },
@@ -4549,9 +3112,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4559,9 +3120,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4569,9 +3128,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4579,9 +3136,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4589,9 +3144,7 @@
             "description": "Conflict",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4599,9 +3152,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4609,9 +3160,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -4622,9 +3171,7 @@
       "post": {
         "operationId": "reinviteUser",
         "summary": "Invite again after a revoked invite: new 72 h link with the current roles (Admin with aal2, D70)",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "parameters": [
           {
             "schema": {
@@ -4638,12 +3185,7 @@
             "in": "path"
           },
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -4666,9 +3208,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserInviteSent"
-                }
+                "schema": { "$ref": "#/components/schemas/UserInviteSent" }
               }
             }
           },
@@ -4676,9 +3216,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4686,9 +3224,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4696,9 +3232,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4706,9 +3240,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4716,9 +3248,7 @@
             "description": "Conflict",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4726,9 +3256,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4736,9 +3264,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -4749,26 +3275,16 @@
       "post": {
         "operationId": "resetUserMfa",
         "summary": "Remove all TOTP factors of another user and end their sessions",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "parameters": [
           {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
+            "schema": { "type": "string", "format": "uuid" },
             "required": true,
             "name": "userId",
             "in": "path"
           },
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -4787,9 +3303,7 @@
                     "maxLength": 500
                   }
                 },
-                "required": [
-                  "reason"
-                ],
+                "required": ["reason"],
                 "additionalProperties": false
               }
             }
@@ -4803,14 +3317,9 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "removedFactors": {
-                      "type": "integer",
-                      "minimum": 0
-                    }
+                    "removedFactors": { "type": "integer", "minimum": 0 }
                   },
-                  "required": [
-                    "removedFactors"
-                  ],
+                  "required": ["removedFactors"],
                   "additionalProperties": false
                 }
               }
@@ -4820,9 +3329,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4830,9 +3337,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4840,9 +3345,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4850,9 +3353,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4860,9 +3361,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4870,9 +3369,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4880,9 +3377,7 @@
             "description": "Service temporarily unavailable",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -4893,9 +3388,7 @@
       "post": {
         "operationId": "reactivateUser",
         "summary": "Reactivate a user with a confirmed subset of their previous roles (Admin aal2, D44)",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "parameters": [
           {
             "schema": {
@@ -4909,12 +3402,7 @@
             "in": "path"
           },
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -4924,9 +3412,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReactivateUser"
-              }
+              "schema": { "$ref": "#/components/schemas/ReactivateUser" }
             }
           }
         },
@@ -4945,9 +3431,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4955,9 +3439,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4965,9 +3447,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4975,9 +3455,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4985,9 +3463,7 @@
             "description": "Conflict",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -4995,9 +3471,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5005,9 +3479,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5015,9 +3487,7 @@
             "description": "Service temporarily unavailable",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -5028,9 +3498,7 @@
       "put": {
         "operationId": "updateUserRoles",
         "summary": "Replace the roles × verticals of a user; takes effect on their next request (Admin with aal2, ROLE-01, D40, D45)",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "parameters": [
           {
             "schema": {
@@ -5044,12 +3512,7 @@
             "in": "path"
           },
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -5059,9 +3522,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateUserRoles"
-              }
+              "schema": { "$ref": "#/components/schemas/UpdateUserRoles" }
             }
           }
         },
@@ -5070,9 +3531,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserRolesUpdated"
-                }
+                "schema": { "$ref": "#/components/schemas/UserRolesUpdated" }
               }
             }
           },
@@ -5080,9 +3539,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5090,9 +3547,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5100,9 +3555,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5110,9 +3563,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5120,9 +3571,7 @@
             "description": "Conflict",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5130,9 +3579,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5140,9 +3587,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -5153,9 +3598,7 @@
       "get": {
         "operationId": "getUser",
         "summary": "One user: profile, roles, TL priorities, invite state and 2FA state (Admin)",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "parameters": [
           {
             "schema": {
@@ -5174,9 +3617,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserDetail"
-                }
+                "schema": { "$ref": "#/components/schemas/UserDetail" }
               }
             }
           },
@@ -5184,9 +3625,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5194,9 +3633,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5204,9 +3641,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5214,9 +3649,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -5227,16 +3660,10 @@
       "get": {
         "operationId": "listUsers",
         "summary": "Users with derived status, roles, 2FA state and last sign-in; search and filters (Admin)",
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "parameters": [
           {
-            "schema": {
-              "type": "string",
-              "minLength": 2,
-              "maxLength": 100
-            },
+            "schema": { "type": "string", "minLength": 2, "maxLength": 100 },
             "required": false,
             "name": "q",
             "in": "query"
@@ -5314,30 +3741,14 @@
           {
             "schema": {
               "anyOf": [
-                {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    "GLOBAL"
-                  ]
-                },
+                { "type": "string", "format": "uuid" },
+                { "type": "string", "enum": ["GLOBAL"] },
                 {
                   "type": "array",
                   "items": {
                     "anyOf": [
-                      {
-                        "type": "string",
-                        "format": "uuid"
-                      },
-                      {
-                        "type": "string",
-                        "enum": [
-                          "GLOBAL"
-                        ]
-                      }
+                      { "type": "string", "format": "uuid" },
+                      { "type": "string", "enum": ["GLOBAL"] }
                     ]
                   },
                   "maxItems": 10
@@ -5376,9 +3787,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserPage"
-                }
+                "schema": { "$ref": "#/components/schemas/UserPage" }
               }
             }
           },
@@ -5386,9 +3795,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5396,9 +3803,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5406,9 +3811,15 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5416,9 +3827,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -5429,26 +3838,16 @@
       "patch": {
         "operationId": "renameVertical",
         "summary": "Rename a vertical (Admin, audited, vertical.renamed)",
-        "tags": [
-          "Verticals"
-        ],
+        "tags": ["Verticals"],
         "parameters": [
           {
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            },
+            "schema": { "type": "string", "format": "uuid" },
             "required": true,
             "name": "verticalId",
             "in": "path"
           },
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -5458,9 +3857,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RenameVertical"
-              }
+              "schema": { "$ref": "#/components/schemas/RenameVertical" }
             }
           }
         },
@@ -5469,9 +3866,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SettingsVertical"
-                }
+                "schema": { "$ref": "#/components/schemas/SettingsVertical" }
               }
             }
           },
@@ -5479,9 +3874,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5489,9 +3882,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5499,9 +3890,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5509,9 +3898,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5519,9 +3906,7 @@
             "description": "Conflict",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5529,9 +3914,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5539,9 +3922,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -5552,9 +3933,7 @@
       "get": {
         "operationId": "getVerticalTeamLeadPriorities",
         "summary": "Active accepted Team Leads and their priorities (Admin aal2)",
-        "tags": [
-          "Priorities"
-        ],
+        "tags": ["Priorities"],
         "parameters": [
           {
             "schema": {
@@ -5583,9 +3962,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5593,9 +3970,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5603,9 +3978,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5613,9 +3986,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -5624,9 +3995,7 @@
       "put": {
         "operationId": "updateTeamLeadPriorities",
         "summary": "Atomically change Team Lead priorities with per-row versions (Admin aal2, D73)",
-        "tags": [
-          "Priorities"
-        ],
+        "tags": ["Priorities"],
         "parameters": [
           {
             "schema": {
@@ -5640,12 +4009,7 @@
             "in": "path"
           },
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -5676,9 +4040,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5686,9 +4048,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5696,9 +4056,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5706,9 +4064,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5716,9 +4072,7 @@
             "description": "Conflict",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5726,9 +4080,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5736,9 +4088,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -5749,17 +4099,13 @@
       "get": {
         "operationId": "listVerticals",
         "summary": "Verticals visible to the caller",
-        "tags": [
-          "Verticals"
-        ],
+        "tags": ["Verticals"],
         "responses": {
           "200": {
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VerticalList"
-                }
+                "schema": { "$ref": "#/components/schemas/VerticalList" }
               }
             }
           },
@@ -5767,9 +4113,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5777,9 +4121,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5787,9 +4129,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }
@@ -5798,17 +4138,10 @@
       "post": {
         "operationId": "createVertical",
         "summary": "Create a vertical (Admin, audited, vertical.created)",
-        "tags": [
-          "Verticals"
-        ],
+        "tags": ["Verticals"],
         "parameters": [
           {
-            "schema": {
-              "type": "string",
-              "enum": [
-                "1"
-              ]
-            },
+            "schema": { "type": "string", "enum": ["1"] },
             "required": true,
             "name": "X-CSRF-Protection",
             "in": "header"
@@ -5818,9 +4151,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateVertical"
-              }
+              "schema": { "$ref": "#/components/schemas/CreateVertical" }
             }
           }
         },
@@ -5829,9 +4160,7 @@
             "description": "Success",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SettingsVertical"
-                }
+                "schema": { "$ref": "#/components/schemas/SettingsVertical" }
               }
             }
           },
@@ -5839,9 +4168,7 @@
             "description": "Validation failed",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5849,9 +4176,7 @@
             "description": "Unauthenticated, session expired, user deactivated or MFA required",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5859,9 +4184,7 @@
             "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5869,9 +4192,7 @@
             "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5879,9 +4200,7 @@
             "description": "Conflict",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5889,9 +4208,7 @@
             "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           },
@@ -5899,9 +4216,7 @@
             "description": "Unexpected error",
             "content": {
               "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Problem"
-                }
+                "schema": { "$ref": "#/components/schemas/Problem" }
               }
             }
           }

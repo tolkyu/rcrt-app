@@ -35,6 +35,7 @@ export const inviteInspectResponseSchema = z
         state: z.literal('VALID'),
         fullName: z.string(),
         email: z.string(),
+        expiresAt: z.iso.datetime(),
         roles: z.array(
           z.object({ role: z.string(), vertical: z.string().nullable() }),
         ),

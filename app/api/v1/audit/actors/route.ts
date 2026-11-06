@@ -12,12 +12,13 @@ export const GET = defineRoute(
     method: 'GET',
     path: '/audit/actors',
     operationId: 'listAuditActors',
+    permission: 'audit.read',
     summary:
       'Users for the audit «Хто» filter by full name or email, active first (Admin)',
     tags: ['Audit'],
     query: auditActorQuerySchema,
     response: auditActorPageSchema,
-    errors: [404],
+    errors: [404, 429],
   },
   (ctx, { query }) => listAuditActors(ctx, query),
 );

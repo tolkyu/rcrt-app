@@ -40,10 +40,12 @@ Reference: `reference/06-calendar.webp`. Adoption: A-09, A-16, A-24, A-25, A-26,
 - **Notes:** the panel shows existing data only (recruiter summary for TL, A-26).
 
 ## Day / List views
+
 - День: same grid, one column, wider blocks with vacancy + participants.
 - Список: grouped by day, rows = time · type chip · candidate · vacancy · status; default on mobile.
 
 ## Mobile 390 — Team Lead
+
 ```
 ┌──────────────────────────────┐
 │ [H] Hiring        🔍  🔔•  (ВП)│
@@ -62,9 +64,11 @@ Reference: `reference/06-calendar.webp`. Adoption: A-09, A-16, A-24, A-25, A-26,
 │ bottom nav (Календар active) │
 └──────────────────────────────┘
 ```
+
 - Tap an event → bottom sheet with the details panel content; actions 48 px. No FAB (A-25).
 
 ## States
+
 - Loading: toolbar real; grid lines real; 6 skeleton blocks; panel skeleton.
 - Empty week: «На цей тиждень подій немає» centred in the grid.
 - No event selected: panel shows «Оберіть подію, щоб побачити деталі».

@@ -1,7 +1,7 @@
 'use client';
 
 import { useInfiniteQuery } from '@tanstack/react-query';
-import { CircleCheck, CircleX } from 'lucide-react';
+import { CircleCheck, CircleX, LogOut } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { SectionError } from '@/components/states/section-error';
 import { Button } from '@/components/ui/button';
@@ -41,16 +41,21 @@ export function LoginHistoryCard() {
             <ul className="divide-border divide-y">
               {items.map((item) => {
                 const ok = item.result === 'SUCCESS';
-                const Icon = ok ? CircleCheck : CircleX;
+                const loggedOut =
+                  item.action === 'logged_out' ||
+                  item.action === 'session_revoked';
+                const Icon = loggedOut ? LogOut : ok ? CircleCheck : CircleX;
                 const found = describeDevice(item.userAgent);
                 const device = found ? t('device', found) : t('unknownDevice');
                 return (
                   <li key={item.id} className="flex items-start gap-3 py-3">
                     <Icon
                       className={
-                        ok
-                          ? 'text-success-text mt-0.5 size-4 shrink-0'
-                          : 'text-error-text mt-0.5 size-4 shrink-0'
+                        loggedOut
+                          ? 'text-muted-foreground mt-0.5 size-4 shrink-0'
+                          : ok
+                            ? 'text-success-text mt-0.5 size-4 shrink-0'
+                            : 'text-error-text mt-0.5 size-4 shrink-0'
                       }
                       aria-hidden="true"
                     />
@@ -60,7 +65,15 @@ export function LoginHistoryCard() {
                       </p>
                       <p className="text-muted-foreground text-xs">
                         {item.ip
-                          ? t('historyDeviceIp', { device, ip: item.ip })
+                          ? t.rich('historyDeviceIp', {
+                              device,
+                              ip: item.ip,
+                              ipChunk: (chunks) => (
+                                <span className="whitespace-nowrap">
+                                  {chunks}
+                                </span>
+                              ),
+                            })
                           : device}
                       </p>
                     </div>

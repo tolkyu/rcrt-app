@@ -25,7 +25,11 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const api = path === '/api/v1' || path.startsWith('/api/v1/');
   if (api && !isTrustedMutation(request, process.env.APP_URL!)) {
-    const response = problemResponse(403, 'CSRF_FORBIDDEN', crypto.randomUUID());
+    const response = problemResponse(
+      403,
+      'CSRF_FORBIDDEN',
+      crypto.randomUUID(),
+    );
     response.headers.set('Content-Security-Policy', csp);
     return response;
   }

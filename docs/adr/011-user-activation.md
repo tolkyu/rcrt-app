@@ -8,10 +8,10 @@
 
 The application checks active state and database session ownership on every request. Supabase banning is an additional control. An unchecked ban after the database commit can fail silently or overtake a concurrent reactivation. Calling GoTrue after deleting Auth sessions inside an uncommitted transaction can block its separate database connection.
 
-| Option | Assessment |
-|---|---|
-| Unchecked provider call after commit | Rejected: incomplete deactivation is hidden and stale ban/unban requests can race. |
-| Persisted reconciliation/outbox | Suitable for later jobs, but unnecessary schema and worker work for this bounded synchronous operation. |
+| Option                                                                     | Assessment                                                                                                         |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Unchecked provider call after commit                                       | Rejected: incomplete deactivation is hidden and stale ban/unban requests can race.                                 |
+| Persisted reconciliation/outbox                                            | Suitable for later jobs, but unnecessary schema and worker work for this bounded synchronous operation.            |
 | Checked provider call under the target user lock, before Auth-table writes | Chosen: serializes both transitions, preserves local access denial when banning fails, and permits explicit retry. |
 
 ## Decision

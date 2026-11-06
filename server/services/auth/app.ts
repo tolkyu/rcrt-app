@@ -3,7 +3,7 @@ import { createAuthAdmin, type AuthAdmin } from '@/server/auth/admin';
 import { createAuthClient } from '@/server/auth/client';
 import { googleSignInEnabled } from '@/server/auth/config';
 import { verifySupabaseIdentity } from '@/server/auth/supabase-identity';
-import { runtimeEnv } from '@/server/config/runtime';
+import { rateLimitSecret, runtimeEnv } from '@/server/config/runtime';
 import { appContextDependencies } from '@/server/context/app';
 import type { RouteLogEntry } from '@/server/http/define-route';
 import { apiRegistry } from '@/server/http/openapi';
@@ -42,6 +42,6 @@ export const authDependencies: AuthDependencies = {
   verifyIdentity: verifySupabaseIdentity,
   sendEmail,
   appUrl: () => runtimeEnv().APP_URL,
-  rateLimitSecret: () => runtimeEnv().AUTH_RATE_LIMIT_SECRET,
+  rateLimitSecret,
   googleEnabled: googleSignInEnabled,
 };

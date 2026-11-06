@@ -13,6 +13,7 @@ export const POST = defineRoute(
     method: 'POST',
     path: '/users/{userId}/mfa-reset',
     operationId: 'resetUserMfa',
+    permission: 'settings.users.manage',
     summary: 'Remove all TOTP factors of another user and end their sessions',
     tags: ['Users'],
     params: userIdParamsSchema,

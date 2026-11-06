@@ -13,6 +13,7 @@ export const PATCH = defineRoute(
     method: 'PATCH',
     path: '/verticals/{verticalId}',
     operationId: 'renameVertical',
+    permission: 'settings.verticals.manage',
     summary: 'Rename a vertical (Admin, audited, vertical.renamed)',
     tags: ['Verticals'],
     params: verticalIdParamsSchema,

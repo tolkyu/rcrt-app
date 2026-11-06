@@ -238,4 +238,5 @@ flowchart TD
 - ⚠ OPEN-F11: deleting a candidate who has active applications — are applications closed (how, which status) or hidden with the candidate?
 
 ## ⚠ OPEN (flows)
+
 F1 re-routed application start stage · F2 routing moment (NEW vs submit) · F3 undo window for TL decline (UX proposal, needs ok since decline triggers routing + notifications) · F4 interview duration · F5 Meet link normalisation · F6 RESCH-03 meaning · F7 recruiter-initiated reschedule · F8 offer expiry auto vs manual · F9 probation day counting · F10 HR probation close rights · F11 deleting candidate with active applications.

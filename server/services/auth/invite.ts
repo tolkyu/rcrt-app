@@ -262,6 +262,7 @@ export async function inspectInvite(
     state: 'VALID' as const,
     fullName: invite.fullName,
     email: invite.email,
+    expiresAt: invite.expiresAt.toISOString(),
     roles: invite.roles.map((r) => ({
       role: r.role,
       vertical: r.verticalName,

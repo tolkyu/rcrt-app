@@ -9,6 +9,7 @@ export const GET = defineRoute(
     method: 'GET',
     path: '/settings/verticals',
     operationId: 'listSettingsVerticals',
+    permission: 'settings.verticals.manage',
     summary: 'All verticals with active user counts (Admin settings)',
     tags: ['Verticals'],
     response: settingsVerticalListSchema,

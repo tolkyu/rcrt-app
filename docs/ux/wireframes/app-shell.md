@@ -28,11 +28,11 @@ Reference: every screen mockup + `reference/01-components.webp` §03 Навіг�
 
 ## Role variants
 
-| Role | Sidebar | Top bar |
-|---|---|---|
-| Admin | all + Налаштування | full |
+| Role                                           | Sidebar                                                                            | Top bar                                         |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Admin                                          | all + Налаштування                                                                 | full                                            |
 | Head Recruiter / Recruiter / Head HR / HR / TL | Головна · Вакансії · Кандидати · Календар · Статистика · Архів (per screens.md §1) | full; vertical selector only with ≥ 2 verticals |
-| Finance | Статистика only | theme toggle + avatar only |
+| Finance                                        | Статистика only                                                                    | theme toggle + avatar only                      |
 
 ## Mobile 390
 
@@ -48,9 +48,11 @@ Reference: every screen mockup + `reference/01-components.webp` §03 Навіг�
 │Головна Вакансії Кандидати Календар Ще│  64 px + safe area; active = --link
 └──────────────────────────────┘
 ```
+
 - «Ще» opens a sheet: Статистика, Архів, Налаштування (Admin), Профіль, Вийти.
 - Dark: sidebar/top bar `#111827`, page `#0B1220`, bottom nav `#111827` with top border `#334155`.
 
 ## States
+
 - Loading: shell renders immediately (static); only content shows skeletons.
 - Offline / error: banner under top bar (Alert), shell stays interactive.

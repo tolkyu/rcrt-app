@@ -272,10 +272,14 @@ export function InviteUserDialog({
               <div className="flex min-w-0 flex-col gap-5">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="invite-name">{t('nameLabel')}</Label>
+                    <Label htmlFor="invite-name">
+                      {t('nameLabel')}{' '}
+                      <span aria-hidden="true">{t('requiredIndicator')}</span>
+                    </Label>
                     <Input
                       ref={nameRef}
                       id="invite-name"
+                      aria-required="true"
                       autoComplete="off"
                       value={fullName}
                       maxLength={NAME_INPUT_MAX}
@@ -300,7 +304,10 @@ export function InviteUserDialog({
                     )}
                   </div>
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="invite-email">{t('emailLabel')}</Label>
+                    <Label htmlFor="invite-email">
+                      {t('emailLabel')}{' '}
+                      <span aria-hidden="true">{t('requiredIndicator')}</span>
+                    </Label>
                     <div className="relative">
                       <Mail
                         aria-hidden="true"
@@ -309,6 +316,7 @@ export function InviteUserDialog({
                       <Input
                         ref={emailRef}
                         id="invite-email"
+                        aria-required="true"
                         type="email"
                         inputMode="email"
                         autoComplete="off"
@@ -377,7 +385,8 @@ export function InviteUserDialog({
                   }
                 >
                   <legend className="text-foreground mb-1 text-base font-semibold">
-                    {t('rolesTitle')}
+                    {t('rolesTitle')}{' '}
+                    <span aria-hidden="true">{t('requiredIndicator')}</span>
                   </legend>
                   <p
                     id="invite-roles-hint"

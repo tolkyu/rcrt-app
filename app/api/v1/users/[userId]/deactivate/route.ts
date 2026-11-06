@@ -13,6 +13,7 @@ export const POST = defineRoute(
     method: 'POST',
     path: '/users/{userId}/deactivate',
     operationId: 'deactivateUser',
+    permission: 'settings.users.manage',
     summary:
       'Deactivate an accepted user and end every session (Admin aal2, D44/D45)',
     tags: ['Users'],

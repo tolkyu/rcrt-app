@@ -1,7 +1,13 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Laptop, ShieldAlert, ShieldCheck, ShieldQuestion } from 'lucide-react';
+import {
+  Monitor,
+  Smartphone,
+  ShieldAlert,
+  ShieldCheck,
+  ShieldQuestion,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { toast } from '@/lib/toast';
@@ -122,10 +128,12 @@ function SessionRow({ session }: { session: SessionList['items'][number] }) {
   const t = useTranslations('profile');
   const format = useFormatter();
   const device = describeDevice(session.userAgent);
+  const DeviceIcon =
+    device?.os === 'Android' || device?.os === 'iOS' ? Smartphone : Monitor;
   return (
     <li className="border-border flex items-start gap-3 rounded-lg border p-3">
       <span className="bg-surface-muted flex size-10 shrink-0 items-center justify-center rounded-lg">
-        <Laptop
+        <DeviceIcon
           className="text-muted-foreground-strong size-5"
           aria-hidden="true"
         />

@@ -110,7 +110,17 @@ describe('MFA setup exits never grant assurance [STORY-SEC-AUTH-5, D63]', () => 
           expect(
             screen.getByRole('link', { name: label }).getAttribute('href'),
           ).toBe(href);
-        else expect(screen.queryByRole('link')).toBeNull();
+        else {
+          expect(
+            screen.queryByRole('link', { name: messages.auth.mfa.later }),
+          ).toBeNull();
+          expect(
+            screen.queryByRole('link', { name: messages.common.cancel }),
+          ).toBeNull();
+          expect(
+            screen.queryByRole('link', { name: messages.auth.mfa.skip }),
+          ).toBeNull();
+        }
         expect(request).toHaveBeenCalledTimes(1);
         expect(request.mock.calls[0]?.[0]).toBe('/auth/mfa/enroll');
       },

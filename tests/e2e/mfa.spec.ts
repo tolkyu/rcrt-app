@@ -4,6 +4,7 @@ import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import { mfaPendingSessionFile, sessionFile } from '../support/e2e-session';
 import { problemFulfill } from '../support/problem';
+import { checkAccessibility } from '../support/accessibility';
 import { captureScreen, forEachTheme, viewportOf } from './screens';
 
 const t = messages.auth.mfa;
@@ -75,7 +76,9 @@ for (const [email, mode] of [
           'complete',
           true,
         );
-        await expect(page.getByText(enrolment.secret)).toBeVisible();
+        await expect(
+          page.getByText(enrolment.secret.match(/.{1,4}/g)!.join(' ')),
+        ).toBeVisible();
         await expect(page.getByText(t.skip)).toHaveCount(0);
         const exit = page.getByRole('link', {
           name: mode === 'optional' ? t.later : messages.common.cancel,
@@ -83,6 +86,7 @@ for (const [email, mode] of [
         });
         await expect(exit).toHaveAttribute('href', '/profile');
         expect((await exit.boundingBox())!.height).toBeGreaterThanOrEqual(48);
+        await checkAccessibility(page, testInfo);
         await captureScreen(
           page,
           testInfo,
@@ -114,6 +118,7 @@ test.describe('admin@demo before the TOTP step', () => {
       const code = page.getByLabel(t.codeLabel);
       await expect(page.getByText(t.lostDevice)).toBeVisible();
       await expect(page.getByText(t.skip)).toHaveCount(0);
+      await checkAccessibility(page, testInfo);
       await captureScreen(page, testInfo, name('form', theme));
       await code.fill('480215');
       await page.getByRole('button', { name: t.submit }).click();
@@ -122,6 +127,7 @@ test.describe('admin@demo before the TOTP step', () => {
       ).toBeVisible();
       await expect(code).toHaveValue('');
       await expect(code).toBeFocused();
+      await checkAccessibility(page, testInfo);
       await captureScreen(page, testInfo, name('wrong-code', theme));
     });
     expect(checks.count).toBe(2);

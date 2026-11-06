@@ -47,9 +47,11 @@ Reference: `reference/03-vacancies.webp`. Adoption: A-13, A-14, A-15, A-21, A-30
 - **Pagination (A-21):** total + cursor ‹ › + page size 25/50/100.
 
 ## Role differences
+
 Same as `screens.md` S-04. Recruiter: unassigned rows show «Взяти в роботу» inline. TL: «Тімлід» column hidden, only own vacancies, «Запросити вакансію». HHR/HR: no checkboxes, no create, panel read-only.
 
 ## Mobile 390
+
 ```
 ┌──────────────────────────────┐
 │ Вакансії            [Усі 24 ▾]│
@@ -65,9 +67,11 @@ Same as `screens.md` S-04. Recruiter: unassigned rows show «Взяти в ро�
 │ bottom nav                   │
 └──────────────────────────────┘
 ```
+
 Tap a card → S-06 (no preview panel).
 
 ## States
+
 - Loading: filter bar real, chips skeleton, 10 rows skeleton, panel skeleton (header + 4 blocks).
 - Empty: «Відкритих вакансій немає» + «Створити вакансію» (if allowed; TL «Запросити вакансію»); panel hidden.
 - Filtered empty: «Нічого не знайдено за фільтрами» [Скинути фільтри].

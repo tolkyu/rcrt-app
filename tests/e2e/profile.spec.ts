@@ -28,8 +28,8 @@ const NON_ADMIN_ROLES: readonly {
 }[] = [
   { email: 'head.recruiter.gambling@demo', verticalSwitcher: false },
   { email: 'recruiter1.gambling@demo', verticalSwitcher: false },
-  { email: 'head.hr@demo', verticalSwitcher: true },
-  { email: 'hr@demo', verticalSwitcher: true },
+  { email: 'head.hr@demo', verticalSwitcher: false },
+  { email: 'hr@demo', verticalSwitcher: false },
   { email: 'vasyl.tl@demo', verticalSwitcher: false },
   { email: 'finance@demo', verticalSwitcher: false },
 ];
@@ -47,7 +47,7 @@ const kyivDateTime = (iso: string) =>
 const notFound = (page: Page) =>
   page.getByRole('heading', { level: 1, name: messages.errors.notFoundTitle });
 const userMenu = (page: Page) =>
-  page.getByRole('button', { name: t.shell.userMenu, exact: true });
+  page.getByRole('button', { name: new RegExp(`^${t.shell.userMenu}:`) });
 
 for (const role of NON_ADMIN_ROLES) {
   test.describe(role.email, () => {
@@ -82,9 +82,9 @@ for (const role of NON_ADMIN_ROLES) {
           }),
         ).toHaveCount(role.verticalSwitcher ? 1 : 0);
       }
-      // UI check only: the in-shell 404 is sent with HTTP 200 while the shell streams (app bug, VIS-02, T9).
       for (const path of SETTINGS_PATHS) {
-        await page.goto(path);
+        const response = await page.goto(path);
+        expect(response?.status(), path).toBe(404);
         await expect(notFound(page), path).toBeVisible();
         await expect(userMenu(page)).toBeVisible();
       }

@@ -1,7 +1,4 @@
-import {
-  emptyRequestSchema,
-  redirectResponseSchema,
-} from '@/lib/schemas/auth';
+import { emptyRequestSchema, redirectResponseSchema } from '@/lib/schemas/auth';
 import {
   authDependencies,
   definePublicAuthRoute,

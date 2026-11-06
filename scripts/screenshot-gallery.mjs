@@ -44,6 +44,19 @@ const groups = [
     roles: [],
     states: [
       { file: '01-public-login', heading: 'Вхід — форма входу' },
+      { file: '26-public-login-sent', heading: 'Вхід — посилання надіслано' },
+      {
+        file: '26-public-login-google-mismatch',
+        heading: 'Вхід — Google-акаунт не збігається із запрошенням',
+      },
+      {
+        file: '26-public-login-google-failed',
+        heading: 'Вхід — не вдалося увійти через Google',
+      },
+      {
+        file: '26-public-login-deactivated',
+        heading: 'Вхід — обліковий запис деактивовано',
+      },
       {
         file: '22-public-login-google',
         heading:
@@ -60,7 +73,7 @@ const groups = [
       {
         file: '21-public-invite-valid',
         heading:
-          'Запрошення — дійсне: імʼя, пошта й ролі (приклад: Оксана Олійник, HR-менеджер у двох вертикалях)',
+          'Запрошення — дійсне: імʼя, пошта, ролі й термін дії (приклад: Марина Савчук, HR-менеджер у двох вертикалях)',
       },
       {
         file: '22-public-invite-google',
@@ -161,6 +174,27 @@ const groups = [
     role: 'Адміністратор',
     roles: ['Адміністратор'],
     states: [
+      { file: '25-admin-audit-loading', heading: 'Журнал дій — завантаження' },
+      {
+        file: '25-admin-audit-error',
+        heading: 'Журнал дій — помилка з можливістю повторити',
+      },
+      {
+        file: '25-admin-audit-empty',
+        heading: 'Журнал дій — записів не знайдено',
+      },
+      {
+        file: '25-admin-audit-period-invalid',
+        heading: 'Журнал дій — період довший за рік',
+      },
+      {
+        file: '25-admin-audit-json',
+        heading: 'Журнал дій — деталі у форматі JSON',
+      },
+      {
+        file: '25-admin-audit-not-found',
+        heading: 'Журнал дій — запис недоступний або відсутній',
+      },
       {
         file: '06-admin-audit-list',
         label: 'список',
@@ -227,11 +261,39 @@ const groups = [
     states: [
       { file: '08-admin-users-list', heading: 'Користувачі та ролі — список' },
       {
+        file: '23-admin-users-loading',
+        heading: 'Користувачі та ролі — завантаження',
+      },
+      {
+        file: '23-admin-users-error',
+        heading: 'Користувачі та ролі — помилка з можливістю повторити',
+      },
+      {
+        file: '23-admin-users-empty',
+        heading: 'Користувачі та ролі — нікого не знайдено',
+      },
+      {
         file: '08-admin-users-filters',
         heading: 'Користувачі та ролі — мобільні фільтри',
         variants: ['mobile-light', 'mobile-dark'],
       },
       { file: '09-admin-invite-dialog', heading: 'Запросити користувача' },
+      {
+        file: '24-admin-user-self',
+        heading: 'Картка адміністратора — власну 2FA і доступ захищено',
+      },
+      {
+        file: '24-admin-user-not-found',
+        heading: 'Картка користувача — недоступний або відсутній користувач',
+      },
+      {
+        file: '24-admin-reset-mfa-dialog',
+        heading: 'Скинути 2FA — підтвердження з обовʼязковою причиною',
+      },
+      {
+        file: '24-admin-reset-mfa-incomplete',
+        heading: 'Скинути 2FA — частково виконано, можна повторити',
+      },
       {
         file: '10-admin-user-drawer-profile',
         label: 'профіль',

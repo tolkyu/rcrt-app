@@ -69,10 +69,15 @@ export async function captureScreen(
   expect(await noHorizontalOverflow()).toBe(true);
   const viewport = page.viewportSize()!;
   const height = await page.evaluate(() => {
-    let needed = document.documentElement.scrollHeight;
-    for (const element of document.querySelectorAll<HTMLElement>(
-      '[data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="sheet-content"]',
-    )) {
+    const dialogs = Array.from(
+      document.querySelectorAll<HTMLElement>(
+        '[data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="sheet-content"]',
+      ),
+    ).filter((element) => element.getClientRects().length > 0);
+    let needed = dialogs.length
+      ? window.innerHeight
+      : document.documentElement.scrollHeight;
+    for (const element of dialogs) {
       if (
         element.getClientRects().length === 0 ||
         element.scrollHeight <= element.clientHeight

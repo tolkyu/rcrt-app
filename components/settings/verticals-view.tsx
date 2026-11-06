@@ -128,11 +128,11 @@ export function VerticalsView({
                 >
                   {vertical.name}
                 </th>
-                <td className="text-muted-foreground px-4">
+                <td className="text-muted-foreground min-w-40 px-4 whitespace-nowrap">
                   {usersCount(vertical)}
                 </td>
                 <td className="text-muted-foreground px-4 tabular-nums">
-                  {t('createdOn', { at: new Date(vertical.createdAt) })}
+                  {t('createdDate', { at: new Date(vertical.createdAt) })}
                 </td>
                 <td className="px-4 text-right">{actions(vertical)}</td>
               </tr>

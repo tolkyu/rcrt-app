@@ -18,7 +18,11 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const cookieStore = await cookies();
   const theme = parseTheme(cookieStore.get(PREFERENCE_COOKIES.theme)?.value);
   return (

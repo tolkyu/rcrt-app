@@ -1,8 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { Skeleton } from '@/components/ui/skeleton';
 
-/** Generic content skeleton (header + two cards); the shell itself renders immediately. */
-export default async function AppLoading() {
+export async function ContentSkeleton() {
   const t = await getTranslations('states');
   return (
     <div role="status" className="skeleton-delayed">

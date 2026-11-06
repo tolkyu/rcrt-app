@@ -4,17 +4,18 @@ One nav item «Архів», route `/archive/{rejected,deleted,closed}`, three t
 
 ## Role × tab visibility
 
-| Tab | Admin | Head Recruiter | Recruiter | Head HR | HR | Team Lead | Finance |
-|---|---|---|---|---|---|---|---|
-| Відмови | ✓ all | ✓ in vertical | ⚠ OPEN-S1 | ⚠ OPEN-S1 | ⚠ OPEN-S1 | ⚠ OPEN-S1 | — |
-| Видалені | ✓ all · Відновити · Видалити назавжди | ✓ in vertical · Відновити | ⚠ OPEN-S1 | ⚠ OPEN-S1 | ⚠ OPEN-S1 | ⚠ OPEN-S1 | — |
-| Закриті вакансії | ✓ all · Клонувати | ✓ in vertical · Клонувати | ⚠ OPEN-S1 | ⚠ OPEN-S1 | ⚠ OPEN-S1 | ⚠ OPEN-S1 | — |
-| «Повернути в роботу» | ⚠ OPEN-S14 | ⚠ OPEN-S14 | ⚠ OPEN-S14 | — | — | — | — |
+| Tab                  | Admin                                 | Head Recruiter            | Recruiter  | Head HR   | HR        | Team Lead | Finance |
+| -------------------- | ------------------------------------- | ------------------------- | ---------- | --------- | --------- | --------- | ------- |
+| Відмови              | ✓ all                                 | ✓ in vertical             | ⚠ OPEN-S1  | ⚠ OPEN-S1 | ⚠ OPEN-S1 | ⚠ OPEN-S1 | —       |
+| Видалені             | ✓ all · Відновити · Видалити назавжди | ✓ in vertical · Відновити | ⚠ OPEN-S1  | ⚠ OPEN-S1 | ⚠ OPEN-S1 | ⚠ OPEN-S1 | —       |
+| Закриті вакансії     | ✓ all · Клонувати                     | ✓ in vertical · Клонувати | ⚠ OPEN-S1  | ⚠ OPEN-S1 | ⚠ OPEN-S1 | ⚠ OPEN-S1 | —       |
+| «Повернути в роботу» | ⚠ OPEN-S14                            | ⚠ OPEN-S14                | ⚠ OPEN-S14 | —         | —         | —         | —       |
 
 - A tab the user can't see is not rendered. If the user can see no tabs, the «Архів» nav item is hidden. Finance never sees it.
 - Rows always obey the role × vertical scope (VIS-02). Tab counts are scoped counts, never global.
 
 ## Shared list mechanics
+
 - TanStack Table + **TanStack Virtual**, row height 40 (desktop) / card 88 (mobile). **Cursor pagination**: infinite query, 50 rows per page, next page fetched when the user is 10 rows from the end. Default sort is «Коли» (desc); the sortable columns are only those backed by an index.
 - Filters (FilterBar, URL-synced): chips + «Скинути»; saved filters are supported. The counter shows «50+» until the last page is reached; there is no full count query.
 - Row click opens the card (read-only banner for deleted objects). Actions live in the row `⋯` menu and in a sticky bulk bar where bulk is allowed.
@@ -51,6 +52,7 @@ One nav item «Архів», route `/archive/{rejected,deleted,closed}`, three t
 - «Повернути в роботу» is disabled with a reason when the candidate already has an active application in that routing group: «Кандидат уже має активну кандидатуру на цю посаду» (ROUTE-06).
 
 ### Dialog — Повернути в роботу
+
 ```
 ┌ Повернути в роботу: Марія Кравчук ────────────────────────────────┐
 │ Буде створено нову кандидатуру; попередня історія збережеться.     │
@@ -66,12 +68,14 @@ One nav item «Архів», route `/archive/{rejected,deleted,closed}`, three t
 │                                       [Скасувати] [Повернути в роботу]│
 └────────────────────────────────────────────────────────────────────┘
 ```
+
 - If no vacancy is available: «Немає відкритих вакансій для цієї посади» and the submit button is disabled; the «У кадровий резерв» option stays available.
 - Choosing a vacancy whose TL rejected the candidate within 180 days → warning «Тімлід відмовив цьому кандидату 13.11.2026» (allowed when submitting directly to a vacancy, ROUTE-08).
 - Start stage of the new application: ⚠ OPEN-A4.
 - Success toast: «Кандидатуру створено» [Відкрити]. The row stays in the archive, because the old application is history.
 
 ### States — Відмови
+
 - **Loading:** filter bar is real; 10 skeleton rows at real column widths; tab counts as grey pills.
 - **Empty (no data):** «Архів відмов порожній. Сюди потрапляють кандидатури зі статусом «Відмова», «Самовідвід» або «Не пройшов ВТ».»
 - **Empty (filters):** «Нічого не знайдено за фільтрами» [Скинути фільтри].
@@ -82,6 +86,7 @@ One nav item «Архів», route `/archive/{rejected,deleted,closed}`, three t
 ## Tab 2 — Видалені
 
 **Decision: one list with a type switch `[Усі · Кандидати · Вакансії]` (default «Усі»), not two sub-lists.** Why:
+
 - The columns and actions are identical.
 - Head Recruiter and Admin review deletions as one chronological stream, which suits audits.
 - One cursor-paginated query with a `type` filter needs one index.
@@ -105,11 +110,13 @@ One nav item «Архів», route `/archive/{rejected,deleted,closed}`, three t
 │          │ Вибрано 2   [Відновити (2)]  [Видалити назавжди (2)] ← Admin                              │
 └──────────┴─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
 - **Row menu:** «Відкрити (лише перегляд)» · «Відновити» (Admin, Head Recruiter in vertical) · separator · «Видалити назавжди» (Admin, red). Actions the role can never do are hidden.
 - Bulk checkboxes appear only for roles that have at least one bulk action.
 - Purge of a **vacancy** (it holds no personal data): ⚠ OPEN-A1. Until that is answered, «Видалити назавжди» is shown for candidates only.
 
 ### Dialog — Відновити (AlertDialog, non-destructive primary)
+
 ```
 ┌ Відновити кандидата «Сергій Ткаченко»? ───────────────────────────┐
 │ Картка повернеться в списки з усією історією, резюме та файлами.   │
@@ -118,11 +125,13 @@ One nav item «Архів», route `/archive/{rejected,deleted,closed}`, three t
 │                                         [Скасувати] [Відновити]    │
 └────────────────────────────────────────────────────────────────────┘
 ```
+
 - **Vacancy variant:** «Вакансія повернеться в списки з усією історією. Кандидати, яких під час видалення перенесли в резерв, на іншу вакансію або відмовили, автоматично не повертаються.» The status after restore is ⚠ OPEN-A2.
 - **Candidate variant:** what happens to the applications that were active at deletion is ⚠ OPEN-F11. The dialog shows that line once the answer is in.
 - Success: toast «Відновлено» [Відкрити], row removed from the list (optimistic, rollback on error).
 
 ### Dialog — Видалити назавжди (Admin, AlertDialog, destructive)
+
 ```
 ┌ Видалити назавжди «Сергій Ткаченко»? ─────────────────────────────┐
 │ Персональні дані та файли буде знищено безповоротно: ПІБ, контакти,│
@@ -136,10 +145,12 @@ One nav item «Архів», route `/archive/{rejected,deleted,closed}`, three t
 │                              [Скасувати] [Видалити назавжди ▒]     │  enabled only on exact match
 └────────────────────────────────────────────────────────────────────┘
 ```
+
 - Focus starts on «Скасувати». The match is case-sensitive and trimmed. Bulk purge uses the same dialog with «Видалити назавжди 3 кандидатів?» and the list of names.
 - Whether purged comments are removed entirely or only redacted: ⚠ OPEN-C2.
 
 ### Purged stub state (card opened from Статистика / Бонуси / «Показати знищені»)
+
 ```
 ┌───────────────────────────────────────────────────────────────────────────┐
 │ (#) Кандидат #1234 (видалено)                         [Знищено 02.09.2026] │
@@ -150,10 +161,12 @@ One nav item «Архів», route `/archive/{rejected,deleted,closed}`, three t
 │ Бонуси: Транш 1 · Скасовано                                                │  (bonus-visible roles)
 └───────────────────────────────────────────────────────────────────────────┘
 ```
+
 - No contacts, no CV pane, no comments tab, no actions. Actor names stay visible (staff, not the candidate's personal data); exact content ⚠ OPEN-C2.
 - In reports and tables the name cell reads «Кандидат #1234 (видалено)» in muted italics, with no link.
 
 ### States — Видалені
+
 - **Loading:** type switch and filters are real; 8 skeleton rows.
 - **Empty:** «Видалених карток немає.»; on the Вакансії switch: «Видалених вакансій немає.»
 - **Empty (filters):** «Нічого не знайдено за фільтрами» [Скинути фільтри].
@@ -176,11 +189,13 @@ One nav item «Архів», route `/archive/{rejected,deleted,closed}`, three t
 │          │ └──────────────────────────┴───────────┴──────────┴──────────┴──────────────┴──────────┴──────────┴───┘│
 └──────────┴─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
 - «Воронка» = final FunnelMini: counts per stage the applications reached, plus total. «Відкрита» = days from open to close.
 - Row click opens the vacancy card in read-only mode (full pipeline, history) with the banner «Вакансію закрито 20.10.2026 — Заповнена» [Клонувати].
 - **Row menu:** «Відкрити» · «Клонувати» · «Відкрити знову» (Head Recruiter, FILLED only; VAC-02).
 
 ### Dialog — Клонувати вакансію (VAC-05)
+
 ```
 ┌ Клонувати «Медіабаєр — Facebook #187» ────────────────────────────┐
 │ Буде створено нову вакансію з тими самими полями. Її можна         │
@@ -195,10 +210,12 @@ One nav item «Архів», route `/archive/{rejected,deleted,closed}`, three t
 │                                   [Скасувати] [Клонувати і відкрити]│
 └────────────────────────────────────────────────────────────────────┘
 ```
+
 - The list is collapsed until the checkbox is ticked; nothing is preselected (⚠ OPEN-A7). Purged and deleted candidates are excluded.
 - On submit the user goes to the new vacancy's edit form, which shows the block «Пропозиції (N)».
 
 ### States — Закриті вакансії
+
 - **Loading:** 8 skeleton rows; FunnelMini placeholders at final width.
 - **Empty:** «Закритих вакансій ще немає.»
 - **Empty (filters):** «Нічого не знайдено за фільтрами» [Скинути фільтри].
@@ -207,9 +224,11 @@ One nav item «Архів», route `/archive/{rejected,deleted,closed}`, three t
 ---
 
 ## ARCH-03 — deleting a vacancy with active applications
+
 Drawn in `vacancy-card.md` → «Delete dialog (ARCH-03)» (options: move to talent pool / another vacancy / reject with reason, plus mandatory delete reason). The result lands in this tab: «Видалені» with type «Вакансія».
 
 ## Mobile 390
+
 ```
 ┌──────────────────────────────┐
 │ Архів                        │
@@ -225,10 +244,12 @@ Drawn in `vacancy-card.md` → «Delete dialog (ARCH-03)» (options: move to tal
 │ …                            │
 └──────────────────────────────┘
 ```
+
 - Rows become cards (88 px, virtualized); actions go in `⋯` → bottom sheet. The type-to-confirm purge dialog becomes a full-height sheet with the keyboard open.
 - No bulk selection on mobile; Admin does bulk work on desktop.
 
 ## ⚠ OPEN (new)
+
 - **A1** Does purge apply to deleted vacancies (no personal data), or is it candidates only?
 - **A2** What status does a restored vacancy get (previous status / ON_HOLD / OPEN)?
 - **A3** Dedupe check on candidate restore: warn only, or block?

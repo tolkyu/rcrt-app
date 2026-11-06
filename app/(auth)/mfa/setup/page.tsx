@@ -22,10 +22,16 @@ export default async function MfaSetupPage({
   const status = await mfaStatus(authDependencies, ctx);
   // With a device already enrolled, a new one may only be added from an aal2 session (T4-F03).
   if (status.factors.length > 0 && status.aal !== 'aal2')
-    redirect(next ? `/mfa/verify?next=${encodeURIComponent(next)}` : '/mfa/verify');
+    redirect(
+      next ? `/mfa/verify?next=${encodeURIComponent(next)}` : '/mfa/verify',
+    );
   if (!status.canAddFactor) redirect(next || '/');
   const mode =
-    status.factors.length > 0 ? 'backup' : status.required ? 'required' : 'optional';
+    status.factors.length > 0
+      ? 'backup'
+      : status.required
+        ? 'required'
+        : 'optional';
   return (
     <MfaSetupForm
       mode={mode}

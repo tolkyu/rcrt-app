@@ -12,6 +12,7 @@ export const POST = defineRoute(
     method: 'POST',
     path: '/users/{userId}/invite/revoke',
     operationId: 'revokeUserInvite',
+    permission: 'settings.users.manage',
     summary:
       'Revoke the pending or expired invite; its link stops working (Admin with aal2)',
     tags: ['Users'],

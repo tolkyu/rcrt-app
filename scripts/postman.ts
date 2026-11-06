@@ -1,6 +1,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { convert } from 'openapi-to-postmanv2';
+import { format, resolveConfig } from 'prettier';
 import {
   mergeCases,
   type OpenApi,
@@ -64,7 +65,13 @@ collection.item.sort((a, b) => rank(a.name) - rank(b.name));
 mergeCases(collection, spec, postmanDir);
 
 mkdirSync(dirname(output), { recursive: true });
-writeFileSync(output, `${JSON.stringify(collection, null, 2)}\n`);
+writeFileSync(
+  output,
+  await format(JSON.stringify(collection), {
+    ...(await resolveConfig(output)),
+    filepath: output,
+  }),
+);
 console.log(
   `Postman collection → ${output} (tested: ${testedFolders(collection).join(', ')})`,
 );

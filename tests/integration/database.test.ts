@@ -717,11 +717,11 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       entity_event: appendOnly,
       entity_event_pii: appendOnly,
       file_object: noDelete,
-      job_run: readWrite,
+      job_run: noDelete,
       rate_limit_bucket: readWrite,
       saved_filter: readWrite,
       team_lead_priority: readWrite,
-      user_invite: readWrite,
+      user_invite: noDelete,
       user_role: readWrite,
       user_session: noDelete,
       vertical: noDelete,
@@ -820,6 +820,24 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       'app_purge|USAGE',
       'app_rw|USAGE',
     ]);
+    const defaults = await admin`
+      select coalesce(n.nspname, 'GLOBAL') || '|' || d.defaclobjtype::text || '|' ||
+        coalesce(r.rolname, 'PUBLIC') || '|' || acl.privilege_type as entry
+      from pg_default_acl d left join pg_namespace n on n.oid = d.defaclnamespace
+      cross join lateral aclexplode(d.defaclacl) acl
+      left join pg_roles r on r.oid = acl.grantee
+      where d.defaclrole = 'app_migrator'::regrole order by 1`;
+    expect(defaults.map((row) => row.entry)).toEqual([
+      'GLOBAL|f|app_migrator|EXECUTE',
+    ]);
+  });
+
+  it('preserves invitation and job history from runtime deletion [SEC-CORE-13]', async () => {
+    for (const table of ['user_invite', 'job_run']) {
+      await expect(
+        runtime.unsafe(`delete from app.${table} where false`),
+      ).rejects.toMatchObject({ code: '42501' });
+    }
   });
 
   it('builds timeline, audit viewer and cleanup indexes with their predicates [ERD §5, PERF-05]', async () => {

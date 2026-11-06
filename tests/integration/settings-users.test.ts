@@ -17,6 +17,8 @@ import {
 import { createAuthFixture } from '../support/auth-fixture';
 import { startJwksFixture } from '../unit/auth/jwks-fixture';
 import { connectTestDatabase, testDatabaseUrls } from './database';
+import { listAuditActors } from '../../server/services/audit';
+import { SEARCH_RATE_LIMIT } from '../../server/security/rate-limit';
 
 let jwks: Awaited<ReturnType<typeof startJwksFixture>>;
 let fixture: ReturnType<typeof createAuthFixture>;
@@ -59,6 +61,62 @@ async function request(
 }
 
 const HOUR = 3_600_000;
+
+describe('User and actor search rate limiting [DG-09, SEC-AAF-03]', () => {
+  it('shares 120 searches per user per minute without storing query text and resets at the next window', async () => {
+    await fixture.run(async (args) => {
+      const ctx = await request(args, {
+        role: 'ADMIN',
+        aal: 'aal2',
+        verified: true,
+      });
+      const q = 'sensitive-name@fixture.test';
+      await listUserPage(ctx, { q });
+      for (let count = 1; count < SEARCH_RATE_LIMIT.perUser; count += 1)
+        await listAuditActors(ctx, { q });
+      await expect(listUserPage(ctx, { q })).rejects.toMatchObject({
+        code: 'RATE_LIMITED',
+        status: 429,
+      });
+      await expect(listAuditActors(ctx, { q })).rejects.toMatchObject({
+        code: 'RATE_LIMITED',
+        status: 429,
+      });
+      await expect(listUserPage(ctx, {})).resolves.toHaveProperty('items');
+      await expect(listAuditActors(ctx, {})).resolves.toHaveProperty('items');
+      await expect(listUserPage(ctx, { q: 'x' })).rejects.toHaveProperty(
+        'name',
+        'ZodError',
+      );
+      const buckets = await ctx.db.select().from(schema.rateLimitBucket);
+      const stored = JSON.stringify(buckets);
+      expect(stored).not.toContain(q);
+      expect(stored).not.toContain(ctx.auth.userId);
+      args.at(new Date(ctx.clock.now().getTime() + 60_000));
+      await expect(listUserPage(ctx, { q })).resolves.toHaveProperty('items');
+    });
+  });
+
+  it('denies an out-of-scope user before consuming search capacity', async () => {
+    await fixture.run(async (args) => {
+      const ctx = await request(args, {
+        role: 'FINANCE',
+        aal: 'aal2',
+        verified: true,
+      });
+      const before = await ctx.db.select().from(schema.rateLimitBucket);
+      await expect(listUserPage(ctx, { q: 'privacy' })).rejects.toMatchObject({
+        status: 404,
+      });
+      await expect(
+        listAuditActors(ctx, { q: 'privacy' }),
+      ).rejects.toMatchObject({ status: 404 });
+      expect(await ctx.db.select().from(schema.rateLimitBucket)).toEqual(
+        before,
+      );
+    });
+  });
+});
 
 /** Users whose emails share `marker`, so `q` isolates them from other rows in the test database. */
 async function seedUsers(args: FixtureArgs, marker: string) {

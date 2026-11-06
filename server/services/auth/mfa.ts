@@ -84,6 +84,7 @@ export async function enrollTotp(
   ctx: RequestContext,
   cookies: AuthCookieStore,
 ): Promise<{ factorId: string; qrCode: string; secret: string }> {
+  const client = await boundMfaClient(deps, ctx, cookies);
   await consumeRateLimit(ctx.db, ctx.clock.now(), deps.rateLimitSecret(), [
     {
       namespace: 'auth:mfa:enroll',
@@ -91,7 +92,6 @@ export async function enrollTotp(
       limit: AUTH_LIMITS.mfaEnrollPerUser,
     },
   ]);
-  const client = await boundMfaClient(deps, ctx, cookies);
   const factors = await client.listTotpFactors();
   if (!factors) throw new UnauthenticatedError();
   const verified = factors.filter((factor) => factor.status === 'verified');

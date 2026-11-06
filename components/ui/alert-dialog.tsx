@@ -41,7 +41,7 @@ export function AlertDialogTitle({
     <AlertDialogPrimitive.Title
       data-slot="alert-dialog-title"
       className={cn(
-        'text-heading-lg text-foreground [overflow-wrap:anywhere]',
+        'text-heading-lg text-foreground text-balance [overflow-wrap:anywhere]',
         className,
       )}
       {...props}

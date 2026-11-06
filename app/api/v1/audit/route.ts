@@ -9,6 +9,7 @@ export const GET = defineRoute(
     method: 'GET',
     path: '/audit',
     operationId: 'listAudit',
+    permission: 'audit.read',
     summary:
       'Audit log, newest first, filtered by view, Kyiv period, actor, action(s) and entity (Admin)',
     tags: ['Audit'],

@@ -13,6 +13,7 @@ export const POST = defineRoute(
     method: 'POST',
     path: '/users/{userId}/invite/resend',
     operationId: 'resendUserInvite',
+    permission: 'settings.users.manage',
     summary:
       'Resend the pending or expired invite: new 72 h link, the previous one stops working (Admin with aal2)',
     tags: ['Users'],

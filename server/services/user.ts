@@ -28,6 +28,8 @@ import {
   type UserListRow,
 } from '../repositories/user';
 import { userEventView } from './user-timeline';
+import { rateLimitSecret } from '../config/runtime';
+import { consumeSearchRateLimit } from '../security/rate-limit';
 
 const asList = <T>(value: T | T[] | undefined): T[] | undefined =>
   value === undefined ? undefined : Array.isArray(value) ? value : [value];
@@ -88,6 +90,7 @@ export async function listUserPage(
 ): Promise<UserPage> {
   requirePermission(ctx.auth, 'settings.users.manage');
   const query = userListQuerySchema.parse(input);
+  if (query.q) await consumeSearchRateLimit(ctx, rateLimitSecret());
   const filters = {
     search: query.q,
     statuses: asList(query.status),

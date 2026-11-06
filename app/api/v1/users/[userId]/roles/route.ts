@@ -12,6 +12,7 @@ export const PUT = defineRoute(
     method: 'PUT',
     path: '/users/{userId}/roles',
     operationId: 'updateUserRoles',
+    permission: 'settings.users.manage',
     summary:
       'Replace the roles × verticals of a user; takes effect on their next request (Admin with aal2, ROLE-01, D40, D45)',
     tags: ['Users'],

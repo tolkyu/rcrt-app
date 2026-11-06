@@ -3,6 +3,8 @@ import type {
   RouteConfig,
 } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
+import { requirePermission } from '../authz/can';
+import type { PermissionCode } from '../authz/permissions';
 import {
   requestMeta,
   resolveRequestContext,
@@ -10,7 +12,7 @@ import {
   type RequestContext,
 } from '../context/request-context';
 import { isTrustedMutation } from '../security/http';
-import { ForbiddenError, ValidationError } from './errors';
+import { ForbiddenError, NotFoundError, ValidationError } from './errors';
 import { mapError } from './map-error';
 import { problemResponse } from './problem';
 import { readJsonBody } from './read-json';
@@ -37,6 +39,7 @@ export interface RouteSpec<
   /** OpenAPI path below /api/v1 with `{param}` placeholders. */
   readonly path: string;
   readonly operationId: string;
+  readonly permission?: PermissionCode;
   readonly summary: string;
   readonly tags: readonly string[];
   readonly params?: P;
@@ -81,6 +84,7 @@ function parsePart<S extends AnyObject | z.ZodType | undefined>(
 ): Output<S> {
   if (!schema) return undefined as Output<S>;
   const result = schema.safeParse(value);
+  if (!result.success && prefix === 'params') throw new NotFoundError();
   if (!result.success)
     throw new ValidationError(zodFieldErrors(result.error, prefix));
   return result.data as Output<S>;
@@ -178,6 +182,7 @@ export function createRouteFactory(deps: RouteFactoryDependencies) {
         }
         const ctx = await resolveRequestContext(deps, request.headers, meta);
         userId = ctx.auth.userId;
+        if (spec.permission) requirePermission(ctx.auth, spec.permission);
         const input = {
           params: parsePart(
             spec.params,
@@ -211,11 +216,13 @@ export function createRouteFactory(deps: RouteFactoryDependencies) {
         response = mapped ?? problemResponse(500, 'INTERNAL', meta.requestId);
         response.headers.set('X-Request-Id', meta.requestId);
       }
+      const duration = Math.max(0, performance.now() - started);
+      response.headers.set('Server-Timing', `app;dur=${duration.toFixed(2)}`);
       deps.onComplete?.({
         requestId: meta.requestId,
         operationId: spec.operationId,
         status: response.status,
-        ms: Math.round(performance.now() - started),
+        ms: Math.round(duration),
         userId,
         ...(failure === undefined ? {} : { error: failure }),
       });

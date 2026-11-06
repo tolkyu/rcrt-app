@@ -2,6 +2,7 @@ import 'server-only';
 import { createHmac } from 'node:crypto';
 import type { DbExecutor } from '../db';
 import type { Clock } from '../domain/clock';
+import type { RequestContext } from '../context/request-context';
 import { RateLimitedError, UnauthenticatedError } from '../http/errors';
 import { lockMfaState, setMfaLock } from '../repositories/auth';
 import {
@@ -25,6 +26,7 @@ export interface AuthRateLimitConfig {
 }
 
 const WINDOW_SECONDS = 900;
+export const SEARCH_RATE_LIMIT = { perUser: 120, windowSeconds: 60 } as const;
 const defaultAuthConfig: AuthRateLimitConfig = {
   emailLimit: 10,
   ipLimit: 30,
@@ -128,6 +130,25 @@ export async function assertBelowLimit(
     start,
   );
   if (count >= bucket.limit) throw new RateLimitedError(retryAfter);
+}
+
+export async function consumeSearchRateLimit(
+  ctx: RequestContext,
+  secret: string,
+): Promise<void> {
+  await consumeRateLimit(
+    ctx.db,
+    ctx.clock.now(),
+    secret,
+    [
+      {
+        namespace: 'search:user',
+        value: ctx.auth.userId,
+        limit: SEARCH_RATE_LIMIT.perUser,
+      },
+    ],
+    SEARCH_RATE_LIMIT.windowSeconds,
+  );
 }
 
 /** Reserves capacity under a short user lock; provider I/O runs only after this transaction commits. */

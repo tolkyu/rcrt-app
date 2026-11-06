@@ -287,7 +287,12 @@ test('captures the verticals screenshots; saves are refused in the browser, vert
         await expect(items.first()).toContainText('Гемблінг');
         await expect(items.last()).toContainText('Крипто');
         await expect(
-          page.getByText('Створено 30.10.2026').filter({ visible: true }),
+          page
+            .getByText(
+              viewport === 'mobile' ? 'Створено 30.10.2026' : '30.10.2026',
+              { exact: true },
+            )
+            .filter({ visible: true }),
         ).toHaveCount(2);
         // The seed's active users: 7 in Гемблінг, 4 in Крипто (CLAUDE.md §8; Head HR and HR are in both).
         await expect(

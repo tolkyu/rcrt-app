@@ -15,6 +15,7 @@ export const GET = defineRoute(
     method: 'GET',
     path: '/verticals/{verticalId}/team-lead-priorities',
     operationId: 'getVerticalTeamLeadPriorities',
+    permission: 'settings.priorities.manage',
     summary: 'Active accepted Team Leads and their priorities (Admin aal2)',
     tags: ['Priorities'],
     params: teamLeadPriorityParamsSchema,
@@ -28,6 +29,7 @@ export const PUT = defineRoute(
     method: 'PUT',
     path: '/verticals/{verticalId}/team-lead-priorities',
     operationId: 'updateTeamLeadPriorities',
+    permission: 'settings.priorities.manage',
     summary:
       'Atomically change Team Lead priorities with per-row versions (Admin aal2, D73)',
     tags: ['Priorities'],

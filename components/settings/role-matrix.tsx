@@ -123,7 +123,14 @@ export function RoleMatrix({
         invalid && 'border-error',
       )}
     >
-      <table className="w-full text-sm">
+      <table
+        className="w-full table-fixed text-sm"
+        style={{ minWidth: `${12 + span * 5}rem` }}
+      >
+        <colgroup>
+          <col className="w-48" />
+          <col span={span} />
+        </colgroup>
         <caption className="sr-only">{t('caption')}</caption>
         <thead>
           <tr className="bg-surface-muted text-muted-foreground text-xs">
@@ -226,26 +233,31 @@ export function RoleMatrix({
                 >
                   {tRoles(role)}
                 </th>
-                <td colSpan={span} className="px-2 py-1">
-                  <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <span className="flex items-center">
+                <td colSpan={span} className="py-1">
+                  <span className="flex items-center">
+                    <span
+                      className="flex shrink-0 justify-center"
+                      style={{ width: `${100 / span}%` }}
+                    >
                       <MatrixCell
                         checked={selected.has(key)}
                         label={roleLabel(role, t('allVerticals'))}
                         lockedReasonId={reason ? reasonId : undefined}
                         onChange={(on) => onToggle(key, on)}
                       />
+                    </span>
+                    <span className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 pr-2">
                       <span className="text-foreground text-sm">
                         {t('allVerticals')}
                       </span>
-                    </span>
-                    <span
-                      className="text-muted-foreground inline-flex items-center gap-1 text-xs"
-                      title={t('mfaNoteHint')}
-                    >
-                      <ShieldCheck className="size-4" aria-hidden="true" />
-                      {t('mfaNote')}
-                      <span className="sr-only"> {t('mfaNoteHint')}</span>
+                      <span
+                        className="text-muted-foreground inline-flex items-center gap-1 text-xs"
+                        title={t('mfaNoteHint')}
+                      >
+                        <ShieldCheck className="size-4" aria-hidden="true" />
+                        {t('mfaNote')}
+                        <span className="sr-only"> {t('mfaNoteHint')}</span>
+                      </span>
                     </span>
                   </span>
                   {reason && (

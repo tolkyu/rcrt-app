@@ -7,6 +7,7 @@ export const GET = defineRoute(
     method: 'GET',
     path: '/settings/priorities/verticals',
     operationId: 'listTeamLeadPriorityVerticals',
+    permission: 'settings.priorities.manage',
     summary: 'Vertical tabs for Team Lead priority settings (Admin aal2)',
     tags: ['Priorities'],
     response: teamLeadPriorityVerticalsSchema,

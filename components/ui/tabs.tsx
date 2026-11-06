@@ -42,7 +42,7 @@ export function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot="tabs-trigger"
       className={cn(
-        'text-muted-foreground data-[state=active]:bg-surface data-[state=active]:text-foreground h-10 rounded-lg px-2 text-sm font-medium data-[state=active]:shadow-sm',
+        'text-muted-foreground data-[state=active]:border-border data-[state=active]:bg-surface data-[state=active]:text-link dark:data-[state=active]:bg-primary-subtle h-10 rounded-lg border border-transparent px-2 text-sm font-medium data-[state=active]:shadow-sm',
         className,
       )}
       {...props}

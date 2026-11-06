@@ -4,7 +4,10 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Label } from '@/components/ui/label';
-import { AuthCard } from './auth-card';
+import { Button } from '@/components/ui/button';
+import { apiRequest } from '@/lib/api-client';
+import { redirectResponseSchema } from '@/lib/schemas/auth';
+import { AuthCard, FormMessage } from './auth-card';
 import { TotpCodeForm } from './totp-code-form';
 
 export function MfaVerifyForm({
@@ -18,6 +21,8 @@ export function MfaVerifyForm({
 }) {
   const t = useTranslations('auth');
   const [factorId, setFactorId] = useState(factors[0]!.id);
+  const [signingOut, setSigningOut] = useState(false);
+  const [logoutFailed, setLogoutFailed] = useState(false);
   return (
     <AuthCard title={t('mfa.verifyTitle')} description={t('mfa.verifyIntro')}>
       <TotpCodeForm factorId={factorId} next={next}>
@@ -43,11 +48,36 @@ export function MfaVerifyForm({
       {canSkip ? (
         <Link
           href="/"
-          className="text-link text-sm font-medium underline-offset-4 hover:underline"
+          className="text-link inline-flex min-h-11 items-center text-sm font-medium underline-offset-4 hover:underline"
         >
           {t('mfa.skip')}
         </Link>
       ) : null}
+      {logoutFailed && (
+        <FormMessage tone="error">{t('mfa.signOutFailed')}</FormMessage>
+      )}
+      <Button
+        variant="ghost"
+        className="h-11 w-full"
+        disabled={signingOut}
+        onClick={async () => {
+          setSigningOut(true);
+          setLogoutFailed(false);
+          try {
+            const { redirectTo } = await apiRequest('/auth/logout', {
+              method: 'POST',
+              body: {},
+              schema: redirectResponseSchema,
+            });
+            window.location.assign(redirectTo);
+          } catch {
+            setSigningOut(false);
+            setLogoutFailed(true);
+          }
+        }}
+      >
+        {t(signingOut ? 'mfa.signingOut' : 'mfa.signOut')}
+      </Button>
     </AuthCard>
   );
 }

@@ -1,5 +1,6 @@
 import { copyFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { createTranslator } from 'next-intl';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import { DEMO_HISTORY, DEMO_USERS } from '../../server/db/seed/index';
@@ -644,7 +645,7 @@ const listedUser = (page: Page, isMobile: boolean, name: string) =>
   listed(page, isMobile).filter({ hasText: name });
 const userIdOf = async (page: Page, isMobile: boolean, name: string) => {
   const id = await listedUser(page, isMobile, name)
-    .getByRole('button')
+    .locator('button[data-user-id]')
     .getAttribute('data-user-id');
   expect(id).toMatch(/^[0-9a-f-]{36}$/);
   return id!;
@@ -656,7 +657,7 @@ test('user card opens by click and by Enter, lives in ?user=, closes with Esc, B
 }) => {
   await page.goto('/settings/users');
   const row = listedUser(page, isMobile, 'Василь Мороз');
-  const opener = row.getByRole('button');
+  const opener = row.locator('button[data-user-id]');
   const id = await userIdOf(page, isMobile, 'Василь Мороз');
   const card = drawer(page);
   const title = card.getByRole('heading', { name: 'Василь Мороз' });
@@ -705,7 +706,7 @@ test('a deep link opens the card on load with the heading focused; Esc focuses t
   await expect(card).toHaveCount(0);
   await expect(page).toHaveURL(/\/settings\/users$/);
   await expect(
-    listedUser(page, isMobile, 'Василь Мороз').getByRole('button'),
+    listedUser(page, isMobile, 'Василь Мороз').locator('button[data-user-id]'),
   ).toBeFocused();
 });
 
@@ -761,7 +762,13 @@ test('Team Lead card: roles with «Змінити ролі», TL priority, sign-
     );
   }
   await expect(card.getByRole('tab')).toHaveCount(2);
-  await expect(card.getByRole('button')).toHaveCount(3);
+  await expect(card.getByRole('button')).toHaveCount(4);
+  await expect(
+    card.getByRole('button', { name: drawerT.resetMfa.submit, exact: true }),
+  ).toHaveAttribute('aria-disabled', 'true');
+  await expect(
+    card.getByText(drawerT.resetMfa.noFactors, { exact: true }),
+  ).toBeVisible();
   await expect(
     card.getByRole('button', { name: drawerT.activation.deactivate }),
   ).toBeVisible();
@@ -803,7 +810,7 @@ test('expired invitee card shows the invitation block and no sign-in security [S
   ).toBeVisible();
   await expect(
     card.getByText('Надсилалося повторно: 0', { exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await expect(
     card.getByRole('heading', { name: drawerT.securityTitle }),
   ).toHaveCount(0);
@@ -1423,6 +1430,7 @@ test('change email: without roles the item stays readable but inert, with the re
 });
 
 const rolesT = drawerT.rolesDialog;
+const removalT = createTranslator({ locale: 'uk', messages: rolesT });
 const matrixT = t.roleMatrix;
 const rolesDialog = (page: Page, name: string) =>
   page.getByRole('dialog', { name: rolesT.title.replace('{name}', name) });
@@ -1534,10 +1542,14 @@ test('change roles: removals need «Зняти ролі?»; cancelling returns t
     dialog.getByText(rolesT.lastRoleWarning, { exact: true }),
   ).toBeVisible();
   await submit.click();
-  const confirm = page.getByRole('alertdialog', { name: rolesT.confirmTitle });
+  const confirm = page.getByRole('alertdialog', {
+    name: removalT('confirmTitle', { count: 1 }),
+  });
   await expect(confirm).toBeVisible();
   await expect(
-    confirm.getByText(rolesT.confirmBody.replace('{name}', 'Василь Мороз')),
+    confirm.getByText(
+      removalT('confirmBody', { name: 'Василь Мороз', count: 1 }),
+    ),
   ).toBeVisible();
   await expect(
     confirm.getByText(`${roles.TEAM_LEAD} · Гемблінг`, { exact: true }),
@@ -2127,7 +2139,7 @@ test('captures role changes and removal confirmation with deterministic state [S
     await capture('dialog', theme);
     await dialog.getByRole('button', { name: rolesT.submit }).click();
     const confirm = page.getByRole('alertdialog', {
-      name: rolesT.confirmTitle,
+      name: removalT('confirmTitle', { count: 1 }),
     });
     await expect(confirm).toBeVisible();
     await capture('remove', theme);

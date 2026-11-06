@@ -97,7 +97,7 @@ test('keyboard opening moves focus into navigation, Escape restores its trigger,
       }),
     ).toBeVisible();
     await expect(
-      page.getByText('Створено 30.10.2026').filter({ visible: true }),
+      page.getByRole('cell', { name: '30.10.2026', exact: true }),
     ).toHaveCount(2);
     await trigger.click();
     await expect(dialog).toBeVisible();

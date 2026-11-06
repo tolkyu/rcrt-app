@@ -21,6 +21,9 @@ export function SessionExpired() {
       title={t('sessionExpired.title')}
       description={t('sessionExpired.body')}
     >
+      <p className="text-muted-foreground text-xs">
+        {t('sessionExpired.hint')}
+      </p>
       <Link
         href="/login"
         className="bg-primary text-primary-foreground hover:bg-primary-hover inline-flex h-12 items-center justify-center rounded-lg px-5 text-base font-medium"

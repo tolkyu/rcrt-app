@@ -10,14 +10,14 @@ Date: 2026-11-01. Scope: PERF-04, UI-04..07.
 
 ## Measured initial JavaScript (gzip, page + ancestor layouts, `pnpm perf:size`)
 
-| Route | Before, kB | After, kB | 180 kB gate |
-|---|---:|---:|---|
-| App shell / home | 186.72 | 166.16 | Pass |
-| Settings | 189.60 | 169.04 | Pass |
-| Audit | 205.05 | 178.95 | Pass |
-| Verticals | 193.31 | 172.75 | Pass |
-| Profile | 194.28 | 173.71 | Pass |
-| Public/auth routes | 103.00–175.38 | unchanged | Pass |
+| Route              |    Before, kB | After, kB | 180 kB gate |
+| ------------------ | ------------: | --------: | ----------- |
+| App shell / home   |        186.72 |    166.16 | Pass        |
+| Settings           |        189.60 |    169.04 | Pass        |
+| Audit              |        205.05 |    178.95 | Pass        |
+| Verticals          |        193.31 |    172.75 | Pass        |
+| Profile            |        194.28 |    173.71 | Pass        |
+| Public/auth routes | 103.00–175.38 | unchanged | Pass        |
 
 `pnpm perf:size` passes for every route. Numbers include the review fixes (`5be02ea`: load boundary, transition, tooltip state). Audit has the least headroom (1.05 kB); its next candidates are the infinite-query chunk and the record sheet.
 

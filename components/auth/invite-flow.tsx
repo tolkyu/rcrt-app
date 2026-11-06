@@ -1,5 +1,7 @@
 'use client';
 
+import { GoogleMark } from './google-mark';
+
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -178,6 +180,9 @@ export function InviteFlow({ googleEnabled }: { googleEnabled: boolean }) {
           </dd>
         </div>
       </dl>
+      <p className="text-muted-foreground text-xs">
+        {t('invite.expiresAt', { at: new Date(invite.expiresAt) })}
+      </p>
       {failure ? <FormMessage tone="error">{failure}</FormMessage> : null}
       <div className="flex flex-col gap-3">
         <Button
@@ -195,6 +200,7 @@ export function InviteFlow({ googleEnabled }: { googleEnabled: boolean }) {
               onClick={() => acceptWithGoogle(token)}
               disabled={pending !== null}
             >
+              <GoogleMark />
               {pending === 'google'
                 ? t('login.googleStarting')
                 : t('invite.acceptGoogle')}

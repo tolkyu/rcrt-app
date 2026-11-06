@@ -13,6 +13,7 @@ export const PUT = defineRoute(
     method: 'PUT',
     path: '/users/{userId}/email',
     operationId: 'changeUserEmail',
+    permission: 'settings.users.manage',
     summary:
       'Change the email of a never-activated user: the current link stops working, a new 72 h invite goes to the new address (Admin with aal2, D69)',
     tags: ['Users'],

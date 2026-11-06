@@ -46,6 +46,7 @@ Reference: `reference/02-dashboard.webp`. Shell: `app-shell.md`. Adoption items:
 - **Kanban columns:** header = stage bg, icon + label + count pill; body = stage bg; «+ Додати кандидата» only in «Новий» and only for roles that can create (A-25).
 
 ### Kanban card anatomy (UI-02, A-23)
+
 ```
 ┌──────────────────────────────────┐
 │ (photo) Ірина Мельник        [⋯] │  CandidateAvatar 32 (photo or initials) · name 2 lines max
@@ -55,9 +56,11 @@ Reference: `reference/02-dashboard.webp`. Shell: `app-shell.md`. Adoption items:
 │ 🎥 14.11, 15:30  (ОК)   2 год тому│  stage detail · owner avatar · last activity
 └──────────────────────────────────┘   w 248, min-h 112, radius 12, shadow sm, gap 8
 ```
+
 - Stage detail line: IN_WORK «Скринінг 13.11, 11:00» or warning «Немає посилання Meet»; SUBMITTED «Очікує рішення» / «Прийнято тімлідом»; TL_INTERVIEW time or «Очікує перенесення» (red-soft pill); POLYGRAPH «Не призначено» / date / «Очікує висновку»; OFFER «Чернетка» / «Надіслано 14.11» / «Не доставлено»; PROBATION ProbationProgress compact «День 35 з 90».
 
 ### Drag & drop rules (unchanged)
+
 - On drag start, columns compute allowed targets from the card's `allowedTransitions`. Allowed: 2 px dashed `--brand` outline. Forbidden: 50 % opacity + `not-allowed` cursor; hovering shows the reason chip («Спершу тімлід має прийняти кандидата»).
 - Drop on an allowed column that needs data → dialog (D-01/D-02/D-04…); the card renders as a ghost in the target until submit; cancel → animates back.
 - Drop with no required data → optimistic move immediately.
@@ -67,15 +70,15 @@ Reference: `reference/02-dashboard.webp`. Shell: `app-shell.md`. Adoption items:
 
 ## Role differences
 
-| Role | My tasks | Vacancies block | Candidate board |
-|---|---|---|---|
-| Admin | bonuses to pay, retention purge proposals | all, filter by vertical | all 7 active columns, force move in menu |
-| Head Recruiter | approve bonuses, reassign, RESCH-03 alerts, probation endings | vertical | all 7 columns; «Повернути на попередній етап» in menu |
-| Recruiter | see `screens.md` S-03 | assigned + unassigned («Без рекрутера» badge) | own; DnD up to Поліграф |
-| Head HR | assign HR, create/send offers, offer outcomes, probation endings | read-only | Поліграф · Офер · Випробування |
-| HR | polygraphs to schedule, PDFs to upload, first day, offer outcomes | read-only | Поліграф · Офер · Випробування |
-| Team Lead | accept/decline, interview results, reschedule answers, probation endings | own vacancies; «Запросити вакансію» | У тімліда · Співбесіда · Поліграф · Офер · Випробування; buttons on cards |
-| Finance | — (no dashboard; lands on Статистика) | — | — |
+| Role           | My tasks                                                                 | Vacancies block                               | Candidate board                                                           |
+| -------------- | ------------------------------------------------------------------------ | --------------------------------------------- | ------------------------------------------------------------------------- |
+| Admin          | bonuses to pay, retention purge proposals                                | all, filter by vertical                       | all 7 active columns, force move in menu                                  |
+| Head Recruiter | approve bonuses, reassign, RESCH-03 alerts, probation endings            | vertical                                      | all 7 columns; «Повернути на попередній етап» in menu                     |
+| Recruiter      | see `screens.md` S-03                                                    | assigned + unassigned («Без рекрутера» badge) | own; DnD up to Поліграф                                                   |
+| Head HR        | assign HR, create/send offers, offer outcomes, probation endings         | read-only                                     | Поліграф · Офер · Випробування                                            |
+| HR             | polygraphs to schedule, PDFs to upload, first day, offer outcomes        | read-only                                     | Поліграф · Офер · Випробування                                            |
+| Team Lead      | accept/decline, interview results, reschedule answers, probation endings | own vacancies; «Запросити вакансію»           | У тімліда · Співбесіда · Поліграф · Офер · Випробування; buttons on cards |
+| Finance        | — (no dashboard; lands on Статистика)                                    | —                                             | —                                                                         |
 
 KPI row content follows the same scope (TL: own vacancies; HR/HHR: from Polygraph; Recruiter: own).
 
@@ -113,6 +116,7 @@ KPI row content follows the same scope (TL: own vacancies; HR/HHR: from Polygrap
 ```
 
 ## States
+
 - **Loading:** skeleton = KPI row (Phase 4+), 4 task rows (circle + 2 lines), 4 vacancy cards, 7 columns × 3 cards; same boxes as final (CLS < 0.05).
 - **Empty tasks:** «Усе зроблено. Нових задач немає.» (check icon in green-soft circle).
 - **Empty board:** Rec «Додайте першого кандидата» [+ Додати кандидата]; TL «Поки що немає кандидатів на ваші вакансії»; HR «Немає кандидатів на етапі поліграфа».

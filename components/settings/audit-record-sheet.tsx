@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { SearchX } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 import { EmptyState } from '@/components/states/empty-state';
@@ -22,6 +23,7 @@ import {
 import { roleLabelKey } from '@/lib/roles';
 import type { AuditEntry, AuditRecord } from '@/lib/schemas/audit';
 import { AUDIT_ENTITY_TYPES } from '@/lib/audit-constants';
+import { describeDevice } from '@/lib/user-agent';
 import type messages from '@/messages/uk.json';
 import { useAuditLabels } from './audit-labels';
 import { useAuditFieldLabel } from './audit-field-label';
@@ -53,7 +55,7 @@ function isRoleList(
 
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="grid grid-cols-[8rem_1fr] gap-3 py-2 text-sm">
+    <div className="grid gap-1 py-2 text-sm sm:grid-cols-[8rem_1fr] sm:gap-3">
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="text-foreground min-w-0 break-words">{children}</dd>
     </div>
@@ -73,6 +75,7 @@ export function AuditRecordSheet({
   const t = useTranslations('settings.audit');
   const tRoles = useTranslations('common.roles');
   const tPriority = useTranslations('settings.priorities');
+  const tProfile = useTranslations('profile');
   const labels = useAuditLabels();
   const fieldLabel = useAuditFieldLabel();
   const reasonLabel = (code: string) => {
@@ -83,6 +86,12 @@ export function AuditRecordSheet({
   const record = useQuery(auditRecordQuery(recordId));
   const verticals = useQuery(settingsVerticalsQuery());
   const [showJson, setShowJson] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState<{
+    recordId: string;
+    state: 'copied' | 'failed';
+  } | null>(null);
+  const copyState =
+    copyFeedback?.recordId === recordId ? copyFeedback.state : 'idle';
   const verticalName = (id: string | null) =>
     id
       ? (verticals.data?.items.find((item) => item.id === id)?.name ??
@@ -139,6 +148,13 @@ export function AuditRecordSheet({
     const { reason, ...rest } = asObject(data.details);
     const details = Object.entries(rest);
     const occurredAt = new Date(data.occurredAt);
+    const device = describeDevice(data.userAgent, true);
+    const entityHref =
+      data.entity?.type === 'user'
+        ? `/settings/users?user=${encodeURIComponent(data.entity.id)}`
+        : data.entity?.type === 'vertical'
+          ? '/settings/verticals'
+          : null;
     body = (
       <>
         <dl className="divide-border divide-y">
@@ -159,13 +175,21 @@ export function AuditRecordSheet({
           {data.entity && (
             <Row label={t('detail.entity')}>
               <span className="block">{labels.entity(data.entity)}</span>
+              {entityHref && (
+                <Link
+                  href={entityHref}
+                  className="text-link inline-flex min-h-11 items-center text-sm hover:underline"
+                >
+                  {t('detail.openEntity')}
+                </Link>
+              )}
               {AUDIT_ENTITY_TYPES.some(
                 (type) => type === data.entity?.type,
               ) && (
                 <button
                   type="button"
                   onClick={() => onShowEntityHistory(data.entity!)}
-                  className="text-link text-sm hover:underline"
+                  className="text-link flex min-h-11 items-center text-sm hover:underline"
                 >
                   {t('detail.entityHistory')}
                 </button>
@@ -174,13 +198,43 @@ export function AuditRecordSheet({
           )}
           <Row label={t('detail.ip')}>{data.ip ?? t('detail.emptyValue')}</Row>
           {data.userAgent && (
-            <Row label={t('detail.userAgent')}>
-              <span className="font-mono text-xs">{data.userAgent}</span>
+            <Row label={t('detail.device')}>
+              <p>
+                {device
+                  ? tProfile('device', device)
+                  : tProfile('unknownDevice')}
+              </p>
+              <details className="mt-1">
+                <summary className="text-link min-h-11 cursor-pointer py-3">
+                  {t('detail.userAgent')}
+                </summary>
+                <p className="font-mono text-xs break-all">{data.userAgent}</p>
+              </details>
             </Row>
           )}
           {data.requestId && (
             <Row label={t('detail.requestId')}>
               <span className="font-mono text-xs">{data.requestId}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-2 h-11"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(data.requestId!);
+                    setCopyFeedback({ recordId, state: 'copied' });
+                  } catch {
+                    setCopyFeedback({ recordId, state: 'failed' });
+                  }
+                }}
+              >
+                {t('detail.copyRequestId')}
+              </Button>
+              {copyState !== 'idle' && (
+                <p role="status" className="mt-1 text-xs">
+                  {t(`detail.${copyState}`)}
+                </p>
+              )}
             </Row>
           )}
         </dl>
@@ -193,8 +247,8 @@ export function AuditRecordSheet({
               {t('detail.noChanges')}
             </p>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
+            <table className="block w-full text-sm sm:table">
+              <thead className="sr-only sm:not-sr-only sm:table-header-group">
                 <tr className="text-muted-foreground border-border border-b text-left text-xs">
                   <th scope="col" className="py-2 pr-2 font-medium">
                     {t('detail.field')}
@@ -207,19 +261,34 @@ export function AuditRecordSheet({
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="block sm:table-row-group">
                 {changed.map((key) => (
                   <tr
                     key={key}
-                    className="border-border border-b align-top last:border-0"
+                    className="border-border block border-b py-2 align-top last:border-0 sm:table-row sm:py-0"
                   >
-                    <th scope="row" className="py-2 pr-2 text-left font-medium">
+                    <th
+                      scope="row"
+                      className="block py-2 pr-2 text-left font-medium sm:table-cell"
+                    >
                       {fieldLabel(key)}
                     </th>
-                    <td className="py-2 pr-2 break-words">
+                    <td className="block py-2 pr-2 break-words sm:table-cell">
+                      <span
+                        className="text-muted-foreground mr-2 sm:hidden"
+                        aria-hidden="true"
+                      >
+                        {t('detail.before')}
+                      </span>
                       {change(key, before[key])}
                     </td>
-                    <td className="py-2 break-words">
+                    <td className="block py-2 break-words sm:table-cell">
+                      <span
+                        className="text-muted-foreground mr-2 sm:hidden"
+                        aria-hidden="true"
+                      >
+                        {t('detail.after')}
+                      </span>
                       {change(key, after[key])}
                     </td>
                   </tr>

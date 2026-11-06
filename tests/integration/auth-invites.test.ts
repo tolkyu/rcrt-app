@@ -22,6 +22,7 @@ import {
 import {
   createInviteResponseSchema,
   createInviteSchema,
+  inviteInspectResponseSchema,
 } from '../../lib/schemas/auth';
 import { completeGoogleCallback } from '../../server/services/auth/google';
 import { createAuthFixture } from '../support/auth-fixture';
@@ -105,7 +106,15 @@ describe('Invite consumption and Google identity binding [ROLE-05, D33, DG-07]',
         await pendingInvite(ctx, user),
         await pendingInvite(ctx, user),
       ];
-      expect((await preview(expired.token)).state).toBe('VALID');
+      expect(
+        inviteInspectResponseSchema.parse(await preview(expired.token)),
+      ).toMatchObject({
+        state: 'VALID',
+        email: expired.email,
+        expiresAt: new Date(
+          ctx.clock.now().getTime() + 72 * 3600_000,
+        ).toISOString(),
+      });
       await ctx.db
         .update(schema.userInvite)
         .set({

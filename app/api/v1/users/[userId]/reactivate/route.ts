@@ -13,6 +13,7 @@ export const POST = defineRoute(
     method: 'POST',
     path: '/users/{userId}/reactivate',
     operationId: 'reactivateUser',
+    permission: 'settings.users.manage',
     summary:
       'Reactivate a user with a confirmed subset of their previous roles (Admin aal2, D44)',
     tags: ['Users'],

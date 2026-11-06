@@ -55,20 +55,22 @@
 │                                          [Скасувати] [Видалити]     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
 - Per-candidate override (expand «Налаштувати окремо») ⚠ OPEN-V3 (PRD implies one choice for all).
 
 ## Role differences
 
-| Role | Differences |
-|---|---|
-| Admin | + bonus scheme override, + «Пріоритет для вакансії», force actions |
-| Head Recruiter | full edit, recruiters assignment, reopen FILLED |
-| Recruiter | edit if assigned ⚠ OPEN-V4; «Взяти в роботу» on unassigned |
-| Head HR / HR | read-only header; candidate list only Polygraph+; no routing panel |
-| Team Lead | own vacancy; sees all its candidates from «У тімліда» ⚠ OPEN-V5 (NEW/IN_WORK hidden?) ; salary visible; no recruiter assignment |
-| Finance | no access (404) |
+| Role           | Differences                                                                                                                     |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Admin          | + bonus scheme override, + «Пріоритет для вакансії», force actions                                                              |
+| Head Recruiter | full edit, recruiters assignment, reopen FILLED                                                                                 |
+| Recruiter      | edit if assigned ⚠ OPEN-V4; «Взяти в роботу» on unassigned                                                                      |
+| Head HR / HR   | read-only header; candidate list only Polygraph+; no routing panel                                                              |
+| Team Lead      | own vacancy; sees all its candidates from «У тімліда» ⚠ OPEN-V5 (NEW/IN_WORK hidden?) ; salary visible; no recruiter assignment |
+| Finance        | no access (404)                                                                                                                 |
 
 ## Mobile 390 — Team Lead
+
 ```
 ┌──────────────────────────────┐
 │ ‹ Медіабаєр — Facebook   [⋯] │
@@ -85,10 +87,12 @@
 ```
 
 ## States
+
 - Loading: header block (2 text lines + chips), funnel bar, 5 list rows, right panel 2 blocks.
 - No candidates: «На цю вакансію ще немає кандидатів» [+ Додати кандидата] [Запропонувати з резерву].
 - FILLED/CANCELLED: banner «Вакансію закрито 20.11.2026 — Заповнена» + [Клонувати]; all edits hidden.
 - Deleted (opened from Archive): banner «Вакансію видалено 21.11 · Оксана Кравець · Причина: …» + [Відновити].
 
 ## ⚠ OPEN
+
 V1 routing-group panel visibility · V2 days-open with ON_HOLD · V3 per-candidate choice on vacancy delete · V4 recruiter edit rights on vacancy · V5 TL visibility of pre-submission candidates on own vacancy (matrix: "submitted to them").

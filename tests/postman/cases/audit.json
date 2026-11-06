@@ -1,5 +1,13 @@
 [
   {
+    "operation": "getAuditRecord",
+    "name": "Finance cannot probe record-id validation",
+    "as": "finance",
+    "params": { "recordId": "not-a-number" },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
     "operation": "listAudit",
     "name": "newest page",
     "as": "admin",
@@ -196,14 +204,8 @@
     "params": {
       "recordId": "abc"
     },
-    "status": 400,
-    "code": "VALIDATION_FAILED",
-    "errors": [
-      {
-        "path": "params.recordId",
-        "code": "invalid_format"
-      }
-    ]
+    "status": 404,
+    "code": "NOT_FOUND"
   },
   {
     "operation": "getAuditRecord",

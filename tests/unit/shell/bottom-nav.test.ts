@@ -70,7 +70,7 @@ describe('BottomNav: 4 slots + «Ще» sheet with the overflow and «Вийти
     ).toBeNull();
   });
 
-  it('renders four bar links and the «Ще» trigger', () => {
+  it('renders four bar links and the «Ще» trigger', async () => {
     const nav = renderNav('/b');
     expect(hrefs(within(nav).getAllByRole('link'))).toEqual([
       '/a',
@@ -83,14 +83,18 @@ describe('BottomNav: 4 slots + «Ще» sheet with the overflow and «Вийти
       '/b',
     );
     expect(
-      within(nav).getByRole('button', { name: messages.shell.more }),
+      await within(nav).findByRole(
+        'button',
+        { name: messages.shell.more },
+        { timeout: 4_000 },
+      ),
     ).toBeTruthy();
   });
 
   it('opens «Ще» with the fifth bar section, more-only sections and logout', async () => {
     const nav = renderNav('/a');
     await userEvent.click(
-      within(nav).getByRole('button', { name: messages.shell.more }),
+      await within(nav).findByRole('button', { name: messages.shell.more }),
     );
     const sheet = await screen.findByRole('dialog', {
       name: messages.shell.moreTitle,
@@ -103,7 +107,9 @@ describe('BottomNav: 4 slots + «Ще» sheet with the overflow and «Вийти
 
   it('marks «Ще» active and the overflow link current when the page lives under it', async () => {
     const nav = renderNav('/e/details');
-    const more = within(nav).getByRole('button', { name: messages.shell.more });
+    const more = await within(nav).findByRole('button', {
+      name: messages.shell.more,
+    });
     expect(more.className).toContain('text-link');
     expect(within(nav).queryByRole('link', { current: 'page' })).toBeNull();
     await userEvent.click(more);
@@ -113,10 +119,11 @@ describe('BottomNav: 4 slots + «Ще» sheet with the overflow and «Вийти
     ).toBe('/e');
   });
 
-  it('leaves «Ще» inactive on a bar section', () => {
+  it('leaves «Ще» inactive on a bar section', async () => {
     const nav = renderNav('/c');
     expect(
-      within(nav).getByRole('button', { name: messages.shell.more }).className,
+      (await within(nav).findByRole('button', { name: messages.shell.more }))
+        .className,
     ).not.toContain('text-link');
   });
 });

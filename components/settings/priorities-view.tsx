@@ -296,7 +296,7 @@ function VerticalTabs({
             className={cn(
               'h-11 min-w-24 shrink-0 rounded-lg px-4 text-sm font-medium whitespace-nowrap md:h-10',
               active
-                ? 'bg-surface text-foreground shadow-sm'
+                ? 'border-border bg-surface text-link dark:bg-primary-subtle border shadow-sm'
                 : 'text-muted-foreground hover:text-foreground',
             )}
             onClick={() => !active && onSelect(item.id)}

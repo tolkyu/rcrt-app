@@ -12,6 +12,7 @@ export const GET = defineRoute(
     method: 'GET',
     path: '/audit/{recordId}',
     operationId: 'getAuditRecord',
+    permission: 'audit.read',
     summary: 'One audit record with before/after and details (Admin)',
     tags: ['Audit'],
     params: auditRecordParamsSchema,

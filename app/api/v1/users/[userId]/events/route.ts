@@ -13,6 +13,7 @@ export const GET = defineRoute(
     method: 'GET',
     path: '/users/{userId}/events',
     operationId: 'listUserEvents',
+    permission: 'settings.users.manage',
     summary: 'User timeline, newest first, by cursor (Admin)',
     tags: ['Users'],
     params: userParamsSchema,

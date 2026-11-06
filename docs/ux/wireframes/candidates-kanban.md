@@ -46,6 +46,7 @@ Reference: `reference/05-candidates-kanban.webp`. Adoption: A-04, A-08, A-11, A-
 - **Table view:** columns per `screens.md` S-07 (virtualized), same filters, same drawer.
 
 ## Mobile 390
+
 ```
 ┌──────────────────────────────┐
 │ Кандидати                    │
@@ -63,9 +64,11 @@ Reference: `reference/05-candidates-kanban.webp`. Adoption: A-04, A-08, A-11, A-
 │ bottom nav (Кандидати active)│
 └──────────────────────────────┘
 ```
+
 Tap stage → card list of that stage; card tap → S-09; card ⋯ → «Перемістити до…» (no DnD on touch).
 
 ## States
+
 - Loading: columns with 3 skeleton cards each; drawer skeleton (avatar + 6 lines).
 - Empty board: «Кандидатів ще немає» + «Додати кандидата» (roles that can create).
 - Empty column: dashed drop zone «Немає кандидатів».

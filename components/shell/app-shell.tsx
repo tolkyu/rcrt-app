@@ -3,24 +3,40 @@
 import { Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useMemo, useState, type ReactNode } from 'react';
+import {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { usePathname } from 'next/navigation';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { Button } from '@/components/ui/button';
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
 import { mobileNav, navItemsByIds, type NavItemId } from '@/lib/nav';
 import { PREFERENCE_COOKIES, writePreference } from '@/lib/preference-cookie';
 import { cn } from '@/lib/utils';
 import type { VerticalOption } from '@/lib/vertical-filter';
+import { ApiError } from '@/lib/api-client';
 import { BottomNav } from './bottom-nav';
 import { BrandMark } from './brand';
-import { Sidebar, SidebarNav } from './sidebar';
+import { Sidebar } from './sidebar';
 import { UserMenu } from './user-menu';
 import { VerticalSwitcher } from './vertical-switcher';
+
+const loadTabletMenu = () => import('./tablet-menu');
+const TabletMenu = lazy(() =>
+  loadTabletMenu().then((module) => ({ default: module.TabletMenu })),
+);
+
+const MfaRecovery = lazy(() =>
+  import('../settings/mfa-recovery').then((module) => ({
+    default: module.MfaRecovery,
+  })),
+);
 
 export interface AppShellProps {
   readonly navIds: readonly NavItemId[];
@@ -42,11 +58,42 @@ export function AppShell({
   children,
 }: AppShellProps) {
   const t = useTranslations('shell');
-  const tCommon = useTranslations('common');
+  const pathname = usePathname();
+  const queryClient = useQueryClient();
   const items = useMemo(() => navItemsByIds(navIds), [navIds]);
   const mobile = useMemo(() => mobileNav(items), [items]);
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const menuTrigger = useRef<HTMLButtonElement>(null);
+  const [mfaAt, setMfaAt] = useState<{
+    pathname: string;
+    next: string;
+    submittedAt: number;
+  } | null>(null);
+  if (mfaAt && mfaAt.pathname !== pathname) setMfaAt(null);
+  useEffect(
+    () =>
+      queryClient.getMutationCache().subscribe((event) => {
+        if (event.type !== 'updated') return;
+        const current = window.location.pathname;
+        if (current !== '/settings' && !current.startsWith('/settings/'))
+          return;
+        if (event.action.type === 'success') setMfaAt(null);
+        const error = event.mutation.state.error;
+        if (
+          event.action.type === 'error' &&
+          error instanceof ApiError &&
+          error.code === 'MFA_REQUIRED'
+        ) {
+          setMfaAt({
+            pathname: current,
+            next: current + window.location.search,
+            submittedAt: event.mutation.state.submittedAt,
+          });
+        }
+      }),
+    [queryClient],
+  );
 
   const toggleCollapsed = () => {
     const next = !collapsed;
@@ -87,30 +134,29 @@ export function AppShell({
               <PanelLeftClose className="size-5" aria-hidden="true" />
             )}
           </Button>
-          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hidden md:inline-flex lg:hidden"
-                aria-label={t('openMenu')}
-              >
-                <Menu className="size-5" aria-hidden="true" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" closeLabel={tCommon('close')}>
-              <div className="flex h-16 shrink-0 items-center px-5">
-                <SheetTitle className="sr-only">{t('menuTitle')}</SheetTitle>
-                <BrandMark />
-              </div>
-              <div className="flex flex-1 flex-col px-4 pb-4">
-                <SidebarNav
-                  items={items}
-                  onNavigate={() => setSheetOpen(false)}
-                />
-              </div>
-            </SheetContent>
-          </Sheet>
+          <Button
+            ref={menuTrigger}
+            variant="ghost"
+            size="icon"
+            className="hidden md:inline-flex lg:hidden"
+            aria-label={t('openMenu')}
+            aria-haspopup="dialog"
+            aria-expanded={sheetOpen}
+            onPointerEnter={() => void loadTabletMenu().catch(() => undefined)}
+            onFocus={() => void loadTabletMenu().catch(() => undefined)}
+            onClick={() => setSheetOpen(true)}
+          >
+            <Menu className="size-5" aria-hidden="true" />
+          </Button>
+          {sheetOpen && (
+            <Suspense fallback={null}>
+              <TabletMenu
+                items={items}
+                onClose={() => setSheetOpen(false)}
+                onFocusTrigger={() => menuTrigger.current?.focus()}
+              />
+            </Suspense>
+          )}
           <Link
             href="/"
             aria-label={t('homeLink')}
@@ -118,12 +164,14 @@ export function AppShell({
           >
             <BrandMark />
           </Link>
-          <div className="hidden md:block">
-            <VerticalSwitcher
-              verticals={verticals}
-              initialValue={verticalFilter}
-            />
-          </div>
+          {verticals.length > 0 && pathname === '/' && (
+            <div className="hidden md:block">
+              <VerticalSwitcher
+                verticals={verticals}
+                initialValue={verticalFilter}
+              />
+            </div>
+          )}
           <div className="ml-auto flex items-center gap-1 md:gap-2">
             <ThemeToggle />
             <UserMenu />
@@ -137,6 +185,11 @@ export function AppShell({
             mobile && 'pb-28 md:pb-8',
           )}
         >
+          {mfaAt && (
+            <Suspense fallback={null}>
+              <MfaRecovery key={mfaAt.submittedAt} next={mfaAt.next} />
+            </Suspense>
+          )}
           {children}
         </main>
       </div>

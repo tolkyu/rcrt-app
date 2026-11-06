@@ -89,14 +89,8 @@
     "params": {
       "verticalId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     },
-    "status": 400,
-    "code": "VALIDATION_FAILED",
-    "errors": [
-      {
-        "path": "params.verticalId",
-        "code": "too_big"
-      }
-    ]
+    "status": 404,
+    "code": "NOT_FOUND"
   },
   {
     "operation": "getVerticalTeamLeadPriorities",

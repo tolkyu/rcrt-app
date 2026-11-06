@@ -4,25 +4,25 @@ Date: 2026-11-01. Scope: STORY-AUD-2, PERF-02/04/05; first audit-viewer slice.
 
 ## Structural checks
 
-| Check | Evidence / result |
-|---|---|
-| Initial data | RSC prefetch + `HydrationBoundary`; identical client query key; shared 30 s stale time avoids immediate duplicate fetch |
-| List SQL | One joined query; projects summary columns, excludes JSON payloads; no count query or per-row requests |
-| Pagination | Keyset `(occurred_at, id) DESC`; default 50, API maximum 100, fetches one extra row |
-| Detail | Two independent bounded queries in parallel; no list-dependent waterfall |
-| Client growth | `auditQuery` now sets `maxPages: 2`: at most two 50-row pages; older loads evict earlier pages. Desktop/mobile markup stays bounded |
+| Check          | Evidence / result                                                                                                                                  |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Initial data   | RSC prefetch + `HydrationBoundary`; identical client query key; shared 30 s stale time avoids immediate duplicate fetch                            |
+| List SQL       | One joined query; projects summary columns, excludes JSON payloads; no count query or per-row requests                                             |
+| Pagination     | Keyset `(occurred_at, id) DESC`; default 50, API maximum 100, fetches one extra row                                                                |
+| Detail         | Two independent bounded queries in parallel; no list-dependent waterfall                                                                           |
+| Client growth  | `auditQuery` now sets `maxPages: 2`: at most two 50-row pages; older loads evict earlier pages. Desktop/mobile markup stays bounded                |
 | Full wireframe | TanStack Virtual and navigation through retained earlier pages remain outside this bounded first slice; do not claim the entire wireframe complete |
 
 ## Query-plan diagnostic
 
 Local PostgreSQL 17.11, temporary synthetic tables only: 200,000 audit rows, 10,000 users, 10 verticals. Audit indexes copied from the current schema; tables analyzed. Entire transaction rolled back. No application data was changed. The real test audit table was empty, so its plan cannot establish performance at scale.
 
-| Query | Single execution | Plan evidence |
-|---|---:|---|
-| Original label joins (`entity_user.id::text = entity_id`) | 89.326 ms | 510,000 user rows rejected by join filter for 51 results |
-| Indexable UUID label joins | 0.279 ms | User/vertical primary-key lookups; 51 result rows |
-| Rare action without action index | 10.513 ms | 50,949 rows discarded to return 51 matches |
-| Rare result without result index | 7.042 ms | 50,949 rows discarded to return 51 matches |
+| Query                                                     | Single execution | Plan evidence                                            |
+| --------------------------------------------------------- | ---------------: | -------------------------------------------------------- |
+| Original label joins (`entity_user.id::text = entity_id`) |        89.326 ms | 510,000 user rows rejected by join filter for 51 results |
+| Indexable UUID label joins                                |         0.279 ms | User/vertical primary-key lookups; 51 result rows        |
+| Rare action without action index                          |        10.513 ms | 50,949 rows discarded to return 51 matches               |
+| Rare result without result index                          |         7.042 ms | 50,949 rows discarded to return 51 matches               |
 
 These are diagnostic samples, not API/service P95 or a production benchmark. The join comparison used valid synthetic UUIDs. Production must additionally guard malformed text IDs inside the `CASE` containing the cast:
 
@@ -47,14 +47,14 @@ The same pattern applies to verticals. Keeping the UUID column uncast allows its
 
 Final clean production build succeeded. Read-only inspection of its `.next` manifest and level-9 gzip per file (the `@size-limit/file` algorithm) confirms the size gate remains red:
 
-| Route | Initial gzip | 180 kB gate |
-|---|---:|---|
-| App shell / home | 188.02 kB | Fail |
-| Settings | 190.90 kB | Fail |
-| Audit | 206.06 kB | Fail |
-| Verticals | 194.66 kB | Fail |
-| Profile | 195.30 kB | Fail |
-| Public/auth routes | 102.97–175.35 kB | Pass |
+| Route              |     Initial gzip | 180 kB gate |
+| ------------------ | ---------------: | ----------- |
+| App shell / home   |        188.02 kB | Fail        |
+| Settings           |        190.90 kB | Fail        |
+| Audit              |        206.06 kB | Fail        |
+| Verticals          |        194.66 kB | Fail        |
+| Profile            |        195.30 kB | Fail        |
+| Public/auth routes | 102.97–175.35 kB | Pass        |
 
 Audit adds 18.04 kB net over the app shell. The shell/provider files have no changes in this slice; the base shell excess is inherited, while the audit route also exceeds the gate. Do not claim PERF-04 passed. T8 must resolve these route budgets before phase completion. The next small task, before users/settings expansion, is shared-shell JavaScript optimization.
 
@@ -66,11 +66,11 @@ The earlier build's largest shell chunks included Radix primitives (~23.4 and ~1
 
 ## Budgets and limits
 
-| Budget | Status |
-|---|---|
-| List P95 <150 ms, detail <100 ms (PERF-02) | Not measured by this diagnostic; retained for T8 load tests |
-| Initial JS ≤180 KB gzip (PERF-04) | Fail on current build; exact route measurements above; T8 follow-up |
-| Desktop/mobile LCP, INP, CLS (PERF-03) | Not measured; production browser checks remain T8 |
-| No N+1 / indexed filters (PERF-05) | Query structure and corrected index definitions pass source review |
+| Budget                                     | Status                                                              |
+| ------------------------------------------ | ------------------------------------------------------------------- |
+| List P95 <150 ms, detail <100 ms (PERF-02) | Not measured by this diagnostic; retained for T8 load tests         |
+| Initial JS ≤180 KB gzip (PERF-04)          | Fail on current build; exact route measurements above; T8 follow-up |
+| Desktop/mobile LCP, INP, CLS (PERF-03)     | Not measured; production browser checks remain T8                   |
+| No N+1 / indexed filters (PERF-05)         | Query structure and corrected index definitions pass source review  |
 
 Final verification must use the corrected repository and migrated indexes; synthetic baseline timings alone do not establish the finished slice's budgets.

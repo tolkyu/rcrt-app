@@ -4,6 +4,7 @@ import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import { settleRendering } from '../e2e/screens';
 import { E2E_ORIGIN, GOOGLE_E2E_ORIGIN } from '../support/origins';
+import { checkAccessibility } from '../support/accessibility';
 
 const screens = [
   { id: '01-public-login', path: '/login', heading: 'Вхід до Hiring' },
@@ -31,6 +32,7 @@ const screens = [
 
 async function capture(page: Page, testInfo: TestInfo, id: string) {
   await settleRendering(page);
+  await checkAccessibility(page, testInfo);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -64,11 +66,12 @@ for (const screen of screens) {
 }
 
 const inviteT = messages.auth.invite;
-/** The preview is answered by the browser, so no real invitation is read; the person is the seeded HR (CLAUDE.md §8). */
+/** The pending invite is answered by the browser; no real invitation is read or consumed. */
 const INVITE_PREVIEW = {
   state: 'VALID',
-  fullName: 'Оксана Олійник',
-  email: 'hr@demo',
+  fullName: 'Марина Савчук',
+  email: 'maryna.savchuk@demo',
+  expiresAt: '2026-11-18T08:00:00.000Z',
   roles: [
     { role: 'HR', vertical: 'Гемблінг' },
     { role: 'HR', vertical: 'Крипто' },
@@ -130,3 +133,48 @@ test('22-public-login-google', async ({ page }, testInfo) => {
   await capture(page, testInfo, '22-public-login-google');
   expect(external).toEqual([]);
 });
+
+test('26-public-login-sent', async ({ page }, testInfo) => {
+  await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+  let sent = 0;
+  await page.route('**/api/v1/auth/magic-link', (route) => {
+    sent += 1;
+    return route.fulfill({ json: { accepted: true } });
+  });
+  await page.goto('/login');
+  await page
+    .getByLabel(messages.auth.login.emailLabel)
+    .fill('maryna.savchuk@company.test');
+  await page
+    .getByRole('button', { name: messages.auth.login.submit, exact: true })
+    .click();
+  await expect(
+    page.getByRole('heading', {
+      name: messages.auth.login.sentTitle,
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(sent).toBe(1);
+  await capture(page, testInfo, '26-public-login-sent');
+});
+
+for (const reason of [
+  'google_mismatch',
+  'google_failed',
+  'deactivated',
+] as const) {
+  test(`26-public-login-${reason.replaceAll('_', '-')}`, async ({
+    page,
+  }, testInfo) => {
+    await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+    await page.goto(`/login?reason=${reason}`);
+    await expect(page.getByRole('main').getByRole('alert')).toHaveText(
+      messages.auth.login.reasons[reason],
+    );
+    await capture(
+      page,
+      testInfo,
+      `26-public-login-${reason.replaceAll('_', '-')}`,
+    );
+  });
+}

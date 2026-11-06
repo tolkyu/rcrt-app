@@ -39,7 +39,11 @@ export default defineConfig({
           environment: 'node',
           include: ['tests/integration/**/*.test.ts'],
           globalSetup: ['./tests/integration/setup.ts'],
-          env: databaseTestEnv,
+          env: {
+            ...databaseTestEnv,
+            AUTH_RATE_LIMIT_SECRET:
+              'integration-only-rate-limit-secret-0123456789',
+          },
           fileParallelism: false,
           hookTimeout: 60_000,
           testTimeout: 60_000,

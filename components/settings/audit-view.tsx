@@ -1,11 +1,12 @@
 'use client';
 
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { Ban, ScrollText, X } from 'lucide-react';
+import { Ban, ChevronDown, ScrollText, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
+  useCallback,
   useEffect,
   useId,
   useLayoutEffect,
@@ -38,6 +39,8 @@ import { AUDIT_ENTITY_TYPES, AUDIT_SYSTEM_ACTOR } from '@/lib/audit-constants';
 import type { AuditActor, AuditEntry } from '@/lib/schemas/audit';
 import { loadOrReload } from '@/lib/load-or-reload';
 import { cn } from '@/lib/utils';
+import { useMobile } from '@/lib/use-mobile';
+import { useHydrated } from '@/lib/use-hydrated';
 import { AuditActorFilter } from './audit-actor-filter';
 import { AuditActionFilter } from './audit-action-filter';
 import { useAuditLabels } from './audit-labels';
@@ -97,24 +100,32 @@ function FilterSelect({
   children: ReactNode;
 }) {
   const id = useId();
+  const hydrated = useHydrated();
   return (
     <div className="flex min-w-0 flex-col gap-1">
       <label htmlFor={id} className="text-foreground text-xs font-medium">
         {label}
       </label>
-      <select
-        id={id}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className={selectClass}
-      >
-        {children}
-      </select>
+      <div className="relative">
+        <select
+          id={id}
+          disabled={!hydrated}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className={`${selectClass} appearance-none pr-10`}
+        >
+          {children}
+        </select>
+        <ChevronDown
+          className="text-muted-foreground pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2"
+          aria-hidden="true"
+        />
+      </div>
     </div>
   );
 }
 
-/** Table and cards both render every row; only one of them is displayed per breakpoint. */
+/** Finds the anchor in the active responsive presentation. */
 function visibleRow(list: HTMLElement | null, id: string) {
   return [
     ...(list?.querySelectorAll<HTMLElement>(
@@ -148,6 +159,8 @@ export function AuditView({
 }) {
   const t = useTranslations('settings.audit');
   const labels = useAuditLabels();
+  const mobile = useMobile();
+  const hydrated = useHydrated();
   const params = useSearchParams();
   const searchKey = params.toString();
   const search = useMemo(
@@ -177,7 +190,10 @@ export function AuditView({
   const queryClient = useQueryClient();
   useEffect(() => void loadRecordSheet().catch(() => undefined), []);
 
-  const items = query.data?.pages.flatMap((page) => page.items) ?? [];
+  const items = useMemo(
+    () => query.data?.pages.flatMap((page) => page.items) ?? [],
+    [query.data],
+  );
   const listRef = useRef<HTMLElement>(null);
   const newerRef = useRef<HTMLButtonElement>(null);
   const moreRef = useRef<HTMLButtonElement>(null);
@@ -240,15 +256,18 @@ export function AuditView({
     [],
   );
 
-  const sync = (next: AuditSearch, mode: 'push' | 'replace' = 'replace') => {
-    const params = auditSearchParams(next).toString();
-    const url = params ? `?${params}` : window.location.pathname;
-    window.history[mode === 'push' ? 'pushState' : 'replaceState'](
-      null,
-      '',
-      url,
-    );
-  };
+  const sync = useCallback(
+    (next: AuditSearch, mode: 'push' | 'replace' = 'replace') => {
+      const params = auditSearchParams(next).toString();
+      const url = params ? `?${params}` : window.location.pathname;
+      window.history[mode === 'push' ? 'pushState' : 'replaceState'](
+        null,
+        '',
+        url,
+      );
+    },
+    [],
+  );
   const applyFilters = (patch: Partial<AuditSearch>) => {
     const next = { ...search, ...patch, record: undefined };
     if (
@@ -268,6 +287,32 @@ export function AuditView({
     const next = { ...search, record };
     sync(next, record ? 'push' : 'replace');
   };
+  useEffect(() => {
+    if (!search.record) return;
+    const move = (event: KeyboardEvent) => {
+      if (
+        event.defaultPrevented ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey ||
+        (event.key !== 'j' && event.key !== 'k') ||
+        (event.target instanceof Element &&
+          event.target.closest(
+            'input, textarea, select, [contenteditable="true"]',
+          ))
+      )
+        return;
+      const at = items.findIndex((entry) => entry.id === search.record);
+      if (at < 0) return;
+      const next = items[at + (event.key === 'j' ? 1 : -1)];
+      if (!next) return;
+      event.preventDefault();
+      sync({ ...search, record: next.id });
+    };
+    document.addEventListener('keydown', move);
+    return () => document.removeEventListener('keydown', move);
+  }, [items, search, sync]);
   const filtered =
     search.view === 'security' ||
     search.period !== '7d' ||
@@ -353,111 +398,177 @@ export function AuditView({
       });
     body = (
       <>
-        <table className="hidden w-full text-sm md:table">
-          <thead>
-            <tr className="border-border text-muted-foreground border-b text-left text-xs">
-              {(
-                ['time', 'actor', 'action', 'entity', 'result', 'ip'] as const
-              ).map((column) => (
-                <th key={column} scope="col" className="px-4 py-3 font-medium">
-                  {t(`columns.${column}`)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((entry) => (
-              <tr
-                key={entry.id}
-                data-audit-row={entry.id}
-                onClick={() => openRecord(entry.id)}
-                className={cn(
-                  'border-border hover:bg-surface-muted h-12 cursor-pointer border-b last:border-0',
-                  search.record === entry.id && 'bg-primary-subtle',
-                )}
-              >
-                <td className="text-muted-foreground px-4 whitespace-nowrap tabular-nums">
-                  {time(entry)}
-                </td>
-                <td className="text-foreground px-4">
-                  {entry.actor ? (
-                    <button
-                      type="button"
-                      className="text-left hover:underline"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        applyFilters({ actorId: entry.actor!.id });
-                      }}
+        {!mobile ? (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1060px] table-fixed text-sm">
+              <caption className="sr-only">{t('title')}</caption>
+              <colgroup>
+                <col className="w-44" />
+                <col className="w-50" />
+                <col className="w-55" />
+                <col />
+                <col className="w-33" />
+                <col className="w-30" />
+              </colgroup>
+              <thead>
+                <tr className="border-border text-muted-foreground border-b text-left text-xs">
+                  {(
+                    [
+                      'time',
+                      'actor',
+                      'action',
+                      'entity',
+                      'result',
+                      'ip',
+                    ] as const
+                  ).map((column) => (
+                    <th
+                      key={column}
+                      scope="col"
+                      className="px-4 py-3 font-medium"
                     >
-                      {labels.actor(entry)}
-                    </button>
-                  ) : (
-                    labels.actor(entry)
-                  )}
-                </td>
-                <td className="px-4">
-                  <button
-                    type="button"
-                    data-row-open
-                    aria-label={open(entry)}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      openRecord(entry.id);
-                    }}
-                    className="text-foreground text-left font-medium hover:underline"
+                      {t(`columns.${column}`)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((entry) => (
+                  <tr
+                    key={entry.id}
+                    data-audit-row={entry.id}
+                    onClick={() => openRecord(entry.id)}
+                    className={cn(
+                      'border-border hover:bg-surface-muted h-12 cursor-pointer border-b last:border-0',
+                      search.record === entry.id && 'bg-primary-subtle',
+                    )}
                   >
-                    {labels.action(entry.action)}
-                  </button>
-                </td>
-                <td className="text-muted-foreground px-4">
-                  {labels.entity(entry.entity) ?? '—'}
-                </td>
-                <td className="px-4">
-                  <ResultChip result={entry.result} />
-                </td>
-                <td className="text-muted-foreground px-4 font-mono text-xs">
-                  {entry.ip ?? '—'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <ul className="divide-border divide-y md:hidden">
-          {items.map((entry) => (
-            <li key={entry.id} data-audit-row={entry.id}>
-              <button
-                type="button"
-                data-row-open
-                aria-label={open(entry)}
-                onClick={() => openRecord(entry.id)}
-                className="hover:bg-surface-muted flex w-full flex-col gap-1 p-4 text-left"
-              >
-                <span className="flex items-center justify-between gap-2">
-                  <span className="text-foreground font-semibold">
-                    {labels.action(entry.action)}
+                    <td className="text-muted-foreground px-4 whitespace-nowrap tabular-nums">
+                      {time(entry)}
+                    </td>
+                    <td className="text-foreground px-4">
+                      {entry.actor ? (
+                        <button
+                          type="button"
+                          className="text-left whitespace-nowrap hover:underline"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            applyFilters({ actorId: entry.actor!.id });
+                          }}
+                        >
+                          {labels.actor(entry)}
+                        </button>
+                      ) : (
+                        labels.actor(entry)
+                      )}
+                    </td>
+                    <td className="px-4">
+                      <button
+                        type="button"
+                        data-row-open
+                        aria-label={open(entry)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openRecord(entry.id);
+                        }}
+                        className="text-foreground text-left font-medium hover:underline"
+                      >
+                        {labels.action(entry.action)}
+                      </button>
+                    </td>
+                    <td className="text-muted-foreground px-4">
+                      {entry.entity ? (
+                        <>
+                          {labels.entity({ ...entry.entity, label: '' })}
+                          <span className="whitespace-nowrap">
+                            {entry.entity.label ??
+                              labels.shortId(entry.entity.id)}
+                          </span>
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td className="px-4">
+                      <ResultChip result={entry.result} />
+                    </td>
+                    <td className="text-muted-foreground px-4 font-mono text-xs">
+                      {entry.ip ?? '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <ul className="divide-border divide-y">
+            {items.map((entry) => (
+              <li key={entry.id} data-audit-row={entry.id}>
+                <button
+                  type="button"
+                  data-row-open
+                  onClick={() => openRecord(entry.id)}
+                  className="hover:bg-surface-muted flex w-full flex-col gap-1 p-4 text-left"
+                >
+                  <span className="sr-only">{t('openRecordMobile')}</span>
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="text-foreground font-semibold">
+                      {labels.action(entry.action)}
+                    </span>
+                    {entry.result === 'DENIED' && (
+                      <ResultChip result={entry.result} />
+                    )}
                   </span>
-                  {entry.result === 'DENIED' && (
-                    <ResultChip result={entry.result} />
-                  )}
-                </span>
-                <span className="text-muted-foreground text-sm">
-                  {[labels.actor(entry), labels.entity(entry.entity)]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </span>
-                <span className="text-muted-foreground text-xs tabular-nums">
-                  {t('timeShort', { at: new Date(entry.occurredAt) })}
-                  {entry.ip ? ` · ${entry.ip}` : ''}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
+                  <span className="text-muted-foreground text-sm">
+                    {[labels.actor(entry), labels.entity(entry.entity)]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </span>
+                  <span className="text-muted-foreground text-xs tabular-nums">
+                    {t('timeShort', { at: new Date(entry.occurredAt) })}
+                    {entry.ip ? ` · ${entry.ip}` : ''}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </>
     );
   }
 
   const chips = [
+    search.period !== '7d' && {
+      label:
+        search.period === 'custom'
+          ? `${t('filters.period')}: ${search.from} — ${search.to}`
+          : t(`filters.${PERIOD_KEYS[search.period]}`),
+      clear: () =>
+        applyFilters({ period: '7d', from: undefined, to: undefined }),
+    },
+    search.view === 'security' && {
+      label: t('views.security'),
+      clear: () => applyFilters({ view: undefined }),
+    },
+    selectedActions.length > 0 && {
+      label:
+        selectedActions.length === 1
+          ? labels.action(selectedActions[0]!)
+          : t('filters.actionsSelected', { count: selectedActions.length }),
+      clear: () => applyFilters({ action: undefined, actions: undefined }),
+    },
+    search.entityType &&
+      !entityChip && {
+        label: t('filters.entity', {
+          label: labels.entityType(search.entityType),
+        }),
+        clear: () =>
+          applyFilters({ entityType: undefined, entityId: undefined }),
+      },
+    search.result && {
+      label: `${t('filters.result')}: ${t(`result.${search.result}`)}`,
+      clear: () => applyFilters({ result: undefined }),
+    },
     entityChip && {
       label: t('filters.entity', { label: entityChip }),
       clear: () => applyFilters({ entityType: undefined, entityId: undefined }),
@@ -474,7 +585,7 @@ export function AuditView({
       <div
         role="group"
         aria-label={t('views.label')}
-        className="border-border mb-4 inline-flex max-w-full rounded-lg border p-1"
+        className="border-border mb-4 grid w-full grid-cols-2 rounded-lg border p-1 md:inline-flex md:w-auto"
       >
         {(['all', 'security'] as const).map((view) => (
           <Button
@@ -578,20 +689,6 @@ export function AuditView({
           onApply={() => applyFilters({ from, to })}
         />
       )}
-      {/* Stays mounted so the first selection (0→1) is announced; empty <p> has no height. */}
-      <p
-        id={selectedActions.length > 0 ? actionsSummaryId : undefined}
-        className={cn(
-          'text-muted-foreground text-sm',
-          selectedActions.length > 0 && 'mb-3',
-        )}
-        aria-live="polite"
-      >
-        {selectedActions.length > 0 &&
-          t('filters.actionsSummary', {
-            labels: selectedActions.map(labels.action).join('; '),
-          })}
-      </p>
       <div className="mb-4 flex flex-wrap items-center gap-2">
         {chips.map((chip) => (
           <span
@@ -603,7 +700,7 @@ export function AuditView({
               type="button"
               aria-label={t('filters.removeFilter', { label: chip.label })}
               onClick={chip.clear}
-              className="hover:bg-surface inline-flex size-7 items-center justify-center rounded-full"
+              className="hover:bg-surface inline-flex size-11 items-center justify-center rounded-full md:size-7"
             >
               <X className="size-4" aria-hidden="true" />
             </button>
@@ -623,11 +720,26 @@ export function AuditView({
           {t('filters.periodHint')}
         </span>
       </div>
+      {/* Stays mounted so the first selection (0→1) is announced. */}
+      <p
+        id={selectedActions.length > 0 ? actionsSummaryId : undefined}
+        className={cn(
+          'text-muted-foreground text-sm',
+          selectedActions.length > 0 && 'mb-3',
+        )}
+        aria-live="polite"
+      >
+        {selectedActions.length > 0 &&
+          t('filters.actionsSummary', {
+            labels: selectedActions.map(labels.action).join('; '),
+          })}
+      </p>
       {query.hasPreviousPage && (
         <Button
           ref={newerRef}
           variant="outline"
           onClick={() => loadPage(true)}
+          disabled={!hydrated}
           aria-disabled={fetchingPage}
           aria-busy={query.isFetchingPreviousPage}
           className="mb-4 h-11 w-full md:h-10 md:w-auto"
@@ -656,14 +768,20 @@ export function AuditView({
           <span className="text-muted-foreground text-sm" aria-live="polite">
             {/* Remounts per window so a move that keeps the count (100→100) is still announced. */}
             <span key={items[0]?.id}>
-              {t('shown', { shown: items.length })}
+              {t('shown', { count: items.length })}
             </span>
           </span>
+          {items.length === 100 && (
+            <span className="text-muted-foreground text-xs">
+              {t('windowHint')}
+            </span>
+          )}
           {query.hasNextPage && (
             <Button
               ref={moreRef}
               variant="outline"
               onClick={() => loadPage(false)}
+              disabled={!hydrated}
               aria-disabled={fetchingPage}
               aria-busy={query.isFetchingNextPage}
               className="h-11 w-full md:h-10 md:w-auto"

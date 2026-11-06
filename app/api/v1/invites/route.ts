@@ -12,6 +12,7 @@ export const POST = defineRoute(
     method: 'POST',
     path: '/invites',
     operationId: 'createInvite',
+    permission: 'settings.users.manage',
     summary: 'Invite a person with roles (Admin with aal2 only)',
     tags: ['Users'],
     body: createInviteSchema,
