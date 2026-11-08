@@ -18387,6 +18387,102 @@
           ]
         },
         {
+          "name": "listVacancies — a search shorter than three characters is a validation error",
+          "request": {
+            "name": "listVacancies — a search shorter than three characters is a validation error",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [{ "key": "q", "value": "ab" }],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));",
+                  "pm.test('field errors', () => pm.expect(pm.response.json().errors).to.deep.equal([{\"path\":\"query.q\",\"code\":\"too_small\"}]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listVacancies — a short vacancy number is still searchable",
+          "request": {
+            "name": "listVacancies — a short vacancy number is still searchable",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [{ "key": "q", "value": "V-1" }],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"number\":{\"type\":\"string\",\"pattern\":\"^V-\\\\d{4,19}$\"},\"title\":{\"type\":\"string\"},\"vertical\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"position\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"teamLead\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]},\"recruiters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]}},\"status\":{\"type\":\"string\",\"enum\":[\"DRAFT\",\"OPEN\",\"ON_HOLD\",\"FILLED\",\"CANCELLED\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"NORMAL\",\"URGENT\"]},\"source\":{\"type\":\"string\",\"enum\":[\"APP\",\"TELEGRAM_BOT\"]},\"openedAt\":{\"type\":[\"string\",\"null\"],\"format\":\"date-time\"},\"createdAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"}},\"required\":[\"id\",\"number\",\"title\",\"vertical\",\"position\",\"teamLead\",\"recruiters\",\"status\",\"priority\",\"source\",\"openedAt\",\"createdAt\",\"updatedAt\"]},\"maxItems\":100},\"nextCursor\":{\"type\":[\"string\",\"null\"],\"maxLength\":19},\"prevCursor\":{\"type\":[\"string\",\"null\"],\"maxLength\":19}},\"required\":[\"items\",\"nextCursor\",\"prevCursor\"]}));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "getVacancy — no token",
           "request": {
             "name": "getVacancy — no token",

@@ -1,14 +1,25 @@
+import { randomUUID } from 'node:crypto';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { vacancyListQuerySchema } from '../../lib/schemas/vacancy';
+import {
+  vacancyDetailSchema,
+  vacancyListQuerySchema,
+} from '../../lib/schemas/vacancy';
 import { buildAuthContext } from '../../server/authz/context';
 import { scopeWhere } from '../../server/authz/scopes';
 import type { UserId } from '../../server/authz/types';
 import { vacancyScope } from '../../server/authz/vacancy-scope';
+import type { RequestContext } from '../../server/context/request-context';
 import * as schema from '../../server/db/schema';
+import { systemClock } from '../../server/domain/clock';
+import { NotFoundError } from '../../server/http/errors';
 import { findVacancy, listVacancies } from '../../server/repositories/vacancy';
 import { userHasOpenVacancyWork } from '../../server/repositories/vacancy-work';
+import {
+  getVacancyDetail,
+  listVacancyPage,
+} from '../../server/services/vacancy';
 import {
   WORLD_OPENED_AT,
   createVacancyWorld,
@@ -264,6 +275,136 @@ describe('title search matches wildcards and backslashes literally [SEC-VAC-01]'
     expect(await search(`\\${world.tag}`)).toEqual([]);
     expect(await search(`Знижка 100 ${world.tag}`)).toEqual([ids.plain]);
     expect(await search(`Шлях c:/tmp ${world.tag}`)).toEqual([ids.slash]);
+  });
+});
+
+/** Q-161: the salary range is vacancy content, visible to everyone who can see the vacancy; scope alone decides access (DG-10). */
+describe('vacancy salary response snapshot by role [Q-161, DG-10, VIS-01..03]', () => {
+  const SALARY = {
+    salaryMinMinor: '250000',
+    salaryMaxMinor: '400000',
+    salaryCurrency: 'USD',
+  } as const;
+  const SALARY_KEYS = Object.keys(SALARY);
+
+  const ctxFor = (userId: string, roles: Roles): RequestContext => ({
+    requestId: randomUUID(),
+    ip: null,
+    userAgent: null,
+    mutationId: null,
+    identity: {
+      authUserId: randomUUID(),
+      sessionId: randomUUID(),
+      aal: 'aal2',
+    },
+    auth: auth(userId, roles),
+    db,
+    clock: systemClock,
+  });
+  const named = (name: Name) => ctxFor(world.users[name], world.roles[name]);
+  const headHr = () =>
+    ctxFor(randomUUID(), [{ role: 'HEAD_HR', verticalId: world.verticals.v1 }]);
+
+  beforeAll(async () => {
+    await admin`update app.vacancy set salary_min_minor = ${SALARY.salaryMinMinor}, salary_max_minor = ${SALARY.salaryMaxMinor}, salary_currency = ${SALARY.salaryCurrency}
+      where id in ${admin([world.v.assignedOpen, world.v.unassignedOpen, world.v.otherAssigned])}`;
+  });
+
+  it('detail exposes the salary range identically to every role that can see the vacancy', async () => {
+    const baseline = await getVacancyDetail(
+      named('admin'),
+      world.v.assignedOpen,
+    );
+    expect(vacancyDetailSchema.safeParse(baseline).success).toBe(true);
+    expect(baseline).toMatchObject(SALARY);
+
+    const readers = {
+      'head recruiter': named('head'),
+      'head HR': headHr(),
+      HR: named('hr'),
+      'owning team lead': named('tlA'),
+      'assigned recruiter': named('recA'),
+    };
+    for (const [label, ctx] of Object.entries(readers))
+      expect(await getVacancyDetail(ctx, world.v.assignedOpen), label).toEqual(
+        baseline,
+      );
+  });
+
+  it('detail exposes the salary range to a recruiter who is not assigned to an OPEN unassigned vacancy', async () => {
+    const baseline = await getVacancyDetail(
+      named('admin'),
+      world.v.unassignedOpen,
+    );
+    expect(baseline).toMatchObject(SALARY);
+    expect(baseline.recruiters).toEqual([]);
+
+    const readers = {
+      'unassigned recruiter': named('recB'),
+      'other unassigned recruiter': named('recD'),
+      'head recruiter': named('head'),
+      'head HR': headHr(),
+      HR: named('hr'),
+      'owning team lead': named('tlA'),
+    };
+    for (const [label, ctx] of Object.entries(readers))
+      expect(
+        await getVacancyDetail(ctx, world.v.unassignedOpen),
+        label,
+      ).toEqual(baseline);
+  });
+
+  it('out-of-scope roles get 404 and never receive the salary range', async () => {
+    const denied: [string, RequestContext, string][] = [
+      ['recruiter of another vertical', named('recC'), world.v.assignedOpen],
+      ['team lead of another vertical', named('tlC'), world.v.assignedOpen],
+      ['team lead of another vacancy', named('tlB'), world.v.assignedOpen],
+      ['recruiter on an assigned vacancy', named('recB'), world.v.assignedOpen],
+      ['Finance', named('finance'), world.v.assignedOpen],
+      ['user without roles', named('nobody'), world.v.assignedOpen],
+      [
+        'head recruiter of another vertical',
+        named('head'),
+        world.v.otherAssigned,
+      ],
+      ['team lead of the first vertical', named('tlA'), world.v.otherAssigned],
+    ];
+    for (const [label, ctx, id] of denied)
+      await expect(getVacancyDetail(ctx, id), label).rejects.toBeInstanceOf(
+        NotFoundError,
+      );
+
+    for (const name of ['finance', 'nobody'] as const)
+      await expect(
+        listVacancyPage(named(name), { limit: 100 }),
+        name,
+      ).rejects.toBeInstanceOf(NotFoundError);
+    const recC = await listVacancyPage(named('recC'), {
+      vertical: world.verticals.v1,
+      limit: 100,
+    });
+    expect(recC.items).toEqual([]);
+  });
+
+  it('the list DTO carries no salary field for any role; the range is a detail-only contract', async () => {
+    const page = await listVacancyPage(named('admin'), {
+      vertical: world.verticals.v1,
+      limit: 100,
+    });
+    const salaried = page.items.filter((item) =>
+      [world.v.assignedOpen, world.v.unassignedOpen].includes(item.id),
+    );
+    expect(salaried).toHaveLength(2);
+    for (const item of page.items)
+      for (const key of SALARY_KEYS) expect(item).not.toHaveProperty(key);
+
+    const asRecruiter = await listVacancyPage(named('recB'), {
+      vertical: world.verticals.v1,
+      limit: 100,
+    });
+    expect(asRecruiter.items.length).toBeGreaterThan(0);
+    for (const item of asRecruiter.items)
+      for (const key of SALARY_KEYS) expect(item).not.toHaveProperty(key);
   });
 });
 

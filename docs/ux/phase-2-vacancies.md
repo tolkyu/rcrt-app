@@ -38,7 +38,7 @@ Do not render fabricated counts, empty charts, disabled future-feature CTAs, an 
 - Status is exactly «Чернетка», «Відкрита», «Призупинена», «Заповнена» or «Скасована». «Термінова» and «З бота» are separate title badges; normal priority needs no badge.
 - Show users as name plus role/vertical where appropriate, with initials when there is no real photo. Do not add the mockup's job-title field.
 - Preserve vacancy number `V-0001` beside the title and on detail. A missing team lead is «Не призначено»; no invented assignment.
-- Show an actual opening date («Відкрита з …») rather than inventing an elapsed-days rule while Q-86 is unresolved. Hide the field when the vacancy has never opened.
+- Show an actual opening date («Відкрита з …») (D85: owner chose the exact date, no elapsed-days counter). Hide the field when the vacancy has never opened.
 - Candidate/funnel counts must use only applications the viewer can open (D19). The first read slice must not infer visibility from an unscoped total.
 - «Поділитися» copies the real detail URL if included; success/failure feedback is accessible, and the link does not grant access (UI-09).
 - Future preview tabs are «Огляд», «Кандидати», «Історія»; no per-vacancy «Статистика». Bonus text/actions remain with the implemented bonus scheme and its visibility rules.

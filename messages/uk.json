@@ -125,7 +125,7 @@
     "filtersLabel": "Фільтри вакансій",
     "searchLabel": "Пошук вакансій",
     "searchPlaceholder": "Назва або номер, наприклад V-0001",
-    "searchHint": "Щонайменше 2 символи",
+    "searchHint": "Щонайменше 3 символи",
     "filterVertical": "Вертикаль",
     "filterStatus": "Статус",
     "all": "Усі",

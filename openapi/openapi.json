@@ -4083,7 +4083,7 @@
         "tags": ["Vacancies"],
         "parameters": [
           {
-            "schema": { "type": "string", "minLength": 2, "maxLength": 120 },
+            "schema": { "type": "string", "minLength": 3, "maxLength": 120 },
             "required": false,
             "name": "q",
             "in": "query"

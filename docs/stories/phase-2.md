@@ -142,6 +142,6 @@ Each subsequent write story is expanded into Given/When/Then, field validation, 
 
 ## Blocked by questions
 
-- **V1 ambiguous days-open counter:** Q-86; exact opening date is available without choosing pause semantics.
+- **V1 days-open counter:** resolved by D85 — exact opening date only.
 - **Later deletion increment:** Q-100 per-application deletion resolution when active applications arrive. Q-26/48/49/50 are resolved by D75–D78 and no longer block writable vacancy design.
 - **Future blocks:** Q-98 routing-group visibility (Phase 3), Q-106/107/110/111 reward-change details (Phase 4), Q-152 dashboard KPI definitions. These do not block V1 and are not silently accepted.

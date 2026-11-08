@@ -119,6 +119,31 @@
     ]
   },
   {
+    "operation": "listVacancies",
+    "name": "a search shorter than three characters is a validation error",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "q": "ab"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.q",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "listVacancies",
+    "name": "a short vacancy number is still searchable",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "q": "V-1"
+    },
+    "status": 200
+  },
+  {
     "operation": "getVacancy",
     "name": "no token",
     "as": null,

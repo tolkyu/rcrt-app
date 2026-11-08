@@ -216,16 +216,18 @@ test.describe('head.recruiter.gambling@demo', () => {
     await expectNumbers(page, isMobile, [9, 8, 4, 2, 1]);
   });
 
-  test('a one-character query is ignored instead of hiding the list [VAC-04]', async ({
+  test('a query shorter than three characters is ignored instead of hiding the list [VAC-04, Q-162]', async ({
     page,
     isMobile,
   }) => {
     await openHydrated(page, '/vacancies');
-    await search(page).fill('V');
-    await expectNumbers(page, isMobile, visible);
-    await expect(
-      page.getByText(t.filteredEmpty.title, { exact: true }),
-    ).toHaveCount(0);
+    for (const short of ['V', 'ме']) {
+      await search(page).fill(short);
+      await expectNumbers(page, isMobile, visible);
+      await expect(
+        page.getByText(t.filteredEmpty.title, { exact: true }),
+      ).toHaveCount(0);
+    }
   });
 
   test('the vertical filter offers only the permitted vertical; unknown, foreign and malformed URL values neither leak nor break the page [VIS-01, STORY-VAC-04-1]', async ({

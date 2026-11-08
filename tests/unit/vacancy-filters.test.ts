@@ -47,6 +47,8 @@ describe('parseVacancyPageFilters drops malformed URL values instead of failing 
 
   it.each([
     ['too short search', 'q=a'],
+    ['two-character search', 'q=%D0%BC%D0%B5'],
+    ['two-character search after trimming', 'q=%20ab%20'],
     ['unknown status', 'status=ARCHIVED'],
     ['not a UUID', 'vertical=gambling'],
     ['unknown priority', 'priority=HIGH'],
@@ -69,6 +71,16 @@ describe('parseVacancyPageFilters drops malformed URL values instead of failing 
     ).toEqual({ cursor: '7', direction: 'newer', limit: 50 });
   });
 
+  it.each(['abc', 'v-1', ' V-12 ', 'абв'])(
+    'keeps a search of at least three characters after trimming: %j [Q-162]',
+    (q) => {
+      expect(parseVacancyPageFilters(new URLSearchParams({ q }))).toEqual({
+        q: q.trim(),
+        limit: 25,
+      });
+    },
+  );
+
   it('reads plain search-parameter objects as the RSC page receives them', () => {
     expect(
       parseVacancyPageFilters({ q: 'V-0001', status: ['OPEN', 'DRAFT'] }),
@@ -79,8 +91,8 @@ describe('parseVacancyPageFilters drops malformed URL values instead of failing 
 describe('API filters and page URL stay in sync', () => {
   it('omits the default page size and a direction without cursor', () => {
     expect(
-      vacancyPageSearch({ q: 'аб', status: 'OPEN', limit: 25 }).toString(),
-    ).toBe('q=%D0%B0%D0%B1&status=OPEN');
+      vacancyPageSearch({ q: 'абв', status: 'OPEN', limit: 25 }).toString(),
+    ).toBe('q=%D0%B0%D0%B1%D0%B2&status=OPEN');
     expect(
       vacancyPageSearch({
         cursor: '5',
@@ -177,6 +189,27 @@ describe('URL transitions', () => {
       ),
     ).toBe('status=OPEN&limit=50');
   });
+});
+
+describe('search minimum is three characters [Q-162]', () => {
+  it.each(['a', 'аб', ' ab ', '  '])(
+    'the API schema rejects %j with a too_small issue on q',
+    (q) => {
+      const result = vacancyListQuerySchema.safeParse({ q });
+      expect(result.success).toBe(false);
+      expect(
+        !result.success &&
+          result.error.issues.map((issue) => [issue.path, issue.code]),
+      ).toEqual([[['q'], 'too_small']]);
+    },
+  );
+
+  it.each(['abc', 'V-1', 'v-0001', ' абв '])(
+    'the API schema accepts %j, including a short vacancy number',
+    (q) => {
+      expect(vacancyListQuerySchema.parse({ q }).q).toBe(q.trim());
+    },
+  );
 });
 
 describe('search text with a NUL character [SEC-VAC-02]', () => {

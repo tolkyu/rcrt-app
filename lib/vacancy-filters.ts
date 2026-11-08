@@ -10,7 +10,7 @@ export const VACANCY_STATUSES = [
 export const VACANCY_PRIORITIES = ['NORMAL', 'URGENT'] as const;
 export const VACANCY_PAGE_SIZES = [25, 50, 100] as const;
 export const VACANCY_SEARCH_MAX = 120;
-export const VACANCY_SEARCH_MIN = 2;
+export const VACANCY_SEARCH_MIN = 3;
 /** PostgreSQL rejects NUL in text parameters (SQLSTATE 22021), which would surface as a 500. */
 export const hasNoNul = (value: string): boolean => !value.includes('\u0000');
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
