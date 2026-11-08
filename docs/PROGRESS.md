@@ -4,16 +4,30 @@ Single log of phase status, deliverables, gaps and decisions. Updated at the end
 
 ## Phase status
 
-| Phase | Scope (PRD §15)                                                | Status                                        | Gallery                                                                                         |
-| ----- | -------------------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| 0     | Discovery & design                                             | ✅ Done 2026-10-31 — owner approved Phase 1   | —                                                                                               |
-| 1     | Foundation                                                     | ✅ Done locally 2026-11-06 (branch `phase-1`) | `screenshots/phase-1/index.html` (auth, settings, role profiles; 274 PNGs + 4 Foundation links) |
-| 2     | Vacancies & candidates                                         | ⏳                                            |                                                                                                 |
-| 3     | Pipeline + routing                                             | ⏳                                            |                                                                                                 |
-| 4     | Bonuses & statistics                                           | ⏳                                            |                                                                                                 |
-| 5     | Archive & notifications                                        | ⏳                                            |                                                                                                 |
-| 6     | Telegram — owner questions first, nothing built before answers | ⏳                                            |                                                                                                 |
-| 7     | Hardening & launch                                             | ⏳                                            |                                                                                                 |
+| Phase | Scope (PRD §15)                                                | Status                                                              | Gallery                                                                                         |
+| ----- | -------------------------------------------------------------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| 0     | Discovery & design                                             | ✅ Done 2026-10-31 — owner approved Phase 1                         | —                                                                                               |
+| 1     | Foundation                                                     | ✅ Done locally 2026-11-06 (branch `phase-1`)                       | `screenshots/phase-1/index.html` (auth, settings, role profiles; 274 PNGs + 4 Foundation links) |
+| 2     | Vacancies & candidates                                         | 🔄 In progress — V1 (vacancy list + detail) done locally 2026-11-08 | `screenshots/phase-2/index.html` (vacancy list/detail, filters, empty/error, role denials)      |
+| 3     | Pipeline + routing                                             | ⏳                                                                  |                                                                                                 |
+| 4     | Bonuses & statistics                                           | ⏳                                                                  |                                                                                                 |
+| 5     | Archive & notifications                                        | ⏳                                                                  |                                                                                                 |
+| 6     | Telegram — owner questions first, nothing built before answers | ⏳                                                                  |                                                                                                 |
+| 7     | Hardening & launch                                             | ⏳                                                                  |                                                                                                 |
+
+## Phase 2 start — 2026-11-06
+
+- Owner approved starting with vacancies, using the original `UI FROM DESIGNER/` screens as the visual reference.
+- First increment: scoped real vacancy list, search/filters and readable details, backed by positions/vacancies/recruiter assignments. Candidate, pipeline and bonus features follow their existing phase boundaries.
+- Owner confirmed Q-26, Q-48/Q-49 and Q-50 as D75–D78; the writable increments follow these policies. The first read increment is in progress on `phase-2`. Display the exact opening date while Q-86 remains open.
+
+## Phase 2 V1 checkpoint — 2026-11-08 (vacancies: scoped list + detail, read-only)
+
+- Done [VAC-01..04/07, VIS-01..03, ROLE-06, D24/D43/D53/D67, PERF-02/04/05]: migration `0011` (`position`, `vacancy`, `vacancy_recruiter`, `V-0001` numbers, SELECT-only grants), vacancy scope adapter (GLOBAL/VERTICAL/OWN/ASSIGNED/UNASSIGNED_OPEN), `GET /api/v1/vacancies` (keyset cursor, one SQL, trigram title/number search, rate-limited) and `/{id}`, `/vacancies` UI (table + preview ≥ wide, cards on mobile, URL filters, share link, back link with remembered filters), demo seed `pnpm db:seed:vacancies`, user-lifecycle guard `USER_HAS_OPEN_WORK` (409) on deactivation / role removal.
+- Team flow: Codex backend → engineer UI → QA → security + perf + code review → one fix pass → QA re-run → code-reviewer re-review **APPROVED**. Fixed from reviews: SEC-VAC-01 (broken LIKE escape), SEC-VAC-02 (NUL in `q` → 400), migration 0011 role-guarded revoke, recruiter scope SQL (`count(*) = 0`, 39–51 ms → ~3 ms at 100k), first-load preview waterfall, stale-cursor 404 → empty page + restart, UI bugs V1-1..4.
+- Verified: lint, typecheck, `pnpm test` 70 files / **2,420** passed, build + `perf:size` (`/vacancies` 165.32 kB ≤ 180), Newman **305 requests / 1,767 assertions** 0 failed, full E2E **337 passed + 10 mobile skips**, screens 52/52, gallery `screenshots/phase-2/index.html` (+ `latest`). Reports: `docs/security/review-phase-2-vacancies-v1.md`, `docs/perf/report-phase-2-vacancies-v1.md`, `docs/bugs.md`.
+- Gaps: perf seed `db:seed:perf` + vacancy routes in Lighthouse/runtime/k6 (PERF-01/03, P95 not measured on HTTP); `settings` messages (76 % of 39 kB) still in the global provider; `tl.crypto@demo` has no browser session so TL-crypto E2E/Newman missing; cursor pagination untestable with the 13-row seed; NUL guard not yet on users/audit search; V1-5 (filter typed before hydration is lost) documented, not fixed; write flows (create/edit/assign/lifecycle) not built.
+- Open owner questions: Q-160..Q-165 (+ Q-86). Next: V2 position catalog + vacancy creation (D75..78).
 
 ## Closure checkpoint — 2026-11-06 (local Phase 1 complete)
 

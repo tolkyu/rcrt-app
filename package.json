@@ -10,7 +10,7 @@
   },
   "scripts": {
     "env:init": "node scripts/env-init.mjs",
-    "setup": "pnpm env:init && pnpm install --frozen-lockfile && tsx --env-file-if-exists=.env scripts/setup.ts && pnpm db:start && pnpm db:migrate && pnpm db:provision:local && pnpm db:seed",
+    "setup": "pnpm env:init && pnpm install --frozen-lockfile && tsx --env-file-if-exists=.env scripts/setup.ts && pnpm db:start && pnpm db:migrate && pnpm db:provision:local && pnpm db:seed && pnpm db:seed:vacancies",
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
@@ -33,6 +33,7 @@
     "db:migrate": "tsx --env-file-if-exists=.env server/db/migrate.ts",
     "db:provision:local": "tsx --env-file-if-exists=.env scripts/provision-local-db.ts",
     "db:seed": "tsx --env-file-if-exists=.env server/db/seed/index.ts",
+    "db:seed:vacancies": "tsx --env-file-if-exists=.env server/db/seed/vacancies.ts",
     "db:seed:auth": "tsx --env-file-if-exists=.env server/db/seed/auth.ts",
     "api:openapi": "tsx --conditions=react-server scripts/openapi.ts",
     "api:postman": "pnpm api:openapi && tsx scripts/postman.ts",

@@ -229,7 +229,7 @@ test('roles without settings permissions get the not-found page and 404 from the
       ).status(),
     ).toBe(404);
     await page.goto('/');
-    await expect(page).toHaveURL(/\/profile$/);
+    await expect(page).toHaveURL(/\/vacancies$/);
   } finally {
     await context.close();
   }

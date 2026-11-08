@@ -63,11 +63,16 @@ export function VerticalNameDialog({
       current ? { items: update(current.items).sort(byName) } : current,
     );
 
+  /** The role-visible list feeds the shell switcher and the vacancy filters. */
+  const refreshVisibleVerticals = () =>
+    queryClient.invalidateQueries({ queryKey: queryKeys.verticals() });
+
   const fail = (failure: unknown) => {
     if (failure instanceof ApiError && failure.code === 'VERTICAL_NAME_TAKEN')
       return setError('duplicate');
     if (failure instanceof ApiError && failure.code === 'STALE_STATE') {
       void queryClient.invalidateQueries({ queryKey: key });
+      void refreshVisibleVerticals();
       return toast.error(tCommon('conflict'));
     }
     toast.error(tCommon('saveFailed'));
@@ -83,6 +88,7 @@ export function VerticalNameDialog({
     onError: fail,
     onSuccess: (created) => {
       setList((items) => [...items, created]);
+      void refreshVisibleVerticals();
       toast.success(t('toastCreated', { name: created.name }));
       onClose();
     },
@@ -119,6 +125,10 @@ export function VerticalNameDialog({
       setList((items) =>
         items.map((item) => (item.id === renamed.id ? renamed : item)),
       );
+      void refreshVisibleVerticals();
+      // Vacancy rows carry the vertical name.
+      void queryClient.invalidateQueries({ queryKey: ['vacancies'] });
+      void queryClient.invalidateQueries({ queryKey: ['vacancy'] });
       toast.success(
         t('toastRenamed', { from: vertical.name, to: renamed.name }),
       );

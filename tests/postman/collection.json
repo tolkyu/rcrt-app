@@ -17795,6 +17795,914 @@
         }
       ],
       "event": []
+    },
+    {
+      "name": "Vacancies",
+      "description": { "content": "", "type": "text/plain" },
+      "item": [
+        {
+          "name": "listVacancies — no token",
+          "request": {
+            "name": "listVacancies — no token",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": { "type": "noauth" }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem UNAUTHENTICATED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:unauthenticated\",\"status\":401,\"code\":\"UNAUTHENTICATED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listVacancies — Finance has no vacancy access",
+          "request": {
+            "name": "listVacancies — Finance has no vacancy access",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_finance}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listVacancies — Admin without TOTP",
+          "request": {
+            "name": "listVacancies — Admin without TOTP",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_admin_aal1}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem MFA_REQUIRED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:mfa-required\",\"status\":401,\"code\":\"MFA_REQUIRED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listVacancies — Head Recruiter sees the Гемблінг vacancies newest first",
+          "request": {
+            "name": "listVacancies — Head Recruiter sees the Гемблінг vacancies newest first",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [{ "key": "limit", "value": "25" }],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"number\":{\"type\":\"string\",\"pattern\":\"^V-\\\\d{4,19}$\"},\"title\":{\"type\":\"string\"},\"vertical\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"position\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"teamLead\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]},\"recruiters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]}},\"status\":{\"type\":\"string\",\"enum\":[\"DRAFT\",\"OPEN\",\"ON_HOLD\",\"FILLED\",\"CANCELLED\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"NORMAL\",\"URGENT\"]},\"source\":{\"type\":\"string\",\"enum\":[\"APP\",\"TELEGRAM_BOT\"]},\"openedAt\":{\"type\":[\"string\",\"null\"],\"format\":\"date-time\"},\"createdAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"}},\"required\":[\"id\",\"number\",\"title\",\"vertical\",\"position\",\"teamLead\",\"recruiters\",\"status\",\"priority\",\"source\",\"openedAt\",\"createdAt\",\"updatedAt\"]},\"maxItems\":100},\"nextCursor\":{\"type\":[\"string\",\"null\"],\"maxLength\":19},\"prevCursor\":{\"type\":[\"string\",\"null\"],\"maxLength\":19}},\"required\":[\"items\",\"nextCursor\",\"prevCursor\"]}));",
+                  "const page = pm.response.json();",
+                  "pm.test('only Гемблінг rows, nothing newer than the first page', () => {",
+                  "  pm.expect(page.items.length).to.be.above(0);",
+                  "  page.items.forEach((v) => pm.expect(v.vertical.name).to.equal('Гемблінг'));",
+                  "  pm.expect(page.prevCursor).to.equal(null);",
+                  "});",
+                  "pm.test('newest first by public number', () => {",
+                  "  const numbers = page.items.map((v) => Number(v.number.slice(2)));",
+                  "  pm.expect(numbers).to.deep.equal([...numbers].sort((a, b) => b - a));",
+                  "  pm.expect(page.items[0].number).to.match(/^V-\\d{4,}$/);",
+                  "});",
+                  "pm.collectionVariables.set('vacancy_gambling_id', page.items[0].id);",
+                  "pm.collectionVariables.set(",
+                  "  'vacancy_gambling_vertical_id',",
+                  "  page.items[0].vertical.id,",
+                  ");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listVacancies — status and title search intersect",
+          "request": {
+            "name": "listVacancies — status and title search intersect",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [
+                { "key": "status", "value": "OPEN" },
+                { "key": "q", "value": "медіабаєр" },
+                { "key": "limit", "value": "100" }
+              ],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"number\":{\"type\":\"string\",\"pattern\":\"^V-\\\\d{4,19}$\"},\"title\":{\"type\":\"string\"},\"vertical\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"position\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"teamLead\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]},\"recruiters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]}},\"status\":{\"type\":\"string\",\"enum\":[\"DRAFT\",\"OPEN\",\"ON_HOLD\",\"FILLED\",\"CANCELLED\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"NORMAL\",\"URGENT\"]},\"source\":{\"type\":\"string\",\"enum\":[\"APP\",\"TELEGRAM_BOT\"]},\"openedAt\":{\"type\":[\"string\",\"null\"],\"format\":\"date-time\"},\"createdAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"}},\"required\":[\"id\",\"number\",\"title\",\"vertical\",\"position\",\"teamLead\",\"recruiters\",\"status\",\"priority\",\"source\",\"openedAt\",\"createdAt\",\"updatedAt\"]},\"maxItems\":100},\"nextCursor\":{\"type\":[\"string\",\"null\"],\"maxLength\":19},\"prevCursor\":{\"type\":[\"string\",\"null\"],\"maxLength\":19}},\"required\":[\"items\",\"nextCursor\",\"prevCursor\"]}));",
+                  "const { items } = pm.response.json();",
+                  "pm.test('only open Медіабаєр vacancies of the vertical', () => {",
+                  "  pm.expect(items.length).to.be.above(0);",
+                  "  items.forEach((v) => {",
+                  "    pm.expect(v.status).to.equal('OPEN');",
+                  "    pm.expect(v.title.toLowerCase()).to.include('медіабаєр');",
+                  "    pm.expect(v.vertical.name).to.equal('Гемблінг');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listVacancies — Recruiter in Крипто sees only its own vertical",
+          "request": {
+            "name": "listVacancies — Recruiter in Крипто sees only its own vertical",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_recruiter_crypto}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"number\":{\"type\":\"string\",\"pattern\":\"^V-\\\\d{4,19}$\"},\"title\":{\"type\":\"string\"},\"vertical\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"position\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"teamLead\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]},\"recruiters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]}},\"status\":{\"type\":\"string\",\"enum\":[\"DRAFT\",\"OPEN\",\"ON_HOLD\",\"FILLED\",\"CANCELLED\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"NORMAL\",\"URGENT\"]},\"source\":{\"type\":\"string\",\"enum\":[\"APP\",\"TELEGRAM_BOT\"]},\"openedAt\":{\"type\":[\"string\",\"null\"],\"format\":\"date-time\"},\"createdAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"}},\"required\":[\"id\",\"number\",\"title\",\"vertical\",\"position\",\"teamLead\",\"recruiters\",\"status\",\"priority\",\"source\",\"openedAt\",\"createdAt\",\"updatedAt\"]},\"maxItems\":100},\"nextCursor\":{\"type\":[\"string\",\"null\"],\"maxLength\":19},\"prevCursor\":{\"type\":[\"string\",\"null\"],\"maxLength\":19}},\"required\":[\"items\",\"nextCursor\",\"prevCursor\"]}));",
+                  "const { items } = pm.response.json();",
+                  "pm.test('only Крипто vacancies, never a Гемблінг one', () => {",
+                  "  pm.expect(items.length).to.be.above(0);",
+                  "  items.forEach((v) => pm.expect(v.vertical.name).to.equal('Крипто'));",
+                  "  pm.expect(items.map((v) => v.id)).to.not.include(",
+                  "    pm.collectionVariables.get('vacancy_gambling_id'),",
+                  "  );",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listVacancies — a foreign vertical filter reveals nothing",
+          "request": {
+            "name": "listVacancies — a foreign vertical filter reveals nothing",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [
+                {
+                  "key": "vertical",
+                  "value": "{{vacancy_gambling_vertical_id}}"
+                }
+              ],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_recruiter_crypto}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_gambling_vertical_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"number\":{\"type\":\"string\",\"pattern\":\"^V-\\\\d{4,19}$\"},\"title\":{\"type\":\"string\"},\"vertical\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"position\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"teamLead\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]},\"recruiters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]}},\"status\":{\"type\":\"string\",\"enum\":[\"DRAFT\",\"OPEN\",\"ON_HOLD\",\"FILLED\",\"CANCELLED\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"NORMAL\",\"URGENT\"]},\"source\":{\"type\":\"string\",\"enum\":[\"APP\",\"TELEGRAM_BOT\"]},\"openedAt\":{\"type\":[\"string\",\"null\"],\"format\":\"date-time\"},\"createdAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"}},\"required\":[\"id\",\"number\",\"title\",\"vertical\",\"position\",\"teamLead\",\"recruiters\",\"status\",\"priority\",\"source\",\"openedAt\",\"createdAt\",\"updatedAt\"]},\"maxItems\":100},\"nextCursor\":{\"type\":[\"string\",\"null\"],\"maxLength\":19},\"prevCursor\":{\"type\":[\"string\",\"null\"],\"maxLength\":19}},\"required\":[\"items\",\"nextCursor\",\"prevCursor\"]}));",
+                  "pm.test('no items and no cursors for a vertical outside the scope', () => {",
+                  "  pm.expect(pm.response.json()).to.deep.equal({",
+                  "    items: [],",
+                  "    nextCursor: null,",
+                  "    prevCursor: null,",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listVacancies — unknown status",
+          "request": {
+            "name": "listVacancies — unknown status",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [{ "key": "status", "value": "ARCHIVED" }],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));",
+                  "pm.test('field errors', () => pm.expect(pm.response.json().errors).to.deep.equal([{\"path\":\"query.status\",\"code\":\"invalid_value\"}]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listVacancies — direction=newer without cursor",
+          "request": {
+            "name": "listVacancies — direction=newer without cursor",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [{ "key": "direction", "value": "newer" }],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));",
+                  "pm.test('field errors', () => pm.expect(pm.response.json().errors).to.deep.equal([{\"path\":\"query.direction\",\"code\":\"custom\"}]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listVacancies — a cursor beyond every visible vacancy is only a position",
+          "request": {
+            "name": "listVacancies — a cursor beyond every visible vacancy is only a position",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [
+                { "key": "cursor", "value": "999999999" },
+                { "key": "direction", "value": "newer" }
+              ],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"number\":{\"type\":\"string\",\"pattern\":\"^V-\\\\d{4,19}$\"},\"title\":{\"type\":\"string\"},\"vertical\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"position\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"teamLead\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]},\"recruiters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]}},\"status\":{\"type\":\"string\",\"enum\":[\"DRAFT\",\"OPEN\",\"ON_HOLD\",\"FILLED\",\"CANCELLED\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"NORMAL\",\"URGENT\"]},\"source\":{\"type\":\"string\",\"enum\":[\"APP\",\"TELEGRAM_BOT\"]},\"openedAt\":{\"type\":[\"string\",\"null\"],\"format\":\"date-time\"},\"createdAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"}},\"required\":[\"id\",\"number\",\"title\",\"vertical\",\"position\",\"teamLead\",\"recruiters\",\"status\",\"priority\",\"source\",\"openedAt\",\"createdAt\",\"updatedAt\"]},\"maxItems\":100},\"nextCursor\":{\"type\":[\"string\",\"null\"],\"maxLength\":19},\"prevCursor\":{\"type\":[\"string\",\"null\"],\"maxLength\":19}},\"required\":[\"items\",\"nextCursor\",\"prevCursor\"]}));",
+                  "pm.test('no items and no cursors for a vertical outside the scope', () => {",
+                  "  pm.expect(pm.response.json()).to.deep.equal({",
+                  "    items: [],",
+                  "    nextCursor: null,",
+                  "    prevCursor: null,",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listVacancies — a NUL character in the search is a validation error",
+          "request": {
+            "name": "listVacancies — a NUL character in the search is a validation error",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [{ "key": "q", "value": "ab\u0000cd" }],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));",
+                  "pm.test('field errors', () => pm.expect(pm.response.json().errors).to.deep.equal([{\"path\":\"query.q\",\"code\":\"custom\"}]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "getVacancy — no token",
+          "request": {
+            "name": "getVacancy — no token",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_gambling_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": { "type": "noauth" }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_gambling_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem UNAUTHENTICATED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:unauthenticated\",\"status\":401,\"code\":\"UNAUTHENTICATED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "getVacancy — Head Recruiter reads a visible vacancy",
+          "request": {
+            "name": "getVacancy — Head Recruiter reads a visible vacancy",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_gambling_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_gambling_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"number\":{\"type\":\"string\",\"pattern\":\"^V-\\\\d{4,19}$\"},\"title\":{\"type\":\"string\"},\"vertical\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"position\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"teamLead\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]},\"recruiters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]}},\"status\":{\"type\":\"string\",\"enum\":[\"DRAFT\",\"OPEN\",\"ON_HOLD\",\"FILLED\",\"CANCELLED\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"NORMAL\",\"URGENT\"]},\"source\":{\"type\":\"string\",\"enum\":[\"APP\",\"TELEGRAM_BOT\"]},\"openedAt\":{\"type\":[\"string\",\"null\"],\"format\":\"date-time\"},\"createdAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"headcount\":{\"type\":\"integer\",\"exclusiveMinimum\":0},\"seniority\":{\"type\":[\"string\",\"null\"]},\"workFormat\":{\"type\":[\"string\",\"null\"],\"enum\":[\"REMOTE\",\"OFFICE\",\"HYBRID\",null]},\"employmentType\":{\"type\":[\"string\",\"null\"]},\"location\":{\"type\":[\"string\",\"null\"]},\"salaryMinMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryMaxMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryCurrency\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^[A-Z]{3}$\"},\"probationDays\":{\"type\":\"integer\",\"minimum\":30,\"maximum\":90},\"recruiterInitiated\":{\"type\":\"boolean\"},\"version\":{\"type\":\"integer\",\"exclusiveMinimum\":0}},\"required\":[\"id\",\"number\",\"title\",\"vertical\",\"position\",\"teamLead\",\"recruiters\",\"status\",\"priority\",\"source\",\"openedAt\",\"createdAt\",\"updatedAt\",\"headcount\",\"seniority\",\"workFormat\",\"employmentType\",\"location\",\"salaryMinMinor\",\"salaryMaxMinor\",\"salaryCurrency\",\"probationDays\",\"recruiterInitiated\",\"version\"]}));",
+                  "const vacancy = pm.response.json();",
+                  "pm.test('the requested vacancy with its team and terms', () => {",
+                  "  pm.expect(vacancy.id).to.equal(",
+                  "    pm.collectionVariables.get('vacancy_gambling_id'),",
+                  "  );",
+                  "  pm.expect(vacancy.number).to.match(/^V-\\d{4,}$/);",
+                  "  pm.expect(vacancy.vertical.name).to.equal('Гемблінг');",
+                  "  pm.expect(vacancy.recruiters).to.be.an('array');",
+                  "  pm.expect(vacancy.probationDays).to.be.within(30, 90);",
+                  "  pm.expect(vacancy).to.not.have.property('publicNo');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "getVacancy — Recruiter of another vertical gets 404",
+          "request": {
+            "name": "getVacancy — Recruiter of another vertical gets 404",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_gambling_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_recruiter_crypto}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_gambling_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "getVacancy — Finance cannot probe a vacancy id",
+          "request": {
+            "name": "getVacancy — Finance cannot probe a vacancy id",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_gambling_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_finance}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_gambling_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "getVacancy — Finance cannot probe id validation",
+          "request": {
+            "name": "getVacancy — Finance cannot probe id validation",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "not-a-uuid",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_finance}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "event": []
     }
   ],
   "event": [],

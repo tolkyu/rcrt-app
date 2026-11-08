@@ -21,17 +21,26 @@ const SETTINGS_PATHS = [
   '/settings/audit',
 ];
 
-/** Phase 1 builds only «Профіль» and Admin «Налаштування» (D28), so every other role lands on «Профіль». */
+/** Built sections are «Вакансії» (roles with vacancy.read), «Профіль» and Admin «Налаштування» (D28); Finance has only «Профіль». */
 const NON_ADMIN_ROLES: readonly {
   email: E2EUser;
   verticalSwitcher: boolean;
+  vacancies: boolean;
 }[] = [
-  { email: 'head.recruiter.gambling@demo', verticalSwitcher: false },
-  { email: 'recruiter1.gambling@demo', verticalSwitcher: false },
-  { email: 'head.hr@demo', verticalSwitcher: false },
-  { email: 'hr@demo', verticalSwitcher: false },
-  { email: 'vasyl.tl@demo', verticalSwitcher: false },
-  { email: 'finance@demo', verticalSwitcher: false },
+  {
+    email: 'head.recruiter.gambling@demo',
+    verticalSwitcher: false,
+    vacancies: true,
+  },
+  {
+    email: 'recruiter1.gambling@demo',
+    verticalSwitcher: false,
+    vacancies: true,
+  },
+  { email: 'head.hr@demo', verticalSwitcher: false, vacancies: true },
+  { email: 'hr@demo', verticalSwitcher: false, vacancies: true },
+  { email: 'vasyl.tl@demo', verticalSwitcher: false, vacancies: true },
+  { email: 'finance@demo', verticalSwitcher: false, vacancies: false },
 ];
 
 const kyivDateTime = (iso: string) =>
@@ -53,26 +62,35 @@ for (const role of NON_ADMIN_ROLES) {
   test.describe(role.email, () => {
     test.use({ storageState: sessionFile(role.email) });
 
-    test(`${role.email} lands on «Профіль», has no other section, and «Налаштування» is a 404 inside the shell [UI-04-1, VIS-02, ROLE-05-6]`, async ({
+    test(`${role.email} lands on ${role.vacancies ? '«Вакансії»' : '«Профіль»'}, has no other section, and «Налаштування» is a 404 inside the shell [UI-04-1, VIS-02, ROLE-05-6]`, async ({
       page,
       isMobile,
     }) => {
       await page.goto('/');
-      await expect(page).toHaveURL(/\/profile$/);
+      await expect(page).toHaveURL(
+        role.vacancies ? /\/vacancies$/ : /\/profile$/,
+      );
+      await page.goto('/profile');
       await expect(
         page.getByRole('heading', { level: 1, name: t.profile.title }),
       ).toBeVisible();
       await expect(page.getByText(role.email).first()).toBeVisible();
+      const sections = role.vacancies
+        ? [t.nav.vacancies, t.nav.profile]
+        : [t.nav.profile];
       if (isMobile) {
-        await expect(
-          page.getByRole('navigation', { name: t.shell.mobileNav }),
-        ).toHaveCount(0);
+        const mobileNav = page.getByRole('navigation', {
+          name: t.shell.mobileNav,
+        });
+        if (role.vacancies)
+          await expect(mobileNav.getByRole('link')).toHaveText(sections);
+        else await expect(mobileNav).toHaveCount(0);
       } else {
         await expect(
           page
             .getByRole('navigation', { name: t.shell.mainNav })
             .getByRole('link'),
-        ).toHaveText([t.nav.profile]);
+        ).toHaveText(sections);
         await expect(
           page.getByRole('button', {
             name: t.shell.verticalFilter.replace(
@@ -112,7 +130,7 @@ async function captureProfiles(
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const viewport = viewportOf(testInfo);
   await forEachTheme(page, async (theme) => {
-    await page.goto(user === 'admin@demo' ? '/profile' : '/');
+    await page.goto('/profile');
     await expect(page).toHaveURL(/\/profile$/);
     await expect(
       page.getByText(

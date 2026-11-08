@@ -57,6 +57,7 @@ describe('BottomNav: 4 slots + «Ще» sheet with the overflow and «Вийти
   it('shows the Admin destinations directly without an overflow trigger [UX-G-07]', () => {
     const nav = renderNav('/settings/users', NAV_ITEMS);
     expect(hrefs(within(nav).getAllByRole('link'))).toEqual([
+      '/vacancies',
       '/profile',
       '/settings',
     ]);

@@ -2,8 +2,10 @@ import { sql } from 'drizzle-orm';
 import {
   bigint,
   boolean,
+  char,
   check,
   customType,
+  foreignKey,
   index,
   inet,
   integer,
@@ -296,7 +298,9 @@ export const entityEvent = app.table(
     verticalId: uuid('vertical_id').references(() => vertical.id, {
       onDelete: 'restrict',
     }),
-    vacancyId: uuid('vacancy_id'),
+    vacancyId: uuid('vacancy_id').references(() => vacancy.id, {
+      onDelete: 'restrict',
+    }),
     candidateId: uuid('candidate_id'),
     applicationId: uuid('application_id'),
     subjectType: text('subject_type').notNull(),
@@ -629,6 +633,178 @@ export const userSession = app.table(
     check('user_session_time_chk', sql`${t.lastSeenAt} >= ${t.startedAt}`),
   ],
 );
+
+export const position = app
+  .table(
+    'position',
+    {
+      id: uuid('id').primaryKey().defaultRandom(),
+      verticalId: uuid('vertical_id')
+        .notNull()
+        .references(() => vertical.id, { onDelete: 'restrict' }),
+      name: text('name').notNull(),
+      isActive: boolean('is_active').notNull().default(true),
+      createdBy: uuid('created_by')
+        .notNull()
+        .references(() => appUser.id, { onDelete: 'restrict' }),
+      ...timestamps(),
+    },
+    (t) => [
+      unique('position_id_vertical_uq').on(t.id, t.verticalId),
+      uniqueIndex('position_name_uq').on(t.verticalId, sql`lower(${t.name})`),
+      check('position_name_chk', sql`length(trim(${t.name})) > 0`),
+    ],
+  )
+  .enableRLS();
+
+export const vacancy = app
+  .table(
+    'vacancy',
+    {
+      id: uuid('id').primaryKey().defaultRandom(),
+      publicNo: bigint('public_no', { mode: 'bigint' })
+        .notNull()
+        .generatedAlwaysAsIdentity(),
+      verticalId: uuid('vertical_id')
+        .notNull()
+        .references(() => vertical.id, { onDelete: 'restrict' }),
+      positionId: uuid('position_id'),
+      title: text('title').notNull(),
+      teamLeadId: uuid('team_lead_id').references(() => appUser.id, {
+        onDelete: 'restrict',
+      }),
+      recruiterInitiated: boolean('recruiter_initiated')
+        .notNull()
+        .default(false),
+      status: text('status', {
+        enum: ['DRAFT', 'OPEN', 'ON_HOLD', 'FILLED', 'CANCELLED'],
+      })
+        .notNull()
+        .default('OPEN'),
+      headcount: smallint('headcount').notNull().default(1),
+      seniority: text('seniority'),
+      workFormat: text('work_format', { enum: ['REMOTE', 'OFFICE', 'HYBRID'] }),
+      employmentType: text('employment_type'),
+      location: text('location'),
+      salaryMinMinor: bigint('salary_min_minor', { mode: 'bigint' }),
+      salaryMaxMinor: bigint('salary_max_minor', { mode: 'bigint' }),
+      salaryCurrency: char('salary_currency', { length: 3 }),
+      priorityFlag: text('priority_flag', { enum: ['NORMAL', 'URGENT'] })
+        .notNull()
+        .default('NORMAL'),
+      probationDays: smallint('probation_days').notNull().default(90),
+      source: text('source', { enum: ['APP', 'TELEGRAM_BOT'] })
+        .notNull()
+        .default('APP'),
+      openedAt: instant('opened_at'),
+      closedAt: instant('closed_at'),
+      createdBy: uuid('created_by')
+        .notNull()
+        .references(() => appUser.id, { onDelete: 'restrict' }),
+      deletedAt: instant('deleted_at'),
+      deletedBy: uuid('deleted_by').references(() => appUser.id, {
+        onDelete: 'restrict',
+      }),
+      deleteReason: text('delete_reason'),
+      version: version(),
+      ...timestamps(),
+    },
+    (t) => [
+      unique('vacancy_public_no_uq').on(t.publicNo),
+      unique('vacancy_id_vertical_uq').on(t.id, t.verticalId),
+      foreignKey({
+        columns: [t.positionId, t.verticalId],
+        foreignColumns: [position.id, position.verticalId],
+        name: 'vacancy_position_vertical_fk',
+      }).onDelete('restrict'),
+      check('vacancy_public_no_chk', sql`${t.publicNo} > 0`),
+      check('vacancy_title_chk', sql`length(trim(${t.title})) > 0`),
+      check(
+        'vacancy_status_chk',
+        sql`${t.status} IN ('DRAFT','OPEN','ON_HOLD','FILLED','CANCELLED')`,
+      ),
+      check(
+        'vacancy_position_chk',
+        sql`${t.status} = 'DRAFT' OR ${t.positionId} IS NOT NULL`,
+      ),
+      check(
+        'vacancy_team_lead_chk',
+        sql`${t.recruiterInitiated} OR ${t.teamLeadId} IS NOT NULL`,
+      ),
+      check('vacancy_headcount_chk', sql`${t.headcount} >= 1`),
+      check(
+        'vacancy_work_format_chk',
+        sql`${t.workFormat} IS NULL OR ${t.workFormat} IN ('REMOTE','OFFICE','HYBRID')`,
+      ),
+      check(
+        'vacancy_priority_chk',
+        sql`${t.priorityFlag} IN ('NORMAL','URGENT')`,
+      ),
+      check(
+        'vacancy_probation_days_chk',
+        sql`${t.probationDays} BETWEEN 30 AND 90`,
+      ),
+      check('vacancy_source_chk', sql`${t.source} IN ('APP','TELEGRAM_BOT')`),
+      check(
+        'vacancy_salary_chk',
+        sql`(${t.salaryMinMinor} IS NULL OR ${t.salaryMinMinor} >= 0) AND (${t.salaryMaxMinor} IS NULL OR ${t.salaryMaxMinor} >= 0) AND (${t.salaryMinMinor} IS NULL OR ${t.salaryMaxMinor} IS NULL OR ${t.salaryMinMinor} <= ${t.salaryMaxMinor}) AND ((${t.salaryMinMinor} IS NULL AND ${t.salaryMaxMinor} IS NULL) = (${t.salaryCurrency} IS NULL)) AND (${t.salaryCurrency} IS NULL OR ${t.salaryCurrency} ~ '^[A-Z]{3}$')`,
+      ),
+      check(
+        'vacancy_closed_chk',
+        sql`(${t.closedAt} IS NOT NULL) = (${t.status} IN ('FILLED','CANCELLED'))`,
+      ),
+      check(
+        'vacancy_opened_chk',
+        sql`${t.status} = 'DRAFT' OR ${t.openedAt} IS NOT NULL`,
+      ),
+      check(
+        'vacancy_soft_delete_chk',
+        sql`(${t.deletedAt} IS NULL) = (${t.deletedBy} IS NULL) AND (${t.deletedAt} IS NULL OR length(trim(coalesce(${t.deleteReason}, ''))) > 0)`,
+      ),
+      check('vacancy_version_chk', sql`${t.version} > 0`),
+      index('vacancy_vertical_list_idx')
+        .on(t.verticalId, t.publicNo.desc())
+        .where(sql`${t.deletedAt} IS NULL`),
+      index('vacancy_status_list_idx')
+        .on(t.status, t.publicNo.desc())
+        .where(sql`${t.deletedAt} IS NULL`),
+      index('vacancy_priority_list_idx')
+        .on(t.priorityFlag, t.publicNo.desc())
+        .where(sql`${t.deletedAt} IS NULL`),
+      index('vacancy_team_lead_list_idx')
+        .on(t.teamLeadId, t.publicNo.desc())
+        .where(sql`${t.deletedAt} IS NULL`),
+      index('vacancy_position_idx')
+        .on(t.positionId, t.verticalId)
+        .where(sql`${t.deletedAt} IS NULL`),
+      index('vacancy_title_trgm_idx')
+        .using('gin', sql`${t.title} gin_trgm_ops`)
+        .where(sql`${t.deletedAt} IS NULL`),
+    ],
+  )
+  .enableRLS();
+
+export const vacancyRecruiter = app
+  .table(
+    'vacancy_recruiter',
+    {
+      vacancyId: uuid('vacancy_id')
+        .notNull()
+        .references(() => vacancy.id, { onDelete: 'restrict' }),
+      userId: uuid('user_id')
+        .notNull()
+        .references(() => appUser.id, { onDelete: 'restrict' }),
+      assignedAt: instant('assigned_at').notNull().defaultNow(),
+      assignedBy: uuid('assigned_by')
+        .notNull()
+        .references(() => appUser.id, { onDelete: 'restrict' }),
+    },
+    (t) => [
+      primaryKey({ columns: [t.vacancyId, t.userId] }),
+      index('vacancy_recruiter_user_idx').on(t.userId, t.vacancyId),
+    ],
+  )
+  .enableRLS();
 
 export const authSessionStatus = app
   .view('auth_session_status', {

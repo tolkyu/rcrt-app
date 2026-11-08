@@ -17,6 +17,7 @@ test('keyboard opening moves focus into navigation, Escape restores its trigger,
   if (isMobile) {
     const nav = page.getByRole('navigation', { name: t.mobileNav });
     await expect(nav.getByRole('link')).toHaveText([
+      messages.nav.vacancies,
       messages.nav.profile,
       messages.nav.settings,
     ]);
@@ -74,6 +75,7 @@ test('keyboard opening moves focus into navigation, Escape restores its trigger,
   });
   await expect(dialog.locator(':focus')).toHaveCount(1);
   await expect(dialog.getByRole('link')).toHaveText([
+    messages.nav.vacancies,
     messages.nav.profile,
     messages.nav.settings,
   ]);

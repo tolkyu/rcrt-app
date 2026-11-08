@@ -62,7 +62,7 @@ jobs:
       - name: Migrate and seed local application and Auth
         env:
           APP_ENV: local
-        run: pnpm db:migrate && pnpm db:provision:local && pnpm db:seed && pnpm db:seed:auth
+        run: pnpm db:migrate && pnpm db:provision:local && pnpm db:seed && pnpm db:seed:auth && pnpm db:seed:vacancies
       - run: pnpm test
       - run: pnpm test:storage
         env:

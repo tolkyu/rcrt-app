@@ -1,7 +1,12 @@
-import { Settings, UserRound, type LucideIcon } from 'lucide-react';
+import {
+  BriefcaseBusiness,
+  Settings,
+  UserRound,
+  type LucideIcon,
+} from 'lucide-react';
 import type { PermissionCode } from '@/server/authz/permissions';
 
-export type NavItemId = 'profile' | 'settings';
+export type NavItemId = 'vacancies' | 'profile' | 'settings';
 
 export interface NavItem {
   readonly id: NavItemId;
@@ -51,9 +56,17 @@ export function visibleSettingsSections(permissions: ReadonlySet<string>) {
 
 /**
  * The single navigation config (UI-04, screens.md §1). Only sections that are built are listed (D28);
- * later phases add Головна, Вакансії, Кандидати, Календар (`bar`) and Статистика, Архів (`more`).
+ * later phases add Головна, Кандидати, Календар (`bar`) and Статистика, Архів (`more`).
  */
 export const NAV_ITEMS: readonly NavItem[] = [
+  {
+    id: 'vacancies',
+    href: '/vacancies',
+    icon: BriefcaseBusiness,
+    zone: 'main',
+    mobile: 'bar',
+    anyOf: ['vacancy.read'],
+  },
   {
     id: 'profile',
     href: '/profile',

@@ -25,6 +25,7 @@ import {
   revokePendingInvites,
 } from '../repositories/auth';
 import { setUserActive } from '../repositories/user-activation';
+import { userHasOpenVacancyWork } from '../repositories/vacancy-work';
 import {
   deleteUserRoles,
   hasOtherActiveAdmin,
@@ -73,6 +74,8 @@ export async function deactivateUser(
       if (!(await hasOtherActiveAdmin(tx, userId)))
         throw new ConflictError('LAST_ADMIN');
     }
+    if (await userHasOpenVacancyWork(tx, userId))
+      throw new ConflictError('USER_HAS_OPEN_WORK');
     const banned = await setBanned(deps, user.authUserId, true);
     const now = ctx.clock.now();
     const write = { ...ctx, db: tx };
@@ -137,6 +140,9 @@ export async function reactivateUser(
       throw new ValidationError([
         { path: 'body.roles', code: 'roles_not_previous' },
       ]);
+    // Reactivation may restore fewer roles than the user held; dropping one must not strand open vacancy work (same rule as role removal).
+    if (removed.length > 0 && (await userHasOpenVacancyWork(tx, userId, roles)))
+      throw new ConflictError('USER_HAS_OPEN_WORK');
     const write = { ...ctx, db: tx };
     const unbanned = await setBanned(deps, user.authUserId, false);
     if (!unbanned) {

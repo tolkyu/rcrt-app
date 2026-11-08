@@ -119,7 +119,7 @@ const groups = [
     ],
   },
   {
-    screen: 'Профіль — перший екран після входу',
+    screen: 'Профіль',
     role: 'усі ролі',
     roles: [
       'Керівник рекрутингу',
@@ -135,7 +135,7 @@ const groups = [
         file: '15-team-lead-profile',
         label: 'тімлід',
         heading:
-          'Профіль — Тімлід (Василь Мороз): одна вертикаль, у меню лише «Профіль». Так само бачать Керівник рекрутингу й Рекрутер',
+          'Профіль — Тімлід (Василь Мороз): одна вертикаль, у меню «Вакансії» і «Профіль». Так само бачать Керівник рекрутингу й Рекрутер',
       },
       {
         file: '15-head-hr-profile',
@@ -429,8 +429,175 @@ const groups = [
   },
 ];
 
+const VAC = 'phase-2';
+/** Phase-2 «Вакансії» (V1): the shots are taken by tests/e2e/vacancies-screens.spec.ts. */
+const groups2 = [
+  {
+    screen: 'Вакансії — список',
+    role: 'Адміністратор, Керівник рекрутингу, Рекрутер, Тімлід, Керівник HR',
+    roles: [
+      'Адміністратор',
+      'Керівник рекрутингу',
+      'Рекрутер',
+      'Тімлід',
+      'Керівник HR',
+    ],
+    states: [
+      {
+        file: '30-admin-vacancies-list',
+        label: 'адміністратор',
+        dir: VAC,
+        heading:
+          'Вакансії — Адміністратор бачить усі 12 вакансій обох вертикалей; праворуч огляд вибраної вакансії (на телефоні — картки)',
+      },
+      {
+        file: '30-head-recruiter-vacancies-list',
+        label: 'керівник рекрутингу',
+        dir: VAC,
+        heading:
+          'Вакансії — Керівник рекрутингу бачить лише вакансії Гемблінгу (9 з 12)',
+      },
+      {
+        file: '30-recruiter-vacancies-list',
+        label: 'рекрутер',
+        dir: VAC,
+        heading:
+          'Вакансії — Рекрутер (Марія Шевченко): призначені вакансії та вільні відкриті у своїй вертикалі',
+      },
+      {
+        file: '30-team-lead-vacancies-list',
+        label: 'тімлід',
+        dir: VAC,
+        heading:
+          'Вакансії — Тімлід (Василь Мороз): лише власні вакансії, зокрема з дуже довгою назвою',
+      },
+      {
+        file: '30-head-hr-vacancies-list',
+        label: 'керівник HR',
+        dir: VAC,
+        heading:
+          'Вакансії — Керівник HR бачить усі вакансії двох вертикалей. Так само бачить HR-менеджер',
+      },
+    ],
+  },
+  {
+    screen: 'Вакансії — картка',
+    role: 'Адміністратор, Тімлід, Рекрутер, Керівник рекрутингу',
+    roles: ['Адміністратор', 'Тімлід', 'Рекрутер', 'Керівник рекрутингу'],
+    states: [
+      {
+        file: '31-admin-vacancy-detail',
+        label: 'термінова',
+        dir: VAC,
+        heading: 'Картка вакансії — термінова: команда, умови, дати',
+      },
+      {
+        file: '31-team-lead-vacancy-detail-long-title',
+        label: 'довга назва',
+        dir: VAC,
+        heading:
+          'Картка вакансії — дуже довга назва переноситься без горизонтальної прокрутки',
+      },
+      {
+        file: '31-recruiter-vacancy-detail-no-team-lead',
+        label: 'без тімліда',
+        dir: VAC,
+        heading:
+          'Картка вакансії — ініціатива рекрутера, тімліда ще не призначено',
+      },
+      {
+        file: '32-head-recruiter-vacancy-not-found',
+        label: 'недоступна',
+        dir: VAC,
+        heading:
+          'Картка вакансії — вакансія іншої вертикалі або видалена: «Сторінку не знайдено» (справжній HTTP 404)',
+      },
+    ],
+  },
+  {
+    screen: 'Вакансії — пошук і фільтри',
+    role: 'Керівник рекрутингу, Адміністратор',
+    roles: ['Керівник рекрутингу', 'Адміністратор'],
+    states: [
+      {
+        file: '32-head-recruiter-vacancies-filtered',
+        label: 'пошук',
+        dir: VAC,
+        heading:
+          'Вакансії — пошук «tiktok» знайшов три вакансії; «Скинути фільтри» доступне',
+      },
+      {
+        file: '32-admin-vacancies-filtered-empty',
+        label: 'нічого не знайдено',
+        dir: VAC,
+        heading:
+          'Вакансії — нічого не знайдено за фільтрами і працююче «Скинути фільтри»',
+      },
+    ],
+  },
+  {
+    screen: 'Вакансії — стани',
+    role: 'Адміністратор',
+    roles: ['Адміністратор'],
+    states: [
+      {
+        file: '32-admin-vacancies-refreshing',
+        label: 'оновлення',
+        dir: VAC,
+        heading:
+          'Вакансії — оновлення списку: попередній список приглушено, поруч повідомлення «Оновлюємо список…»',
+      },
+      {
+        file: '32-admin-vacancies-error',
+        label: 'помилка',
+        dir: VAC,
+        heading: 'Вакансії — помилка завантаження з можливістю повторити',
+      },
+      {
+        file: '32-admin-vacancies-empty',
+        label: 'порожньо',
+        dir: VAC,
+        heading: 'Вакансії — вакансій поки немає (без кнопки створення)',
+      },
+      {
+        file: '32-admin-vacancies-preview-selected',
+        label: 'вибрана вакансія',
+        dir: VAC,
+        variants: ['desktop-light', 'desktop-dark'],
+        heading:
+          'Вакансії — огляд іде за вибраним рядком (приклад: вакансія з довгою назвою)',
+      },
+      {
+        file: '32-admin-vacancies-preview-error',
+        label: 'помилка огляду',
+        dir: VAC,
+        variants: ['desktop-light', 'desktop-dark'],
+        heading: 'Вакансії — помилка лише в огляді, список працює',
+      },
+    ],
+  },
+  {
+    screen: 'Вакансії без доступу',
+    role: 'Фінансист',
+    roles: ['Фінансист'],
+    states: [
+      {
+        file: '30-finance-vacancies-denied',
+        label: 'фінансист',
+        dir: VAC,
+        heading:
+          'Вакансії — «Сторінку не знайдено» в застосунку для Фінансиста (справжній HTTP 404)',
+      },
+    ],
+  },
+];
+
 mkdirSync('screenshots/latest', { recursive: true });
-const listed = { 'phase-1': new Set(), foundation: new Set() };
+const listed = {
+  'phase-1': new Set(),
+  'phase-2': new Set(),
+  foundation: new Set(),
+};
 const anchor = (file) => `s-${file}`;
 /** Phase-1 shots are copied to latest/; shots of another folder are linked with `../<dir>/` when `linkOut`. */
 const figures = (
@@ -442,34 +609,46 @@ const figures = (
     const source = `screenshots/${dir}/${name}`;
     if (!existsSync(source)) throw new Error(`Missing screenshot: ${source}`);
     listed[dir].add(name);
-    if (dir === 'phase-1') copyFileSync(source, `screenshots/latest/${name}`);
-    const href = linkOut && dir !== 'phase-1' ? `../${dir}/${name}` : name;
+    if (dir !== 'foundation')
+      copyFileSync(source, `screenshots/latest/${name}`);
+    const href = linkOut && dir === 'foundation' ? `../${dir}/${name}` : name;
     const text = caption(label, variant);
     return `<figure><a href="${href}"><img src="${href}" alt="${heading} — ${text.toLocaleLowerCase('uk')}" loading="lazy"></a><figcaption>${text}</figcaption></figure>`;
   });
 
-const roles = [...new Set(groups.flatMap((group) => group.roles))];
-const contents = groups
-  .map(
+const tableOfContents = (list) =>
+  list
+    .map(
+      (group) =>
+        `<li><a href="#${anchor(group.states[0].file)}">${group.screen}</a> (${group.role}): ${group.states.map((state) => state.heading).join('; ')}</li>`,
+    )
+    .join('\n');
+const sectionsOf = (list) =>
+  list.map(
     (group) =>
-      `<li><a href="#${anchor(group.states[0].file)}">${group.screen}</a> (${group.role}): ${group.states.map((state) => state.heading).join('; ')}</li>`,
-  )
-  .join('\n');
-const intro = `<p>Ролі: ${roles.join(', ')}; також сторінки без входу. Теми: світла й темна. Екрани: компʼютер 1440×900 і телефон 390×844; навігація — планшет 900×900 і телефон.</p>
-<p>У фазі 1 усі ролі, крім Адміністратора, після входу бачать лише «Профіль». Ролі з однаковим виглядом показано одним знімком, підпис називає, хто ще бачить так само.</p>
+      `<section><p class="screen">${group.screen} · ${group.role}</p>\n${group.states
+        .map(
+          (state) =>
+            `<h2 id="${anchor(state.file)}">${state.heading}</h2><div class="grid">${figures(state, true).join('\n')}</div>`,
+        )
+        .join('\n')}</section>`,
+  );
+const rolesOf = (list) => [...new Set(list.flatMap((group) => group.roles))];
+
+const intro = `<p>Ролі: ${rolesOf(groups).join(', ')}; також сторінки без входу. Теми: світла й темна. Екрани: компʼютер 1440×900 і телефон 390×844; навігація — планшет 900×900 і телефон.</p>
+<p>Ролі з доступом до вакансій після входу бачать «Вакансії» і «Профіль» (сторінку вакансій показано в <a href="../phase-2/index.html">галереї фази 2</a>); Фінансист — лише «Профіль». Ролі з однаковим виглядом показано одним знімком, підпис називає, хто ще бачить так само.</p>
 <p>Дані — демо-дані: ті самі люди, що й у демо-версії. Щоб знімки не змінювалися, час входів, сесії, дати в історії картки й дати створення вертикалей зафіксовано; журнал дій показує підготовлені записи з цими людьми. QR-код і ключ 2FA — зразки, справжній пристрій не створюється. Вертикаль «Дейтинг», порожній список вертикалей і дійсне запрошення — лише приклади станів. Сторінку 404 узято з <a href="../foundation/index.html">галереї фундаменту</a>.</p>
 <nav aria-label="Розділи"><ul>
-${contents}
+${tableOfContents(groups)}
 </ul></nav>`;
-const sections = groups.map(
-  (group) =>
-    `<section><p class="screen">${group.screen} · ${group.role}</p>\n${group.states
-      .map(
-        (state) =>
-          `<h2 id="${anchor(state.file)}">${state.heading}</h2><div class="grid">${figures(state, true).join('\n')}</div>`,
-      )
-      .join('\n')}</section>`,
-);
+const intro2 = `<p>Ролі: ${rolesOf(groups2).join(', ')}. Теми: світла й темна. Екрани: компʼютер 1440×900 і телефон 390×844 (картки замість таблиці, без бічного огляду).</p>
+<p>Це перший етап фази 2: лише перегляд вакансій — список, пошук за назвою чи номером (V-0001), фільтри за вертикаллю й статусом, огляд і картка. Створення, редагування, кандидати й бонуси з’являться разом із реальними діями. Ролі з однаковим виглядом показано одним знімком.</p>
+<p>Дані — демо-дані з 12 доступних вакансій і однієї видаленої (її не бачить ніхто). Стани завантаження, помилки й порожнього списку відтворено підміною відповіді сервера. Ранніші екрани — у <a href="../phase-1/index.html">галереї фази 1</a>.</p>
+<nav aria-label="Розділи"><ul>
+${tableOfContents(groups2)}
+</ul></nav>`;
+const sections = sectionsOf(groups);
+const sections2 = sectionsOf(groups2);
 /** SHOT-GAL-01: every PNG on disk is in the gallery, and every gallery entry is on disk. */
 for (const [dir, names] of Object.entries(listed)) {
   const unlisted = readdirSync(`screenshots/${dir}`).filter(
@@ -480,9 +659,12 @@ for (const [dir, names] of Object.entries(listed)) {
       `Screenshots missing from the gallery: ${unlisted.map((name) => `screenshots/${dir}/${name}`).join(', ')}`,
     );
 }
-const gallery = html('Hiring — фаза 1', `${intro}\n${sections.join('\n')}`);
+const gallery = html('Hiring — фаза 1', [intro, ...sections].join('\n'));
+const gallery2 = html('Hiring — фаза 2', [intro2, ...sections2].join('\n'));
 writeFileSync('screenshots/phase-1/index.html', gallery);
-writeFileSync('screenshots/latest/index.html', gallery);
+mkdirSync('screenshots/phase-2', { recursive: true });
+writeFileSync('screenshots/phase-2/index.html', gallery2);
+writeFileSync('screenshots/latest/index.html', gallery2);
 
 const notFound = groups[0].states.find((state) => state.dir === 'foundation');
 writeFileSync(

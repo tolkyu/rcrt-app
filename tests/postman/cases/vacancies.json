@@ -1,0 +1,171 @@
+[
+  {
+    "operation": "listVacancies",
+    "name": "no token",
+    "as": null,
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "listVacancies",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listVacancies",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "listVacancies",
+    "name": "Head Recruiter sees the Гемблінг vacancies newest first",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "limit": "25"
+    },
+    "status": 200,
+    "script": "vacancies-newest-page"
+  },
+  {
+    "operation": "listVacancies",
+    "name": "status and title search intersect",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "status": "OPEN",
+      "q": "медіабаєр",
+      "limit": "100"
+    },
+    "status": 200,
+    "script": "vacancies-open-search"
+  },
+  {
+    "operation": "listVacancies",
+    "name": "Recruiter in Крипто sees only its own vertical",
+    "as": "recruiter_crypto",
+    "status": 200,
+    "script": "vacancies-recruiter-crypto"
+  },
+  {
+    "operation": "listVacancies",
+    "name": "a foreign vertical filter reveals nothing",
+    "as": "recruiter_crypto",
+    "query": {
+      "vertical": "{{vacancy_gambling_vertical_id}}"
+    },
+    "status": 200,
+    "script": "vacancies-empty-page"
+  },
+  {
+    "operation": "listVacancies",
+    "name": "unknown status",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "status": "ARCHIVED"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.status",
+        "code": "invalid_value"
+      }
+    ]
+  },
+  {
+    "operation": "listVacancies",
+    "name": "direction=newer without cursor",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "direction": "newer"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.direction",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "listVacancies",
+    "name": "a cursor beyond every visible vacancy is only a position",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "cursor": "999999999",
+      "direction": "newer"
+    },
+    "status": 200,
+    "script": "vacancies-empty-page"
+  },
+  {
+    "operation": "listVacancies",
+    "name": "a NUL character in the search is a validation error",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "q": "ab\u0000cd"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.q",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "getVacancy",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Head Recruiter reads a visible vacancy",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "status": 200,
+    "script": "vacancy-detail"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Recruiter of another vertical gets 404",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Finance cannot probe a vacancy id",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Finance cannot probe id validation",
+    "as": "finance",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  }
+]

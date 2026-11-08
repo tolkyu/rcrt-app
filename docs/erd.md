@@ -129,9 +129,11 @@ erDiagram
     app_user ||--o{ comment_mention : "mentioned"
     vacancy {
         uuid id PK
+        bigint public_no UK "identity, V-0001"
         uuid vertical_id FK
         uuid position_id FK
         uuid team_lead_id FK
+        boolean recruiter_initiated
         text status
         smallint headcount
         smallint hires_count
@@ -580,41 +582,45 @@ NN = NOT NULL. Defaults left blank = none.
 | is_active   | boolean | NN   | true              | deactivate instead of delete (vacancies reference it) |
 | [ts], [by]  |         |      |                   |                                                       |
 
-- UQ `(vertical_id, lower(name))`; UQ `(id, vertical_id)` (target of composite FKs, §3.6).
+- UQ `(vertical_id, lower(name))`; UQ `(id, vertical_id)` (target of composite FKs, §3.6); CHECK name not blank. Implemented in migration `0011` with `created_by` + timestamps only; `updated_by`/version arrive with the catalog write migration.
 
 #### `vacancy`
 
-| Column                              | Type        | Null | Default           | Notes                                                                                                     |
-| ----------------------------------- | ----------- | ---- | ----------------- | --------------------------------------------------------------------------------------------------------- |
-| id                                  | uuid        | NN   | gen_random_uuid() |                                                                                                           |
-| vertical_id                         | uuid        | NN   |                   | FK                                                                                                        |
-| position_id                         | uuid        | null |                   | composite FK `(position_id, vertical_id)` → `position(id, vertical_id)`; T01 guard "vacancy has position" |
-| title                               | text        | NN   |                   | trigram-searchable                                                                                        |
-| team_lead_id                        | uuid        | null |                   | FK `app_user`; null = recruiter-initiated (VAC-03)                                                        |
-| status                              | text        | NN   | 'OPEN'            | `DRAFT`, `OPEN`, `ON_HOLD`, `FILLED`, `CANCELLED`                                                         |
-| headcount                           | smallint    | NN   | 1                 | CHECK ≥ 1                                                                                                 |
-| hires_count                         | smallint    | NN   | 0                 | denorm counter (ADR-008), CHECK ≥ 0                                                                       |
-| seniority                           | text        | null |                   | ⚠ OPEN value list                                                                                         |
-| work_format                         | text        | null |                   | `REMOTE`, `OFFICE`, `HYBRID`                                                                              |
-| employment_type                     | text        | null |                   | ⚠ OPEN value list                                                                                         |
-| location                            | text        | null |                   |                                                                                                           |
-| salary_min_minor / salary_max_minor | bigint      | null |                   | CHECK min ≤ max, ≥ 0                                                                                      |
-| salary_currency                     | char(3)     | null |                   | NN iff a salary bound is set                                                                              |
-| description_doc / requirements_doc  | jsonb       | null |                   | rich text (DG-13)                                                                                         |
-| priority_flag                       | text        | NN   | 'NORMAL'          | `NORMAL`, `URGENT`                                                                                        |
-| priority_override                   | smallint    | null |                   | ROUTE-01 Admin override, CHECK ≥ 0                                                                        |
-| probation_days                      | smallint    | NN   | 90                | CHECK 1..90 (PROB-02)                                                                                     |
-| bonus_scheme_id                     | uuid        | null |                   | FK, Admin override (BONUS-01)                                                                             |
-| bonus_amount_minor                  | bigint      | null |                   | BONUS-16 recruiter reward, CHECK ≥ 0 (⚠ OPEN: is 0 allowed)                                               |
-| bonus_currency                      | char(3)     | null |                   | pair with the amount                                                                                      |
-| bonus_amount_changed_at             | timestamptz | null |                   | last change of the amount; history is in `entity_event` (§3.3)                                            |
-| source                              | text        | NN   | 'APP'             | `APP`, `TELEGRAM_BOT` (VAC-06)                                                                            |
-| cloned_from_vacancy_id              | uuid        | null |                   | FK self (VAC-05)                                                                                          |
-| opened_at                           | timestamptz | null |                   | first time `OPEN` (days open, time-to-fill)                                                               |
-| closed_at                           | timestamptz | null |                   | Closed tab ordering (ARCH-02)                                                                             |
-| [ts], [by], [sd]                    |             |      |                   | `created_by` NN                                                                                           |
+| Column                              | Type        | Null | Default           | Notes                                                                                                        |
+| ----------------------------------- | ----------- | ---- | ----------------- | ------------------------------------------------------------------------------------------------------------ |
+| id                                  | uuid        | NN   | gen_random_uuid() |                                                                                                              |
+| public_no                           | bigint      | NN   | identity          | `GENERATED ALWAYS AS IDENTITY`, UQ, CHECK > 0, immutable (trigger); shown as `V-0001` (VAC-07); gaps allowed |
+| vertical_id                         | uuid        | NN   |                   | FK                                                                                                           |
+| position_id                         | uuid        | null |                   | composite FK `(position_id, vertical_id)` → `position(id, vertical_id)`; T01 guard "vacancy has position"    |
+| title                               | text        | NN   |                   | trigram-searchable                                                                                           |
+| team_lead_id                        | uuid        | null |                   | FK `app_user`; null = recruiter-initiated (VAC-03)                                                           |
+| recruiter_initiated                 | boolean     | NN   | false             | CHECK `recruiter_initiated OR team_lead_id IS NOT NULL`; stays true after a Team Lead is assigned (D77)      |
+| status                              | text        | NN   | 'OPEN'            | `DRAFT`, `OPEN`, `ON_HOLD`, `FILLED`, `CANCELLED`                                                            |
+| headcount                           | smallint    | NN   | 1                 | CHECK ≥ 1                                                                                                    |
+| hires_count                         | smallint    | NN   | 0                 | denorm counter (ADR-008), CHECK ≥ 0                                                                          |
+| seniority                           | text        | null |                   | ⚠ OPEN value list                                                                                            |
+| work_format                         | text        | null |                   | `REMOTE`, `OFFICE`, `HYBRID`                                                                                 |
+| employment_type                     | text        | null |                   | ⚠ OPEN value list                                                                                            |
+| location                            | text        | null |                   |                                                                                                              |
+| salary_min_minor / salary_max_minor | bigint      | null |                   | CHECK min ≤ max, ≥ 0                                                                                         |
+| salary_currency                     | char(3)     | null |                   | NN iff a salary bound is set                                                                                 |
+| description_doc / requirements_doc  | jsonb       | null |                   | rich text (DG-13)                                                                                            |
+| priority_flag                       | text        | NN   | 'NORMAL'          | `NORMAL`, `URGENT`                                                                                           |
+| priority_override                   | smallint    | null |                   | ROUTE-01 Admin override, CHECK ≥ 0                                                                           |
+| probation_days                      | smallint    | NN   | 90                | CHECK 30..90 (PROB-02)                                                                                       |
+| bonus_scheme_id                     | uuid        | null |                   | FK, Admin override (BONUS-01)                                                                                |
+| bonus_amount_minor                  | bigint      | null |                   | BONUS-16 recruiter reward, CHECK ≥ 0 (⚠ OPEN: is 0 allowed)                                                  |
+| bonus_currency                      | char(3)     | null |                   | pair with the amount                                                                                         |
+| bonus_amount_changed_at             | timestamptz | null |                   | last change of the amount; history is in `entity_event` (§3.3)                                               |
+| source                              | text        | NN   | 'APP'             | `APP`, `TELEGRAM_BOT` (VAC-06)                                                                               |
+| cloned_from_vacancy_id              | uuid        | null |                   | FK self (VAC-05)                                                                                             |
+| opened_at                           | timestamptz | null |                   | first time `OPEN` (days open, time-to-fill)                                                                  |
+| closed_at                           | timestamptz | null |                   | Closed tab ordering (ARCH-02)                                                                                |
+| [ts], [by], [sd]                    |             |      |                   | `created_by` NN                                                                                              |
 
-- UQ `(id, vertical_id)` (composite FK target). CHECK `vacancy_closed_chk`: `(closed_at IS NOT NULL) = (status IN ('FILLED','CANCELLED'))`. CHECK `status = 'DRAFT' OR opened_at IS NOT NULL`.
+- UQ `(id, vertical_id)` (composite FK target). CHECK `vacancy_closed_chk`: `(closed_at IS NOT NULL) = (status IN ('FILLED','CANCELLED'))`. CHECK `status = 'DRAFT' OR opened_at IS NOT NULL`; CHECK `status = 'DRAFT' OR position_id IS NOT NULL` (T01 guard held in the DB too).
+- Implemented in migration `0011` (ADR-012): `hires_count`, `priority_override`, `bonus_*`, `*_doc`, `cloned_from_vacancy_id` are added by the migrations of the features that write them. `entity_event.vacancy_id` references `vacancy(id)`.
+- Live-row list indexes use the public number as the keyset: `(vertical_id, public_no DESC)`, `(status, public_no DESC)`, `(priority_flag, public_no DESC)`, `(team_lead_id, public_no DESC)`, `(position_id, vertical_id)`, GIN `(title gin_trgm_ops)`, all `WHERE deleted_at IS NULL`; the unique `public_no` index serves unfiltered/broad scopes and number search.
 
 #### `vacancy_recruiter`
 
@@ -873,7 +879,7 @@ NN = NOT NULL. Defaults left blank = none.
 | pay_period                                             | text        | NN   |                   | `MONTH`, `YEAR` (⚠ OPEN Q-51: hourly)                                                             |
 | start_date                                             | date        | NN   |                   | proposed start (Kyiv)                                                                             |
 | confirmed_start_date                                   | date        | null |                   | on acceptance                                                                                     |
-| probation_days                                         | smallint    | NN   |                   | CHECK 1..90; ≤ the vacancy value is a service guard (T15)                                         |
+| probation_days                                         | smallint    | NN   |                   | CHECK 30..90; ≤ the vacancy value is a service guard (T15)                                        |
 | additional_terms                                       | text        | null |                   | renders into the PDF; nulled on purge                                                             |
 | template_id                                            | uuid        | NN   |                   | FK `offer_template`                                                                               |
 | letter_file_id                                         | uuid        | null |                   | FK `file_object` (bucket `offer`)                                                                 |
@@ -909,7 +915,7 @@ NN = NOT NULL. Defaults left blank = none.
 | id                    | uuid     | NN   | gen_random_uuid() |                                                        |
 | application_id        | uuid     | NN   |                   | FK, **UQ** (DG-18)                                     |
 | start_date            | date     | NN   |                   | Kyiv; immutable after insert                           |
-| probation_days        | smallint | NN   |                   | CHECK 1..90; immutable after insert                    |
+| probation_days        | smallint | NN   |                   | CHECK 30..90; immutable after insert                   |
 | planned_end_date      | date     | NN   |                   | never later (PROB-05)                                  |
 | actual_end_date       | date     | null |                   | set on pass/fail                                       |
 | status                | text     | NN   | 'ACTIVE'          | `ACTIVE`, `PASSED`, `FAILED`                           |
@@ -1335,19 +1341,19 @@ Exact column list. Every column holding candidate PII is tagged `pii` in the Dri
 
 ### 3.10 Other uniqueness and CHECK guarantees
 
-| Rule                                         | Constraint                                                                                                                                                                                                                                                                                                               |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| ROLE-01 role assignment once                 | `user_role_uq UNIQUE NULLS NOT DISTINCT (user_id, role, vertical_id)`; `NULLS NOT DISTINCT` makes a second global `ADMIN`/`FINANCE` row for the same user a duplicate                                                                                                                                                    |
-| One pending invite per user                  | partial UQ `user_invite(user_id) WHERE status = 'PENDING'`                                                                                                                                                                                                                                                               |
-| Dedupe (CAND-02, DG-19)                      | partial UQ per normalized key, company-wide — ⚠ OWNER Q-46: unique if block, non-unique if warn                                                                                                                                                                                                                          |
-| One open interview per application           | partial UQ `interview(application_id) WHERE status IN ('SCHEDULED','RESCHEDULE_PENDING')`                                                                                                                                                                                                                                |
-| One pending reschedule per interview         | partial UQ `reschedule_request(interview_id)` pending                                                                                                                                                                                                                                                                    |
-| Polygraph attempts                           | UQ `(application_id, attempt_no)`; `polygraph_one_open_attempt_uq`                                                                                                                                                                                                                                                       |
-| Offer versions; one ACCEPTED; one DRAFT/SENT | UQ `(application_id, version)` + two partial UQs                                                                                                                                                                                                                                                                         |
-| One probation per application                | UQ `probation(application_id)`                                                                                                                                                                                                                                                                                           |
-| One live snapshot per application            | partial UQ `bonus_snapshot(application_id) WHERE voided_at IS NULL`                                                                                                                                                                                                                                                      |
-| Cron idempotency                             | UQ `job_run(job_name, run_key)`, `notification.dedupe_key`, `notification_delivery.dedupe_key`                                                                                                                                                                                                                           |
-| Others                                       | money pairs and signs; `probation_days 1..90` on vacancy/offer/probation; Meet link regex (PIPE-04); polygraph PDF + review (POLY-03); invite 72 h (ROLE-05); file size/MIME per bucket; `linkedin_url` https; application closed ↔ stage, `max_stage_reached ≥ stage_rank(stage)`; tranche kind/status consistency; SoD |
+| Rule                                         | Constraint                                                                                                                                                                                                                                                                                                                |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ROLE-01 role assignment once                 | `user_role_uq UNIQUE NULLS NOT DISTINCT (user_id, role, vertical_id)`; `NULLS NOT DISTINCT` makes a second global `ADMIN`/`FINANCE` row for the same user a duplicate                                                                                                                                                     |
+| One pending invite per user                  | partial UQ `user_invite(user_id) WHERE status = 'PENDING'`                                                                                                                                                                                                                                                                |
+| Dedupe (CAND-02, DG-19)                      | partial UQ per normalized key, company-wide — ⚠ OWNER Q-46: unique if block, non-unique if warn                                                                                                                                                                                                                           |
+| One open interview per application           | partial UQ `interview(application_id) WHERE status IN ('SCHEDULED','RESCHEDULE_PENDING')`                                                                                                                                                                                                                                 |
+| One pending reschedule per interview         | partial UQ `reschedule_request(interview_id)` pending                                                                                                                                                                                                                                                                     |
+| Polygraph attempts                           | UQ `(application_id, attempt_no)`; `polygraph_one_open_attempt_uq`                                                                                                                                                                                                                                                        |
+| Offer versions; one ACCEPTED; one DRAFT/SENT | UQ `(application_id, version)` + two partial UQs                                                                                                                                                                                                                                                                          |
+| One probation per application                | UQ `probation(application_id)`                                                                                                                                                                                                                                                                                            |
+| One live snapshot per application            | partial UQ `bonus_snapshot(application_id) WHERE voided_at IS NULL`                                                                                                                                                                                                                                                       |
+| Cron idempotency                             | UQ `job_run(job_name, run_key)`, `notification.dedupe_key`, `notification_delivery.dedupe_key`                                                                                                                                                                                                                            |
+| Others                                       | money pairs and signs; `probation_days 30..90` on vacancy/offer/probation; Meet link regex (PIPE-04); polygraph PDF + review (POLY-03); invite 72 h (ROLE-05); file size/MIME per bucket; `linkedin_url` https; application closed ↔ stage, `max_stage_reached ≥ stage_rank(stage)`; tranche kind/status consistency; SoD |
 
 ---
 

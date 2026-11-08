@@ -142,7 +142,9 @@ export function UserActivationDialog({
             ? t('selfReason')
             : failure.code === 'LAST_ADMIN'
               ? t('lastAdminReason')
-              : tCommon('conflict'),
+              : failure.code === 'USER_HAS_OPEN_WORK'
+                ? t('openWorkReason')
+                : tCommon('conflict'),
         );
         finish();
         return;

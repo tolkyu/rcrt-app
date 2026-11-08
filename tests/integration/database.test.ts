@@ -718,12 +718,15 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       entity_event_pii: appendOnly,
       file_object: noDelete,
       job_run: noDelete,
+      position: ['SELECT'],
       rate_limit_bucket: readWrite,
       saved_filter: readWrite,
       team_lead_priority: readWrite,
       user_invite: noDelete,
       user_role: readWrite,
       user_session: noDelete,
+      vacancy: ['SELECT'],
+      vacancy_recruiter: ['SELECT'],
       vertical: noDelete,
     };
     const purgeTable: Partial<
@@ -773,14 +776,19 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       left join pg_roles r on r.oid = acl.grantee
       where n.nspname = 'app' and c.relkind = 'S'`;
     expect(sequenceAcl.map((row) => row.entry).sort()).toEqual(
-      ['audit_log', 'change_feed', 'entity_event', 'job_run']
-        .flatMap((table) => [
-          `${table}_id_seq|app_migrator|SELECT`,
-          `${table}_id_seq|app_migrator|UPDATE`,
-          `${table}_id_seq|app_migrator|USAGE`,
-          `${table}_id_seq|app_rw|USAGE`,
-        ])
-        .sort(),
+      [
+        ...['audit_log', 'change_feed', 'entity_event', 'job_run'].flatMap(
+          (table) => [
+            `${table}_id_seq|app_migrator|SELECT`,
+            `${table}_id_seq|app_migrator|UPDATE`,
+            `${table}_id_seq|app_migrator|USAGE`,
+            `${table}_id_seq|app_rw|USAGE`,
+          ],
+        ),
+        ...['SELECT', 'UPDATE', 'USAGE'].map(
+          (privilege) => `vacancy_public_no_seq|app_migrator|${privilege}`,
+        ),
+      ].sort(),
     );
 
     const viewAcl = await admin`
@@ -806,6 +814,7 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       'end_auth_sessions|app_rw|EXECUTE',
       'end_auth_sessions|recruiting_test|EXECUTE',
       'guard_append_only|app_migrator|EXECUTE',
+      'guard_vacancy_public_no|app_migrator|EXECUTE',
     ]);
 
     const schemaAcl = await admin`

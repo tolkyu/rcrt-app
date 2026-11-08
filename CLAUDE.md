@@ -138,7 +138,7 @@ Position "Медіабаєр — Facebook" with open vacancies for Vasyl and Tar
 
 ## 9. Commands (keep updated)
 
-`pnpm setup` · `pnpm dev` · `pnpm db:generate` · `pnpm db:migrate` · `pnpm db:seed` · `pnpm db:seed:perf` · `pnpm lint` · `pnpm typecheck` · `pnpm test` · `pnpm test:e2e` · `pnpm test:screens` · `pnpm api:openapi` · `pnpm api:postman` · `pnpm test:api` · `pnpm perf:check`
+`pnpm setup` · `pnpm dev` · `pnpm db:generate` · `pnpm db:migrate` · `pnpm db:seed` · `pnpm db:seed:vacancies` · `pnpm db:seed:perf` · `pnpm lint` · `pnpm typecheck` · `pnpm test` · `pnpm test:e2e` · `pnpm test:screens` · `pnpm api:openapi` · `pnpm api:postman` · `pnpm test:api` · `pnpm perf:check`
 
 ## 10. Communication with the owner
 

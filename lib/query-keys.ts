@@ -4,6 +4,10 @@ export const queryKeys = {
   mySessions: () => ['me', 'sessions'] as const,
   myMfa: () => ['me', 'mfa'] as const,
   myLoginHistory: () => ['me', 'login-history'] as const,
+  verticals: () => ['verticals'] as const,
+  vacancies: (filters: Readonly<Record<string, unknown>>) =>
+    ['vacancies', filters] as const,
+  vacancy: (id: string) => ['vacancy', id.toLowerCase()] as const,
   settingsVerticals: () => ['settings', 'verticals'] as const,
   settingsAudit: (filters: Readonly<Record<string, string | undefined>>) =>
     ['settings', 'audit', filters] as const,

@@ -9,12 +9,15 @@ export const phaseOneTables = [
   'entity_event_pii',
   'file_object',
   'job_run',
+  'position',
   'rate_limit_bucket',
   'saved_filter',
   'team_lead_priority',
   'user_invite',
   'user_role',
   'user_session',
+  'vacancy',
+  'vacancy_recruiter',
   'vertical',
 ] as const;
 

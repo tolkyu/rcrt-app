@@ -3,6 +3,21 @@
 > Read order: `CLAUDE.md` → this file → `docs/PROGRESS.md` → `docs/PRD.md` §14 (owner decisions D1–D70).
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
+## Phase 2 V1 checkpoint — 2026-11-08 (vacancy list + detail complete locally)
+
+- Branch `phase-2`. V1 = real scoped read slice; details and numbers in `docs/PROGRESS.md` (same date). All gates green and re-review APPROVED; committed as one `feat(vacancies)` commit.
+- **DB note:** migration `0011` was edited before ever being committed (role-guarded revoke). Any local DB that already applied the old 0011 (dev, test, Codex's) fails `pnpm db:migrate` with a checksum mismatch → recreate it (`supabase db reset --local` → `db:migrate` → `db:provision:local` → `db:seed` → `db:seed:auth` → `db:seed:vacancies`) or update the stored hash. Mine was updated in place.
+- Run order notes: sign-in limit 30/15 min — full E2E ≈ 13 sign-ins, Newman 4–7; don't run two full suites back to back. `pnpm build` before `test:api`/`test:screens`.
+- Open owner questions Q-160..Q-165 (+ Q-86). Pending decisions do not block V2.
+- **Next: V2** — position catalog + vacancy creation (D75..78: Admin/Head Recruiter manage catalog and assign TLs; recruiter-initiated vacancies may lack a TL; probation 30..90, default 90). Lock order: users before vacancies. Also: perf seed + Lighthouse/runtime/k6 for vacancy routes, move `settings` messages out of the global provider, NUL guard in users/audit search, V1-5.
+
+## Phase 2 checkpoint — 2026-11-06 (vacancies started)
+
+- Owner approved Phase 2 starting with vacancies and the original `UI FROM DESIGNER/` references. Phase 1 closure commit `68e3375` is pushed to `origin/phase-1`.
+- First increment: real scoped list/search/filters and read-only vacancy details, with positions/vacancies/recruiter assignments and deterministic seed data. Plan/design are in progress; no vacancy implementation is marked complete yet.
+- Owner confirmed Q-26, Q-48/Q-49 and Q-50 (D75–D78): scoped editing/catalog/TL assignment rules and probation 30–90 days, default 90, changed only by Admin/Head HR. First read increment remains in progress on `phase-2`; exact opening dates avoid the open Q-86 days-on-hold rule.
+- Adding real vacancies activates vacancy-related ROLE-06/D24/D43 safety checks for deactivation/role removal; the first increment must fail closed before an open vacancy loses its responsible user.
+
 ## Closure checkpoint — 2026-11-06 (local Phase 1 complete)
 
 - Local Phase 1 is complete. Foundation polish, MFA recovery/reset, actual protected HTTP 404, bounded audit keyboard navigation, lazy users virtualization, CI/local Supabase tooling and additive migration 0010 are implemented. Independent code/security/database/visual reviews approve the local implementation; all local combined gates pass.

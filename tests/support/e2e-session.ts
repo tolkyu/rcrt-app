@@ -49,6 +49,8 @@ export const E2E_USERS = {
   'recruiter1.gambling@demo': 'link',
   'recruiter2.gambling@demo': 'link',
   'vasyl.tl@demo': 'link',
+  'taras.tl@demo': 'link',
+  'recruiter.crypto@demo': 'link',
 } as const;
 export type E2EUser = keyof typeof E2E_USERS;
 

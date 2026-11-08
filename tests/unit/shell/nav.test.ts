@@ -151,16 +151,31 @@ describe('visibleNavItems: sections follow permission codes, never role names [U
     expect(only('audit.read')).toEqual(['/']);
   });
 
-  it('defaults to NAV_ITEMS: Profile for everyone, Settings only with a built section permission [D28]', () => {
+  it('defaults to NAV_ITEMS: Profile for everyone, Vacancies with vacancy.read, Settings only with a built section permission [D28]', () => {
     const ids = (ctx: ReturnType<typeof contextFor>) =>
       visibleNavItems(permissionsOf(ctx)).map((entry) => entry.id);
     expect(visibleNavItems(new Set()).map((entry) => entry.id)).toEqual([
       'profile',
     ]);
-    expect(ids(roleContext('ADMIN', 'aal2'))).toEqual(['profile', 'settings']);
+    expect(ids(roleContext('ADMIN', 'aal2'))).toEqual([
+      'vacancies',
+      'profile',
+      'settings',
+    ]);
     expect(ids(roleContext('ADMIN', 'aal1'))).toEqual(['profile']);
-    expect(ids(roleContext('HEAD_RECRUITER', 'aal1'))).toEqual(['profile']);
+    for (const role of [
+      'HEAD_RECRUITER',
+      'RECRUITER',
+      'HEAD_HR',
+      'HR',
+      'TEAM_LEAD',
+    ] as const)
+      expect(ids(roleContext(role, 'aal1')), role).toEqual([
+        'vacancies',
+        'profile',
+      ]);
     expect(ids(roleContext('FINANCE', 'aal2'))).toEqual(['profile']);
+    expect(ids(roleContext('FINANCE', 'aal1'))).toEqual(['profile']);
   });
 });
 
@@ -195,7 +210,9 @@ describe('visibleSettingsSections: only built sections the user may manage [STOR
 
 describe('navItemsByIds: the client shell rebuilds items from server-filtered ids', () => {
   it('returns items for known ids and ignores the rest', () => {
-    expect(navItemsByIds(['profile'])).toEqual([NAV_ITEMS[0]]);
+    expect(navItemsByIds(['profile'])).toEqual([
+      NAV_ITEMS.find((entry) => entry.id === 'profile'),
+    ]);
     expect(navItemsByIds([])).toEqual([]);
     expect(navItemsByIds(['profile'], [vacancies])).toEqual([vacancies]);
   });
@@ -215,7 +232,16 @@ describe('landingPath: best landing rank, else first main section, else first fo
     ['lower rank wins', [rankedSettings, rankedHome], '/'],
     ['nothing visible', [], '/profile'],
     ['Admin with aal2 lands on Settings [UI-04-1]', NAV_ITEMS, '/settings'],
-    ['others land on Profile', [NAV_ITEMS[0]!], '/profile'],
+    [
+      'roles with vacancy access land on Vacancies',
+      NAV_ITEMS.filter((entry) => entry.id !== 'settings'),
+      '/vacancies',
+    ],
+    [
+      'roles without vacancy access land on Profile',
+      NAV_ITEMS.filter((entry) => entry.id === 'profile'),
+      '/profile',
+    ],
   ])('%s', (_case, items, expected) => {
     expect(landingPath(items)).toBe(expected);
   });

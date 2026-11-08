@@ -233,7 +233,7 @@ test('/ lands on the first visible section and the shell exposes skip link and u
   page,
 }) => {
   await page.goto('/');
-  await expect(page).toHaveURL(/\/profile$/);
+  await expect(page).toHaveURL(/\/vacancies$/);
   await page.keyboard.press('Tab');
   const skip = page.getByRole('link', { name: t.shell.skipToContent });
   await expect(skip).toBeFocused();
@@ -306,16 +306,28 @@ async function expectMobileNav(page: Page) {
   await expect(page).toHaveURL(/\/profile$/);
 }
 
-test('navigation follows the viewport: sidebar rail on desktop; no bottom nav on mobile while only Profile exists [UI-04, A-46]', async ({
+test('navigation follows the viewport: sidebar rail on desktop, bottom nav on mobile with the built sections [UI-04, A-46]', async ({
   page,
   isMobile,
 }) => {
   await page.goto('/profile');
-  await expect(
-    page.getByRole('navigation', { name: t.shell.mobileNav, exact: true }),
-  ).toHaveCount(0);
-  if (isMobile) await expectMobileNav(page);
-  else await expectDesktopNav(page);
+  const bottomNav = page.getByRole('navigation', {
+    name: t.shell.mobileNav,
+    exact: true,
+  });
+  if (isMobile) {
+    await expect(bottomNav.getByRole('link')).toHaveText([
+      t.nav.vacancies,
+      t.nav.profile,
+    ]);
+    await expect(
+      bottomNav.getByRole('link', { name: t.nav.profile, exact: true }),
+    ).toHaveAttribute('aria-current', 'page');
+    await expectMobileNav(page);
+  } else {
+    await expect(bottomNav).toBeHidden();
+    await expectDesktopNav(page);
+  }
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,

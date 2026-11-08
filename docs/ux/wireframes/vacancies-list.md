@@ -2,6 +2,8 @@
 
 Reference: `reference/03-vacancies.webp`. Adoption: A-13, A-14, A-15, A-21, A-30, A-31, A-32.
 
+Current first read increment: [`../phase-2-vacancies.md`](../phase-2-vacancies.md). The full target below includes later vacancy/candidate/bonus features; render their controls only with working data and actions.
+
 ## Desktop 1440 — Head Recruiter, light
 
 ```

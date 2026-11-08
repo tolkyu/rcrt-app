@@ -44,6 +44,7 @@ export async function captureScreen(
   page: Page,
   testInfo: TestInfo,
   file: string,
+  phase: 'phase-1' | 'phase-2' = 'phase-1',
 ) {
   await page.mouse.move(0, 0);
   // The ring left by the last click or Escape is not part of the screen (UX-G-11); text fields keep focus, blurring them would validate.
@@ -94,8 +95,8 @@ export async function captureScreen(
     }
     return needed;
   });
-  const path = `screenshots/phase-1/${file}`;
-  mkdirSync('screenshots/phase-1', { recursive: true });
+  const path = `screenshots/${phase}/${file}`;
+  mkdirSync(`screenshots/${phase}`, { recursive: true });
   mkdirSync('screenshots/latest', { recursive: true });
   try {
     await page.setViewportSize({

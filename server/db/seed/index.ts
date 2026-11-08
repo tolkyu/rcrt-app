@@ -24,7 +24,7 @@ type SeedRole = {
 const g = DEMO_VERTICALS.gambling;
 const c = DEMO_VERTICALS.crypto;
 /** Kyiv wall time; Kyiv is UTC+2 for the whole seed history (after 25.10.2026). */
-const kyiv = (local: string) => new Date(`${local}+02:00`);
+export const kyiv = (local: string) => new Date(`${local}+02:00`);
 
 /** Seed history predates 03.11.2026; the unaccepted invite expires before local runs. */
 export const DEMO_HISTORY = {

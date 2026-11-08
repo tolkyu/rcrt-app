@@ -25,6 +25,7 @@ const CLIENT_NAMESPACES = [
   'states',
   'profile',
   'settings',
+  'vacancies',
 ] as const;
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
@@ -41,6 +42,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       queryFn: () => getMe(ctx),
     }),
   ]);
+  if (hasAnyGrant(ctx.auth, 'vertical.read'))
+    queryClient.setQueryData(queryKeys.verticals(), { items: verticals });
   const navIds = visibleNavItems(new Set(ctx.auth.grants.keys())).map(
     (item) => item.id,
   );

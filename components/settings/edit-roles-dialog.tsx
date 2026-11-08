@@ -248,7 +248,9 @@ export function EditRolesDialog({
             ? tMatrix('selfAdminLocked')
             : failure.code === 'LAST_ADMIN'
               ? t('errors.lastAdmin')
-              : tCommon('conflict'),
+              : failure.code === 'USER_HAS_OPEN_WORK'
+                ? t('errors.openWork')
+                : tCommon('conflict'),
         );
         finish();
         return;

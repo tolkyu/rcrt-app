@@ -28,6 +28,7 @@ import {
   lockAdminMembership,
 } from '../repositories/user-roles';
 import { roleSetIsValid } from './auth/invite';
+import { userHasOpenVacancyWork } from '../repositories/vacancy-work';
 import { removeTeamLeadPriorities } from './team-lead-priority';
 
 const pick = ({ role, verticalId }: RoleAssignmentRef) => ({
@@ -82,6 +83,8 @@ export async function updateUserRoles(
       if (!(await hasOtherActiveAdmin(tx, userId)))
         throw new ConflictError('LAST_ADMIN');
     }
+    if (removed.length > 0 && (await userHasOpenVacancyWork(tx, userId, roles)))
+      throw new ConflictError('USER_HAS_OPEN_WORK');
     await deleteUserRoles(tx, userId, removed);
     if (added.length > 0)
       await insertUserRoles(tx, userId, added, ctx.auth.userId, now);

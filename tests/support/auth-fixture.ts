@@ -9,12 +9,14 @@ import { FakeAuthServer } from './auth-fakes';
 import type { startJwksFixture } from '../unit/auth/jwks-fixture';
 
 const rollback = Symbol('rollback auth fixture');
+/** `migration` runs the scenario with the privileged role, for rows the runtime role may not yet write (vacancies). */
 export function createAuthFixture(
   jwks: Awaited<ReturnType<typeof startJwksFixture>>,
+  connection: 'runtime' | 'migration' = 'runtime',
 ) {
   const urls = testDatabaseUrls();
   const admin = connectTestDatabase(urls.migration);
-  const client = connectTestDatabase(urls.runtime);
+  const client = connectTestDatabase(urls[connection]);
   const db = drizzle(client, { schema });
   async function run(
     scenario: (fixture: {

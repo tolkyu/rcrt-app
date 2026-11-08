@@ -918,6 +918,191 @@
           "lastLoginAt"
         ]
       },
+      "VacancyDetail": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "number": { "type": "string", "pattern": "^V-\\d{4,19}$" },
+          "title": { "type": "string" },
+          "vertical": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "name": { "type": "string" }
+            },
+            "required": ["id", "name"]
+          },
+          "position": {
+            "type": ["object", "null"],
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "name": { "type": "string" }
+            },
+            "required": ["id", "name"]
+          },
+          "teamLead": {
+            "type": ["object", "null"],
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "fullName": { "type": "string" },
+              "isActive": { "type": "boolean" }
+            },
+            "required": ["id", "fullName", "isActive"]
+          },
+          "recruiters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "fullName": { "type": "string" },
+                "isActive": { "type": "boolean" }
+              },
+              "required": ["id", "fullName", "isActive"]
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": ["DRAFT", "OPEN", "ON_HOLD", "FILLED", "CANCELLED"]
+          },
+          "priority": { "type": "string", "enum": ["NORMAL", "URGENT"] },
+          "source": { "type": "string", "enum": ["APP", "TELEGRAM_BOT"] },
+          "openedAt": { "type": ["string", "null"], "format": "date-time" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "headcount": { "type": "integer", "exclusiveMinimum": 0 },
+          "seniority": { "type": ["string", "null"] },
+          "workFormat": {
+            "type": ["string", "null"],
+            "enum": ["REMOTE", "OFFICE", "HYBRID", null]
+          },
+          "employmentType": { "type": ["string", "null"] },
+          "location": { "type": ["string", "null"] },
+          "salaryMinMinor": {
+            "type": ["string", "null"],
+            "pattern": "^\\d{1,19}$"
+          },
+          "salaryMaxMinor": {
+            "type": ["string", "null"],
+            "pattern": "^\\d{1,19}$"
+          },
+          "salaryCurrency": {
+            "type": ["string", "null"],
+            "pattern": "^[A-Z]{3}$"
+          },
+          "probationDays": { "type": "integer", "minimum": 30, "maximum": 90 },
+          "recruiterInitiated": { "type": "boolean" },
+          "version": { "type": "integer", "exclusiveMinimum": 0 }
+        },
+        "required": [
+          "id",
+          "number",
+          "title",
+          "vertical",
+          "position",
+          "teamLead",
+          "recruiters",
+          "status",
+          "priority",
+          "source",
+          "openedAt",
+          "createdAt",
+          "updatedAt",
+          "headcount",
+          "seniority",
+          "workFormat",
+          "employmentType",
+          "location",
+          "salaryMinMinor",
+          "salaryMaxMinor",
+          "salaryCurrency",
+          "probationDays",
+          "recruiterInitiated",
+          "version"
+        ]
+      },
+      "VacancyPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/VacancySummary" },
+            "maxItems": 100
+          },
+          "nextCursor": { "type": ["string", "null"], "maxLength": 19 },
+          "prevCursor": { "type": ["string", "null"], "maxLength": 19 }
+        },
+        "required": ["items", "nextCursor", "prevCursor"]
+      },
+      "VacancySummary": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "number": { "type": "string", "pattern": "^V-\\d{4,19}$" },
+          "title": { "type": "string" },
+          "vertical": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "name": { "type": "string" }
+            },
+            "required": ["id", "name"]
+          },
+          "position": {
+            "type": ["object", "null"],
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "name": { "type": "string" }
+            },
+            "required": ["id", "name"]
+          },
+          "teamLead": {
+            "type": ["object", "null"],
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "fullName": { "type": "string" },
+              "isActive": { "type": "boolean" }
+            },
+            "required": ["id", "fullName", "isActive"]
+          },
+          "recruiters": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "fullName": { "type": "string" },
+                "isActive": { "type": "boolean" }
+              },
+              "required": ["id", "fullName", "isActive"]
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": ["DRAFT", "OPEN", "ON_HOLD", "FILLED", "CANCELLED"]
+          },
+          "priority": { "type": "string", "enum": ["NORMAL", "URGENT"] },
+          "source": { "type": "string", "enum": ["APP", "TELEGRAM_BOT"] },
+          "openedAt": { "type": ["string", "null"], "format": "date-time" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "updatedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": [
+          "id",
+          "number",
+          "title",
+          "vertical",
+          "position",
+          "teamLead",
+          "recruiters",
+          "status",
+          "priority",
+          "source",
+          "openedAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
       "RenameVertical": {
         "type": "object",
         "properties": {
@@ -3788,6 +3973,167 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/UserPage" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vacancies/{vacancyId}": {
+      "get": {
+        "operationId": "getVacancy",
+        "summary": "Read a visible vacancy overview",
+        "tags": ["Vacancies"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "format": "uuid" },
+            "required": true,
+            "name": "vacancyId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VacancyDetail" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vacancies": {
+      "get": {
+        "operationId": "listVacancies",
+        "summary": "List visible vacancies in stable public-number order",
+        "tags": ["Vacancies"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "minLength": 2, "maxLength": 120 },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": { "type": "string", "format": "uuid" },
+            "required": false,
+            "name": "vertical",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["DRAFT", "OPEN", "ON_HOLD", "FILLED", "CANCELLED"]
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": { "type": "string", "enum": ["NORMAL", "URGENT"] },
+            "required": false,
+            "name": "priority",
+            "in": "query"
+          },
+          {
+            "schema": { "type": "string", "maxLength": 19 },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          },
+          {
+            "schema": { "type": "string", "enum": ["older", "newer"] },
+            "required": false,
+            "name": "direction",
+            "in": "query"
+          },
+          {
+            "schema": { "type": "number", "default": 25 },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VacancyPage" }
               }
             }
           },
