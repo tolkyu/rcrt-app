@@ -92,7 +92,7 @@
 | HR             | «Призначте поліграф» · «Завантажте висновок поліграфа» · «Підтвердіть перший робочий день» · «Внесіть відповідь на офер»                                                                                                               |
 | Head HR        | «Призначте HR-менеджера на поліграф» · «Створіть офер» · «Надішліть офер» (HR draft ready) · «Внесіть відповідь на офер» · probation endings                                                                                           |
 | Head Recruiter | «Затвердіть бонуси» · «Перепризначте кандидатури» (deactivated recruiter, ROLE-06) · «Повторне перенесення від тімліда» (RESCH-03) · probation endings                                                                                 |
-| Admin          | «Позначте бонуси виплаченими» · «Запропоновано видалення даних» (retention, ARCH-04) · vacancy approvals if enabled ⚠ OPEN-S5                                                                                                          |
+| Admin          | «Позначте бонуси виплаченими» · «Запропоновано видалення даних» (retention, ARCH-04) · (vacancy approvals dropped, D89)                                                                                                                |
 
 - **Kanban by role:** Admin/HRec — all 7 active columns; Recruiter — all columns, own applications, DnD allowed only up to Polygraph; TL — own vacancies, columns «У тімліда → Випробування», no DnD between columns except result drops ⚠ OPEN-S6, primary actions as card buttons; HHR/HR — Поліграф, Офер, Випробування only.
 - **States:** empty tasks «Усе зроблено. Нових задач немає.»; empty board per role (Rec: «Додайте першого кандидата» + button; TL: «Поки що немає кандидатів на ваші вакансії»); skeleton = 3 task rows + 6 vacancy cards + 7 columns×3 cards; section-level errors.
@@ -109,7 +109,7 @@
 ### S-05 Вакансія — форма [VAC-01, VAC-03]
 
 - **Fields:** all VAC-01 fields grouped: Основне (назва, посада, вертикаль, тімлід, кількість місць, рівень, формат, тип зайнятості) · Умови (зарплатна вилка + валюта, випробувальний термін ≤ 90 дн.) · Опис (rich text, lazy) · Вимоги · Пріоритет · Рекрутери · Схема бонусів (Admin only; others see inherited read-only) · Пріоритет тімліда для цієї вакансії (Admin only).
-- **Role diff:** TL — vertical/TL prefilled & locked, title «Запит на вакансію», submit «Надіслати запит» (status OPEN or DRAFT when approval on); Rec/HRec — TL optional → «Вакансія від рекрутера».
+- **Role diff:** TL — vertical/TL prefilled & locked, title «Запит на вакансію», submit «Надіслати запит» (always `OPEN`, D87; fields per D86/D90: position, headcount, urgency, comment); Rec/HRec — TL optional → «Вакансія від рекрутера».
 - **Validation:** probation 1–90; salary min ≤ max; inline errors in Ukrainian.
 
 ### S-06 Картка вакансії [VAC-04, VAC-05, PROB-07, ARCH-03]
@@ -175,18 +175,18 @@
 
 ### S-14 Налаштування (Admin) [ROLE-01..06, ROUTE-01, ROUTE-09, BONUS, §6.4]
 
-| Sub-page            | Content                                                                                                                                                                                                                     | Wireframe                              |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| Вертикалі           | list, create, rename — no deactivate/delete (D34, Q-37); per-vertical toggles shown in their phases: «Погодження вакансій» (D2), «Автоматичний розподіл» (ROUTE-09); no polygraph-review toggle (D36); default bonus scheme | `wireframes/settings-admin.md` §2      |
-| Користувачі та ролі | table users (status, roles@verticals, 2FA, last login); invite (D33); edit roles; resend/revoke invite (D42); deactivate/reactivate (D44, D45; reassignment section Phase 2–3, ROLE-06); «Скинути 2FA» (D22)                | `wireframes/settings-admin.md` §1      |
-| Пріоритети тімлідів | per vertical, reorder, per-vacancy override                                                                                                                                                                                 | `wireframes/settings-tl-priorities.md` |
-| Схеми бонусів       | presets, editor, defaults                                                                                                                                                                                                   | `wireframes/settings-bonus-schemes.md` |
-| Посади              | position catalog per vertical ⚠ OPEN-S15 (owner of catalog)                                                                                                                                                                 | inline                                 |
-| Причини відмов      | configurable list (§6.4), OTHER locked                                                                                                                                                                                      | inline                                 |
-| Місця для поліграфа | rooms/addresses (POLY-02)                                                                                                                                                                                                   | inline                                 |
-| Шаблони оферів      | merge-field template editor + preview (OFFER-02)                                                                                                                                                                            | inline                                 |
-| Загальні            | offer validity (D11), retention policy (ARCH-04), probation default                                                                                                                                                         | inline                                 |
-| Журнал дій          | audit viewer + login history as the «Входи та безпека» view (AUD)                                                                                                                                                           | `wireframes/settings-admin.md` §3      |
+| Sub-page            | Content                                                                                                                                                                                                                                                                                    | Wireframe                              |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------- |
+| Вертикалі           | list, create, rename — no deactivate/delete (D34, Q-37); per-vertical toggle shown in its phase: «Автоматичний розподіл» (ROUTE-09); «Погодження вакансій» (D2) is superseded by D87/D89 — inert, not shown until the cleanup task; no polygraph-review toggle (D36); default bonus scheme | `wireframes/settings-admin.md` §2      |
+| Користувачі та ролі | table users (status, roles@verticals, 2FA, last login); invite (D33); edit roles; resend/revoke invite (D42); deactivate/reactivate (D44, D45; reassignment section Phase 2–3, ROLE-06); «Скинути 2FA» (D22)                                                                               | `wireframes/settings-admin.md` §1      |
+| Пріоритети тімлідів | per vertical, reorder, per-vacancy override                                                                                                                                                                                                                                                | `wireframes/settings-tl-priorities.md` |
+| Схеми бонусів       | presets, editor, defaults                                                                                                                                                                                                                                                                  | `wireframes/settings-bonus-schemes.md` |
+| Посади              | position catalog per vertical ⚠ OPEN-S15 (owner of catalog)                                                                                                                                                                                                                                | inline                                 |
+| Причини відмов      | configurable list (§6.4), OTHER locked                                                                                                                                                                                                                                                     | inline                                 |
+| Місця для поліграфа | rooms/addresses (POLY-02)                                                                                                                                                                                                                                                                  | inline                                 |
+| Шаблони оферів      | merge-field template editor + preview (OFFER-02)                                                                                                                                                                                                                                           | inline                                 |
+| Загальні            | offer validity (D11), retention policy (ARCH-04), probation default                                                                                                                                                                                                                        | inline                                 |
+| Журнал дій          | audit viewer + login history as the «Входи та безпека» view (AUD)                                                                                                                                                                                                                          | `wireframes/settings-admin.md` §3      |
 
 ### S-15 Сповіщення / S-16 Профіль [NOTIF]
 
@@ -230,7 +230,7 @@
 - **S2** Finance: notifications and global search — none needed? Proposal: no bell, no search.
 - **S3** Magic-link TTL not specified.
 - **S4** Should the system prompt recruiter to record no-show/result when interview time passed with no result?
-- **S5** Who approves TL vacancy requests when «Погодження вакансій» is on (Admin? Head Recruiter?).
+- **S5** ~~Who approves TL vacancy requests when «Погодження вакансій» is on~~ — closed: no approval (D87/D89).
 - **S6** Who records TL interview result: TL only, or also Recruiter/HRec on TL's behalf? Matrix gives Recruiter "up to Polygraph".
 - **S7** Who can change vacancy status (Призупинити / Скасувати): TL owner, HRec, Admin, assigned recruiter?
 - **S8** Recruiter deleting a vacancy (matrix says "own" for vacancy/candidate) — recruiter-initiated only?

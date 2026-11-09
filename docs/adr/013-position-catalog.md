@@ -1,0 +1,97 @@
+# ADR-013 — Position catalog (V2a: first write increment)
+
+- **Status:** Accepted for V2a (design only; nothing implemented)
+- **Date:** 2026-11-09
+- **PRD:** VAC-01, D75, D76 (Q-48), D90, ROUTE-02, FIN-03, SEC-CORE-05/09; builds on ADR-002, ADR-003, ADR-012
+
+## Context
+
+`app.position` exists (ADR-012, migration 0011) with SELECT-only runtime grants and no `version`. Owner D76: Admin manages the catalog globally, Head Recruiter in their verticals. Positions are read later by vacancy forms (recruiter-initiated create, Head Recruiter create) and the Team Lead request form (D90: position picked from the catalog, no free text). Actual `position` columns: `id, vertical_id, name, is_active, created_by, created_at, updated_at`; unique `(vertical_id, lower(name))` and `(id, vertical_id)`. No `updated_by` is added: audit and events carry the actor.
+
+## Decision
+
+### Permissions (central catalog, `server/authz/permissions.ts`)
+
+| Code              | Status                          | Resource / scopes        | Grants                                                                       |
+| ----------------- | ------------------------------- | ------------------------ | ---------------------------------------------------------------------------- |
+| `position.manage` | exists; owner-confirmed, drop ⚠ | write, `vertical`, G + V | ADMIN G, HEAD_RECRUITER V (no change to `roles.ts`)                          |
+| `position.read`   | **new**                         | read, `vertical`, G + V  | ADMIN G; HEAD_RECRUITER, RECRUITER, TEAM_LEAD, HEAD_HR, HR: V; FINANCE: none |
+
+- Resource stays `vertical` (a position is addressed by its vertical, as `position.manage` already is); new `positionScope: ScopeAdapter<'vertical'>` in `server/authz/scopes.ts` = `inArray(position.verticalId, verticalIds)`; SQL/in-memory parity test added with the adapter.
+- Readers: every vertical role except Finance. Rationale: names are already shown on every vacancy they may read, the TL/recruiter forms need them, and vacancy filters (VAC-01 «посада») need option lists. Finance: route-level 404 before parsing params/query/body (FIN-03).
+- MFA: no `mfa` flag needed; Admin holds both as GLOBAL grants, so they are withheld until aal2 (SEC-CORE-09) and `requirePermission` answers 401 `MFA_REQUIRED` exactly as for `vacancy.read`/settings. Head Recruiter is never aal2-gated.
+- Denial rules: no grant at all or object/vertical outside `position.read` scope → 404 `NOT_FOUND` (no vertical/position existence leak); visible but not manageable (REC/TL/HR/HHR, or Head Recruiter in a vertical where they only hold another role) → 403 `FORBIDDEN`. Mixed roles OR their grants as usual.
+- Matrix: `docs/authz-matrix.md` row `position.manage` loses ⚠ (D76) and gains the `position.read` row (same change as T1).
+- Custom roles (ROLE-04): `position.manage` is only valid together with `vacancy.read` over the same verticals (the manager list shows live-vacancy counts).
+
+### API (`defineRoute`, tag `Positions`, shared Zod in `lib/schemas/position.ts`)
+
+| Route                                  | Permission (declared)                       | Body / query                                                        | Success       | Errors                                                         |
+| -------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------- | ------------- | -------------------------------------------------------------- |
+| `GET /api/v1/positions`                | `position.read`                             | query `verticalId?: uuid`, `status: active\|all` (default `active`) | 200 `{items}` | 401, 403 (`all` without any manage grant), 404 (no read grant) |
+| `POST /api/v1/positions`               | `position.read` + service `position.manage` | `{verticalId, name}` strict                                         | 201 Position  | 400, 401, 403, 404, 409 `POSITION_NAME_TAKEN`                  |
+| `PATCH /api/v1/positions/{positionId}` | same                                        | `{expectedVersion, name?, isActive?}` strict, ≥ 1 of name/isActive  | 200 Position  | 400, 401, 403, 404, 409 `POSITION_NAME_TAKEN` / `STALE_STATE`  |
+
+- `Position = {id, verticalId, name, isActive, version, createdAt, openVacanciesCount: int | null}`. `name`: trimmed, 2..80 chars, no control characters (NUL guard), shared `positionNameSchema`. `openVacanciesCount` = live DRAFT/OPEN/ON_HOLD vacancies of the position; non-null only for `status=all` (manager view, so it never exposes counts outside the caller's vacancy scope), else `null`.
+- List: one SQL, no cursor (catalog ≈100 rows total; repository `LIMIT 500` as a guard), order `name, id` like verticals. `status=active` uses the `position.read` predicate; `status=all` uses the `position.manage` predicate (inactive rows only where the caller manages). `verticalId` outside scope → empty list (filters never 404). Count via one grouped/lateral subquery on `vacancy_position_idx`.
+- Write path: scoped `SELECT … WHERE id AND <position.read scope> FOR NO KEY UPDATE` (no row → 404) → `assertCan('position.manage', {type:'vertical', id: verticalId})` (403) → version check (409 `STALE_STATE`) → update. Create resolves the vertical through the read scope (404) then asserts manage (403).
+- Name conflict: add `position_name_uq: 'POSITION_NAME_TAKEN'` to `VISIBLE_UNIQUE_CONSTRAINTS` in `map-error.ts` (callers already see the whole vertical catalog). The unique index is the only arbiter, so concurrent creates/renames have exactly one winner; the loser's transaction rolls back (no audit/event). Inactive names stay reserved, so the UI explains «може бути деактивована».
+- PATCH is a no-op after a matching version when nothing changes: 200, no version bump, no audit/event (same as `renameVertical`). Rename of an inactive position is allowed. No `DELETE` route, no hard delete in V2a.
+- OpenAPI/Postman regenerate (`pnpm api:openapi`, `pnpm api:postman`).
+
+### Migration 0012 (`server/db/migrations/0012_position_catalog_writes.sql`, drizzle-generated + hand-appended grants, plain statements like 0010; nothing applied is edited)
+
+| Change    | Detail                                                                                                                                                                                                                                                      |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Column    | `ALTER TABLE app.position ADD COLUMN version integer NOT NULL DEFAULT 1` + `CHECK (version > 0)` `position_version_chk`; `schema.ts` and ERD updated                                                                                                        |
+| Grants    | `GRANT INSERT ON app.position TO app_rw`; `GRANT UPDATE (name, is_active, version, updated_at) ON app.position TO app_rw`. No DELETE, no UPDATE of `vertical_id`/`created_by` (a position never moves vertical: vacancies pin `(position_id, vertical_id)`) |
+| Sequences | none: UUID primary key. `vacancy_public_no_seq` USAGE arrives with the V2b vacancy-write migration                                                                                                                                                          |
+| Indexes   | none new: `position_name_uq` (vertical-led) serves per-vertical lists; Admin's all-verticals list is ≤ 500 rows; counts use existing `vacancy_position_idx`                                                                                                 |
+| Roles     | grants only to `app_rw` (already revoked from PUBLIC/anon/authenticated/service_role in 0011; RLS stays enabled)                                                                                                                                            |
+
+### Events and audit (one transaction with the write, as `server/services/vertical.ts`)
+
+| Action                  | Audit (`writeAudit`, entity `position`)                                   | Event (`appendEvent`, subject `position`, `verticalId` set) |
+| ----------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| create                  | `position.created` after `{name, isActive: true, verticalId}`             | `position.created` payload `{}`                             |
+| rename                  | `position.renamed` before/after `{name}`                                  | `position.renamed` payload `{}`                             |
+| deactivate / reactivate | `position.deactivated` / `position.reactivated` before/after `{isActive}` | same type names, payload `{}`                               |
+
+- Add the four types to `EVENT_PAYLOADS` (empty strict payloads; names live only in audit before/after, never in event payloads) and a `positions` group to `lib/audit-constants.ts` so the Admin audit viewer filters them. A PATCH changing both fields writes two audit rows and two events. No `emitChange`: catalog edits are rare; mutation invalidates `['positions']` and the read queries use the 10-minute reference-data `staleTime` (perf plan); vacancy writes re-validate server-side.
+- Lifecycle/locks: positions touch no user rows and no vacancy rows, so the user-lifecycle guards (ADR-012) are unchanged. Global order for later work: users (stable UUID) → position → vacancy. `FOR NO KEY UPDATE` here does not block vacancy inserts (their FK takes `KEY SHARE`) but conflicts with the `FOR SHARE` V2b takes to validate «position is active» inside vacancy create/change-position.
+
+### Deactivate semantics
+
+- `is_active=false` hides the position from selection lists (`status=active`) and from any new vacancy or position change (V2b/V2c services reject with 409 `POSITION_INACTIVE`). Existing vacancies, their routing group (ROUTE-02 works from `vacancy.position_id`), history and counters are untouched; editing other fields of a vacancy that already holds an inactive position stays allowed. Reactivate is allowed; no block on open vacancies (UI shows `openVacanciesCount` in the confirmation). No hard delete in V2a; purge/delete, if ever needed, is a separate decision.
+
+### UI placement
+
+- **Decision: `/vacancies/positions` («Довідник посад»), reached from a secondary button in the «Вакансії» page header, visible when the user holds `position.manage`; no new nav item.** The page is 404 for non-managers.
+- Why not Налаштування: that shell is the Admin-only, aal2-privileged area (`requirePrivilegedSession`, sub-nav built from `settings.*` grants, wireframe `settings-admin` "Admin only"); Head Recruiter would otherwise need to enter it, widening the settings shell and its nav `anyOf`. Positions are vacancy master data and the Head Recruiter's daily home is «Вакансії». Admin uses the same page (one code path, vertical selector shows all verticals).
+- No catalog wireframe exists (`docs/ux` only has the glossary term «Довідник посад» and the «Усі посади» filter): `ux-ui-designer` adds `docs/ux/wireframes/position-catalog.md` before T3. Content: vertical selector (preset from the header vertical switcher, D83), table name / status / open vacancies / actions (rename, deactivate/reactivate), «Показати неактивні» toggle, «Додати посаду» dialog; mobile = card list.
+- States: loading skeleton, initial-empty with CTA, filtered-empty, retryable error, inline `POSITION_NAME_TAKEN` field error, `STALE_STATE` banner with refetch, 404 for non-managers, 401 `MFA_REQUIRED` redirect as on other privileged pages, optimistic toggle with rollback (create/rename wait for the server). All copy in `messages/uk.json`.
+
+## Engineering tasks (each ≤ ~400 lines of diff)
+
+| #   | Task           | Owner                             | Content                                                                                                                                                                                                                                                           |
+| --- | -------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1  | Schema + authz | database-engineer, then engineer  | migration 0012 + `schema.ts` + snapshot; `position.read` in catalog and roles; `positionScope`; matrix doc; ERD row; unit tests (role × permission table, SQL/in-memory parity); migration tests (grants, no DELETE, immutable `vertical_id`/`created_by`, CHECK) |
+| T2  | Service + API  | senior-fullstack-engineer         | `lib/schemas/position.ts`, `server/repositories/position.ts`, `server/services/position.ts`, event/audit types, `map-error` constraint, 3 routes, OpenAPI/Postman, integration tests, Newman cases                                                                |
+| T3  | UI             | ux wireframe first, then engineer | `/vacancies/positions`, dialogs, query keys (`['positions', filters]`), `messages/uk.json`, header link, E2E, screenshots                                                                                                                                         |
+
+Order: T1 → T2 → T3 (wireframe in parallel with T1/T2). Then qa-engineer, `code-reviewer`, `security-engineer` (authz/IDOR), `performance-engineer` (EXPLAIN list+count with 500 seeded positions).
+
+## Test list
+
+- **Authz matrix (integration + Newman, allowed and denied):** Admin aal2 list/create/rename/deactivate/reactivate any vertical; Admin aal1 → 401 `MFA_REQUIRED` on all three routes; Head Recruiter A manages A, `status=all` lists only A; Head Recruiter A on vertical B: POST → 404, PATCH of a B position → 404, `?verticalId=B` → empty; user with HREC in A + REC in B: manage in B → 403; Recruiter/TL/HR/HHR: active list allowed in own vertical only, `status=all` 403, POST/PATCH 403 on visible and 404 on other-vertical ids; Finance: 404 on all routes even with an invalid UUID/body (before parsing); unauthenticated and deactivated → 401.
+- **Validation/contract:** name empty, 1 char, 81 chars, NUL/control chars → 400; unknown keys and PATCH without name/isActive → 400; missing `expectedVersion` → 400; bad `positionId` → 404.
+- **Conflicts/concurrency:** case-insensitive duplicate → 409 `POSITION_NAME_TAKEN`; same name in another vertical allowed; inactive name still reserved; rename to own name in other case OK; 5 parallel creates of the same name → one 201, four 409, one row, one audit row, one event; two PATCH with the same `expectedVersion` → one 200 and one `STALE_STATE`; rename vs create race on one name → one winner.
+- **Semantics:** deactivate keeps a seeded vacancy's position name in list/detail; reactivate; no-op PATCH leaves version, audit and events unchanged; `openVacanciesCount` correct and `null` for non-manager reads; audit/event rows written atomically (forced failure rolls the update back).
+- **Audit viewer:** `positions` actions are filterable by Admin; Head Recruiter writes appear there with the correct actor.
+- **E2E + screenshots:** Head Recruiter creates, hits the duplicate error, renames, deactivates, toggles «Показати неактивні»; Admin switches verticals; Recruiter and Finance get 404 on the page. Gallery: list, initial-empty, create dialog, conflict, inactive view, mobile cards × Admin/Head Recruiter × light/dark × 1440×900 / 390×844.
+
+## Consequences
+
+- The smallest write path ships with real authz, optimistic versioning and a full audit trail; vacancy forms (V2b) later consume `GET /positions?status=active` and the `POSITION_INACTIVE` contract without further catalog work.
+- A new read permission widens `vertical`-scoped catalog reads to HR roles; narrowing later only changes `roles.ts`.
+- Inactive names remain reserved; reusing a name requires reactivating the old position (acceptable at ≈100 rows, avoids a partial unique index and duplicate historical groups).

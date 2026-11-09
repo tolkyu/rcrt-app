@@ -33,7 +33,7 @@ Several cells in one column (e.g. `asg`+`uo`) = union. A user with several role 
 | `vacancy.assign_recruiters`                                                | G   | V    | —        | —   | —   | —     | —   | §2.1, owner 2026-10-31  |
 | `vacancy.self_assign`                                                      | —   | —    | uo       | —   | —   | —     | —   | D1, owner 2026-10-31    |
 | `vacancy.team_lead.set`                                                    | G   | V ⚠  | —        | —   | —   | —     | —   | VAC-03                  |
-| `vacancy.approve` (DRAFT→OPEN)                                             | G   | V ⚠  | —        | —   | —   | —     | —   | VAC-03, D2              |
+| `vacancy.approve` (DRAFT→OPEN)                                             | G   | V ⚠  | —        | —   | —   | —     | —   | inert, D89 (was D2)     |
 | `vacancy.hold` / `vacancy.resume`                                          | G   | V    | —        | —   | —   | own ⚠ | —   | VAC-02                  |
 | `vacancy.cancel`                                                           | G   | V    | —        | —   | —   | own ⚠ | —   | VAC-02                  |
 | `vacancy.reopen` (FILLED→OPEN)                                             | G   | V    | —        | —   | —   | —     | —   | VAC-02                  |
@@ -42,9 +42,10 @@ Several cells in one column (e.g. `asg`+`uo`) = union. A user with several role 
 | `vacancy.bonus_scheme.override`                                            | G   | —    | —        | —   | —   | —     | —   | VAC-01, BONUS-01        |
 | `vacancy.bonus.update` (recruiter reward amount + currency on the vacancy) | G   | —    | —        | —   | —   | —     | —   | BONUS-16 ⁵              |
 | `vacancy.probation_length.set`                                             | G   | —    | —        | V   | —   | —     | —   | PROB-02                 |
-| `position.manage`                                                          | G   | V ⚠  | —        | —   | —   | —     | —   | §3                      |
+| `position.manage`                                                          | G   | V    | —        | —   | —   | —     | —   | D76, ADR-013            |
+| `position.read` (catalog lists for forms/filters)                          | G   | V    | V        | V   | V   | V     | —   | D76, D90, ADR-013       |
 
-¹ Recruiter-initiated (no TL); the creator is auto-assigned so it is visible via `asg`. ² `team_lead_id = self`, status `OPEN` or `DRAFT` (D2).
+¹ Recruiter-initiated (no TL); created `OPEN` or saved as the author's `DRAFT` (D89); the creator is auto-assigned so it is visible via `asg`. ² `team_lead_id = self`, status always `OPEN` (D87); D2 approval is superseded by D89, so `vacancy.approve` stays defined but unused (publishing a draft — Q-170).
 Clone (VAC-05) = `vacancy.read` on source **and** `vacancy.create` in the vertical (no separate code).
 ⁵ Permission only says _who_. The "at most one change per 2 months per vacancy" limit is a domain rule (`server/domain/bonus/` `vacancyRewardChangeAllowed`) enforced in the service → 409 `VACANCY_BONUS_CHANGE_TOO_SOON`, never only in the UI. Reason is mandatory. ⚠ OPEN edge rules: does the first set count; calendar months vs. 60 days; 24 h typo-fix window. Who sees the amount follows `vacancy.read` ⚠ OPEN (whether TL/HR may see the recruiter reward; default: same as `bonus.read` holders + Admin).
 
@@ -144,7 +145,7 @@ Finance rows (Q-23, owner): candidate-level rows in payout reports / who-brought
 
 ### 2.6 Settings, users, audit (Admin only — §2.3 last row)
 
-`settings.verticals.manage` (create/rename only — no deactivation, owner 2026-10-31) · `settings.vertical_flags.manage` (approval D2, auto-routing ROUTE-09) · `settings.users.manage` (invite, roles, deactivate) · `settings.priorities.manage` (ROUTE-01) · `settings.bonus_schemes.manage` · `settings.reference_data.manage` (rejection reasons, polygraph locations, offer templates) · `settings.retention.manage` · `settings.jobs.run` (manual job re-run, aal2, ADR-004 DG-04) · `audit.read` — **ADM `G` only**. aal2 is derived from the grant, not the role (SEC-CORE-09): every `G` grant and every MFA-flagged permission (all `settings.*`, `audit.read`, `candidate.purge`, `candidate.bonus_flags.clear`, Admin-only bonus writes, `application.force_move`, vacancy bonus/priority overrides) is withheld until the session is aal2 — so ADMIN and FINANCE need MFA (owner 2026-10-31). Only ADMIN and FINANCE may be assigned without a vertical; a global custom role is ignored. Granting `ADMIN`/`FINANCE` and any self role change are refused (DG-10).
+`settings.verticals.manage` (create/rename only — no deactivation, owner 2026-10-31) · `settings.vertical_flags.manage` (approval flag inert since D89; auto-routing ROUTE-09) · `settings.users.manage` (invite, roles, deactivate) · `settings.priorities.manage` (ROUTE-01) · `settings.bonus_schemes.manage` · `settings.reference_data.manage` (rejection reasons, polygraph locations, offer templates) · `settings.retention.manage` · `settings.jobs.run` (manual job re-run, aal2, ADR-004 DG-04) · `audit.read` — **ADM `G` only**. aal2 is derived from the grant, not the role (SEC-CORE-09): every `G` grant and every MFA-flagged permission (all `settings.*`, `audit.read`, `candidate.purge`, `candidate.bonus_flags.clear`, Admin-only bonus writes, `application.force_move`, vacancy bonus/priority overrides) is withheld until the session is aal2 — so ADMIN and FINANCE need MFA (owner 2026-10-31). Only ADMIN and FINANCE may be assigned without a vertical; a global custom role is ignored. Granting `ADMIN`/`FINANCE` and any self role change are refused (DG-10).
 `user.directory.read` (pickers, mentions): all roles except FIN, `V` (users holding a role in my verticals). `vertical.read` (vertical lists, filters; STORY-VIS-02-1, added in T3): ADM `G`, every vertical role `V` (verticals where I hold a role), FIN — (404, FIN-03). Pickers return only users holding the **required** role in that vertical (e.g. split recipients = REC/HREC, `hrUserId` = HR/HHR) (DG-10).
 
 ## 3. Scope → SQL predicate (repository `WHERE`)
@@ -254,6 +255,7 @@ export type PermissionCode =
   | 'vacancy.bonus.update'
   | 'vacancy.probation_length.set'
   | 'position.manage'
+  | 'position.read'
   | 'candidate.read'
   | 'candidate.contacts.read'
   | 'candidate.transfer_vertical'

@@ -472,7 +472,7 @@ NN = NOT NULL. Defaults left blank = none.
 | ------------------------ | ------- | ---- | ----------------- | --------------------------- |
 | id                       | uuid    | NN   | gen_random_uuid() |                             |
 | name                     | text    | NN   |                   | Ukrainian display name      |
-| vacancy_approval_enabled | boolean | NN   | false             | D2                          |
+| vacancy_approval_enabled | boolean | NN   | false             | kept, inert (D89, was D2)   |
 | auto_routing_enabled     | boolean | NN   | true              | ROUTE-09                    |
 | default_bonus_scheme_id  | uuid    | null |                   | FK `bonus_scheme`, BONUS-01 |
 | [ts]                     |         |      |                   |                             |

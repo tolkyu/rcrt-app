@@ -387,7 +387,7 @@ Reused (do not duplicate): `inviteDialog.emailHint`, `inviteDialog.submitting`, 
 - Trim; duplicate check case-insensitive on the server (409 → field error «Вертикаль з такою назвою вже існує.»). Rename with the same name → submit disabled + hint «Назва не змінилася.»
 - Rename is not destructive → no extra confirm. Optimistic row update; rollback toast on error.
 - Toasts: «Вертикаль «{name}» створено» · «Вертикаль перейменовано: «{from}» → «{to}»».
-- Per-vertical toggles (D2 approval, ROUTE-09 auto-routing) are stored but **not shown** in Phase 1; they appear here in their phases (STORY-ROLE-03-1). No polygraph-review toggle (D36).
+- Per-vertical toggles are stored but **not shown** in Phase 1; ROUTE-09 auto-routing appears here in its phase (STORY-ROLE-03-1). The D2 approval toggle is superseded by D87/D89: inert and hidden until the cleanup task. No polygraph-review toggle (D36).
 
 ### 2.3 Mobile 390
 

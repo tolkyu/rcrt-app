@@ -321,7 +321,7 @@ As an **Admin**, I want to create and rename verticals, so that the company stru
 - (negative) Non-Admin → 404. Duplicate name (case-insensitive) → «Вертикаль з такою назвою вже існує».
 
 **Data:** name (required, 2–50 chars, unique). **Events:** `vertical.created`, `vertical.renamed`.
-**Edge cases:** two Admins rename concurrently → 409; per-vertical toggles (vacancy approval D2, auto-routing ROUTE-09) are stored now with PRD defaults but surfaced in their phases. Polygraph Head HR review has no toggle — it is always mandatory (D36).
+**Edge cases:** two Admins rename concurrently → 409; per-vertical toggles (vacancy approval D2, auto-routing ROUTE-09) are stored now with PRD defaults but surfaced in their phases. _(Historical note 2026-11-09: D2 approval is superseded by D87/D89 — the flag stays stored but inert and is never surfaced until a cleanup task.)_ Polygraph Head HR review has no toggle — it is always mandatory (D36).
 
 ---
 
