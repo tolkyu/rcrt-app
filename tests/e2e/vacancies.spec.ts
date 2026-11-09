@@ -8,6 +8,7 @@ import { openHydrated, waitForHydration } from '../support/hydration';
 import {
   ALL_VISIBLE,
   DELETED_VACANCY,
+  NEWEST_VISIBLE,
   VISIBLE_VACANCIES,
   demoVacancy,
   newestFirst,
@@ -390,7 +391,10 @@ test.describe('head.recruiter.gambling@demo', () => {
     const main = page.getByRole('main');
     await expect(main.getByText(vacancy.number, { exact: true })).toBeVisible();
     await expect(main.getByText(t.status.OPEN, { exact: true })).toBeVisible();
-    await expect(main.getByText(t.urgent, { exact: true })).toBeVisible();
+    await expect(main.getByText(t.urgent, { exact: true })).toHaveAttribute(
+      'data-urgent',
+      'true',
+    );
     const field = (label: string) =>
       main
         .locator('dt', { hasText: new RegExp(`^${label}$`) })
@@ -679,7 +683,7 @@ test.describe('admin@demo', () => {
     await page
       .getByRole('menuitemradio', { name: 'Крипто', exact: true })
       .click();
-    await expectNumbers(page, isMobile, [12, 7, 3]);
+    await expectNumbers(page, isMobile, [14, 12, 7, 3]);
 
     await link(messages.nav.profile).click();
     await expect(page).toHaveURL(/\/profile$/);
@@ -688,7 +692,7 @@ test.describe('admin@demo', () => {
       new RegExp(`/vacancies[?]vertical=${DEMO_VERTICALS.crypto}$`),
     );
     await expect(verticalFilter(page)).toHaveValue(DEMO_VERTICALS.crypto);
-    await expectNumbers(page, isMobile, [12, 7, 3]);
+    await expectNumbers(page, isMobile, [14, 12, 7, 3]);
   });
 
   test('the vacancy navigation item is current on the list and on a card [UI-04, VIS-02]', async ({
@@ -764,7 +768,7 @@ test.describe('admin@demo', () => {
     test.skip(isMobile, 'the side preview exists on wide screens only');
     await openHydrated(page, '/vacancies');
     const preview = page.getByRole('complementary', { name: t.previewLabel });
-    const first = demoVacancy(12);
+    const first = demoVacancy(NEWEST_VISIBLE);
     const second = demoVacancy(7);
     const pick = (title: string) =>
       page.getByRole('button', {
@@ -888,7 +892,7 @@ test.describe('admin@demo', () => {
     await page.keyboard.press('Tab');
     await expect(statusFilter(page)).toBeFocused();
     await page.keyboard.press('Tab');
-    const first = demoVacancy(12);
+    const first = demoVacancy(NEWEST_VISIBLE);
     const link = rowsOf(page, isMobile)
       .first()
       .getByRole('link', { name: first.title });

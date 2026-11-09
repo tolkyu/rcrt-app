@@ -112,6 +112,27 @@ const CARDS = [
     title: 'urgent card with the team and terms',
   },
   {
+    user: 'admin@demo',
+    role: 'admin',
+    position: 2,
+    state: 'detail-urgent-on-hold',
+    title: 'an urgent vacancy on hold: red plus the status badge',
+  },
+  {
+    user: 'admin@demo',
+    role: 'admin',
+    position: 6,
+    state: 'detail-urgent-cancelled',
+    title: 'a cancelled urgent vacancy without the red highlight',
+  },
+  {
+    user: 'admin@demo',
+    role: 'admin',
+    position: 14,
+    state: 'detail-urgent-filled',
+    title: 'a filled urgent vacancy without the red highlight',
+  },
+  {
     user: 'vasyl.tl@demo',
     role: 'team-lead',
     position: 9,
@@ -432,4 +453,43 @@ test.describe('admin@demo states', () => {
       );
     });
   });
+
+  for (const { position, state, red } of [
+    { position: 1, state: 'urgent-open', red: true },
+    { position: 2, state: 'urgent-on-hold', red: true },
+    { position: 6, state: 'urgent-cancelled', red: false },
+    { position: 14, state: 'urgent-filled', red: false },
+  ]) {
+    test(`captures the preview of an ${state} vacancy [SHOT-01..03, STORY-VAC-04-4]`, async ({
+      page,
+      isMobile,
+    }, testInfo) => {
+      test.skip(isMobile, 'the side preview exists on wide screens only');
+      await freezeClock(page);
+      const target = demoVacancy(position);
+      await forEachTheme(page, async (theme) => {
+        await openHydrated(page, '/vacancies');
+        await rowCount(page, false)
+          .filter({ hasText: target.number })
+          .getByRole('button')
+          .click();
+        const preview = page.getByRole('complementary', {
+          name: t.previewLabel,
+        });
+        await expect(
+          preview.getByRole('heading', { level: 2, name: target.title }),
+        ).toBeVisible();
+        await expect(
+          preview.getByText(t.urgent, { exact: true }),
+        ).toHaveAttribute('data-urgent', String(red));
+        await checkAccessibility(page, testInfo);
+        await captureScreen(
+          page,
+          testInfo,
+          `32-admin-vacancies-preview-${state}-desktop-${theme}.png`,
+          'phase-2',
+        );
+      });
+    });
+  }
 });

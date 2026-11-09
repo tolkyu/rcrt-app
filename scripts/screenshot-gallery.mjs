@@ -492,6 +492,27 @@ const groups2 = [
         heading: 'Картка вакансії — термінова: команда, умови, дати',
       },
       {
+        file: '31-admin-vacancy-detail-urgent-on-hold',
+        label: 'термінова, призупинена',
+        dir: VAC,
+        heading:
+          'Картка вакансії — термінова на паузі: червоний акцент разом із бейджем статусу',
+      },
+      {
+        file: '31-admin-vacancy-detail-urgent-cancelled',
+        label: 'термінова, скасована',
+        dir: VAC,
+        heading:
+          'Картка вакансії — термінова, але скасована: нейтральна позначка без червоного',
+      },
+      {
+        file: '31-admin-vacancy-detail-urgent-filled',
+        label: 'термінова, заповнена',
+        dir: VAC,
+        heading:
+          'Картка вакансії — термінова, але заповнена: нейтральна позначка без червоного',
+      },
+      {
         file: '31-team-lead-vacancy-detail-long-title',
         label: 'довга назва',
         dir: VAC,
@@ -574,6 +595,36 @@ const groups2 = [
         variants: ['desktop-light', 'desktop-dark'],
         heading:
           'Вакансії — огляд іде за вибраним рядком (приклад: вакансія з довгою назвою)',
+      },
+      {
+        file: '32-admin-vacancies-preview-urgent-open',
+        label: 'огляд, термінова відкрита',
+        dir: VAC,
+        variants: ['desktop-light', 'desktop-dark'],
+        heading: 'Вакансії — огляд термінової відкритої вакансії (червоний)',
+      },
+      {
+        file: '32-admin-vacancies-preview-urgent-on-hold',
+        label: 'огляд, термінова призупинена',
+        dir: VAC,
+        variants: ['desktop-light', 'desktop-dark'],
+        heading: 'Вакансії — огляд термінової призупиненої вакансії (червоний)',
+      },
+      {
+        file: '32-admin-vacancies-preview-urgent-cancelled',
+        label: 'огляд, термінова скасована',
+        dir: VAC,
+        variants: ['desktop-light', 'desktop-dark'],
+        heading:
+          'Вакансії — огляд термінової скасованої вакансії (без червоного)',
+      },
+      {
+        file: '32-admin-vacancies-preview-urgent-filled',
+        label: 'огляд, термінова заповнена',
+        dir: VAC,
+        variants: ['desktop-light', 'desktop-dark'],
+        heading:
+          'Вакансії — огляд термінової заповненої вакансії (без червоного)',
       },
       {
         file: '32-admin-vacancies-preview-error',

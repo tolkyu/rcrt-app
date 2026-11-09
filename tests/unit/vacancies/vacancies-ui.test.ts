@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { createElement, type ReactElement, type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { VacanciesList } from '@/components/vacancies/vacancies-list';
+import { VacancyFlags } from '@/components/vacancies/vacancy-badges';
 import { VacancyOverview } from '@/components/vacancies/vacancy-overview';
 import type { VacancyDetail, VacancySummary } from '@/lib/schemas/vacancy';
 import messages from '@/messages/uk.json';
@@ -207,6 +208,82 @@ describe('VacanciesList [STORY-VAC-04-1, UI-04..07]', () => {
     expect(
       screen.getByRole('table').querySelector('[aria-pressed="true"]'),
     ).toBeNull();
+  });
+});
+
+describe('urgent highlight [STORY-VAC-04-4, D97]', () => {
+  const badge = () => screen.getByText(messages.vacancies.urgent);
+
+  it.each(['OPEN', 'ON_HOLD', 'DRAFT'] as const)(
+    'shows a %s urgent vacancy in the soft red tokens with the label',
+    (status) => {
+      mount(
+        createElement(VacancyFlags, {
+          vacancy: summary({ priority: 'URGENT', status }),
+        }),
+      );
+      expect(badge().className).toContain('bg-destructive-subtle');
+      expect(badge().className).toContain('text-error-text');
+      expect(badge().className).not.toContain('warning');
+    },
+  );
+
+  it.each(['FILLED', 'CANCELLED'] as const)(
+    'keeps the label but drops the red for a %s urgent vacancy',
+    (status) => {
+      mount(
+        createElement(VacancyFlags, {
+          vacancy: summary({ priority: 'URGENT', status }),
+        }),
+      );
+      expect(badge().className).toContain('bg-surface-muted');
+      expect(badge().className).not.toContain('destructive');
+      expect(badge().className).not.toContain('error-text');
+    },
+  );
+
+  it('shows no urgency label for a normal vacancy', () => {
+    mount(createElement(VacancyFlags, { vacancy: summary() }));
+    expect(screen.queryByText(messages.vacancies.urgent)).toBeNull();
+  });
+
+  it('puts the red edge on the table row and the card of an open urgent vacancy only', () => {
+    const open = summary({ priority: 'URGENT' });
+    const closed = summary({
+      id: crypto.randomUUID(),
+      number: 'V-0002',
+      title: 'Закрита',
+      priority: 'URGENT',
+      status: 'CANCELLED',
+    });
+    mount(
+      createElement(VacanciesList, {
+        items: [open, closed],
+        selectedId: undefined,
+        wide: false,
+        onSelect: vi.fn(),
+        onPreviewIntent: vi.fn(),
+      }),
+    );
+    const edge = 'var(--destructive)';
+    const rows = within(screen.getByRole('table')).getAllByRole('row');
+    expect(rows[1]!.className).toContain(edge);
+    expect(rows[2]!.className).not.toContain(edge);
+    const cards = within(
+      screen.getByRole('list', { name: messages.vacancies.caption }),
+    ).getAllByRole('listitem');
+    expect(cards[0]!.className).toContain(edge);
+    expect(cards[1]!.className).not.toContain(edge);
+  });
+
+  it('renders the same highlight in the preview and detail header', () => {
+    mount(
+      createElement(VacancyOverview, {
+        vacancy: detail({ priority: 'URGENT' }),
+        preview: true,
+      }),
+    );
+    expect(badge().className).toContain('bg-destructive-subtle');
   });
 });
 

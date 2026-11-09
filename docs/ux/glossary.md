@@ -78,21 +78,23 @@ Stage-action verbs: «Взяти в роботу», «Передати тімл�
 
 ## 4. Vacancy statuses & priority
 
-| Enum                             | UI term                                                                   |
-| -------------------------------- | ------------------------------------------------------------------------- |
-| `DRAFT`                          | Чернетка                                                                  |
-| `OPEN`                           | Відкрита                                                                  |
-| `ON_HOLD`                        | Призупинена                                                               |
-| `FILLED`                         | Заповнена                                                                 |
-| `CANCELLED`                      | Скасована                                                                 |
-| Priority `NORMAL`                | Звичайна                                                                  |
-| Priority `URGENT`                | Термінова                                                                 |
-| TL priority (int)                | Пріоритет тімліда; badge «П0», «П1»… tooltip «Пріоритет 0 — найвищий»     |
-| Per-vacancy priority override    | Пріоритет для цієї вакансії                                               |
-| Days open                        | Відкрита N дн.                                                            |
-| Headcount                        | Кількість місць; progress «1 з 2 найнято»                                 |
-| Work format remote/office/hybrid | Віддалено / Офіс / Гібрид                                                 |
-| Seniority                        | Рівень: Junior / Middle / Senior / Lead (kept in English — industry norm) |
+| Enum                                 | UI term                                                                                                                                                                     |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DRAFT`                              | Чернетка                                                                                                                                                                    |
+| `OPEN`                               | Відкрита                                                                                                                                                                    |
+| `ON_HOLD`                            | Призупинена                                                                                                                                                                 |
+| `FILLED`                             | Заповнена                                                                                                                                                                   |
+| `CANCELLED`                          | Скасована                                                                                                                                                                   |
+| Vacancy urgency (field, D94)         | Терміновість вакансії; filter «Терміновість» (never bare «Пріоритет»)                                                                                                       |
+| Priority `URGENT` styling (D97, D99) | Red highlight (`--destructive-subtle` bg, `--error-text`) + text «Термінова» in `DRAFT`/`OPEN`/`ON_HOLD`; in `FILLED`/`CANCELLED` the text stays in a neutral badge, no red |
+| Priority `NORMAL`                    | Звичайна                                                                                                                                                                    |
+| Priority `URGENT`                    | Термінова                                                                                                                                                                   |
+| TL priority (int)                    | Пріоритет тімліда; badge «П0», «П1»… tooltip «Пріоритет 0 — найвищий»                                                                                                       |
+| Per-vacancy priority override        | Пріоритет тімліда для цієї вакансії (Admin only, D94)                                                                                                                       |
+| Days open                            | Відкрита N дн.                                                                                                                                                              |
+| Headcount                            | Кількість місць; progress «1 з 2 найнято»                                                                                                                                   |
+| Work format remote/office/hybrid     | Віддалено / Офіс / Гібрид                                                                                                                                                   |
+| Seniority                            | Рівень: Junior / Middle / Senior / Lead (kept in English — industry norm)                                                                                                   |
 
 ## 5. Interviews, reschedule, polygraph, offer, probation
 

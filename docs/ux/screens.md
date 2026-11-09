@@ -82,7 +82,7 @@
 - **Mobile:** title, KPI tiles in a horizontal scroll row (4 visible), Мої задачі with «+» (Phase 5) and tabs, then Вакансії and Кандидати sections stacked.
 - **KPI row (scoped to viewer):** Кандидати · Відкриті вакансії · На співбесідах · Вийшли на роботу / Найнято (⏳ A-38) · Середній час найму; each with delta + footnote; click → filtered list (not Finance).
 - **Мої задачі:** system tasks (stage icon, title, candidate · vacancy · vertical, due time, avatar), resolving when the action is done. Phase 5 adds manual tasks with checkbox, «Додати задачу» and tabs Усі / Сьогодні / Прострочені / Без дати (✅ A-02).
-- **Filters (shared bar):** вертикаль, рекрутер, тімлід, посада, етап, пріоритет (Звичайна/Термінова), період; «Зберегти фільтр»; saved filters as chips. URL-synced.
+- **Filters (shared bar):** вертикаль, рекрутер, тімлід, посада, етап, терміновість (Звичайна/Термінова), період; «Зберегти фільтр»; saved filters as chips. URL-synced.
 - **My tasks per role:**
 
 | Role           | Task types (title copy)                                                                                                                                                                                                                |
@@ -99,16 +99,16 @@
 
 ### S-04 Вакансії — список [VAC-01..04, D1]
 
-- **Layout (`03-vacancies.webp`, wireframe `wireframes/vacancies-list.md`):** header + «Створити вакансію» → filter bar (Вертикаль, Статус, Тімлід, Рекрутер, Період, Пріоритет) → status chips with counts (Усі · Відкриті · Чернетки · Призупинені · Заповнені · Скасовані, A-14) → **table (8/12) + right preview panel (360)** for the selected row (Огляд / Кандидати / Історія, A-30). Footer: «Показано 1–25 з N» + ‹ › cursor + page size (A-21). Row click selects the row and fills the panel; Enter / double-click / title link opens S-06. Mobile: card list + sticky «Створити вакансію»; no panel.
+- **Layout (`03-vacancies.webp`, wireframe `wireframes/vacancies-list.md`):** header + «Створити вакансію» → filter bar (Вертикаль, Статус, Тімлід, Рекрутер, Період, Терміновість) → status chips with counts (Усі · Відкриті · Чернетки · Призупинені · Заповнені · Скасовані, A-14) → **table (8/12) + right preview panel (360)** for the selected row (Огляд / Кандидати / Історія, A-30). Footer: «Показано 1–25 з N» + ‹ › cursor + page size (A-21). Row click selects the row and fills the panel; Enter / double-click / title link opens S-06. Mobile: card list + sticky «Створити вакансію»; no panel.
 - **Data (table):** checkbox (bulk, Admin/HRec), назва + рівень, вертикаль chip, тімлід (avatar + PriorityBadge tooltip), рекрутери (avatars +N), статус (VAC-02 only) + «Термінова» / «З бота» badges after the title, FunnelMini bar, найнято N з M, відкрита N дн., остання активність, ⋯.
 - **Actions:** «Нова вакансія» (Admin/HRec/Rec/TL); row menu: Відкрити, Клонувати (Admin/HRec), Призупинити/Відновити (⚠ OPEN-S7 who changes status), Видалити (Admin/HRec; Rec — not in matrix for vacancies ⚠ OPEN-S8).
-- **Filters:** статус (default Відкрита + Призупинена), вертикаль, тімлід, посада, рекрутер, «Без рекрутера», пріоритет, джерело.
+- **Filters:** статус (default Відкрита + Призупинена), вертикаль, тімлід, посада, рекрутер, «Без рекрутера», терміновість, джерело.
 - **Role diff:** Rec sees assigned + unassigned open in vertical, unassigned rows show «Взяти в роботу» ⚠ OPEN-S9 (self-assign not explicit); TL sees own only, column «Тімлід» hidden; HHR/HR read-only, no create.
 - **States:** empty «Відкритих вакансій немає» (+ «Створити вакансію» if allowed; TL: «Запросити вакансію»).
 
 ### S-05 Вакансія — форма [VAC-01, VAC-03]
 
-- **Fields:** all VAC-01 fields grouped: Основне (назва, посада, вертикаль, тімлід, кількість місць, рівень, формат, тип зайнятості) · Умови (зарплатна вилка + валюта, випробувальний термін ≤ 90 дн.) · Опис (rich text, lazy) · Вимоги · Пріоритет · Рекрутери · Схема бонусів (Admin only; others see inherited read-only) · Пріоритет тімліда для цієї вакансії (Admin only).
+- **Fields:** all VAC-01 fields grouped: Основне (назва, посада, вертикаль, тімлід, кількість місць, рівень, формат, тип зайнятості) · Умови (зарплатна вилка + валюта, випробувальний термін ≤ 90 дн.) · Опис (rich text, lazy) · Вимоги · Терміновість вакансії · Рекрутери · Схема бонусів (Admin only; others see inherited read-only) · Пріоритет тімліда для цієї вакансії (Admin only).
 - **Role diff:** TL — vertical/TL prefilled & locked, title «Запит на вакансію», submit «Надіслати запит» (always `OPEN`, D87; fields per D86/D90: position, headcount, urgency, comment); Rec/HRec — TL optional → «Вакансія від рекрутера».
 - **Validation:** probation 1–90; salary min ≤ max; inline errors in Ukrainian.
 

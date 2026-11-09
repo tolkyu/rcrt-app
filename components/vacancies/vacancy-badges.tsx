@@ -31,12 +31,37 @@ export function VacancyStatus({
   );
 }
 
+/** D97: urgency stops being actionable once a vacancy is closed, so only the red styling (not the label) depends on status. */
+export const isUrgentHighlighted = (
+  vacancy: Pick<VacancySummary, 'priority' | 'status'>,
+) =>
+  vacancy.priority === 'URGENT' &&
+  vacancy.status !== 'FILLED' &&
+  vacancy.status !== 'CANCELLED';
+
+/** Red accent edge for list rows and cards; the badge carries the text so colour is never the only signal. */
+export const urgentEdge = (
+  vacancy: Pick<VacancySummary, 'priority' | 'status'>,
+) =>
+  isUrgentHighlighted(vacancy)
+    ? 'shadow-[inset_3px_0_0_0_var(--destructive)]'
+    : undefined;
+
 export function VacancyFlags({ vacancy }: { vacancy: VacancySummary }) {
   const t = useTranslations('vacancies');
+  const highlighted = isUrgentHighlighted(vacancy);
   return (
     <>
       {vacancy.priority === 'URGENT' && (
-        <span className="bg-warning-subtle text-warning-text rounded-md px-2 py-0.5 text-xs font-medium">
+        <span
+          data-urgent={highlighted}
+          className={cn(
+            'rounded-md px-2 py-0.5 text-xs font-medium',
+            highlighted
+              ? 'bg-destructive-subtle text-error-text'
+              : 'bg-surface-muted text-muted-foreground-strong',
+          )}
+        >
           {t('urgent')}
         </span>
       )}

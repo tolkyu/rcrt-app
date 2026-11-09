@@ -100,11 +100,23 @@ describe('vacancy demo seed [STORY-SEED-2, STORY-VAC-07-1]', () => {
       left join app.app_user t on t.id = v.team_lead_id where v.id in ${admin(vacancyIds)}`;
     const statuses = new Set(rows.map((r) => r.status));
     expect(statuses).toEqual(
-      new Set(['DRAFT', 'OPEN', 'ON_HOLD', 'CANCELLED']),
+      new Set(['DRAFT', 'OPEN', 'ON_HOLD', 'FILLED', 'CANCELLED']),
     );
-    expect(
-      rows.filter((r) => r.priority_flag === 'URGENT').length,
-    ).toBeGreaterThan(0);
+    for (const vertical of ['Гемблінг', 'Крипто'])
+      for (const priority of ['URGENT', 'NORMAL'])
+        expect(
+          rows.some(
+            (r) =>
+              r.vertical === vertical &&
+              r.status === 'OPEN' &&
+              r.priority_flag === priority &&
+              r.deleted_at === null,
+          ),
+        ).toBe(true);
+    for (const status of ['ON_HOLD', 'FILLED', 'CANCELLED'])
+      expect(
+        rows.some((r) => r.status === status && r.priority_flag === 'URGENT'),
+      ).toBe(true);
     expect(rows.some((r) => r.source === 'TELEGRAM_BOT')).toBe(true);
     expect(rows.filter((r) => r.deleted_at !== null)).toHaveLength(1);
     expect(

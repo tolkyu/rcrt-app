@@ -7,7 +7,7 @@ import { memo, type MouseEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import type { VacancySummary } from '@/lib/schemas/vacancy';
 import { cn } from '@/lib/utils';
-import { VacancyFlags, VacancyStatus } from './vacancy-badges';
+import { urgentEdge, VacancyFlags, VacancyStatus } from './vacancy-badges';
 
 const INTERACTIVE = 'a,button,input,select,textarea,summary';
 
@@ -105,8 +105,9 @@ export const VacanciesList = memo(function VacanciesList({
                   onClick={(event) => selectFromRow(event, vacancy.id)}
                   className={cn(
                     'border-border hover:bg-surface-muted border-b align-middle last:border-0',
-                    selected &&
-                      'bg-primary-subtle hover:bg-primary-subtle shadow-[inset_2px_0_0_0_var(--brand)]',
+                    selected
+                      ? 'bg-primary-subtle hover:bg-primary-subtle shadow-[inset_2px_0_0_0_var(--brand)]'
+                      : urgentEdge(vacancy),
                   )}
                 >
                   <th scope="row" className="px-4 py-3 text-left font-normal">
@@ -163,7 +164,10 @@ export const VacanciesList = memo(function VacanciesList({
         {items.map((vacancy) => (
           <li
             key={vacancy.id}
-            className="hover:bg-surface-muted has-[a:focus-visible]:outline-ring relative flex flex-col gap-2 p-4 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2"
+            className={cn(
+              'hover:bg-surface-muted has-[a:focus-visible]:outline-ring relative flex flex-col gap-2 p-4 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2',
+              urgentEdge(vacancy),
+            )}
           >
             <Link
               href={`/vacancies/${vacancy.id}`}

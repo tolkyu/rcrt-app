@@ -27,25 +27,27 @@ Several cells in one column (e.g. `asg`+`uo`) = union. A user with several role 
 
 | Permission                                                                 | ADM | HREC | REC      | HHR | HR  | TL    | FIN | PRD                     |
 | -------------------------------------------------------------------------- | --- | ---- | -------- | --- | --- | ----- | --- | ----------------------- |
-| `vacancy.read`                                                             | G   | V    | asg + uo | V   | V   | own   | —   | §2.3, D1                |
+| `vacancy.read` (a `DRAFT`: author only ᵇ)                                  | G   | V    | asg + uo | V   | V   | own   | —   | §2.3, D1, D92           |
 | `vacancy.create`                                                           | G   | V    | V ¹      | —   | —   | V ²   | —   | VAC-03                  |
-| `vacancy.update`                                                           | G   | V    | —        | —   | —   | own ⚠ | —   | VAC-01                  |
+| `vacancy.update` (incl. «Терміновість вакансії», see ᵃ)                    | G   | V    | —        | —   | —   | own ⚠ | —   | VAC-01, VAC-08, D94     |
 | `vacancy.assign_recruiters`                                                | G   | V    | —        | —   | —   | —     | —   | §2.1, owner 2026-10-31  |
 | `vacancy.self_assign`                                                      | —   | —    | uo       | —   | —   | —     | —   | D1, owner 2026-10-31    |
 | `vacancy.team_lead.set`                                                    | G   | V ⚠  | —        | —   | —   | —     | —   | VAC-03                  |
-| `vacancy.approve` (DRAFT→OPEN)                                             | G   | V ⚠  | —        | —   | —   | —     | —   | inert, D89 (was D2)     |
+| `vacancy.approve` (DRAFT→OPEN) — unused; publish = author only ᵇ           | G   | V ⚠  | —        | —   | —   | —     | —   | inert, D89, D92         |
 | `vacancy.hold` / `vacancy.resume`                                          | G   | V    | —        | —   | —   | own ⚠ | —   | VAC-02                  |
 | `vacancy.cancel`                                                           | G   | V    | —        | —   | —   | own ⚠ | —   | VAC-02                  |
 | `vacancy.reopen` (FILLED→OPEN)                                             | G   | V    | —        | —   | —   | —     | —   | VAC-02                  |
 | `vacancy.delete`                                                           | G   | V    | ownN     | —   | —   | —     | —   | §2.3, D13, D65, ARCH-03 |
-| `vacancy.priority.override`                                                | G   | —    | —        | —   | —   | —     | —   | ROUTE-01                |
+| `vacancy.priority.override` («Пріоритет тімліда для цієї вакансії»)        | G   | —    | —        | —   | —   | —     | —   | ROUTE-01, D94 ᵃ         |
 | `vacancy.bonus_scheme.override`                                            | G   | —    | —        | —   | —   | —     | —   | VAC-01, BONUS-01        |
 | `vacancy.bonus.update` (recruiter reward amount + currency on the vacancy) | G   | —    | —        | —   | —   | —     | —   | BONUS-16 ⁵              |
 | `vacancy.probation_length.set`                                             | G   | —    | —        | V   | —   | —     | —   | PROB-02                 |
 | `position.manage`                                                          | G   | V    | —        | —   | —   | —     | —   | D76, ADR-013            |
 | `position.read` (catalog lists for forms/filters)                          | G   | V    | V        | V   | V   | V     | —   | D76, D90, ADR-013       |
 
-¹ Recruiter-initiated (no TL); created `OPEN` or saved as the author's `DRAFT` (D89); the creator is auto-assigned so it is visible via `asg`. ² `team_lead_id = self`, status always `OPEN` (D87); D2 approval is superseded by D89, so `vacancy.approve` stays defined but unused (publishing a draft — Q-170).
+¹ Recruiter-initiated (no TL); created `OPEN` or saved as the author's `DRAFT` (D89); the creator is auto-assigned so it is visible via `asg`. ² `team_lead_id = self`, status always `OPEN` (D87); D2 approval is superseded by D89, so `vacancy.approve` stays defined but unused: a draft is published by its author only (D92).
+ᵃ Two separate concepts (D94): **«Терміновість вакансії»** (Звичайна/Термінова flag, VAC-01) is changed through `vacancy.update` by Head Recruiter/Admin only — a Team Lead may not change it after the request (VAC-08, D90); **«Пріоритет тімліда»** (П0, П1…; per-vacancy override `vacancy.priority.override`, Admin only) only orders Team Leads for candidate routing (ROUTE-01). Neither implies the other.
+ᵇ **Draft rule (D92):** while a vacancy is `DRAFT`, every action on it (`vacancy.read`, `vacancy.update`, publish `DRAFT → OPEN`, `vacancy.cancel` `DRAFT → CANCELLED` (D82), `vacancy.delete`, search by `V-NNNN`, counts, statistics, shared link) is allowed **only to the author** (`created_by = me`) and still needs `vacancy.create` in the draft's vertical; the role/vertical grants of the other columns (including Admin `G` and Head Recruiter `V`) do **not** apply to a `DRAFT`. Everyone else gets 404 (no existence disclosure). A draft whose author is deactivated or has lost the role stays hidden for everyone and returns to the author on reactivation/role restore (D98); there is no Admin/Head Recruiter action on someone else's draft (no read, delete, restore or purge of metadata) — only the author deletes their own draft. A draft is not open work for D24/D43. Publish re-validates the full `OPEN` rules at publish time.
 Clone (VAC-05) = `vacancy.read` on source **and** `vacancy.create` in the vertical (no separate code).
 ⁵ Permission only says _who_. The "at most one change per 2 months per vacancy" limit is a domain rule (`server/domain/bonus/` `vacancyRewardChangeAllowed`) enforced in the service → 409 `VACANCY_BONUS_CHANGE_TOO_SOON`, never only in the UI. Reason is mandatory. ⚠ OPEN edge rules: does the first set count; calendar months vs. 60 days; 24 h typo-fix window. Who sees the amount follows `vacancy.read` ⚠ OPEN (whether TL/HR may see the recruiter reward; default: same as `bonus.read` holders + Admin).
 

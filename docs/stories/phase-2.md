@@ -5,13 +5,13 @@
 
 ## Delivery order
 
-| Increment | Deliverable                                                                                                                   | Readiness                                                                                   |
-| --------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| V1        | Real scoped vacancy list, search/status/vertical filters, working read-only preview/detail, navigation and deterministic seed | Ready for design; include the open-work safety dependency below                             |
-| V2        | Positions catalog and vacancy creation/request form                                                                           | Unblocked by D76/D78/D87/D89/D90 (stories below); draft publish/visibility defaults — Q-170 |
-| V3        | Field editing, status changes, Team Lead/recruiter assignment and open-work reassignment                                      | Owner-approved D75/D77/D78 plus D1 assignment and D24/D43 safety; delivered after V1        |
-| V4        | Applications, visible-only funnel/counts, full vacancy history and clone/delete flows                                         | Depends on candidate/application tables and relevant answers; deletion also Q-100           |
-| Later     | Routing, polygraph/offer/probation actions; bonus engine; archives/notifications; Telegram                                    | Phases 3/4/5/6 respectively                                                                 |
+| Increment | Deliverable                                                                                                                   | Readiness                                                                                              |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| V1        | Real scoped vacancy list, search/status/vertical filters, working read-only preview/detail, navigation and deterministic seed | Ready for design; include the open-work safety dependency below                                        |
+| V2        | Positions catalog and vacancy creation/request form                                                                           | Unblocked by D76/D78/D87/D89..D96 (stories below); no open questions (Q-171, Q-172 resolved: D98, D99) |
+| V3        | Field editing, status changes, Team Lead/recruiter assignment and open-work reassignment                                      | Owner-approved D75/D77/D78 plus D1 assignment and D24/D43 safety; delivered after V1                   |
+| V4        | Applications, visible-only funnel/counts, full vacancy history and clone/delete flows                                         | Depends on candidate/application tables and relevant answers; deletion also Q-100                      |
+| Later     | Routing, polygraph/offer/probation actions; bonus engine; archives/notifications; Telegram                                    | Phases 3/4/5/6 respectively                                                                            |
 
 ## Shared rules
 
@@ -110,7 +110,7 @@ As the **owner reviewing V1**, I want realistic persisted vacancies across the d
 
 ## V2 — expanded stories
 
-Decisions: D76 (catalog owners), D77 (Team Lead assignment), D78 (probation), D86/D87 (request form, `OPEN`), D89 (no approval; `DRAFT` = author's draft; notifications), D90 (title/description/completeness). UI labels from `docs/ux/glossary.md`; new copy marked _(proposed)_ is added to the glossary by design.
+Decisions: D76 (catalog owners), D77 (Team Lead assignment), D78 (probation), D86/D87 (request form, `OPEN`), D89 (no approval; `DRAFT` = author's draft; notifications), D90 (title/description/completeness), D92 (draft: only the author publishes and sees it), D93 (no notification delivery before Phase 5), D94 («Терміновість вакансії» ≠ «Пріоритет тімліда»), D95 (catalog menu item), D96 (rename keeps vacancy titles). UI labels from `docs/ux/glossary.md`; new copy marked _(proposed)_ is added to the glossary by design.
 
 ### STORY-VAC-POS-1: Manage the position catalog («Довідник посад»)
 
@@ -121,7 +121,7 @@ As an **Admin or Head Recruiter of a vertical**, I want to create, rename and de
 - Given an Admin, When I open the catalog, Then I see positions of all verticals and can filter by vertical. Given a Head Recruiter of Гемблінг (only), Then I see and manage only Гемблінг positions; the list is scoped server-side like every other list.
 - Given a vertical in scope, When I create a position «Медіабаєр — Facebook», Then it is active at once and selectable in new vacancy forms and Team Lead requests of that vertical.
 - Given a name that already exists in the same vertical ignoring case and surrounding spaces (including a deactivated one), When I create or rename to it, Then the save is refused with a field error _(proposed)_ «Посада з такою назвою вже існує в цій вертикалі.»; the same name in another vertical is allowed. For a deactivated duplicate the message points to reactivation.
-- Given a position, When I rename it, Then the new name shows in the catalog and in pickers immediately and history keeps old→new. Titles already stored on existing vacancies are not rewritten (default, Q-170).
+- Given a position, When I rename it, Then the new name shows in the catalog and in pickers immediately and history keeps old→new. Titles already stored on existing vacancies are not rewritten (D96); e.g. renaming «Медіабаєр — Facebook» to «Медіабаєр Facebook» leaves V-0001 titled «Медіабаєр — Facebook» while its position shows the new name.
 - Given an active position used by open vacancies, When I deactivate it (`isActive = false`) after a confirmation that states how many open vacancies use it, Then those vacancies, their applications and routing group keep working and still show the position name; the position disappears from pickers of new vacancies/requests and is rejected by the API for new ones. Reactivation restores it. There is no delete.
 - Given a position that becomes inactive while a Team Lead has the request form open, When the Team Lead submits, Then the submit is refused with a message to choose another position _(proposed)_ and the picker refreshes; no vacancy is created.
 - (negative) Given a Team Lead, Recruiter, HR, Head HR or Finance, When they call a catalog create/rename/deactivate action, Then it is denied and nothing changes. Given a Head Recruiter of another vertical, Then the position is out of scope (404, no existence disclosure). A Team Lead/Recruiter sees positions only through the read-only picker of their own verticals (active ones); HR/Finance have no picker.
@@ -129,7 +129,7 @@ As an **Admin or Head Recruiter of a vertical**, I want to create, rename and de
 
 **Data / validation:** vertical (required, fixed after creation), name (trimmed, not blank, unique per vertical case-insensitively — DB `(vertical_id, lower(name))`; maximum length fixed in design), `isActive`, version. Unique name applies to inactive rows too.
 **Events / notifications / statistics:** audit and entity events `position.created`, `position.renamed` (old→new), `position.deactivated`, `position.reactivated`, each with actor and vertical; failed/denied attempts audited as security events per the existing pattern. No notifications. No statistics change (routing groups are unchanged by rename; a deactivated group simply gets no new vacancies).
-**Edges:** deactivated Head Recruiter loses access immediately; Head Recruiter holding several verticals manages each separately; soft-deleted/foreign positions are never offered; catalog entry point for Head Recruiter — Q-170 (settings area is Admin-only).
+**Edges:** deactivated Head Recruiter loses access immediately; Head Recruiter holding several verticals manages each separately; soft-deleted/foreign positions are never offered; entry point for both Admin and Head Recruiter is the separate menu item «Довідник посад» outside «Налаштування» (D95; the settings area stays Admin-only).
 
 ### STORY-VAC-01-1: Create a vacancy or save a draft (Admin, Head Recruiter, Recruiter)
 
@@ -139,16 +139,38 @@ As a **Recruiter, Head Recruiter or Admin in a vertical**, I want to create a va
 
 - Given a Recruiter of Гемблінг, When I create «Медіабаєр — Facebook» without a Team Lead, headcount 2, on 10.11.2026 10:00 (Kyiv), Then a vacancy with the next `V-NNNN` number is created `OPEN`, `recruiter_initiated = true`, source `APP`, opening date 10.11.2026, probation 90 days, bonus scheme inherited from the vertical default, me auto-assigned as recruiter; it is not eligible for Team Lead submission or routing until a Team Lead is assigned (D77).
 - Given an Admin or Head Recruiter in scope, When I create a vacancy and pick an active Team Lead of the same vertical, Then it is `OPEN` with that Team Lead and `recruiter_initiated = false`; leaving the Team Lead empty gives a recruiter-initiated vacancy.
-- Given the create form, When I choose «Зберегти чернетку», Then a `DRAFT` is saved with only vertical and title required (position, dates optional); it has no opening date. When it is published (`DRAFT` → `OPEN`, who — Q-170), Then the opening date is the publish moment, not the save moment. A draft can be cancelled directly (D82) or soft-deleted (§12); the two are different.
+- Given the create form, When I choose «Зберегти чернетку», Then a `DRAFT` is saved with only vertical and title required (position, dates optional); it has no opening date. Only I (the author) can see, edit, publish, cancel or delete it (D92; handled in STORY-VAC-01-3). When I publish it (`DRAFT` → `OPEN`), Then the opening date is the publish moment, not the save moment. A draft can be cancelled directly (D82) or soft-deleted (§12); the two are different.
 - Given a new `OPEN` vacancy, Then it needs: vertical, active position of that vertical, title (prefilled with the position name, editable), headcount ≥ 1 (default 1). Optional: Team Lead, seniority, format, employment type, location, salary range (currency required when min or max is set; min ≤ max), description, requirements, priority (default Звичайна).
 - Given probation length, bonus scheme or recruiter reward in the payload from anyone other than the permitted role (probation 30–90 — Admin/Head HR only, D78; bonus controls — Admin only), Then those fields are refused, not silently ignored; defaults apply.
 - Given a double click or a retried request, Then exactly one vacancy is created (idempotency key); two concurrent creations get two different, never reused numbers.
 - (negative) Given HR, Head HR, Finance, a Recruiter/Head Recruiter outside the vertical, or a Team Lead using the full form (Team Leads use the request, STORY-VAC-03-3), When they try to create, Then it is denied; a position of another vertical, an inactive position, or a Team Lead of another vertical or without the Team Lead role is refused with a field error.
-- (negative) Given a recruiter-created vacancy, Then other recruiters of the vertical do not see it as "unassigned open" (the creator is assigned); a `DRAFT` is visible only to its author and to Head Recruiter/Admin in scope (Q-170).
+- (negative) Given a recruiter-created vacancy, Then other recruiters of the vertical do not see it as "unassigned open" (the creator is assigned); a `DRAFT` is visible only to its author — not to Head Recruiter and not to Admin (D92); for anyone else it does not exist (404; absent from lists, search by `V-NNNN`, counts and statistics).
 
 **Data / validation:** shared Zod schema for form and API; money as integer minor units + currency; time stored UTC, shown in Europe/Kyiv.
-**Events / notifications / statistics:** `vacancy.created` (number, status, source, recruiter-initiated) and `vacancy.recruiter_assigned` for the creator; publish emits `vacancy.status_changed` `DRAFT → OPEN`; no notification for recruiter-initiated vacancies. Open-vacancy counters of the vertical change only when the status becomes `OPEN`.
+**Events / notifications / statistics:** `vacancy.created` (number, status, source, recruiter-initiated) and `vacancy.recruiter_assigned` for the creator; no notification for recruiter-initiated vacancies (D89 notifies on Team Lead requests only). Open-vacancy counters of the vertical change only when the status becomes `OPEN`; a `DRAFT` is counted nowhere except in its author's own «Чернетки» chip.
 **Edges:** creation at 23:30 UTC shows next-day Kyiv date (UTC+2 after 25.10.2026); position deactivated during submit → refusal; creator later deactivated keeps history and open-work protection (D24/D43); clone (VAC-05) reuses these rules.
+
+### STORY-VAC-01-3: Handle my own draft vacancy (author only)
+
+As a **Recruiter, Head Recruiter or Admin who saved a draft**, I want to find, finish, publish, cancel or delete my draft, so that half-prepared needs do not clutter anyone else's work (D89, D92).
+
+**Acceptance criteria**
+
+- Given I saved a draft «Медіабаєр — Facebook» on 10.11.2026 (Kyiv), When I open «Вакансії» → chip «Чернетки», Then I see only my own drafts (with the chip count of my drafts) in the verticals where I still hold a vacancy-creating role.
+- Given my draft, When I edit it and save again, Then only vertical and title are required; stale version (two tabs of mine) → conflict, nothing partially saved.
+- Given my draft is complete (vertical, active position, title, headcount ≥ 1, valid optional fields), When I press «Опублікувати» _(proposed)_ on 11.11.2026 09:15 (Kyiv), Then it becomes `OPEN` with opening date 11.11.2026, counters of the vertical +1, it appears as unassigned `OPEN` to recruiters of the vertical (or only to me if I am a Recruiter and auto-assigned), and `vacancy.status_changed` `DRAFT → OPEN` is written. No approval and no notification (D89, D93).
+- Given the position of my draft was deactivated or its Team Lead left the vertical after I saved, When I publish, Then publication is refused with field errors and the draft stays a draft.
+- Given a draft, When I press «Скасувати» (`DRAFT → CANCELLED`, D82), Then it is closed with `cancelled_at` and a reason, and it is no longer editable; When I press «Видалити», Then it is soft-deleted (`deleted_at/by/reason`, §12) and not shown in «Скасовані». The two are never mixed.
+- (negative) Given another Recruiter, Head Recruiter of the same vertical, Admin, Team Lead, HR, Head HR or Finance, When they request the draft by id, by link, by search «V-NNNN» or via list/filter/count, Then they get 404 / nothing; publish, edit, cancel and delete calls are denied the same way and nothing changes (including a Head Recruiter and an Admin: D92 overrides their scope grants).
+- (negative) Given I lost the role or the vertical, or I am deactivated, When I try to open or publish the draft, Then it is denied (404 / sign-in impossible); the draft is retained, invisible to everyone, and returns to me if the role/account is restored (D98).
+- (negative) Given an Admin (or Head Recruiter) wants to clean up the draft of a deactivated or departed author, Then no such action exists: no list, metadata view, delete, restore or purge of someone else's draft is offered, the user card shows no drafts, and API calls are denied (404); only the author deletes their own draft (D98). Orphaned drafts are accepted, not tracked as a gap.
+- Given I have drafts and am deactivated (Admin deactivates me), Then my drafts do not count as open work (D24/D43) and do not block the deactivation; they are excluded from counters, search and statistics, and reappear in my «Чернетки» chip when I am reactivated.
+- Given I publish a draft saved a week ago after losing access to its vertical, or after its position was deactivated, Then publish re-validates every `OPEN` rule and is refused (field errors / 403); the draft stays mine and unchanged (D98).
+- (negative) Given I double-click «Опублікувати», or publish from two tabs, Then exactly one `DRAFT → OPEN` transition happens, the second gets a conflict (`vacancy.status_changed` once).
+
+**Data / validation:** same shared Zod schema as STORY-VAC-01-1 with the relaxed save-draft subset; publish runs the full `OPEN` validation; `created_by` is immutable.
+**Events / notifications / statistics:** `vacancy.created` (status `DRAFT`) on first save, `vacancy.updated` per save, `vacancy.status_changed` on publish/cancel, `vacancy.deleted` on delete; events of a `DRAFT` are visible only to its author while it is a draft; no notifications; no statistic or counter changes until `OPEN`.
+**Edges:** concurrency per above; opening date = publish moment, not save moment; draft cancelled/deleted by the author never reaches Head Recruiter/Admin lists; a draft of a deactivated author stays hidden and returns on reactivation (D98) — excluded from the open-work guard D24/D43, counters, search and statistics; there is no Admin cleanup or delete action anywhere (D98); numbering: the draft consumes its `V-NNNN` at first save, gaps are accepted (D98), so a deleted draft's number is never reused; restoring or purging a draft by anyone other than the author is not offered (D98).
 
 ### STORY-VAC-03-3: Team Lead requests a vacancy («Запросити вакансію»)
 
@@ -159,27 +181,62 @@ As a **Team Lead in a vertical**, I want to request a hire in a few fields, so t
 - Given Team Lead Vasyl (Гемблінг), When I open the request form, Then I choose a position from the active positions of my verticals, set headcount (≥ 1), urgency (Звичайна / Термінова) and an optional comment; vertical and Team Lead (me) are not editable.
 - Given a valid request for «Медіабаєр — Facebook», headcount 1, «Термінова», comment «Потрібен досвід з Facebook Ads», When I submit, Then an `OPEN` vacancy is created at once: title = «Медіабаєр — Facebook», description = my comment, `team_lead = me`, `recruiter_initiated = false`, source `APP`, probation 90, bonus inherited, other fields (seniority, format, employment type, salary range, requirements) empty and shown as not specified; no `DRAFT` and no approval step exist.
 - Given the vacancy, Then I see it in my own list; every recruiter of the vertical sees it as an unassigned open vacancy and can self-assign (D1), or the Head Recruiter/Admin assigns recruiters. The Head Recruiter/Admin complete the missing fields and may change urgency; I cannot change urgency, bonus scheme or probation afterwards (VAC-08).
-- Given the request, Then all active Recruiters of the vertical and the Head Recruiter(s) of that vertical are notified; the requester, deactivated users and users of other verticals are not. Delivery depends on the notification layer (Q-170).
+- Given the request, Then all active Recruiters of the vertical and the Head Recruiter(s) of that vertical are in the addressee list of the creation event; the requester, deactivated users and users of other verticals are not. No notification is delivered in Phase 2 (no notification layer before Phase 5, D93): the vacancy simply shows among the unassigned `OPEN` vacancies of recruiters of the vertical; the Head Recruiter sees it in the vertical's list as usual.
 - Given the position I need is not in the catalog, Then I cannot submit a request; the picker explains that Admin or Head Recruiter of the vertical must add the position first _(proposed copy)_. There is no free-text position.
 - Given a double click or retry, Then one vacancy is created (idempotency key); two deliberate requests for the same position are two vacancies.
 - (negative) Given a Recruiter, Head Recruiter, Admin, HR, Head HR or Finance using the request endpoint as a Team Lead, or a Team Lead without the role in the position's vertical, When they submit, Then it is denied (position of a foreign vertical → 404); a deactivated user cannot sign in at all.
 - (negative) Given an inactive position at submit time, Then the request is refused and no vacancy appears.
 
 **Data / validation:** position (required, active, in a vertical where I am Team Lead), headcount (integer ≥ 1; upper limit set in design), urgency (enum, default Звичайна), comment (optional, bounded length, plain text).
-**Events / notifications / statistics:** `vacancy.created` (requested by Team Lead, status `OPEN`); in-app/email notification to the recipients above; open-vacancy counters of the vertical +1.
+**Events / notifications / statistics:** `vacancy.created` (requested by Team Lead, status `OPEN`, with the addressee list: active Recruiters + Head Recruiter(s) of the vertical, excluding the requester); no notification is sent in Phase 2 — delivery is added in Phase 5 from this event (D93); open-vacancy counters of the vertical +1.
 **Edges:** Team Lead with several verticals — the position decides the vertical; Team Lead who is also a Recruiter in the vertical (D35) requests as Team Lead; Team Lead deactivated later — the vacancy keeps the «неактивний» marker (D79) and open-work protection (D24/D43); opening date is the Kyiv date of submission; no Team Lead priority is needed to request (D47 applies only to routing later).
+
+### STORY-VAC-08-2: Change vacancy urgency vs Team Lead priority (two separate controls)
+
+As a **Head Recruiter or Admin**, I want to mark a vacancy «Термінова» without touching how candidates are distributed among Team Leads, so that urgency and routing order stay independent (D94, VAC-08, ROUTE-01).
+
+**Acceptance criteria**
+
+- Given vacancy V-0007 requested as «Звичайна» by Team Lead Vasyl, When Head Recruiter of Гемблінг sets «Терміновість вакансії» to «Термінова», Then the flag changes through `vacancy.update`, history records «Звичайна → Термінова» with actor/time, and Vasyl's «Пріоритет тімліда» (П0) and routing order are unchanged.
+- Given Admin, When they set «Пріоритет тімліда для цієї вакансії» (`vacancy.priority.override`), Then only the routing order for that vacancy changes (e.g. Taras П1 placed before Vasyl П0 for V-0007), «Терміновість вакансії» is unchanged, and the change is audited.
+- (negative) Given Team Lead (author of the request), Recruiter, HR, Head HR or Finance, When they try to change the urgency, Then it is denied and unchanged; Head Recruiter and any non-Admin trying to set «Пріоритет тімліда для цієї вакансії» is denied (aal2 withheld/not granted); an Admin's valid aal2 session is required for the override.
+- (negative) Given a Head Recruiter of another vertical, Then the vacancy is out of scope (404); given a `DRAFT` of someone else, Then it does not exist for them (D92).
+- Given two users changing urgency at once, Then the second gets a stale-version conflict.
+
+**Data / UX copy:** field labels «Терміновість вакансії» (Звичайна/Термінова) and «Пріоритет тімліда для цієї вакансії»; the bare «Пріоритет» is not used on vacancy screens or filters (filter «Пріоритет» → «Терміновість»).
+**Events / notifications / statistics:** `vacancy.updated` (urgency old→new) / `vacancy.priority_overridden` (Admin); no notification in Phase 2; routing consumes only the TL priority (Phase 3).
+**Edges:** closed (`FILLED`/`CANCELLED`) vacancies — urgency edit denied by status rules (VAC-08); override on a vacancy without a Team Lead is meaningless and refused (D77).
+
+### STORY-VAC-04-4: Urgent vacancy is highlighted red
+
+As **any user who can see a vacancy**, I want an urgent vacancy to stand out in red, so that I notice what needs attention first (D97).
+
+**Acceptance criteria**
+
+- Given V-0007 with «Терміновість вакансії» = «Термінова», When it appears in the vacancy list (table row on desktop, card on mobile), the preview panel or the vacancy detail header, Then it is highlighted red (soft destructive tokens: `--destructive-subtle` background, `--error-text` text, `--destructive` accent edge/border) and the text «Термінова» is shown next to the title. The current amber «Термінова» badge (`warning` tokens) is replaced.
+- Given a «Звичайна» vacancy, Then it has no highlight and no urgency label.
+- Given the theme is light or dark, Then the highlight meets WCAG AA contrast (≥ 4.5:1 for text; ratios from `docs/ux/design-system.md` §contrast) and the label text is present; colour is never the only signal (screen readers read «Термінова»; selected-row and hover states remain distinguishable from the urgent highlight).
+- Given a board/kanban header or any other future place that shows a vacancy (add-to-vacancy pickers, candidate card vacancy chip), When built, Then the same highlight and label apply (shared component).
+- Given Head Recruiter changes urgency «Звичайна» → «Термінова» (STORY-VAC-08-2) and the list is open in another tab, When the data refreshes (background refetch / invalidation), Then the row turns red and back without a reload; a `DRAFT` highlighted only for its author (D92).
+- Given an urgent vacancy in a non-closed status — `DRAFT` (visible only to its author, D92), `OPEN` or `ON_HOLD` — Then the red highlight and the text «Термінова» are shown; an urgent `ON_HOLD` vacancy shows the red highlight plus the «Призупинена» status badge.
+- Given an urgent vacancy in a closed status — `FILLED` («Заповнена») or `CANCELLED` («Скасована») — e.g. V-0003 «Медіабаєр — Facebook», When it appears in the «Заповнені»/«Скасовані» filters, the list, the preview panel or the detail header, Then it is NOT highlighted red (no destructive background/edge/text colour), but the text «Термінова» stays in the neutral badge style (D99, owner: «Підсвічувати, якщо неактуальна, то логічно що не підсвічувати»); the urgency filter «Терміновість» = «Термінова» still finds it.
+- Given an urgent `OPEN` vacancy that becomes `FILLED` (automatic, hires = headcount) or `CANCELLED`, When the status changes, Then the red highlight disappears at once and the neutral «Термінова» stays; Given Head Recruiter/Admin reopens a `FILLED` urgent vacancy (D75), Then the red highlight returns; the stored urgency is never changed by a status change.
+- (negative) Given a user without access to the vacancy, Then no urgent indicator, count or red styling leaks (the list scope is unchanged, 404 for foreign vacancies); the urgency filter «Терміновість» does not reveal hidden vacancies.
+
+**Data:** `priority = URGENT` only; no new fields. **Events / statistics:** none; no notification. **Screenshot expectation (SHOT-01..03):** urgent vacancy row/card in list, preview panel and detail header for Admin and Recruiter, light and dark, desktop 1440×900 and mobile 390×844; seed keeps at least one urgent open vacancy for each vertical (e.g. «Медіабаєр — Facebook» for Vasyl «Термінова») next to a «Звичайна» one, **plus one urgent `FILLED` and one urgent `CANCELLED` vacancy** (neutral «Термінова» badge, no red) shown in the same screens and states, so the gallery proves the open-red vs closed-neutral contrast; an urgent `ON_HOLD` vacancy (red + «Призупинена») is also captured.
+**Edges:** a long title wraps without hiding the label; an urgent vacancy that is also `ON_HOLD` keeps the highlight and shows the status badge too; filter «Терміновість» = «Термінова» shows every urgent vacancy of the selected statuses — red rows for `DRAFT`/`OPEN`/`ON_HOLD`, neutral-badge rows for `FILLED`/`CANCELLED`; the red/neutral decision is one condition on status in the shared component (D99); "closed" is derived from VAC-02 only (`FILLED`, `CANCELLED`), never from dates.
 
 ## V2–V4 — subsequent vacancy stories
 
 | Story           | User outcome and acceptance boundary                                                                                                                                 | Questions / dependencies                                                                                       |
 | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| STORY-VAC-01-1  | Expanded in «V2 — expanded stories» below (create / save draft by Admin, Head Recruiter, Recruiter)                                                                  | D76/D78/D89/D90 confirmed; Q-170                                                                               |
-| STORY-VAC-POS-1 | Expanded below (position catalog)                                                                                                                                    | D76 confirmed; Q-170 (entry point for Head Recruiter)                                                          |
+| STORY-VAC-01-1  | Expanded in «V2 — expanded stories» below (create / save draft by Admin, Head Recruiter, Recruiter)                                                                  | D76/D78/D89/D90/D92/D98 confirmed; draft handling in STORY-VAC-01-3                                            |
+| STORY-VAC-POS-1 | Expanded below (position catalog)                                                                                                                                    | D76/D95/D96 confirmed                                                                                          |
 | STORY-VAC-01-2  | Allowed users edit only their permitted fields; stale writes reject; before/after history is atomic; foreign scope and prohibited field patches denied               | D75/D78 confirmed; operational edit rights never override Admin-only bonus or Admin/Head-HR probation controls |
 | STORY-VAC-02-1  | Authorized status actions respect VAC-02; automatic FILLED requires real probation/headcount integration; unauthorized/manual shortcuts denied                       | D75 confirmed; candidate/pipeline integration for auto-fill                                                    |
 | STORY-VAC-03-1  | Admin/Head Recruiter assign eligible recruiters; recruiter self-assigns only to an unassigned OPEN vacancy in their vertical; concurrent claims cannot double-assign | D1; V1 database scope and assignment model                                                                     |
 | STORY-VAC-03-2  | Recruiter-initiated vacancy is created `OPEN` (D89) with no Team Lead until authorized assignment; no submission/routing before assignment                           | D77/D89 confirmed: Admin/Head Recruiter assigns Team Lead; no submission/routing before assignment             |
-| STORY-VAC-03-3  | Expanded in «V2 — expanded stories» below (Team Lead «Запросити вакансію»)                                                                                           | D86/D87/D89/D90 confirmed; Q-170 (notification delivery)                                                       |
+| STORY-VAC-03-3  | Expanded in «V2 — expanded stories» below (Team Lead «Запросити вакансію»)                                                                                           | D86/D87/D89/D90/D93 confirmed (notification delivery in Phase 5)                                               |
 | STORY-VAC-04-3  | Candidate list/mini-funnel and every related count include only applications the viewer can open; histories show real changes                                        | D19/D52/D53; real candidates/applications, timeline sensitivity rules                                          |
 | STORY-VAC-05-1  | Clone creates a separately numbered vacancy without changing the original; optional rejected-good suggestions use real eligible applications                         | Candidate/application data; clone-field/candidate rules reviewed before shipping                               |
 | STORY-ARCH-03-1 | Soft-delete never abandons active applications; permitted resolution is required and atomic; unauthorized recruiter deletion is rejected per D13                     | ARCH-03; Q-100; archive/restore user flows remain Phase 5                                                      |
@@ -189,27 +246,30 @@ Each subsequent write story is expanded into Given/When/Then, field validation, 
 
 ## Traceability
 
-| PRD / decision                           | Stories          | Test evidence                                                       |
-| ---------------------------------------- | ---------------- | ------------------------------------------------------------------- |
-| VAC-01/02/04, VIS-01..03, D1/D19/D53/D67 | STORY-VAC-04-1/2 | QA fills actual integration/API/browser cases after implementation  |
-| VAC-07                                   | STORY-VAC-07-1   | QA fills uniqueness, scope and number-search cases                  |
-| ROLE-06, D24/D43/D45                     | STORY-ROLE-06-1  | QA fills open-work account/role-denial and later reassignment cases |
-| CLAUDE §8, SHOT-01..03                   | STORY-SEED-2     | QA fills idempotence and Phase-2 gallery cases                      |
-| VAC-01/02, D78/D89                       | STORY-VAC-01-1   | QA fills create/draft/validation/denied-role cases                  |
-| VAC-03, D1/D86/D87/D89/D90               | STORY-VAC-03-3   | QA fills request, recipients, idempotency and denied-role cases     |
-| §3 positions, D76                        | STORY-VAC-POS-1  | QA fills scope, uniqueness, deactivation and denied-role cases      |
-| VAC-01..05, ARCH-03, UI-09               | V2–V4 backlog    | Expanded and linked as each increment starts                        |
+| PRD / decision                           | Stories          | Test evidence                                                                                            |
+| ---------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------- |
+| VAC-01/02/04, VIS-01..03, D1/D19/D53/D67 | STORY-VAC-04-1/2 | QA fills actual integration/API/browser cases after implementation                                       |
+| VAC-07                                   | STORY-VAC-07-1   | QA fills uniqueness, scope and number-search cases                                                       |
+| ROLE-06, D24/D43/D45                     | STORY-ROLE-06-1  | QA fills open-work account/role-denial and later reassignment cases                                      |
+| CLAUDE §8, SHOT-01..03                   | STORY-SEED-2     | QA fills idempotence and Phase-2 gallery cases                                                           |
+| VAC-01/02, D78/D89                       | STORY-VAC-01-1   | QA fills create/draft/validation/denied-role cases                                                       |
+| VAC-02, D82/D89/D92/D98, ARCH-01         | STORY-VAC-01-3   | QA fills author-only draft, publish race, no-Admin-action, deactivated-author and denied-role cases      |
+| VAC-08, ROUTE-01, D90/D94                | STORY-VAC-08-2   | QA fills urgency vs TL-priority separation and denied-role cases                                         |
+| VAC-04, D97/D99, UI-xx, SHOT-01..03      | STORY-VAC-04-4   | QA fills red highlight by status (open red / closed neutral), label, light/dark contrast and screenshots |
+| VAC-03, D1/D86/D87/D89/D90               | STORY-VAC-03-3   | QA fills request, recipients, idempotency and denied-role cases                                          |
+| §3 positions, D76                        | STORY-VAC-POS-1  | QA fills scope, uniqueness, deactivation and denied-role cases                                           |
+| VAC-01..05, ARCH-03, UI-09               | V2–V4 backlog    | Expanded and linked as each increment starts                                                             |
 
 ## Ready for design
 
 - V1 scoped list/search/status/vertical, real read-only preview/detail and numbers, deterministic seed and existing-account open-work safety.
-- V2/V3 write-policy design is unblocked by owner decisions D75–D78 and D86–D91; implementation still follows V1 rather than silently expanding the first slice. V2 stories: STORY-VAC-POS-1, STORY-VAC-01-1, STORY-VAC-03-3 (draft publish/visibility pending Q-170).
+- V2/V3 write-policy design is unblocked by owner decisions D75–D78 and D86–D91; implementation still follows V1 rather than silently expanding the first slice. V2 stories: STORY-VAC-POS-1, STORY-VAC-01-1, STORY-VAC-01-3, STORY-VAC-03-3, STORY-VAC-08-2, STORY-VAC-04-4 (D89..D99 confirmed).
 - Match the designer's visual hierarchy with actual configured vertical names, approved statuses/badges, cursor pagination and role-aware fields.
 
 ## Blocked by questions
 
 - **V1 days-open counter:** resolved by D85 — exact opening date only.
-- **V2 vacancy creation:** no longer blocked. Q-166/167/168/169 are resolved by D86–D91. Only Q-170 remains: the recommended defaults (draft publisher/visibility, notification delivery before Phase 5, urgency vs routing-priority permission naming, catalog entry point for Head Recruiter, rename not rewriting titles) must be confirmed before the draft save/publish, the notification and the Head Recruiter catalog screen ship; `OPEN` creation, the Team Lead request and the Admin catalog can start.
+- **V2 vacancy creation:** not blocked. Q-166..Q-172 are resolved by D86–D99. Drafts: author-only lifecycle, no Admin action, orphaned drafts accepted (D98); no gap to track.
 - **Follow-up (not a V2 blocker):** cleanup task for the inert approval setting (`vacancy_approval_enabled`, S-14 toggle, `vacancy.approve`) — D89; owner confirms before anything is removed.
 - **HR/Head HR screen (D88/D91):** outside the vacancy slices; built with the polygraph queue (Phase 3). Until then they land on «Вакансії».
 - **Later deletion increment:** Q-100 per-application deletion resolution when active applications arrive. Q-26/48/49/50 are resolved by D75–D78 and no longer block writable vacancy design.

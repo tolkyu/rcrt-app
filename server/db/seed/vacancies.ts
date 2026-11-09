@@ -122,7 +122,8 @@ export const DEMO_POSITIONS: readonly SeedPosition[] = [
 
 /**
  * Chronological by creation time: the identity sequence hands out V-0001… in this order on a fresh
- * database. FILLED is deliberately absent — it requires a real hire (ADR-012).
+ * database. The only FILLED row is a display fixture for the closed-urgent styling (D99); real
+ * fills require a hire (ADR-012).
  */
 export const DEMO_VACANCIES: readonly SeedVacancy[] = [
   {
@@ -164,6 +165,7 @@ export const DEMO_VACANCIES: readonly SeedVacancy[] = [
     createdAt: kyiv('2026-10-31T15:05:30'),
     updatedAt: kyiv('2026-11-02T12:15:21'),
     status: 'ON_HOLD',
+    priority: 'URGENT',
     seniority: 'Мідл',
     workFormat: 'REMOTE',
     employmentType: FULL_TIME,
@@ -242,6 +244,7 @@ export const DEMO_VACANCIES: readonly SeedVacancy[] = [
     closedAt: kyiv('2026-11-02T16:20:40'),
     updatedAt: kyiv('2026-11-02T16:20:40'),
     status: 'CANCELLED',
+    priority: 'URGENT',
     workFormat: 'REMOTE',
     employmentType: FULL_TIME,
     recruiters: [
@@ -364,6 +367,29 @@ export const DEMO_VACANCIES: readonly SeedVacancy[] = [
       by: HEAD,
       reason: 'Дублікат вакансії',
     },
+  },
+  {
+    key: 'crypto-trader-filled-urgent',
+    vertical: 'crypto',
+    position: 'crypto-trader',
+    title: 'Крипто-трейдер (команда закрита)',
+    teamLead: 'tl.crypto@demo',
+    createdBy: 'tl.crypto@demo',
+    createdAt: kyiv('2026-11-02T16:10:26'),
+    closedAt: kyiv('2026-11-02T18:05:12'),
+    updatedAt: kyiv('2026-11-02T18:05:12'),
+    status: 'FILLED',
+    priority: 'URGENT',
+    seniority: 'Сеніор',
+    workFormat: 'REMOTE',
+    employmentType: FULL_TIME,
+    recruiters: [
+      {
+        email: 'recruiter.crypto@demo',
+        assignedAt: kyiv('2026-11-02T16:30:40'),
+        assignedBy: 'admin@demo',
+      },
+    ],
   },
 ];
 
