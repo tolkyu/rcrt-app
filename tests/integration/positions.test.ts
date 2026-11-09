@@ -1006,7 +1006,13 @@ describe('Open vacancy counts [ADR-013]', () => {
       for (const [status, extraColumns] of [
         ['DRAFT', { opened_at: null }],
         ['ON_HOLD', {}],
-        ['CANCELLED', { closed_at: new Date('2026-11-02T09:00:00Z') }],
+        [
+          'CANCELLED',
+          {
+            closed_at: new Date('2026-11-02T09:00:00Z'),
+            cancelled_at: new Date('2026-11-02T09:00:00Z'),
+          },
+        ],
       ] as const)
         vacancies.push(
           await world.addVacancy({

@@ -7,9 +7,8 @@ import {
   vacancyListQuerySchema,
 } from '../../lib/schemas/vacancy';
 import { buildAuthContext } from '../../server/authz/context';
-import { scopeWhere } from '../../server/authz/scopes';
 import type { UserId } from '../../server/authz/types';
-import { vacancyScope } from '../../server/authz/vacancy-scope';
+import { vacancyReadWhere } from '../../server/authz/vacancy-scope';
 import type { RequestContext } from '../../server/context/request-context';
 import * as schema from '../../server/db/schema';
 import { systemClock } from '../../server/domain/clock';
@@ -53,7 +52,7 @@ const auth = (userId: string, roles: Roles) =>
     timezone: 'Europe/Kyiv',
   });
 const scopeFor = (userId: string, roles: Roles) =>
-  scopeWhere(auth(userId, roles), 'vacancy.read', vacancyScope);
+  vacancyReadWhere(auth(userId, roles));
 
 /** Rows of this test's world visible through the same scope the list and detail services use; the tag in every title keeps other data and the page size out of the result. */
 async function visible(userId: string, roles: Roles): Promise<Key[]> {
@@ -92,14 +91,13 @@ describe('vacancy.read scope predicates [VIS-01..03, D1, D19, D53]', () => {
     );
   });
 
-  it('VERTICAL: Head Recruiter and HR read their verticals only, including closed and draft rows', async () => {
+  it('VERTICAL: Head Recruiter and HR read their verticals only, including closed rows but never a draft they did not write [D92]', async () => {
     expect(await as('head')).toEqual(
       keys(
         'assignedOpen',
         'unassignedOpen',
         'unassignedOnHold',
         'recruiterInitiated',
-        'draft',
         'cancelled',
       ),
     );
@@ -109,7 +107,6 @@ describe('vacancy.read scope predicates [VIS-01..03, D1, D19, D53]', () => {
         'unassignedOpen',
         'unassignedOnHold',
         'recruiterInitiated',
-        'draft',
         'cancelled',
         'otherUnassigned',
         'otherAssigned',
@@ -121,7 +118,7 @@ describe('vacancy.read scope predicates [VIS-01..03, D1, D19, D53]', () => {
     expect(await as('tlA')).toEqual(
       keys('assignedOpen', 'unassignedOpen', 'cancelled'),
     );
-    expect(await as('tlB')).toEqual(keys('unassignedOnHold', 'draft'));
+    expect(await as('tlB')).toEqual(keys('unassignedOnHold'));
     expect(await as('tlC')).toEqual(keys('otherUnassigned', 'otherAssigned'));
   });
 
@@ -245,7 +242,11 @@ describe('title search matches wildcards and backslashes literally [SEC-VAC-01]'
   });
 
   it('never lets %, _ or \\ in the query act as a pattern', async () => {
-    const closed = { status: 'CANCELLED', closed_at: WORLD_OPENED_AT };
+    const closed = {
+      status: 'CANCELLED',
+      closed_at: WORLD_OPENED_AT,
+      cancelled_at: WORLD_OPENED_AT,
+    };
     const added = titles(world.tag);
     const ids = Object.fromEntries(
       await Promise.all(
@@ -412,7 +413,7 @@ describe('open vacancy work [ROLE-06, D24, D43, STORY-ROLE-06-1]', () => {
   const open = (name: Name, remaining?: Roles) =>
     userHasOpenVacancyWork(db, world.users[name], remaining);
 
-  it('detects led and assigned DRAFT/OPEN/ON_HOLD work and ignores closed or deleted work', async () => {
+  it('detects led and assigned OPEN/ON_HOLD work and ignores closed, deleted or draft work', async () => {
     expect(await open('tlA')).toBe(true);
     expect(await open('tlB')).toBe(true);
     expect(await open('recA')).toBe(true);
@@ -422,12 +423,12 @@ describe('open vacancy work [ROLE-06, D24, D43, STORY-ROLE-06-1]', () => {
     expect(await open('nobody')).toBe(false);
   });
 
-  it('treats a draft led by a Team Lead as open work', async () => {
-    await admin`update app.vacancy set status = 'CANCELLED', closed_at = now() where id = ${world.v.unassignedOnHold}`;
+  it('does not treat a draft led by a Team Lead as open work [D98]', async () => {
+    await admin`update app.vacancy set status = 'CANCELLED', closed_at = now(), cancelled_at = now() where id = ${world.v.unassignedOnHold}`;
     try {
-      expect(await open('tlB')).toBe(true);
+      expect(await open('tlB')).toBe(false);
     } finally {
-      await admin`update app.vacancy set status = 'ON_HOLD', closed_at = null where id = ${world.v.unassignedOnHold}`;
+      await admin`update app.vacancy set status = 'ON_HOLD', closed_at = null, cancelled_at = null where id = ${world.v.unassignedOnHold}`;
     }
   });
 

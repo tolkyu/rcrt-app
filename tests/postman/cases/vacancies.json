@@ -192,5 +192,382 @@
     },
     "status": 404,
     "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "no token",
+    "as": null,
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0001"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "Finance has no vacancy access, even with an empty body",
+    "as": "finance",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0002"
+    },
+    "body": {},
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0003"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "HR cannot create vacancies",
+    "as": "hr",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0004"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "Recruiter of another vertical gets 404",
+    "as": "recruiter_crypto",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0005"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "Head Recruiter of Гемблінг cannot create in Крипто",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0006"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_crypto_vertical_id}}",
+      "positionId": "{{vacancy_crypto_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "a missing Idempotency-Key is a validation error",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": null
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "header.Idempotency-Key",
+        "code": "invalid_key"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "a malformed Idempotency-Key is a validation error",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "short"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "header.Idempotency-Key",
+        "code": "invalid_key"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "unknown fields such as status or bonus are refused",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0007"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "status": "FILLED"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "a missing mode is refused",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0008"
+    },
+    "body": {
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.mode",
+        "code": "invalid_union"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "probation below 30 days",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0009"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "probationDays": 29
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.probationDays",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "probation above 90 days",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0010"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "probationDays": 91
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.probationDays",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "a title is required",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0011"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.title",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "an OPEN vacancy needs its position",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0012"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.positionId",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "a salary minimum above the maximum",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0013"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "salaryMinMinor": "500",
+      "salaryMaxMinor": "100",
+      "salaryCurrency": "USD"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.salaryMaxMinor",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "a salary needs a currency",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0014"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "salaryMinMinor": "500"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.salaryCurrency",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "a Head Recruiter may not set the probation length",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0015"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "probationDays": 60
+    },
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "a position of another vertical is a field error",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0016"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_crypto_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.positionId",
+        "code": "invalid_position"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "an unknown Team Lead is a field error",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0017"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "teamLeadId": "00000000-0000-4000-8000-000000000000"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.teamLeadId",
+        "code": "invalid_team_lead"
+      }
+    ]
   }
 ]

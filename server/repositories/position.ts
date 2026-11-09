@@ -148,3 +148,18 @@ export async function updatePosition(
     .returning(columns);
   return row!;
 }
+
+/** `FOR SHARE` conflicts with the catalog writers' `NO KEY UPDATE`, so a deactivation cannot interleave with a vacancy that has just validated «active» (ADR-013). */
+export async function lockPositionShared(db: DbExecutor, positionId: string) {
+  const [row] = await db
+    .select({
+      id: position.id,
+      verticalId: position.verticalId,
+      isActive: position.isActive,
+    })
+    .from(position)
+    .where(eq(position.id, positionId))
+    .for('share')
+    .limit(1);
+  return row ?? null;
+}

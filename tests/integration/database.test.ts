@@ -717,6 +717,7 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       entity_event: appendOnly,
       entity_event_pii: appendOnly,
       file_object: noDelete,
+      idempotency_key: ['INSERT', 'SELECT'],
       job_run: noDelete,
       position: ['INSERT', 'SELECT'],
       rate_limit_bucket: readWrite,
@@ -725,8 +726,8 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       user_invite: noDelete,
       user_role: readWrite,
       user_session: noDelete,
-      vacancy: ['SELECT'],
-      vacancy_recruiter: ['SELECT'],
+      vacancy: ['INSERT', 'SELECT'],
+      vacancy_recruiter: ['INSERT', 'SELECT'],
       vertical: noDelete,
     };
     const purgeTable: Partial<
@@ -767,6 +768,9 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
     expect(columnAcl.map((row) => row.entry).sort()).toEqual([
       'audit_log.after|app_purge|UPDATE',
       'audit_log.before|app_purge|UPDATE',
+      'idempotency_key.created_at|app_rw|UPDATE',
+      'idempotency_key.request_hash|app_rw|UPDATE',
+      'idempotency_key.resource_id|app_rw|UPDATE',
       'position.is_active|app_rw|UPDATE',
       'position.name_key|app_rw|UPDATE',
       'position.name|app_rw|UPDATE',

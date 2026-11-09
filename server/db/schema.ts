@@ -699,8 +699,11 @@ export const vacancy = app
       source: text('source', { enum: ['APP', 'TELEGRAM_BOT'] })
         .notNull()
         .default('APP'),
+      descriptionDoc: jsonb('description_doc'),
+      requirementsDoc: jsonb('requirements_doc'),
       openedAt: instant('opened_at'),
       closedAt: instant('closed_at'),
+      cancelledAt: instant('cancelled_at'),
       createdBy: uuid('created_by')
         .notNull()
         .references(() => appUser.id, { onDelete: 'restrict' }),
@@ -728,7 +731,7 @@ export const vacancy = app
       ),
       check(
         'vacancy_position_chk',
-        sql`${t.status} = 'DRAFT' OR ${t.positionId} IS NOT NULL`,
+        sql`${t.status} IN ('DRAFT','CANCELLED') OR ${t.positionId} IS NOT NULL`,
       ),
       check(
         'vacancy_team_lead_chk',
@@ -758,7 +761,11 @@ export const vacancy = app
       ),
       check(
         'vacancy_opened_chk',
-        sql`${t.status} = 'DRAFT' OR ${t.openedAt} IS NOT NULL`,
+        sql`${t.status} IN ('DRAFT','CANCELLED') OR ${t.openedAt} IS NOT NULL`,
+      ),
+      check(
+        'vacancy_cancelled_chk',
+        sql`(${t.cancelledAt} IS NOT NULL) = (${t.status} = 'CANCELLED') AND (${t.cancelledAt} IS NULL OR ${t.cancelledAt} = ${t.closedAt})`,
       ),
       check(
         'vacancy_soft_delete_chk',
@@ -780,6 +787,12 @@ export const vacancy = app
       index('vacancy_position_idx')
         .on(t.positionId, t.verticalId)
         .where(sql`${t.deletedAt} IS NULL`),
+      index('vacancy_position_open_idx')
+        .on(t.positionId, t.verticalId)
+        .where(sql`${t.deletedAt} IS NULL AND ${t.status} = 'OPEN'`),
+      index('vacancy_draft_author_idx')
+        .on(t.createdBy, t.publicNo.desc())
+        .where(sql`${t.deletedAt} IS NULL AND ${t.status} = 'DRAFT'`),
       index('vacancy_title_trgm_idx')
         .using('gin', sql`${t.title} gin_trgm_ops`)
         .where(sql`${t.deletedAt} IS NULL`),
@@ -805,6 +818,29 @@ export const vacancyRecruiter = app
     (t) => [
       primaryKey({ columns: [t.vacancyId, t.userId] }),
       index('vacancy_recruiter_user_idx').on(t.userId, t.vacancyId),
+    ],
+  )
+  .enableRLS();
+
+/** Replay record of one idempotent write per user, operation and client key; the resource id is allocated before the write so one INSERT claims the key (ADR-012 addendum). */
+export const idempotencyKey = app
+  .table(
+    'idempotency_key',
+    {
+      id: uuid('id').primaryKey().defaultRandom(),
+      userId: uuid('user_id')
+        .notNull()
+        .references(() => appUser.id, { onDelete: 'restrict' }),
+      operation: text('operation').notNull(),
+      key: text('key').notNull(),
+      requestHash: text('request_hash').notNull(),
+      resourceId: uuid('resource_id').notNull(),
+      createdAt: instant('created_at').notNull().defaultNow(),
+    },
+    (t) => [
+      uniqueIndex('idempotency_key_uq').on(t.userId, t.operation, t.key),
+      index('idempotency_key_created_idx').on(t.createdAt),
+      check('idempotency_key_chk', sql`${t.key} ~ '^[A-Za-z0-9_-]{16,64}$'`),
     ],
   )
   .enableRLS();

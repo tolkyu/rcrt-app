@@ -99,6 +99,13 @@
       "when": 1794214776646,
       "tag": "0013_position_name_key",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794251034658,
+      "tag": "0014_vacancy_create",
+      "breakpoints": true
     }
   ]
 }

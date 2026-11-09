@@ -14,3 +14,7 @@ pm.collectionVariables.set(
   'vacancy_gambling_vertical_id',
   page.items[0].vertical.id,
 );
+pm.collectionVariables.set(
+  'vacancy_gambling_position_id',
+  page.items.find((v) => v.position).position.id,
+);

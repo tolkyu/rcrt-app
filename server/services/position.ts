@@ -21,12 +21,18 @@ import { rateLimitSecret } from '../config/runtime';
 import type { RequestContext } from '../context/request-context';
 import type { DbExecutor } from '../db';
 import { appendEvent } from '../events';
-import { ConflictError, ForbiddenError, NotFoundError } from '../http/errors';
+import {
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from '../http/errors';
 import {
   countPositions,
   insertPosition,
   listPositions,
   lockPosition,
+  lockPositionShared,
   lockVerticalForCatalog,
   updatePosition,
   type PositionRow,
@@ -218,4 +224,32 @@ export async function patchPosition(
     return updated;
   });
   return toPosition(row, null);
+}
+
+/**
+ * Vacancy writes (V2b): the position must exist in the vacancy's own vertical within the caller's `position.read` scope
+ * (otherwise a field error that does not tell foreign from unknown) and be active (409 POSITION_INACTIVE, ADR-013).
+ * The shared row lock keeps a concurrent deactivation from slipping in before the vacancy is stored.
+ */
+export async function assertPositionUsable(
+  ctx: RequestContext,
+  tx: DbExecutor,
+  positionId: string,
+  verticalId: string,
+): Promise<void> {
+  const row = await lockPositionShared(tx, positionId);
+  const field = [{ path: 'body.positionId', code: 'invalid_position' }];
+  if (
+    !row ||
+    row.verticalId !== verticalId ||
+    !can(ctx.auth, 'position.read', {
+      type: 'vertical',
+      id: row.verticalId as VerticalId,
+    })
+  )
+    throw new ValidationError(field);
+  if (!row.isActive)
+    throw new ConflictError('POSITION_INACTIVE', [
+      { path: 'body.positionId', code: 'position_inactive' },
+    ]);
 }

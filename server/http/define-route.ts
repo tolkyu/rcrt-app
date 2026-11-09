@@ -3,6 +3,10 @@ import type {
   RouteConfig,
 } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
+import {
+  IDEMPOTENCY_HEADER,
+  idempotencyKeySchema,
+} from '../../lib/idempotency';
 import { hasAnyGrant, requirePermission } from '../authz/can';
 import type { PermissionCode } from '../authz/permissions';
 import {
@@ -34,6 +38,7 @@ export interface RouteSpec<
   Q extends AnyObject | undefined,
   B extends z.ZodType | undefined,
   R extends z.ZodType,
+  I extends true | undefined = undefined,
 > {
   readonly method: HttpMethod;
   /** OpenAPI path below /api/v1 with `{param}` placeholders. */
@@ -49,6 +54,8 @@ export interface RouteSpec<
   readonly body?: B;
   readonly response: R;
   readonly successStatus?: 200 | 201;
+  /** Requires the `Idempotency-Key` header (400 when missing or malformed) and passes it to the handler as `idempotencyKey`. */
+  readonly idempotent?: I;
   /** Documented error responses besides 401, 500 and the 400 every route with params/query/body returns. */
   readonly errors: readonly ErrorStatus[];
 }
@@ -58,6 +65,9 @@ export interface RouteInput<P, Q, B> {
   readonly query: Q;
   readonly body: B;
 }
+type IdempotentInput<I> = I extends true
+  ? { readonly idempotencyKey: string }
+  : unknown;
 
 export type RouteHandler = (
   request: Request,
@@ -106,7 +116,8 @@ function openApiRoute(
     AnyObject | undefined,
     AnyObject | undefined,
     z.ZodType | undefined,
-    z.ZodType
+    z.ZodType,
+    true | undefined
   >,
 ): RouteConfig {
   return {
@@ -119,7 +130,14 @@ function openApiRoute(
       ...(spec.params ? { params: spec.params } : {}),
       ...(spec.query ? { query: spec.query } : {}),
       ...(UNSAFE_METHODS.has(spec.method)
-        ? { headers: z.object({ 'X-CSRF-Protection': z.literal('1') }) }
+        ? {
+            headers: z.object({
+              'X-CSRF-Protection': z.literal('1'),
+              ...(spec.idempotent
+                ? { [IDEMPOTENCY_HEADER]: idempotencyKeySchema }
+                : {}),
+            }),
+          }
         : {}),
       ...(spec.body
         ? {
@@ -158,11 +176,12 @@ export function createRouteFactory(deps: RouteFactoryDependencies) {
     Q extends AnyObject | undefined = undefined,
     B extends z.ZodType | undefined = undefined,
     R extends z.ZodType = z.ZodType,
+    I extends true | undefined = undefined,
   >(
-    spec: RouteSpec<P, Q, B, R>,
+    spec: RouteSpec<P, Q, B, R, I>,
     handler: (
       ctx: RequestContext,
-      input: RouteInput<Output<P>, Output<Q>, Output<B>>,
+      input: RouteInput<Output<P>, Output<Q>, Output<B>> & IdempotentInput<I>,
     ) => Promise<z.input<R>>,
   ): RouteHandler {
     if (spec.body && !UNSAFE_METHODS.has(spec.method)) {
@@ -187,7 +206,17 @@ export function createRouteFactory(deps: RouteFactoryDependencies) {
         if (spec.permission) requirePermission(ctx.auth, spec.permission);
         if (spec.requireGrant && !hasAnyGrant(ctx.auth, spec.requireGrant))
           throw new ForbiddenError();
+        const idempotency = spec.idempotent
+          ? idempotencyKeySchema.safeParse(
+              request.headers.get(IDEMPOTENCY_HEADER) ?? undefined,
+            )
+          : undefined;
+        if (idempotency && !idempotency.success)
+          throw new ValidationError([
+            { path: `header.${IDEMPOTENCY_HEADER}`, code: 'invalid_key' },
+          ]);
         const input = {
+          ...(idempotency?.success ? { idempotencyKey: idempotency.data } : {}),
           params: parsePart(
             spec.params,
             await routeContext.params,
@@ -206,7 +235,9 @@ export function createRouteFactory(deps: RouteFactoryDependencies) {
               ) as Output<B>)
             : (undefined as Output<B>),
         };
-        const output = spec.response.parse(await handler(ctx, input));
+        const output = spec.response.parse(
+          await handler(ctx, input as Parameters<typeof handler>[1]),
+        );
         response = Response.json(output, {
           status: spec.successStatus ?? 200,
           headers: {

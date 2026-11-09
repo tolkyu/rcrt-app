@@ -1,4 +1,13 @@
-import { and, asc, eq, isNotNull, like, sql, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  eq,
+  inArray,
+  isNotNull,
+  like,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 import { z } from 'zod';
 import {
   GLOBAL_VERTICAL,
@@ -341,6 +350,38 @@ export async function userExists(
     .where(eq(appUser.id, userId))
     .limit(1);
   return row !== undefined;
+}
+
+/**
+ * Vacancy creation locks every involved user `FOR SHARE` in stable id order before it writes, so it serialises with
+ * deactivation and role removal (`NO KEY UPDATE`) without lock inversion (ADR-012). The lock is a statement of its own and the
+ * role rows are read by the next statement: under READ COMMITTED that read sees what a writer committed while this one waited.
+ */
+export async function lockUsersShared(
+  db: DbExecutor,
+  userIds: readonly string[],
+) {
+  return db
+    .select({ id: appUser.id, isActive: appUser.isActive })
+    .from(appUser)
+    .where(inArray(appUser.id, [...userIds]))
+    .orderBy(asc(appUser.id))
+    .for('share');
+}
+
+/** Fresh role rows of users already locked by `lockUsersShared`. */
+export function listRoleAssignments(
+  db: DbExecutor,
+  userIds: readonly string[],
+) {
+  return db
+    .select({
+      userId: userRole.userId,
+      role: userRole.role,
+      verticalId: userRole.verticalId,
+    })
+    .from(userRole)
+    .where(inArray(userRole.userId, [...userIds]));
 }
 
 const userEventRowSchema = z.object({

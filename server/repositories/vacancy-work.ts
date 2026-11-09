@@ -3,7 +3,7 @@ import type { RoleAssignmentRef } from '../../lib/role-diff';
 import type { DbExecutor } from '../db';
 import { vacancy, vacancyRecruiter } from '../db/schema';
 
-/** Proposed roles preserve compatible recruiter membership; absent roles mean deactivation loses all work eligibility. */
+/** Proposed roles preserve compatible recruiter membership; absent roles mean deactivation loses all work eligibility. A DRAFT is private to its author and never open work (D98). */
 export async function userHasOpenVacancyWork(
   db: DbExecutor,
   userId: string,
@@ -21,7 +21,7 @@ export async function userHasOpenVacancyWork(
     .where(
       and(
         isNull(vacancy.deletedAt),
-        inArray(vacancy.status, ['DRAFT', 'OPEN', 'ON_HOLD']),
+        inArray(vacancy.status, ['OPEN', 'ON_HOLD']),
         or(
           and(
             eq(vacancy.teamLeadId, userId),

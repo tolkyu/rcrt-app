@@ -106,3 +106,17 @@ export function countActiveVerticalUsers(db: DbExecutor, verticalId: string) {
     .where(eq(userRole.verticalId, verticalId))
     .then(([row]) => row?.usersCount ?? 0);
 }
+
+/** `FOR KEY SHARE`: a vacancy may reference the vertical meanwhile, but it cannot be removed under the write. */
+export async function verticalExists(
+  db: DbExecutor,
+  verticalId: string,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ id: vertical.id })
+    .from(vertical)
+    .where(eq(vertical.id, verticalId))
+    .for('key share')
+    .limit(1);
+  return row !== undefined;
+}

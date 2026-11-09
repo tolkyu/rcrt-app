@@ -214,7 +214,11 @@
     },
     "emptyValue": "—",
     "numberInVertical": "{number} · {vertical}",
-    "positionsEntry": "Довідник посад"
+    "positionsEntry": "Довідник посад",
+    "createErrors": {
+      "draftLimitReached": "Досягнуто ліміт чернеток ({count}). Опублікуйте або видаліть одну з них, щоб зберегти нову.",
+      "dailyLimitReached": "Сьогодні створено забагато вакансій і чернеток. Спробуйте завтра або зверніться до адміністратора."
+    }
   },
   "positions": {
     "metaTitle": "Довідник посад",

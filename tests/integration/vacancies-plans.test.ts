@@ -6,9 +6,10 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { positionNameKey } from '../../lib/position-name';
 import { vacancyListQuerySchema } from '../../lib/schemas/vacancy';
 import { buildAuthContext } from '../../server/authz/context';
-import { scopeWhere } from '../../server/authz/scopes';
 import type { UserId } from '../../server/authz/types';
-import { vacancyScope } from '../../server/authz/vacancy-scope';
+import { PgDialect } from 'drizzle-orm/pg-core';
+import type { VacancyStatus } from '../../server/authz/types';
+import { vacancyReadWhere } from '../../server/authz/vacancy-scope';
 import * as schema from '../../server/db/schema';
 import { listVacancies } from '../../server/repositories/vacancy';
 import { userHasOpenVacancyWork } from '../../server/repositories/vacancy-work';
@@ -67,12 +68,13 @@ beforeAll(async () => {
   // A mature company: mostly closed history, two broad verticals and one narrow (2%) one, 4% soft-deleted,
   // one Team Lead leading ~40 rows and one recruiter holding the 60 oldest live rows.
   await admin`insert into app.vacancy (vertical_id, position_id, title, team_lead_id, recruiter_initiated,
-      status, opened_at, closed_at, created_by, deleted_at, deleted_by, delete_reason, priority_flag)
+      status, opened_at, closed_at, cancelled_at, created_by, deleted_at, deleted_by, delete_reason, priority_flag)
     select b.vertical, b.position,
       case when n % 997 = 0 then 'Рідкісний фахівець ' || n else 'Менеджер напряму ' || n end,
       case when n % 701 = 0 then ${ids.lead}::uuid else ${ids.creator}::uuid end,
       false,
       b.status, now(), case when b.status in ('FILLED', 'CANCELLED') then now() end,
+      case when b.status = 'CANCELLED' then now() end,
       ${ids.creator},
       case when (n / 7) % 25 = 0 then now() end,
       case when (n / 7) % 25 = 0 then ${ids.creator}::uuid end,
@@ -109,16 +111,16 @@ afterAll(async () => {
 const scopeFor = (
   userId: string,
   roles: { role: string; verticalId: string | null }[],
+  status?: VacancyStatus,
 ): SQL =>
-  scopeWhere(
+  vacancyReadWhere(
     buildAuthContext({
       userId: userId as UserId,
       roles,
       aal: 'aal2',
       timezone: 'Europe/Kyiv',
     }),
-    'vacancy.read',
-    vacancyScope,
+    status,
   );
 
 interface PlanNode {
@@ -167,14 +169,14 @@ const list =
 describe('vacancy list query plans on 30k rows [PERF-02, PERF-05]', () => {
   const admin_ = () =>
     scopeFor(ids.creator, [{ role: 'ADMIN', verticalId: null }]);
-  const head = (verticalId: string) =>
-    scopeFor(ids.creator, [{ role: 'HEAD_RECRUITER', verticalId }]);
+  const head = (verticalId: string, status?: VacancyStatus) =>
+    scopeFor(ids.creator, [{ role: 'HEAD_RECRUITER', verticalId }], status);
 
   it('serves the unfiltered Admin page and a broad vertical from the ordered number index without scanning the table', async () => {
     for (const run of [
       list(admin_()),
       list(head(ids.v1)),
-      list(head(ids.v1), { status: 'FILLED' }),
+      list(head(ids.v1, 'FILLED'), { status: 'FILLED' }),
     ]) {
       const result = await plan(run);
       expect(result.seqScans).toEqual([]);
@@ -182,10 +184,56 @@ describe('vacancy list query plans on 30k rows [PERF-02, PERF-05]', () => {
     }
   });
 
-  it('uses the vertical ordering index for a narrow vertical with a status filter', async () => {
-    const result = await plan(list(head(ids.v3), { status: 'OPEN' }));
-    expect(result.indexes).toContain('vacancy_vertical_list_idx');
+  it('uses a vertical or open-status index for a narrow vertical with a status filter', async () => {
+    const result = await plan(list(head(ids.v3, 'OPEN'), { status: 'OPEN' }));
+    // The partial OPEN index (V2b) may beat the vertical ordering index for a narrow vertical; either avoids a table scan.
+    expect(
+      ['vacancy_vertical_list_idx', 'vacancy_position_open_idx'].some((name) =>
+        result.indexes.has(name),
+      ),
+    ).toBe(true);
+    expect(result.time).toBeLessThan(100);
     expect(result.seqScans).toEqual([]);
+  });
+
+  it('answers the draft list of an author with no drafts through the author index, never by walking the number index [P1]', async () => {
+    const result = await plan(
+      list(
+        scopeFor(
+          ids.idle,
+          [{ role: 'RECRUITER', verticalId: ids.v1 }],
+          'DRAFT',
+        ),
+        { status: 'DRAFT' },
+      ),
+    );
+    expect(result.indexes).toContain('vacancy_draft_author_idx');
+    expect(result.indexes).not.toContain('vacancy_public_no_uq');
+    expect(result.seqScans).toEqual([]);
+    expect(result.time).toBeLessThan(10);
+  });
+
+  it('keeps the draft list of an author with many drafts off a table scan', async () => {
+    const result = await plan(
+      list(
+        scopeFor(ids.creator, [{ role: 'ADMIN', verticalId: null }], 'DRAFT'),
+        {
+          status: 'DRAFT',
+        },
+      ),
+    );
+    expect(result.seqScans).toEqual([]);
+    expect(result.time).toBeLessThan(100);
+  });
+
+  it('keeps a status filter other than DRAFT free of the draft arm', () => {
+    const roles = [{ role: 'ADMIN', verticalId: null }];
+    const sqlOf = (status?: VacancyStatus) =>
+      new PgDialect().sqlToQuery(scopeFor(ids.creator, roles, status)).sql;
+    expect(sqlOf('OPEN')).not.toContain('"created_by"');
+    expect(sqlOf('DRAFT')).not.toContain('<>');
+    expect(sqlOf()).toContain('"created_by"');
+    expect(sqlOf()).toContain('<>');
   });
 
   it('finds a Team Lead own vacancies through the team lead index', async () => {

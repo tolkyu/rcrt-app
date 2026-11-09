@@ -103,6 +103,7 @@ async function vacancy(
       status,
       openedAt: status === 'DRAFT' ? null : now,
       closedAt: status === 'CANCELLED' ? now : null,
+      cancelledAt: status === 'CANCELLED' ? now : null,
       createdBy: args.user.id,
       deletedAt: values.deleted ? now : null,
       deletedBy: values.deleted ? args.user.id : null,
@@ -159,7 +160,6 @@ function deps(args: Fixture) {
 describe('Deactivation keeps open vacancy work [ROLE-06, D24, D43, STORY-ROLE-06-1]', () => {
   it.each([
     ['a Team Lead leading an OPEN vacancy', 'TEAM_LEAD', 'OPEN', 'lead'],
-    ['a Team Lead leading a DRAFT', 'TEAM_LEAD', 'DRAFT', 'lead'],
     ['a Team Lead leading an ON_HOLD vacancy', 'TEAM_LEAD', 'ON_HOLD', 'lead'],
     [
       'a recruiter assigned to an OPEN vacancy',
@@ -203,7 +203,7 @@ describe('Deactivation keeps open vacancy work [ROLE-06, D24, D43, STORY-ROLE-06
     },
   );
 
-  it('deactivates once the work is closed, soft-deleted or never existed', async () => {
+  it('deactivates once the work is closed, soft-deleted, only a private draft or never existed [D98]', async () => {
     await fixture.run(async (args) => {
       const ctx = await adminCaller(args);
       const positionId = await position(args);
@@ -222,6 +222,11 @@ describe('Deactivation keeps open vacancy work [ROLE-06, D24, D43, STORY-ROLE-06
         teamLeadId: lead.userId,
         recruiters: [recruiter.userId],
         deleted: true,
+      });
+      await vacancy(args, positionId, {
+        status: 'DRAFT',
+        teamLeadId: lead.userId,
+        recruiters: [recruiter.userId],
       });
       for (const target of [lead, recruiter]) {
         const { deps: provider, setBanned } = deps(args);

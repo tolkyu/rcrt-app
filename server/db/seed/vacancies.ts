@@ -274,7 +274,8 @@ export const DEMO_VACANCIES: readonly SeedVacancy[] = [
     position: null,
     title: 'Медіабаєр — TikTok (нова команда)',
     teamLead: 'vasyl.tl@demo',
-    createdBy: 'vasyl.tl@demo',
+    // D92: a draft is visible to its author only, and a Team Lead cannot author one.
+    createdBy: 'admin@demo',
     createdAt: kyiv('2026-11-02T09:42:18'),
     status: 'DRAFT',
     headcount: 3,
@@ -492,6 +493,7 @@ export async function seedDemoVacancies(
           source: v.source ?? 'APP',
           openedAt: v.status === 'DRAFT' ? null : v.createdAt,
           closedAt: v.closedAt ?? null,
+          cancelledAt: v.status === 'CANCELLED' ? (v.closedAt ?? null) : null,
           createdBy: need(v.createdBy),
           deletedAt: v.deleted?.at ?? null,
           deletedBy: v.deleted ? need(v.deleted.by) : null,

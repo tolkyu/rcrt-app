@@ -140,6 +140,21 @@ describe('Domain errors → RFC 9457 problem+json [API, ADR-006]', () => {
     });
   });
 
+  it.each(['22P05', '22021'])(
+    'answers text PostgreSQL cannot store (%s) with 400, never 500 [SEC-VC-02]',
+    async (state) => {
+      const response = mapError(
+        postgresError(state, 'unsupported Unicode escape sequence'),
+        requestId,
+      );
+      expect(response?.status).toBe(400);
+      expect(await response?.json()).toMatchObject({
+        code: 'VALIDATION_FAILED',
+        errors: [{ path: 'body', code: 'invalid_chars' }],
+      });
+    },
+  );
+
   it('leaves unexpected errors to the 500 path', () => {
     expect(mapError(new Error('boom'), requestId)).toBeNull();
     expect(

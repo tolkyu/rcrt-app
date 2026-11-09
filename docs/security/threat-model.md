@@ -423,3 +423,13 @@ flowchart LR
 | DG-20 | Purge checklist from PII-tagged columns; `audit_log.candidate_id`; `purge_log` re-applied after restore; encrypted dumps                                                           | T-D11/12                   | ADR-003/005, devops               | 5/7   |
 | DG-21 | Audit of exports, salary views (O-12), security events; exfiltration volume alerts                                                                                                 | T-D14/15                   | ADR-003                           | 2–4   |
 | DG-22 | Secret hygiene: `server-only`, `NEXT_PUBLIC_` check, gitleaks, Vercel env scoping, preview protection, GitHub Environments                                                         | T-S01/02/04                | devops                            | 1     |
+
+## Addendum 2026-11-09 — V2b S1 (vacancy creation)
+
+| ID    | Threat                                                             | Control / status                                                                                                                           | Review                             |
+| ----- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- |
+| T-V01 | Foreign or Admin read of another user's DRAFT (existence, title)   | `vacancyReadWhere` on every read, `can()` denies foreign drafts, uniform 404; forward rule for events, change feed, statistics (SEC-VC-06) | `review-phase-2-vacancy-create.md` |
+| T-V02 | Idempotency replay or key guessing across users                    | Key scoped `(user, operation, key)`, hash of validated body, replay re-read through the read predicate; cleanup job open (SEC-VC-05)       | same                               |
+| T-V03 | Rich-text XSS / JSON bomb in `description_doc`, `requirements_doc` | Closed ProseMirror allowlist, fixed depth, caps, 1 MiB body; `href` hardening open (SEC-VC-02); renderer must use React nodes only (S3)    | same                               |
+| T-V04 | Insider volume abuse (storage, sequence burn) via create           | 30/min per user only; daily and draft caps open (SEC-VC-01)                                                                                | same                               |
+| T-V05 | Draft audit gap and unreachable orphan drafts (D92/D98)            | Accepted trade-off: `entity_event` row kept, audit at publish, retention job must reach drafts (SEC-VC-04)                                 | same                               |

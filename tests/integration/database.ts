@@ -8,6 +8,7 @@ export const phaseOneTables = [
   'entity_event',
   'entity_event_pii',
   'file_object',
+  'idempotency_key',
   'job_run',
   'position',
   'rate_limit_bucket',

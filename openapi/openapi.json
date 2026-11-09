@@ -1176,6 +1176,586 @@
           "updatedAt"
         ]
       },
+      "CreateVacancy": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "mode": { "type": "string", "enum": ["PUBLISH"] },
+              "positionId": { "type": "string", "format": "uuid" },
+              "verticalId": { "type": "string", "format": "uuid" },
+              "title": { "type": "string", "minLength": 2, "maxLength": 200 },
+              "teamLeadId": { "type": ["string", "null"], "format": "uuid" },
+              "headcount": { "type": "integer", "minimum": 1, "maximum": 100 },
+              "seniority": {
+                "type": ["string", "null"],
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "workFormat": {
+                "type": ["string", "null"],
+                "enum": ["REMOTE", "OFFICE", "HYBRID", null]
+              },
+              "employmentType": {
+                "type": ["string", "null"],
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "location": {
+                "type": ["string", "null"],
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "salaryMinMinor": {
+                "type": ["string", "null"],
+                "pattern": "^(?:0|[1-9]\\d{0,14})$"
+              },
+              "salaryMaxMinor": {
+                "type": ["string", "null"],
+                "pattern": "^(?:0|[1-9]\\d{0,14})$"
+              },
+              "salaryCurrency": {
+                "type": ["string", "null"],
+                "pattern": "^[A-Z]{3}$"
+              },
+              "priority": { "type": "string", "enum": ["NORMAL", "URGENT"] },
+              "probationDays": {
+                "type": "integer",
+                "minimum": 30,
+                "maximum": 90,
+                "description": "30..90 days (default 90). Refused with 403 unless the caller holds vacancy.probation_length.set in the vertical (Admin, Head HR; D78)."
+              },
+              "descriptionDoc": { "$ref": "#/components/schemas/RichTextDoc" },
+              "requirementsDoc": { "$ref": "#/components/schemas/RichTextDoc" }
+            },
+            "required": ["mode", "positionId", "verticalId", "title"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "mode": { "type": "string", "enum": ["DRAFT"] },
+              "positionId": { "type": ["string", "null"], "format": "uuid" },
+              "verticalId": { "type": "string", "format": "uuid" },
+              "title": { "type": "string", "minLength": 2, "maxLength": 200 },
+              "teamLeadId": { "type": ["string", "null"], "format": "uuid" },
+              "headcount": { "type": "integer", "minimum": 1, "maximum": 100 },
+              "seniority": {
+                "type": ["string", "null"],
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "workFormat": {
+                "type": ["string", "null"],
+                "enum": ["REMOTE", "OFFICE", "HYBRID", null]
+              },
+              "employmentType": {
+                "type": ["string", "null"],
+                "minLength": 1,
+                "maxLength": 100
+              },
+              "location": {
+                "type": ["string", "null"],
+                "minLength": 1,
+                "maxLength": 200
+              },
+              "salaryMinMinor": {
+                "type": ["string", "null"],
+                "pattern": "^(?:0|[1-9]\\d{0,14})$"
+              },
+              "salaryMaxMinor": {
+                "type": ["string", "null"],
+                "pattern": "^(?:0|[1-9]\\d{0,14})$"
+              },
+              "salaryCurrency": {
+                "type": ["string", "null"],
+                "pattern": "^[A-Z]{3}$"
+              },
+              "priority": { "type": "string", "enum": ["NORMAL", "URGENT"] },
+              "probationDays": {
+                "type": "integer",
+                "minimum": 30,
+                "maximum": 90,
+                "description": "30..90 days (default 90). Refused with 403 unless the caller holds vacancy.probation_length.set in the vertical (Admin, Head HR; D78)."
+              },
+              "descriptionDoc": { "$ref": "#/components/schemas/RichTextDoc" },
+              "requirementsDoc": { "$ref": "#/components/schemas/RichTextDoc" }
+            },
+            "required": ["mode", "verticalId", "title"],
+            "additionalProperties": false
+          }
+        ],
+        "description": "PUBLISH creates an OPEN vacancy and needs an active position of the vertical; DRAFT saves the author’s private draft where only vertical and title are required (D89, D92). Bonus fields do not exist on this contract: unknown keys answer 400. `teamLeadId` needs vacancy.team_lead.set (Admin, Head Recruiter) and a Team Lead of the same vertical; without it the vacancy is recruiter-initiated (D77)."
+      },
+      "RichTextDoc": {
+        "type": ["object", "null"],
+        "properties": {
+          "type": { "type": "string", "enum": ["doc"] },
+          "content": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": { "type": "string", "enum": ["paragraph"] },
+                    "content": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": { "type": "string", "enum": ["text"] },
+                              "text": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 5000
+                              },
+                              "marks": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": ["bold"]
+                                        }
+                                      },
+                                      "required": ["type"],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": ["italic"]
+                                        }
+                                      },
+                                      "required": ["type"],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": ["link"]
+                                        },
+                                        "attrs": {
+                                          "type": "object",
+                                          "properties": {
+                                            "href": {
+                                              "type": "string",
+                                              "maxLength": 2048
+                                            }
+                                          },
+                                          "required": ["href"]
+                                        }
+                                      },
+                                      "required": ["type", "attrs"],
+                                      "additionalProperties": false
+                                    }
+                                  ]
+                                },
+                                "maxItems": 3
+                              }
+                            },
+                            "required": ["type", "text"],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": ["hardBreak"]
+                              }
+                            },
+                            "required": ["type"],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "maxItems": 500
+                    }
+                  },
+                  "required": ["type"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": { "type": "string", "enum": ["heading"] },
+                    "attrs": {
+                      "type": "object",
+                      "properties": {
+                        "level": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 3
+                        }
+                      },
+                      "required": ["level"],
+                      "additionalProperties": false
+                    },
+                    "content": {
+                      "type": "array",
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": { "type": "string", "enum": ["text"] },
+                              "text": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 5000
+                              },
+                              "marks": {
+                                "type": "array",
+                                "items": {
+                                  "anyOf": [
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": ["bold"]
+                                        }
+                                      },
+                                      "required": ["type"],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": ["italic"]
+                                        }
+                                      },
+                                      "required": ["type"],
+                                      "additionalProperties": false
+                                    },
+                                    {
+                                      "type": "object",
+                                      "properties": {
+                                        "type": {
+                                          "type": "string",
+                                          "enum": ["link"]
+                                        },
+                                        "attrs": {
+                                          "type": "object",
+                                          "properties": {
+                                            "href": {
+                                              "type": "string",
+                                              "maxLength": 2048
+                                            }
+                                          },
+                                          "required": ["href"]
+                                        }
+                                      },
+                                      "required": ["type", "attrs"],
+                                      "additionalProperties": false
+                                    }
+                                  ]
+                                },
+                                "maxItems": 3
+                              }
+                            },
+                            "required": ["type", "text"],
+                            "additionalProperties": false
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "type": {
+                                "type": "string",
+                                "enum": ["hardBreak"]
+                              }
+                            },
+                            "required": ["type"],
+                            "additionalProperties": false
+                          }
+                        ]
+                      },
+                      "maxItems": 500
+                    }
+                  },
+                  "required": ["type", "attrs"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": { "type": "string", "enum": ["bulletList"] },
+                    "content": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": { "type": "string", "enum": ["listItem"] },
+                          "content": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["paragraph"]
+                                },
+                                "content": {
+                                  "type": "array",
+                                  "items": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": ["text"]
+                                          },
+                                          "text": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 5000
+                                          },
+                                          "marks": {
+                                            "type": "array",
+                                            "items": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": ["bold"]
+                                                    }
+                                                  },
+                                                  "required": ["type"],
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": ["italic"]
+                                                    }
+                                                  },
+                                                  "required": ["type"],
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": ["link"]
+                                                    },
+                                                    "attrs": {
+                                                      "type": "object",
+                                                      "properties": {
+                                                        "href": {
+                                                          "type": "string",
+                                                          "maxLength": 2048
+                                                        }
+                                                      },
+                                                      "required": ["href"]
+                                                    }
+                                                  },
+                                                  "required": ["type", "attrs"],
+                                                  "additionalProperties": false
+                                                }
+                                              ]
+                                            },
+                                            "maxItems": 3
+                                          }
+                                        },
+                                        "required": ["type", "text"],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": ["hardBreak"]
+                                          }
+                                        },
+                                        "required": ["type"],
+                                        "additionalProperties": false
+                                      }
+                                    ]
+                                  },
+                                  "maxItems": 500
+                                }
+                              },
+                              "required": ["type"],
+                              "additionalProperties": false
+                            },
+                            "minItems": 1,
+                            "maxItems": 20
+                          }
+                        },
+                        "required": ["type", "content"],
+                        "additionalProperties": false
+                      },
+                      "minItems": 1,
+                      "maxItems": 100
+                    }
+                  },
+                  "required": ["type", "content"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": { "type": "string", "enum": ["orderedList"] },
+                    "attrs": {
+                      "type": "object",
+                      "properties": {
+                        "start": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 9999
+                        }
+                      },
+                      "required": ["start"],
+                      "additionalProperties": false
+                    },
+                    "content": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": { "type": "string", "enum": ["listItem"] },
+                          "content": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "type": "string",
+                                  "enum": ["paragraph"]
+                                },
+                                "content": {
+                                  "type": "array",
+                                  "items": {
+                                    "anyOf": [
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": ["text"]
+                                          },
+                                          "text": {
+                                            "type": "string",
+                                            "minLength": 1,
+                                            "maxLength": 5000
+                                          },
+                                          "marks": {
+                                            "type": "array",
+                                            "items": {
+                                              "anyOf": [
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": ["bold"]
+                                                    }
+                                                  },
+                                                  "required": ["type"],
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": ["italic"]
+                                                    }
+                                                  },
+                                                  "required": ["type"],
+                                                  "additionalProperties": false
+                                                },
+                                                {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "type": {
+                                                      "type": "string",
+                                                      "enum": ["link"]
+                                                    },
+                                                    "attrs": {
+                                                      "type": "object",
+                                                      "properties": {
+                                                        "href": {
+                                                          "type": "string",
+                                                          "maxLength": 2048
+                                                        }
+                                                      },
+                                                      "required": ["href"]
+                                                    }
+                                                  },
+                                                  "required": ["type", "attrs"],
+                                                  "additionalProperties": false
+                                                }
+                                              ]
+                                            },
+                                            "maxItems": 3
+                                          }
+                                        },
+                                        "required": ["type", "text"],
+                                        "additionalProperties": false
+                                      },
+                                      {
+                                        "type": "object",
+                                        "properties": {
+                                          "type": {
+                                            "type": "string",
+                                            "enum": ["hardBreak"]
+                                          }
+                                        },
+                                        "required": ["type"],
+                                        "additionalProperties": false
+                                      }
+                                    ]
+                                  },
+                                  "maxItems": 500
+                                }
+                              },
+                              "required": ["type"],
+                              "additionalProperties": false
+                            },
+                            "minItems": 1,
+                            "maxItems": 20
+                          }
+                        },
+                        "required": ["type", "content"],
+                        "additionalProperties": false
+                      },
+                      "minItems": 1,
+                      "maxItems": 100
+                    }
+                  },
+                  "required": ["type", "content"],
+                  "additionalProperties": false
+                }
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 200
+          }
+        },
+        "required": ["type", "content"],
+        "additionalProperties": false
+      },
       "RenameVertical": {
         "type": "object",
         "properties": {
@@ -4428,7 +5008,7 @@
     "/vacancies": {
       "get": {
         "operationId": "listVacancies",
-        "summary": "List visible vacancies in stable public-number order",
+        "summary": "List visible vacancies in stable public-number order (a DRAFT appears only for its author)",
         "tags": ["Vacancies"],
         "parameters": [
           {
@@ -4504,6 +5084,112 @@
           },
           "404": {
             "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createVacancy",
+        "summary": "Create an OPEN vacancy (`mode: PUBLISH`) or save the author’s private DRAFT (`mode: DRAFT`); Admin, Head Recruiter and Recruiter of the vertical (a Recruiter is auto-assigned; Team Leads use the request form). 201 also for an idempotent replay; 409 `IDEMPOTENCY_KEY_REUSED` or `POSITION_INACTIVE`; 429 after 30 writes per user per minute",
+        "tags": ["Vacancies"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "enum": ["1"] },
+            "required": true,
+            "name": "X-CSRF-Protection",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{16,64}$",
+              "description": "Client-generated unique key (16–64 of A–Z a–z 0–9 _ -, a UUID fits). The same key with the same body inside 24 hours returns the original result; the same key with a different body answers 409 IDEMPOTENCY_KEY_REUSED."
+            },
+            "required": true,
+            "description": "Client-generated unique key (16–64 of A–Z a–z 0–9 _ -, a UUID fits). The same key with the same body inside 24 hours returns the original result; the same key with a different body answers 409 IDEMPOTENCY_KEY_REUSED.",
+            "name": "Idempotency-Key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateVacancy" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VacancyDetail" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 1 MiB",
             "content": {
               "application/problem+json": {
                 "schema": { "$ref": "#/components/schemas/Problem" }

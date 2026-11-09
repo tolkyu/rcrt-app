@@ -11,6 +11,8 @@ import {
   vertical,
 } from '../db/schema';
 
+type VacancyInsert = typeof vacancy.$inferInsert;
+
 const lead = alias(appUser, 'vacancy_lead');
 const participantSchema = z.object({
   id: z.uuid(),
@@ -139,4 +141,54 @@ export async function findVacancy(db: DbExecutor, scope: SQL, id: string) {
     limit 1
   `);
   return rows[0] ? detailRowSchema.parse(rows[0]) : null;
+}
+
+export type NewVacancy = Omit<
+  VacancyInsert,
+  | 'publicNo'
+  | 'version'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'deletedAt'
+  | 'deletedBy'
+  | 'deleteReason'
+> & { readonly createdAt: Date };
+
+/** `public_no` comes from the identity sequence; the number is returned so the creation event can carry it. */
+export async function insertVacancy(db: DbExecutor, values: NewVacancy) {
+  const [row] = await db
+    .insert(vacancy)
+    .values({ ...values, updatedAt: values.createdAt })
+    .returning({ id: vacancy.id, publicNo: vacancy.publicNo });
+  return row!;
+}
+
+export async function insertVacancyRecruiter(
+  db: DbExecutor,
+  row: {
+    readonly vacancyId: string;
+    readonly userId: string;
+    readonly assignedBy: string;
+    readonly assignedAt: Date;
+  },
+) {
+  await db.insert(vacancyRecruiter).values(row);
+}
+
+/** Live DRAFT rows of one author, served by `vacancy_draft_author_idx`. */
+export async function countLiveDrafts(
+  db: DbExecutor,
+  authorId: string,
+): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(vacancy)
+    .where(
+      and(
+        eq(vacancy.createdBy, authorId),
+        eq(vacancy.status, 'DRAFT'),
+        isNull(vacancy.deletedAt),
+      ),
+    );
+  return row!.count;
 }

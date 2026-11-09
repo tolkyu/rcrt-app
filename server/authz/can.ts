@@ -21,6 +21,7 @@ import {
   type UserId,
   type VerticalId,
 } from './types';
+import { vacancyAuthorKind } from './vacancy-author';
 
 type AppFacts = Omit<ApplicationRef, 'type'>;
 
@@ -152,6 +153,14 @@ function evaluate(
 ): boolean {
   const resources: readonly string[] = PERMISSIONS[permission].resources;
   if (!resources.includes(resource.type)) return false;
+  // D92, D98: a DRAFT belongs to its author alone, and only while they still hold a vacancy-creating role in its vertical (as `vacancyReadWhere`); no other grant, not even GLOBAL, reaches it.
+  if (
+    resource.type === 'vacancy' &&
+    resource.status === 'DRAFT' &&
+    (resource.createdBy !== ctx.userId ||
+      vacancyAuthorKind(ctx, resource.verticalId) === null)
+  )
+    return false;
   return (ctx.grants.get(permission) ?? []).some((grant) =>
     grantMatches(grant, ctx, resource),
   );

@@ -7,6 +7,8 @@ import {
   VACANCY_SEARCH_MIN,
   VACANCY_STATUSES,
 } from '../vacancy-filters';
+import { hasOnlyVisibleChars, normalizePositionName } from '../position-name';
+import { richTextDocSchema } from './rich-text';
 import { uuid } from './uuid';
 
 const cursor = z.string().max(19).refine(isVacancyCursor, 'invalid_cursor');
@@ -104,3 +106,102 @@ export type VacancyPage = z.infer<typeof vacancyPageSchema>;
 
 export const formatVacancyNumber = (value: bigint): string =>
   `V-${value.toString().padStart(4, '0')}`;
+
+export const VACANCY_WRITE_RATE_LIMIT = {
+  perUser: 30,
+  windowSeconds: 60,
+} as const;
+/** Creates (OPEN or DRAFT) per user per 24 hours; the per-minute limit above is the burst guard. */
+export const VACANCY_DAILY_CREATE_LIMIT = {
+  perUser: 100,
+  windowSeconds: 24 * 60 * 60,
+} as const;
+/** Live drafts one author may hold at once; a draft is invisible to everyone else, so nobody else could clean them up (D98). */
+export const VACANCY_DRAFT_LIMIT = 50;
+export const VACANCY_TITLE_MIN = 2;
+export const VACANCY_TITLE_MAX = 200;
+export const VACANCY_HEADCOUNT_MAX = 100;
+export const VACANCY_PROBATION_MIN = 30;
+export const VACANCY_PROBATION_MAX = 90;
+
+/** Same normal form as catalog names: NFC, collapsed whitespace; control, zero-width and bidi characters are rejected before storing. */
+const line = (min: number, max: number) =>
+  z
+    .string()
+    .refine(hasOnlyVisibleChars, 'invalid_chars')
+    .overwrite(normalizePositionName)
+    .min(min)
+    .max(max);
+const minorUnits = z.string().regex(/^(?:0|[1-9]\d{0,14})$/);
+
+const baseFields = {
+  verticalId: uuid,
+  title: line(VACANCY_TITLE_MIN, VACANCY_TITLE_MAX),
+  teamLeadId: uuid.nullish(),
+  headcount: z.number().int().min(1).max(VACANCY_HEADCOUNT_MAX).optional(),
+  seniority: line(1, 100).nullish(),
+  workFormat: z.enum(['REMOTE', 'OFFICE', 'HYBRID']).nullish(),
+  employmentType: line(1, 100).nullish(),
+  location: line(1, 200).nullish(),
+  salaryMinMinor: minorUnits.nullish(),
+  salaryMaxMinor: minorUnits.nullish(),
+  salaryCurrency: z
+    .string()
+    .regex(/^[A-Z]{3}$/)
+    .nullish(),
+  priority: z.enum(VACANCY_PRIORITIES).optional(),
+  probationDays: z
+    .number()
+    .int()
+    .min(VACANCY_PROBATION_MIN)
+    .max(VACANCY_PROBATION_MAX)
+    .optional()
+    .meta({
+      description: `30..90 days (default 90). Refused with 403 unless the caller holds vacancy.probation_length.set in the vertical (Admin, Head HR; D78).`,
+    }),
+  descriptionDoc: richTextDocSchema.nullish(),
+  requirementsDoc: richTextDocSchema.nullish(),
+};
+
+type SalaryFields = {
+  readonly salaryMinMinor?: string | null | undefined;
+  readonly salaryMaxMinor?: string | null | undefined;
+  readonly salaryCurrency?: string | null | undefined;
+};
+
+/** Currency is required exactly when a bound is set and min never exceeds max (VAC-01, DB check vacancy_salary_chk). */
+function salaryIssues(value: SalaryFields, add: (path: string) => void) {
+  const { salaryMinMinor: min, salaryMaxMinor: max, salaryCurrency } = value;
+  const hasBound = min != null || max != null;
+  if (hasBound !== (salaryCurrency != null)) add('salaryCurrency');
+  if (min != null && max != null && BigInt(min) > BigInt(max))
+    add('salaryMaxMinor');
+}
+
+const checkSalary = (value: SalaryFields, ctx: z.RefinementCtx) =>
+  salaryIssues(value, (path) =>
+    ctx.addIssue({ code: 'custom', path: [path], message: 'invalid_salary' }),
+  );
+
+const publishVacancySchema = z
+  .object({ mode: z.literal('PUBLISH'), positionId: uuid, ...baseFields })
+  .strict()
+  .superRefine(checkSalary);
+const draftVacancySchema = z
+  .object({
+    mode: z.literal('DRAFT'),
+    positionId: uuid.nullish(),
+    ...baseFields,
+  })
+  .strict()
+  .superRefine(checkSalary);
+
+export const createVacancySchema = z
+  .discriminatedUnion('mode', [publishVacancySchema, draftVacancySchema])
+  .meta({
+    id: 'CreateVacancy',
+    description:
+      'PUBLISH creates an OPEN vacancy and needs an active position of the vertical; DRAFT saves the author’s private draft where only vertical and title are required (D89, D92). Bonus fields do not exist on this contract: unknown keys answer 400. `teamLeadId` needs vacancy.team_lead.set (Admin, Head Recruiter) and a Team Lead of the same vertical; without it the vacancy is recruiter-initiated (D77).',
+  });
+export type CreateVacancyInput = z.input<typeof createVacancySchema>;
+export type CreateVacancyBody = z.output<typeof createVacancySchema>;

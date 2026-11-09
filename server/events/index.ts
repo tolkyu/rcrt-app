@@ -63,6 +63,16 @@ export const EVENT_PAYLOADS = {
   'vertical.tl_priority_changed': z
     .object({ userId: id, old: priority, new: priority })
     .strict(),
+  /** `number` is the public number as decimal digits; the title lives only in the audit row (SEC-CORE-07). */
+  'vacancy.created': z
+    .object({
+      number: z.string().regex(/^[1-9]\d{0,18}$/),
+      status: z.enum(['DRAFT', 'OPEN']),
+      source: z.enum(['APP', 'TELEGRAM_BOT']),
+      recruiterInitiated: z.boolean(),
+    })
+    .strict(),
+  'vacancy.recruiter_assigned': z.object({ userId: id }).strict(),
   'position.created': empty,
   'position.renamed': empty,
   'position.deactivated': empty,

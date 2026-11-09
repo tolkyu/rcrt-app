@@ -56,6 +56,11 @@ export function mapError(error: unknown, requestId: string): Response | null {
       VISIBLE_UNIQUE_CONSTRAINTS[pg.constraint]!,
       requestId,
     );
+  // Text PostgreSQL cannot store (NUL, lone surrogates in jsonb) is a client error, never a 500.
+  if (pg?.sqlState === '22P05' || pg?.sqlState === '22021')
+    return problemResponse(400, 'VALIDATION_FAILED', requestId, {
+      errors: [{ path: 'body', code: 'invalid_chars' }],
+    });
   if (pg?.sqlState === '40001')
     return problemResponse(409, 'STALE_STATE', requestId);
   return null;

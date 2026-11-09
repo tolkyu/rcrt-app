@@ -141,7 +141,7 @@ describe('vacancy demo seed [STORY-SEED-2, STORY-VAC-07-1]', () => {
       ),
     ).toContain('CANCELLED');
     const [eventsRow] =
-      await admin`select count(*)::int as events from app.entity_event where vacancy_id is not null`;
+      await admin`select count(*)::int as events from app.entity_event where vacancy_id in ${admin(vacancyIds)}`;
     const events = eventsRow!.events as number;
     expect(events).toBe(0);
   });

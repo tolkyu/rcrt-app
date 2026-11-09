@@ -210,7 +210,7 @@ test.describe('head.recruiter.gambling@demo states', () => {
     ).toBe(404);
   });
 
-  test('captures a title search narrowed to three vacancies with a reset [SHOT-01..03, STORY-VAC-04-1]', async ({
+  test('captures a title search narrowed to two vacancies with a reset [SHOT-01..03, STORY-VAC-04-1]', async ({
     page,
     isMobile,
   }, testInfo) => {
@@ -225,8 +225,8 @@ test.describe('head.recruiter.gambling@demo states', () => {
       await page
         .getByRole('searchbox', { name: t.searchLabel, exact: true })
         .fill('tiktok');
-      await expect(rowCount(page, isMobile)).toHaveCount(3);
-      await expect(page.getByText(/^Показано 3/)).toBeVisible();
+      await expect(rowCount(page, isMobile)).toHaveCount(2);
+      await expect(page.getByText(/^Показано 2/)).toBeVisible();
       await previewReady(page, isMobile);
       await checkAccessibility(page, testInfo);
       await captureScreen(

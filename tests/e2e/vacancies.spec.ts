@@ -8,6 +8,7 @@ import { openHydrated, waitForHydration } from '../support/hydration';
 import {
   ALL_VISIBLE,
   DELETED_VACANCY,
+  DRAFT_VACANCY,
   NEWEST_VISIBLE,
   VISIBLE_VACANCIES,
   demoVacancy,
@@ -213,12 +214,12 @@ test.describe('head.recruiter.gambling@demo', () => {
   }) => {
     await openHydrated(page, '/vacancies');
     await search(page).fill('tiktok');
-    await expectNumbers(page, isMobile, [9, 8, 2]);
+    await expectNumbers(page, isMobile, [9, 2]);
     await expect(page).toHaveURL(/[?&]q=tiktok(&|$)/);
     await page.reload();
     await waitForHydration(page);
     await expect(search(page)).toHaveValue('tiktok');
-    await expectNumbers(page, isMobile, [9, 8, 2]);
+    await expectNumbers(page, isMobile, [9, 2]);
 
     await search(page).fill('V-0001');
     await expectNumbers(page, isMobile, [1]);
@@ -242,7 +243,7 @@ test.describe('head.recruiter.gambling@demo', () => {
       page.getByText(t.filteredEmpty.title, { exact: true }),
     ).toBeVisible();
     await search(page).fill('медіабаєр');
-    await expectNumbers(page, isMobile, [9, 8, 4, 2, 1]);
+    await expectNumbers(page, isMobile, [9, 4, 2, 1]);
     const first = rowsOf(page, isMobile).first();
     await first.getByRole('link').first().click();
     await expect(page).toHaveURL(/\/vacancies\/[0-9a-f-]{36}$/);
@@ -250,7 +251,7 @@ test.describe('head.recruiter.gambling@demo', () => {
     await waitForHydration(page);
     await expect(page).toHaveURL(/[?&]q=/);
     await expect(search(page)).toHaveValue('медіабаєр');
-    await expectNumbers(page, isMobile, [9, 8, 4, 2, 1]);
+    await expectNumbers(page, isMobile, [9, 4, 2, 1]);
   });
 
   test('a query shorter than three characters is ignored instead of hiding the list [VAC-04, Q-162]', async ({
@@ -338,14 +339,14 @@ test.describe('head.recruiter.gambling@demo', () => {
   }) => {
     await openHydrated(page, '/vacancies');
     await search(page).fill('медіабаєр');
-    await expectNumbers(page, isMobile, [9, 8, 4, 2, 1]);
+    await expectNumbers(page, isMobile, [9, 4, 2, 1]);
     await rowsOf(page, isMobile).first().getByRole('link').first().click();
     await expect(page).toHaveURL(/\/vacancies\/[0-9a-f-]{36}$/);
     await page.getByRole('link', { name: t.detail.back }).click();
     await expect(page).toHaveURL(/[?&]q=/);
     await waitForHydration(page);
     await expect(search(page)).toHaveValue('медіабаєр');
-    await expectNumbers(page, isMobile, [9, 8, 4, 2, 1]);
+    await expectNumbers(page, isMobile, [9, 4, 2, 1]);
   });
 
   test('missing, malformed, foreign and deleted ids are an actual HTTP 404 that discloses nothing [VAC-04, STORY-VAC-04-2]', async ({
@@ -432,23 +433,15 @@ test.describe('head.recruiter.gambling@demo', () => {
     await expect(page).toHaveURL(/\/vacancies$/);
   });
 
-  test('absent fields are shown honestly: a draft has no opening date or position, a recruiter-initiated vacancy has no Team Lead [VAC-04, STORY-VAC-04-2]', async ({
+  test('absent fields are shown honestly: a recruiter-initiated vacancy has no Team Lead [VAC-04, STORY-VAC-04-2]', async ({
     page,
   }) => {
-    await openHydrated(page, `/vacancies/${demoVacancy(8).id}`);
+    await openHydrated(page, `/vacancies/${demoVacancy(10).id}`);
     const main = page.getByRole('main');
     const field = (label: string) =>
       main
         .locator('dt', { hasText: new RegExp(`^${label}$`) })
         .locator('xpath=following-sibling::dd[1]');
-    await expect(main.getByText(t.status.DRAFT, { exact: true })).toBeVisible();
-    await expect(
-      main.locator('dt', { hasText: t.fields.openedAt }),
-    ).toHaveCount(0);
-    await expect(field(t.fields.position)).toHaveText(t.notSpecified);
-    await expect(field(t.fields.salary)).toHaveText(t.notSpecified);
-
-    await openHydrated(page, `/vacancies/${demoVacancy(10).id}`);
     await expect(field(t.fields.teamLead)).toHaveText(t.unassigned);
     await expect(field(t.fields.origin)).toHaveText(t.recruiterInitiated);
 
@@ -522,6 +515,23 @@ test.describe('head.recruiter.gambling@demo', () => {
 
 test.describe('admin@demo', () => {
   test.use({ storageState: sessionFile('admin@demo') });
+
+  test('the Admin’s own draft shows no opening date or position, and only its author can open it [D92, VAC-04, STORY-VAC-04-2]', async ({
+    page,
+  }) => {
+    await openHydrated(page, `/vacancies/${demoVacancy(DRAFT_VACANCY).id}`);
+    const main = page.getByRole('main');
+    const field = (label: string) =>
+      main
+        .locator('dt', { hasText: new RegExp(`^${label}$`) })
+        .locator('xpath=following-sibling::dd[1]');
+    await expect(main.getByText(t.status.DRAFT, { exact: true })).toBeVisible();
+    await expect(
+      main.locator('dt', { hasText: t.fields.openedAt }),
+    ).toHaveCount(0);
+    await expect(field(t.fields.position)).toHaveText(t.notSpecified);
+    await expect(field(t.fields.salary)).toHaveText(t.notSpecified);
+  });
 
   test('status and vertical filters intersect with the scope; the selection lives in the URL, survives reload, Back and reset [VAC-04, STORY-VAC-04-1]', async ({
     page,

@@ -123,6 +123,7 @@ export async function createVacancyWorld(sql: Sql) {
         status: 'CANCELLED',
         team_lead_id: users.tlA,
         ...closed,
+        cancelled_at: WORLD_OPENED_AT,
       },
       [users.recA, users.recD],
     ),

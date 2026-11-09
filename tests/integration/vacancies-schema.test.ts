@@ -92,8 +92,27 @@ describe('vacancy constraints [VAC-01, VAC-07, ADR-012]', () => {
     ],
     [
       'cancelled without closed_at',
-      () => ({ status: 'CANCELLED' }),
+      () => ({ status: 'CANCELLED', cancelled_at: new Date() }),
       'vacancy_closed_chk',
+    ],
+    [
+      'cancelled without cancelled_at',
+      () => ({ status: 'CANCELLED', closed_at: new Date() }),
+      'vacancy_cancelled_chk',
+    ],
+    [
+      'cancelled_at on a vacancy that is not cancelled',
+      () => ({ cancelled_at: new Date() }),
+      'vacancy_cancelled_chk',
+    ],
+    [
+      'cancelled_at different from closed_at',
+      () => ({
+        status: 'CANCELLED',
+        closed_at: new Date('2026-11-02T09:00:00Z'),
+        cancelled_at: new Date('2026-11-03T09:00:00Z'),
+      }),
+      'vacancy_cancelled_chk',
     ],
     [
       'salary minimum above maximum',
@@ -154,6 +173,15 @@ describe('vacancy constraints [VAC-01, VAC-07, ADR-012]', () => {
           opened_at: null,
         },
         { ...base, id: randomUUID(), status: 'FILLED', closed_at: new Date() },
+        {
+          ...base,
+          id: randomUUID(),
+          status: 'CANCELLED',
+          position_id: null,
+          opened_at: null,
+          closed_at: new Date('2026-11-02T09:00:00Z'),
+          cancelled_at: new Date('2026-11-02T09:00:00Z'),
+        },
         {
           ...base,
           id: randomUUID(),
@@ -299,7 +327,7 @@ describe('vacancy numbers [VAC-07, STORY-VAC-07-1]', () => {
 });
 
 describe('vacancy privileges and event link [ADR-012]', () => {
-  it('gives the runtime role read access to vacancies and assignments only', async () => {
+  it('lets the runtime role read and insert vacancies and assignments but never update or delete them (S1)', async () => {
     const [countRow] =
       await runtime`select count(*)::int as count from app.vacancy where id = ${world.v.assignedOpen}`;
     const count = countRow!.count as number;
@@ -307,18 +335,21 @@ describe('vacancy privileges and event link [ADR-012]', () => {
     await runtime`select count(*) from app.position`;
     await runtime`select count(*) from app.vacancy_recruiter`;
     for (const statement of [
-      runtime`insert into app.vacancy ${runtime(world.vacancyRow())}`,
       runtime`update app.vacancy set title = 'Зміна' where id = ${world.v.assignedOpen}`,
       runtime`delete from app.vacancy where id = ${world.v.assignedOpen}`,
-      runtime`insert into app.vacancy_recruiter (vacancy_id, user_id, assigned_by) values (${world.v.draft}, ${world.users.recA}, ${world.users.admin})`,
       runtime`delete from app.vacancy_recruiter where vacancy_id = ${world.v.assignedOpen}`,
+      runtime`update app.vacancy_recruiter set assigned_by = ${world.users.recA} where vacancy_id = ${world.v.assignedOpen}`,
     ])
       await expect(statement).rejects.toMatchObject({ code: '42501' });
+    await rolledBack(async (tx) => {
+      await tx`set local role app_rw`;
+      await tx`insert into app.vacancy ${tx(world.vacancyRow())}`;
+      await tx`insert into app.vacancy_recruiter (vacancy_id, user_id, assigned_by) values (${world.v.draft}, ${world.users.recA}, ${world.users.admin})`;
+    });
   });
 
   it('allocates numbers for the future write role without a sequence grant', async () => {
     await rolledBack(async (tx) => {
-      await tx`grant insert on app.vacancy to app_rw`;
       await tx`set local role app_rw`;
       const [row] =
         await tx`insert into app.vacancy ${tx(world.vacancyRow())} returning public_no::text as no`;
