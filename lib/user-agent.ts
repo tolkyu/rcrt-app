@@ -31,3 +31,9 @@ export function describeDevice(
     : undefined;
   return { browser: version ? `${browser} ${version}` : browser, os };
 }
+
+/** Phones only: tablets keep the desktop layout, as the 768 px breakpoint does; iPad Safari reports as Mac, but iPad Chrome/Firefox send "iPad … Mobile" and Android tablets may carry "Tablet", so those are excluded explicitly. */
+export const isPhoneUserAgent = (userAgent: string | null): boolean =>
+  userAgent !== null &&
+  !/iPad|Tablet/u.test(userAgent) &&
+  /Mobi|iPhone|iPod/u.test(userAgent);

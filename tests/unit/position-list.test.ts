@@ -145,6 +145,21 @@ describe('grouping [wireframe §1.1]', () => {
     expect(groups[0]!.total).toBe(2);
     expect(groups[1]!.items).toEqual([]);
     expect(groups[1]!.total).toBe(1);
+    expect(
+      groups.map((group) => [group.activeCount, group.inactiveCount]),
+    ).toEqual([
+      [1, 1],
+      [0, 1],
+    ]);
+    expect(
+      groupPositions(items, managed, 'all', true).map((group) => [
+        group.activeCount,
+        group.inactiveCount,
+      ]),
+    ).toEqual([
+      [1, 1],
+      [0, 1],
+    ]);
     expect(groupPositions(items, managed, 'all', true)[0]!.items).toEqual([
       inactive,
       active,

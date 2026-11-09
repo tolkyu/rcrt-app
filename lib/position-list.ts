@@ -12,6 +12,8 @@ export interface PositionGroup {
   readonly items: readonly Position[];
   /** Positions of the vertical regardless of the inactive toggle. */
   readonly total: number;
+  readonly activeCount: number;
+  readonly inactiveCount: number;
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -98,9 +100,12 @@ export function groupPositions(
     .filter((entry) => vertical === ALL_VERTICALS || entry.id === vertical)
     .map((entry) => {
       const own = items.filter((item) => item.verticalId === entry.id);
+      const activeCount = own.filter((item) => item.isActive).length;
       return {
         vertical: entry,
         total: own.length,
+        activeCount,
+        inactiveCount: own.length - activeCount,
         items: own.filter((item) => showInactive || item.isActive).sort(byName),
       };
     });

@@ -1298,7 +1298,33 @@ describe('Catalog size cap, write throttle and list guard [SEC-POS-03]', () => {
     });
   });
 
-  it('fails loudly instead of truncating when the list would pass 500 rows, with an error that carries no data', async () => {
+  it('lists four full verticals of 300 positions in one unfiltered manager list without failing [SEC-POS-09]', async () => {
+    await scenario(async (s) => {
+      const verticalIds: string[] = [];
+      for (let index = 0; index < 4; index += 1)
+        verticalIds.push(await freshVertical(s));
+      for (const [index, verticalId] of verticalIds.entries())
+        await s.tx
+          .insert(schema.position)
+          .values(
+            bulk(
+              verticalId,
+              s.actorId,
+              POSITION_PER_VERTICAL_LIMIT,
+              `Повна ${index}`,
+            ),
+          );
+      const { items } = await listPositionCatalog(s.as(roles().admin), {
+        status: 'all',
+      });
+      for (const verticalId of verticalIds)
+        expect(
+          items.filter((item) => item.verticalId === verticalId),
+        ).toHaveLength(POSITION_PER_VERTICAL_LIMIT);
+    });
+  });
+
+  it('fails loudly instead of truncating when the list would pass the list limit, with an error that carries no data', async () => {
     await scenario(async (s) => {
       const verticalId = await freshVertical(s);
       await s.tx

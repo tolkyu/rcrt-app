@@ -11,12 +11,15 @@ import {
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { createElement, type ReactNode } from 'react';
+import { hydrateRoot, type Root } from 'react-dom/client';
+import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PositionsView } from '@/components/positions/positions-view';
 import { ApiError, apiRequest } from '@/lib/api-client';
 import { positionsClientMessages } from '@/lib/i18n/positions-messages';
 import { MANAGER_POSITIONS, positionsQuery } from '@/lib/queries/positions';
 import type { Position, PositionList } from '@/lib/schemas/position';
+import type { ListLayout } from '@/lib/use-list-layout';
 import messages from '@/messages/uk.json';
 
 const urlListeners = vi.hoisted(() => new Set<() => void>());
@@ -89,12 +92,21 @@ function answer(items: Position[], write: () => Promise<Position>) {
       : write()) as typeof apiRequest);
 }
 
-function mount(
+const viewport = vi.hoisted(() => ({
+  desktop: true,
+  listeners: new Set<() => void>(),
+}));
+
+function setViewport(desktop: boolean) {
+  viewport.desktop = desktop;
+  viewport.listeners.forEach((listener) => listener());
+}
+
+function tree(
   items: Position[],
-  managed: readonly { id: string; name: string }[] = both,
-  search = '',
+  managed: readonly { id: string; name: string }[],
+  initialLayout: ListLayout,
 ) {
-  window.history.replaceState(null, '', `/vacancies/positions${search}`);
   const client = new QueryClient({
     defaultOptions: { queries: { staleTime: Infinity, retry: false } },
   });
@@ -104,24 +116,36 @@ function mount(
       items,
     },
   );
-  render(
-    createElement(NextIntlClientProvider, {
-      locale: 'uk',
-      timeZone: 'Europe/Kyiv',
-      messages: positionsClientMessages(messages),
-      // The route ships only these namespaces, so any other key read here is a runtime defect.
-      onError: (error) => {
-        throw error;
-      },
-      children: createElement(QueryClientProvider, {
-        client,
-        children: createElement(PositionsView, {
-          managedVerticals: managed,
-          defaultVertical: 'all',
-        }),
+  const element = createElement(NextIntlClientProvider, {
+    locale: 'uk',
+    timeZone: 'Europe/Kyiv',
+    messages: positionsClientMessages(messages),
+    // The route ships only these namespaces, so any other key read here is a runtime defect.
+    onError: (error) => {
+      throw error;
+    },
+    children: createElement(QueryClientProvider, {
+      client,
+      children: createElement(PositionsView, {
+        managedVerticals: managed,
+        defaultVertical: 'all',
+        initialLayout,
       }),
     }),
-  );
+  });
+  return { client, element };
+}
+
+function mount(
+  items: Position[],
+  managed: readonly { id: string; name: string }[] = both,
+  search = '',
+  desktop = true,
+) {
+  window.history.replaceState(null, '', `/vacancies/positions${search}`);
+  viewport.desktop = desktop;
+  const { client, element } = tree(items, managed, desktop ? 'table' : 'cards');
+  render(element);
   return client;
 }
 
@@ -133,6 +157,18 @@ const bandOf = (name: string) =>
   });
 
 beforeEach(() => {
+  viewport.desktop = true;
+  viewport.listeners.clear();
+  vi.stubGlobal('matchMedia', (query: string): Partial<MediaQueryList> => ({
+    media: query,
+    get matches() {
+      return viewport.desktop;
+    },
+    addEventListener: (_type: string, listener: unknown) =>
+      viewport.listeners.add(listener as () => void),
+    removeEventListener: (_type: string, listener: unknown) =>
+      viewport.listeners.delete(listener as () => void),
+  }));
   const replaceState = window.history.replaceState.bind(window.history);
   vi.spyOn(window.history, 'replaceState').mockImplementation(
     (...args: Parameters<History['replaceState']>) => {
@@ -143,6 +179,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
   vi.clearAllMocks();
 });
@@ -153,7 +190,9 @@ describe('grouped bands [wireframe §1.1, §3]', () => {
       position({ name: 'Афілейт', verticalId: GAMBLING, isActive: false }),
       position({ name: 'Трейдер', verticalId: CRYPTO }),
     ]);
-    expect(bandOf('Гемблінг').textContent).toBe('Гемблінг · 0 посад');
+    expect(bandOf('Гемблінг').textContent).toBe(
+      'Гемблінг · 0 активних, 1 неактивна',
+    );
     expect(within(table()).getByText(t.emptyActive.title)).toBeTruthy();
     expect(within(table()).queryByText(t.groupEmpty)).toBeNull();
     expect(
@@ -161,12 +200,51 @@ describe('grouped bands [wireframe §1.1, §3]', () => {
         name: fill(t.groupAddLabel, { vertical: 'Гемблінг' }),
       }),
     ).toBeNull();
-    expect(bandOf('Крипто').textContent).toBe('Крипто · 1 посада');
+    expect(bandOf('Крипто').textContent).toBe('Крипто · 1 активна');
     expect(
       screen
         .getAllByRole('status')
         .some((node) => node.textContent === 'Показано 1 посаду'),
     ).toBe(true);
+  });
+
+  it.each([
+    [0, 3, 'Гемблінг · 0 активних, 3 неактивні'],
+    [1, 1, 'Гемблінг · 1 активна, 1 неактивна'],
+    [2, 5, 'Гемблінг · 2 активні, 5 неактивних'],
+    [4, 0, 'Гемблінг · 4 активні'],
+    [21, 22, 'Гемблінг · 21 активна, 22 неактивні'],
+    [11, 12, 'Гемблінг · 11 активних, 12 неактивних'],
+    [0, 0, 'Гемблінг · 0 активних'],
+  ])(
+    'counts %i active and %i inactive in the band with the inactive toggle off, with Ukrainian plural forms',
+    (active, inactive, label) => {
+      mount([
+        // Keeps the table on screen when the counted vertical has no active row.
+        position({ verticalId: CRYPTO }),
+        ...Array.from({ length: active }, () =>
+          position({ verticalId: GAMBLING }),
+        ),
+        ...Array.from({ length: inactive }, () =>
+          position({ verticalId: GAMBLING, isActive: false }),
+        ),
+      ]);
+      expect(bandOf('Гемблінг').textContent).toBe(label);
+    },
+  );
+
+  it('keeps the band counts when the inactive toggle is on', () => {
+    mount(
+      [
+        position({ verticalId: CRYPTO }),
+        position({ verticalId: CRYPTO, isActive: false }),
+      ],
+      both,
+      '?inactive=1',
+    );
+    expect(bandOf('Крипто').textContent).toBe(
+      'Крипто · 1 активна, 1 неактивна',
+    );
   });
 
   it('shows a vertical without positions with «Додати посаду» that presets that vertical in the dialog', async () => {
@@ -223,13 +301,11 @@ describe('empty and all-inactive states [wireframe §3]', () => {
 
 describe('open vacancies column [ADR-013, owner 2026-11-09]', () => {
   it('prints the count of OPEN vacancies and a dash when the list carries none, in table and cards', () => {
-    mount(
-      [
-        position({ name: 'Медіабаєр', openVacanciesCount: 2 }),
-        position({ name: 'Саппорт', openVacanciesCount: null }),
-      ],
-      [both[0]!],
-    );
+    const items = [
+      position({ name: 'Медіабаєр', openVacanciesCount: 2 }),
+      position({ name: 'Саппорт', openVacanciesCount: null }),
+    ];
+    mount(items, [both[0]!]);
     const media = within(table()).getByRole('rowheader', {
       name: 'Медіабаєр',
     }).parentElement!;
@@ -238,6 +314,8 @@ describe('open vacancies column [ADR-013, owner 2026-11-09]', () => {
       name: 'Саппорт',
     }).parentElement!;
     expect(within(support).getByText(t.openVacanciesUnknown)).toBeTruthy();
+    cleanup();
+    mount(items, [both[0]!], '', false);
     expect(
       screen.getAllByText(fill(t.openVacanciesLine, { count: 2 })),
     ).toHaveLength(1);
@@ -246,6 +324,78 @@ describe('open vacancies column [ADR-013, owner 2026-11-09]', () => {
         fill(t.openVacanciesLine, { count: t.openVacanciesUnknown }),
       ),
     ).toHaveLength(1);
+  });
+});
+
+describe('one list layout per viewport [PERF follow-up #1]', () => {
+  const items = [position({ name: 'Медіабаєр' })];
+
+  it('renders only the table on desktop and only the cards on a phone', () => {
+    mount(items, [both[0]!]);
+    expect(screen.getAllByRole('rowheader')).toHaveLength(1);
+    expect(screen.queryByRole('list')).toBeNull();
+    cleanup();
+    mount(items, [both[0]!], '', false);
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(
+      within(screen.getByRole('list')).getAllByRole('listitem'),
+    ).toHaveLength(1);
+  });
+
+  it('switches layout without a refetch when the viewport crosses the breakpoint', () => {
+    mount(items, [both[0]!]);
+    act(() => setViewport(false));
+    expect(screen.queryByRole('table')).toBeNull();
+    expect(screen.getByRole('list')).toBeTruthy();
+    act(() => setViewport(true));
+    expect(screen.getByRole('table')).toBeTruthy();
+    expect(apiRequest).not.toHaveBeenCalled();
+  });
+
+  it.each<[ListLayout, string, string]>([
+    ['table', '<table', '<ul'],
+    ['cards', '<ul', '<table'],
+  ])(
+    'server-renders the %s hint with the list in the markup and without the other layout',
+    (layout, present, absent) => {
+      const html = renderToString(
+        tree([position({ name: 'Медіабаєр' })], [both[0]!], layout).element,
+      );
+      expect(html).toContain('Медіабаєр');
+      expect(html).toContain(present);
+      expect(html).not.toContain(absent);
+    },
+  );
+
+  it('hydrates a table hint on a phone viewport into the cards without a hydration mismatch', async () => {
+    window.history.replaceState(null, '', '/vacancies/positions');
+    const { element } = tree(
+      [position({ name: 'Медіабаєр' })],
+      [both[0]!],
+      'table',
+    );
+    const container = document.createElement('div');
+    container.innerHTML = renderToString(element);
+    document.body.append(container);
+    expect(container.querySelector('table')).not.toBeNull();
+    viewport.desktop = false;
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    let root: Root | undefined;
+    try {
+      await act(async () => {
+        root = hydrateRoot(container, element);
+      });
+      expect(container.querySelector('table')).toBeNull();
+      expect(within(container).getAllByRole('listitem').length).toBeGreaterThan(
+        0,
+      );
+      expect(consoleError).not.toHaveBeenCalled();
+    } finally {
+      await act(async () => root?.unmount());
+      container.remove();
+    }
   });
 });
 

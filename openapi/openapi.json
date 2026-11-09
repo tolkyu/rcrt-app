@@ -496,7 +496,7 @@
           "items": {
             "type": "array",
             "items": { "$ref": "#/components/schemas/Position" },
-            "maxItems": 1000
+            "maxItems": 3000
           }
         },
         "required": ["items"]

@@ -14,7 +14,7 @@ Pattern source: Verticals screen in `settings-admin.md` §2 + `components/settin
 
 ## 1. Desktop 1440 — list
 
-Content = `PageHeader` + `Card p-0` (radius 16), `max-w-5xl` (1024) left-aligned so rows stay readable. Row h 48, single line (long names wrap to a 2nd line, never ellipsis).
+Content = `PageHeader` + `Card p-0` (radius 16), `max-w-5xl` (1024) left-aligned so rows stay readable. Row h 48, single line (long names wrap to a 2nd line, never ellipsis). The page-header button sits inside this column. Only one layout is in the DOM: table from 768 px, cards below (server hint from the User-Agent, then `matchMedia`); cards use `content-visibility: auto`.
 
 ### 1.1 Several verticals (Admin; Head Recruiter with ≥ 2 managed verticals) — grouped, filter «Усі вертикалі»
 
@@ -28,7 +28,7 @@ Content = `PageHeader` + `Card p-0` (radius 16), `max-w-5xl` (1024) left-aligned
 │ ┌────────────────────────────┬─────────────┬────────────────────┬────────────┬──────────────────────────────────┐ │
 │ │ Назва                      │ Статус      │ Відкриті вакансії  │ Створено   │                                  │ │
 │ ├────────────────────────────┴─────────────┴────────────────────┴────────────┴──────────────────────────────────┤ │
-│ │ Гемблінг · 4 посади                                                                                          │ │
+│ │ Гемблінг · 4 активні, 1 неактивна                                                                            │ │
 │ ├────────────────────────────┬─────────────┬────────────────────┬────────────┬──────────────────────────────────┤ │
 │ │ Медіабаєр — Facebook       │ ● Активна   │ 2                  │ 15.10.2026 │ [✎ Перейменувати] [Деактивувати] │ │
 │ │ Старший спеціаліст із закуп│ ● Активна   │ 0                  │ 20.10.2026 │ [✎ Перейменувати] [Деактивувати] │ │
@@ -45,7 +45,7 @@ Content = `PageHeader` + `Card p-0` (radius 16), `max-w-5xl` (1024) left-aligned
 
 (Word breaks in the long name above are only an ASCII artefact; real text wraps whole words, no hyphenation, `lang="uk"`.)
 
-- **Grouping:** when the filter is «Усі вертикалі» and the user manages ≥ 2 verticals, rows are grouped under vertical sub-headings (`h2`, `text-sm` 600, `--surface-muted` band, `colspan` row, count «N посад»). A vertical without positions still shows its band plus one muted row «У цій вертикалі посад ще немає.» and a text button «Додати посаду» that opens the create dialog with that vertical preselected.
+- **Grouping:** when the filter is «Усі вертикалі» and the user manages ≥ 2 verticals, rows are grouped under vertical sub-headings (`h2`, `text-sm` 600, `--surface-muted` band, `colspan` row, count «N активних, M неактивних» with Ukrainian plural forms, e.g. «Гемблінг · 0 активних, 3 неактивні»; the inactive part is omitted when there are none; inactive positions are counted from the loaded data even while «Показати неактивні» is off). A vertical without positions still shows its band plus one muted row «У цій вертикалі посад ще немає.» and a text button «Додати посаду» that opens the create dialog with that vertical preselected.
 - **Single vertical selected** (or the user manages exactly one): flat list, no bands; the vertical name sits in the subtitle («Посади вертикалі «Гемблінг», які можна обрати у вакансіях»).
 - **Vertical filter:** native `<select>` with label (same `FilterSelect` as the vacancy list; extract it to a shared component in T3). Options = managed verticals only (Admin = all). Hidden when the user manages one vertical.
 - **Initial value (D83 logic):** `?vertical=` → else the header vertical switcher value if it is one of the **managed** verticals → else «Усі вертикалі». A header value the user cannot manage here (e.g. Recruiter role in B) falls back to «Усі вертикалі». Changing the page filter does not change the header switcher.
@@ -130,7 +130,8 @@ Same as 1.1 without vertical filter, without bands; subtitle names the vertical;
 │ [ Усі вертикалі           ▾] │  h 44, text-base
 │ ☐ Показати неактивні         │  row h 44
 │                              │
-│ Гемблінг · 4 посади          │  group heading (sticky under top bar)
+│ Гемблінг · 4 активні,        │  group heading (sticky under top bar),
+│ 1 неактивна                  │  wraps at 390
 │ ┌──────────────────────────┐ │
 │ │ Медіабаєр — Facebook     │ │  text-base 600, wraps
 │ │ ● Активна                │ │

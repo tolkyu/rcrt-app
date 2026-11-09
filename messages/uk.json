@@ -244,7 +244,7 @@
     "createdDate": "{at, date, ::dd.MM.yyyy}",
     "createdOn": "Створено {at, date, ::dd.MM.yyyy}",
     "shown": "{count, plural, one {Показано # посаду} few {Показано # посади} many {Показано # посад} other {Показано # посади}}",
-    "groupTitle": "{vertical} · {count, plural, one {# посада} few {# посади} many {# посад} other {# посади}}",
+    "groupTitle": "{vertical} · {active, plural, one {# активна} few {# активні} many {# активних} other {# активні}}{inactive, plural, =0 {} one {, # неактивна} few {, # неактивні} many {, # неактивних} other {, # неактивні}}",
     "groupEmpty": "У цій вертикалі посад ще немає.",
     "groupAdd": "Додати посаду",
     "groupAddLabel": "Додати посаду у вертикалі «{vertical}»",

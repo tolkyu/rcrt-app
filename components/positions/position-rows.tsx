@@ -94,7 +94,8 @@ function GroupTitle({
     <h2 className={cn('text-sm font-semibold', className)}>
       {t('groupTitle', {
         vertical: group.vertical.name,
-        count: group.items.length,
+        active: group.activeCount,
+        inactive: group.inactiveCount,
       })}
     </h2>
   );
@@ -139,7 +140,7 @@ const cell = 'px-4 py-2 align-middle';
 export function PositionTable({ groups, grouped, handlers }: ListProps) {
   const t = useTranslations('positions');
   return (
-    <table className="hidden w-full text-sm md:table">
+    <table className="w-full text-sm">
       <thead>
         <tr className="border-border text-muted-foreground border-b text-left text-xs">
           <th scope="col" className="px-4 py-3 font-medium">
@@ -221,7 +222,7 @@ export function PositionTable({ groups, grouped, handlers }: ListProps) {
 export function PositionCards({ groups, grouped, handlers }: ListProps) {
   const t = useTranslations('positions');
   return (
-    <div className="flex flex-col gap-3 md:hidden">
+    <div className="flex flex-col gap-3">
       {groups.map((group) => (
         <div key={group.vertical.id} className="flex flex-col gap-2">
           {grouped && (
@@ -239,7 +240,7 @@ export function PositionCards({ groups, grouped, handlers }: ListProps) {
             {group.items.map((position) => (
               <li
                 key={position.id}
-                className="border-border bg-surface rounded-2xl border p-4"
+                className="border-border bg-surface rounded-2xl border p-4 [contain-intrinsic-size:auto_10rem] [content-visibility:auto]"
               >
                 <p
                   tabIndex={-1}

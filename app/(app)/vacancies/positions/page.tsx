@@ -1,11 +1,12 @@
 import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { PositionsView } from '@/components/positions/positions-view';
 import { PREFERENCE_COOKIES } from '@/lib/preference-cookie';
 import { MANAGER_POSITIONS, positionsQuery } from '@/lib/queries/positions';
+import { isPhoneUserAgent } from '@/lib/user-agent';
 import { resolveVerticalFilter } from '@/lib/vertical-filter';
 import { can, hasAnyGrant } from '@/server/authz/can';
 import type { VerticalId } from '@/server/authz/types';
@@ -25,8 +26,9 @@ export default async function PositionsPage() {
   const ctx = await requirePrivilegedSession();
   if (!hasAnyGrant(ctx.auth, 'position.manage')) notFound();
   const queryClient = getQueryClient();
-  const [cookieStore, visible] = await Promise.all([
+  const [cookieStore, headerStore, visible] = await Promise.all([
     cookies(),
+    headers(),
     getVisibleVerticals(),
     listPositionCatalog(ctx, MANAGER_POSITIONS).then(
       (list) =>
@@ -57,6 +59,9 @@ export default async function PositionsPage() {
     >
       <PositionsView
         managedVerticals={managed}
+        initialLayout={
+          isPhoneUserAgent(headerStore.get('user-agent')) ? 'cards' : 'table'
+        }
         defaultVertical={resolveVerticalFilter(
           cookieStore.get(PREFERENCE_COOKIES.vertical)?.value,
           managed,

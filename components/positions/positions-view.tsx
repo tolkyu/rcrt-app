@@ -29,6 +29,7 @@ import {
 import { MANAGER_POSITIONS, positionsQuery } from '@/lib/queries/positions';
 import type { Position } from '@/lib/schemas/position';
 import { toast } from '@/lib/toast';
+import { useListLayout, type ListLayout } from '@/lib/use-list-layout';
 import { cn } from '@/lib/utils';
 import { useVacancyListHref } from '@/lib/vacancy-list-memory';
 import { ALL_VERTICALS } from '@/lib/vertical-filter';
@@ -65,22 +66,25 @@ type DialogState =
     }
   | null;
 
-function PositionsSkeleton() {
+function PositionsSkeleton({ layout }: { layout: ListLayout }) {
   const t = useTranslations('states');
   return (
     <div role="status" className="skeleton-delayed">
       <span className="sr-only">{t('loading')}</span>
-      <div className="hidden flex-col gap-2 p-4 md:flex">
-        <Skeleton className="h-9 w-full" />
-        {Array.from({ length: 5 }, (_, index) => (
-          <Skeleton key={index} className="h-12 w-full" />
-        ))}
-      </div>
-      <div className="flex flex-col gap-2 md:hidden">
-        {Array.from({ length: 3 }, (_, index) => (
-          <Skeleton key={index} className="h-32 w-full rounded-2xl" />
-        ))}
-      </div>
+      {layout === 'table' ? (
+        <div className="flex flex-col gap-2 p-4">
+          <Skeleton className="h-9 w-full" />
+          {Array.from({ length: 5 }, (_, index) => (
+            <Skeleton key={index} className="h-12 w-full" />
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 3 }, (_, index) => (
+            <Skeleton key={index} className="h-32 w-full rounded-2xl" />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -89,11 +93,14 @@ function PositionsSkeleton() {
 export function PositionsView({
   managedVerticals,
   defaultVertical,
+  initialLayout,
 }: {
   managedVerticals: readonly PositionVertical[];
   defaultVertical: string;
+  initialLayout: ListLayout;
 }) {
   const t = useTranslations('positions');
+  const layout = useListLayout(initialLayout);
   const queryClient = useQueryClient();
   const notifyFailure = usePositionFailureToast();
   const toggle = usePositionToggle();
@@ -291,7 +298,7 @@ export function PositionsView({
         retrying={query.isFetching}
       />
     ) : (
-      <PositionsSkeleton />
+      <PositionsSkeleton layout={layout} />
     );
   } else if (scoped === 0) {
     const inVertical = selected !== undefined && managedVerticals.length > 1;
@@ -335,12 +342,8 @@ export function PositionsView({
     );
   } else {
     hasRows = true;
-    body = (
-      <>
-        <PositionTable groups={groups} grouped={grouped} handlers={handlers} />
-        <PositionCards groups={groups} grouped={grouped} handlers={handlers} />
-      </>
-    );
+    const List = layout === 'table' ? PositionTable : PositionCards;
+    body = <List groups={groups} grouped={grouped} handlers={handlers} />;
   }
 
   return (
@@ -355,17 +358,19 @@ export function PositionsView({
         <ChevronLeft aria-hidden="true" />
         {t('backToVacancies')}
       </Link>
-      <PageHeader
-        title={t('title')}
-        subtitle={
-          selected
-            ? t('subtitleVertical', { vertical: selected.name })
-            : t('subtitle')
-        }
-        actions={
-          showCreate ? createButton('hidden h-10 md:inline-flex') : undefined
-        }
-      />
+      <div className="max-w-5xl">
+        <PageHeader
+          title={t('title')}
+          subtitle={
+            selected
+              ? t('subtitleVertical', { vertical: selected.name })
+              : t('subtitle')
+          }
+          actions={
+            showCreate ? createButton('hidden h-10 md:inline-flex') : undefined
+          }
+        />
+      </div>
       {(mfaLost || listLost === 'mfa') && (
         <MfaRequiredAlert
           message={t('errors.mfaRequired')}
@@ -410,8 +415,8 @@ export function PositionsView({
           <section
             aria-label={t('listLabel')}
             className={
-              hasRows
-                ? 'md:border-border md:bg-surface md:overflow-hidden md:rounded-xl md:border md:shadow-sm'
+              hasRows && layout === 'cards'
+                ? undefined
                 : 'border-border bg-surface overflow-hidden rounded-xl border shadow-sm'
             }
           >

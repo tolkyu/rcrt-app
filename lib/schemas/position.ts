@@ -8,9 +8,9 @@ import {
 import { uuid } from './uuid';
 
 export { POSITION_NAME_MAX, POSITION_NAME_MIN };
-/** Above verticals x POSITION_PER_VERTICAL_LIMIT for any realistic number of verticals, so the unfiltered Admin list cannot overflow before a cap does. */
-export const POSITION_LIST_LIMIT = 1000;
 export const POSITION_PER_VERTICAL_LIMIT = 300;
+/** Room for ten full verticals, so the unfiltered Admin list cannot overflow before the per-vertical cap does. */
+export const POSITION_LIST_LIMIT = POSITION_PER_VERTICAL_LIMIT * 10;
 export const POSITION_WRITE_RATE_LIMIT = {
   perUser: 30,
   windowSeconds: 60,
