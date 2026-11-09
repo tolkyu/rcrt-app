@@ -520,6 +520,14 @@ const groups2 = [
     roles: ['Керівник рекрутингу', 'Адміністратор'],
     states: [
       {
+        file: '32-admin-vacancies-header-vertical-crypto',
+        label: 'вертикаль у шапці',
+        dir: VAC,
+        variants: ['desktop-light', 'desktop-dark'],
+        heading:
+          'Вакансії — вертикаль «Крипто» вибрана в шапці: список і фільтр «Вертикаль» звужені до трьох вакансій (на телефоні перемикача в шапці немає)',
+      },
+      {
         file: '32-head-recruiter-vacancies-filtered',
         label: 'пошук',
         dir: VAC,

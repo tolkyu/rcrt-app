@@ -3,7 +3,7 @@ import { createTranslator } from 'use-intl';
 import { DEMO_VERTICALS } from '../../server/db/seed';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import type { VacancyDetail, VacancyPage } from '../../lib/schemas/vacancy';
-import { sessionFile } from '../support/e2e-session';
+import { E2E_ORIGIN, sessionFile } from '../support/e2e-session';
 import { openHydrated, waitForHydration } from '../support/hydration';
 import {
   ALL_VISIBLE,
@@ -163,6 +163,42 @@ test.describe('finance@demo', () => {
       expect((await page.request.get(path)).status(), path).toBe(404);
     await page.goto('/profile');
     await expect(page.getByRole('link', { name: t.title })).toHaveCount(0);
+  });
+
+  test('a stored header vertical never turns the vacancy 404 into a redirect [D83, VIS-01]', async ({
+    page,
+  }) => {
+    await page
+      .context()
+      .addCookies([
+        { name: 'vertical', value: DEMO_VERTICALS.crypto, url: E2E_ORIGIN },
+      ]);
+    const response = await page.goto('/vacancies');
+    expect(response?.status()).toBe(404);
+    await expect(page).toHaveURL(/\/vacancies$/);
+    await expect(notFound(page)).toBeVisible();
+  });
+});
+
+test.describe('recruiter.crypto@demo', () => {
+  test.use({ storageState: sessionFile('recruiter.crypto@demo') });
+
+  test('a single-vertical user is never redirected by a stored header vertical and has no switcher [D83]', async ({
+    page,
+    isMobile,
+  }) => {
+    for (const value of [DEMO_VERTICALS.crypto, DEMO_VERTICALS.gambling]) {
+      await page
+        .context()
+        .addCookies([{ name: 'vertical', value, url: E2E_ORIGIN }]);
+      await page.goto('/vacancies?status=OPEN');
+      await waitForHydration(page);
+      await expect(page).toHaveURL(/\/vacancies[?]status=OPEN$/);
+      await expectNumbers(page, isMobile, [12, 7, 3]);
+      await expect(
+        page.getByRole('button', { name: /^Вертикаль:/ }),
+      ).toHaveCount(0);
+    }
   });
 });
 
@@ -527,8 +563,132 @@ test.describe('admin@demo', () => {
     await expectNumbers(page, isMobile, [6]);
 
     await page.getByRole('button', { name: t.resetFilters }).click();
+    await expect(page).toHaveURL(/\/vacancies\?vertical=all$/);
+    await expectNumbers(page, isMobile, ALL_VISIBLE);
+  });
+
+  test('the header vertical seeds the vertical filter; the filter follows it, can be changed or cleared, and an explicit URL wins [D83, VAC-04]', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'the header vertical switcher is hidden on mobile');
+    const inVertical = (key: 'gambling' | 'crypto') =>
+      ALL_VISIBLE.filter((position) => demoVacancy(position).vertical === key);
+    const switcher = (name: string) =>
+      page.getByRole('button', {
+        name: messages.shell.verticalFilter.replace('{name}', name),
+        exact: true,
+      });
+    const storedVertical = async () =>
+      (await page.context().cookies()).find(
+        (cookie) => cookie.name === 'vertical',
+      )?.value;
+
+    await openHydrated(page, '/vacancies');
+    await expect(switcher(messages.shell.allVerticals)).toBeVisible();
+    await expectNumbers(page, isMobile, ALL_VISIBLE);
+
+    await switcher(messages.shell.allVerticals).click();
+    await page
+      .getByRole('menuitemradio', { name: 'Крипто', exact: true })
+      .click();
+    await expectNumbers(page, isMobile, inVertical('crypto'));
+    await expect(page).toHaveURL(
+      new RegExp(`[?&]vertical=${DEMO_VERTICALS.crypto}(&|$)`),
+    );
+    await expect(verticalFilter(page)).toHaveValue(DEMO_VERTICALS.crypto);
+    await expect(switcher('Крипто')).toBeVisible();
+    expect(await storedVertical()).toBe(DEMO_VERTICALS.crypto);
+
+    await verticalFilter(page).selectOption({ label: 'Гемблінг' });
+    await expectNumbers(page, isMobile, inVertical('gambling'));
+    await expect(switcher('Гемблінг')).toBeVisible();
+    expect(await storedVertical()).toBe(DEMO_VERTICALS.crypto);
+
+    await page.goto('/vacancies');
+    await waitForHydration(page);
+    await expect(page).toHaveURL(
+      new RegExp(`/vacancies[?]vertical=${DEMO_VERTICALS.crypto}$`),
+    );
+    await expect(verticalFilter(page)).toHaveValue(DEMO_VERTICALS.crypto);
+    await expectNumbers(page, isMobile, inVertical('crypto'));
+
+    await page.goto(`/vacancies?vertical=${DEMO_VERTICALS.gambling}`);
+    await waitForHydration(page);
+    await expect(page).toHaveURL(
+      new RegExp(`/vacancies[?]vertical=${DEMO_VERTICALS.gambling}$`),
+    );
+    await expect(verticalFilter(page)).toHaveValue(DEMO_VERTICALS.gambling);
+    await expectNumbers(page, isMobile, inVertical('gambling'));
+
+    await verticalFilter(page).selectOption({ label: t.all });
+    await expect(page).toHaveURL(/\/vacancies\?vertical=all$/);
+    await expectNumbers(page, isMobile, ALL_VISIBLE);
+    await expect(switcher(messages.shell.allVerticals)).toBeVisible();
+    await page.reload();
+    await waitForHydration(page);
+    await expect(page).toHaveURL(/\/vacancies\?vertical=all$/);
+    await expect(verticalFilter(page)).toHaveValue('');
+    await expectNumbers(page, isMobile, ALL_VISIBLE);
+
+    await page.goBack();
+    await expect(verticalFilter(page)).toHaveValue(DEMO_VERTICALS.crypto);
+    await expectNumbers(page, isMobile, inVertical('crypto'));
+  });
+
+  test('a stored header vertical presets a bare list link once; an unknown stored value is ignored [D83]', async ({
+    page,
+    isMobile,
+  }) => {
+    const store = (value: string) =>
+      page.context().addCookies([{ name: 'vertical', value, url: E2E_ORIGIN }]);
+
+    await store(DEMO_VERTICALS.crypto);
+    await page.goto('/vacancies?status=OPEN&cursor=5');
+    await waitForHydration(page);
+    await expect(page).toHaveURL(
+      new RegExp(`/vacancies[?]vertical=${DEMO_VERTICALS.crypto}&status=OPEN$`),
+    );
+    await expectNumbers(page, isMobile, [12, 7, 3]);
+
+    await store('5b1f7a3c-9d4e-4f6a-8b2c-1d3e5f7a9b0c');
+    await page.goto('/vacancies');
+    await waitForHydration(page);
     await expect(page).toHaveURL(/\/vacancies$/);
     await expectNumbers(page, isMobile, ALL_VISIBLE);
+  });
+
+  test('choosing a header vertical and then following the sidebar «Вакансії» link client-side opens the list already filtered [D83]', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'the header vertical switcher is hidden on mobile');
+    const nav = page.getByRole('navigation', { name: messages.shell.mainNav });
+    const link = (name: string) => nav.getByRole('link', { name, exact: true });
+
+    await openHydrated(page, '/vacancies');
+    await page
+      .getByRole('button', {
+        name: messages.shell.verticalFilter.replace(
+          '{name}',
+          messages.shell.allVerticals,
+        ),
+        exact: true,
+      })
+      .click();
+    await page
+      .getByRole('menuitemradio', { name: 'Крипто', exact: true })
+      .click();
+    await expectNumbers(page, isMobile, [12, 7, 3]);
+
+    await link(messages.nav.profile).click();
+    await expect(page).toHaveURL(/\/profile$/);
+    await link(messages.nav.vacancies).click();
+    await expect(page).toHaveURL(
+      new RegExp(`/vacancies[?]vertical=${DEMO_VERTICALS.crypto}$`),
+    );
+    await expect(verticalFilter(page)).toHaveValue(DEMO_VERTICALS.crypto);
+    await expectNumbers(page, isMobile, [12, 7, 3]);
   });
 
   test('the vacancy navigation item is current on the list and on a card [UI-04, VIS-02]', async ({

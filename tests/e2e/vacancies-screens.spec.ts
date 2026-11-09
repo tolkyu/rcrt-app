@@ -2,7 +2,7 @@ import { expect, test, type Page, type Route } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import { checkAccessibility } from '../support/accessibility';
-import { sessionFile, type E2EUser } from '../support/e2e-session';
+import { E2E_ORIGIN, sessionFile, type E2EUser } from '../support/e2e-session';
 import { openHydrated } from '../support/hydration';
 import {
   DELETED_VACANCY,
@@ -238,6 +238,53 @@ test.describe('admin@demo states', () => {
         page,
         testInfo,
         `32-admin-vacancies-filtered-empty-${viewportOf(testInfo)}-${theme}.png`,
+        'phase-2',
+      );
+    });
+  });
+
+  test('captures the header vertical switcher narrowing the list to «Крипто» [SHOT-01..03, D83]', async ({
+    page,
+    isMobile,
+  }, testInfo) => {
+    test.skip(isMobile, 'the header vertical switcher is hidden on mobile');
+    await freezeClock(page);
+    const crypto = VISIBLE_VACANCIES['admin@demo'].filter(
+      (position) => demoVacancy(position).vertical === 'crypto',
+    );
+    await forEachTheme(page, async (theme) => {
+      await page
+        .context()
+        .addCookies([{ name: 'vertical', value: 'all', url: E2E_ORIGIN }]);
+      await openHydrated(page, '/vacancies');
+      await expect(rowCount(page, isMobile)).toHaveCount(
+        VISIBLE_VACANCIES['admin@demo'].length,
+      );
+      await page
+        .getByRole('button', {
+          name: messages.shell.verticalFilter.replace(
+            '{name}',
+            messages.shell.allVerticals,
+          ),
+          exact: true,
+        })
+        .click();
+      await page
+        .getByRole('menuitemradio', { name: 'Крипто', exact: true })
+        .click();
+      await expect(rowCount(page, isMobile)).toHaveCount(crypto.length);
+      await expect(
+        page.getByRole('button', {
+          name: messages.shell.verticalFilter.replace('{name}', 'Крипто'),
+          exact: true,
+        }),
+      ).toBeVisible();
+      await previewReady(page, isMobile);
+      await checkAccessibility(page, testInfo);
+      await captureScreen(
+        page,
+        testInfo,
+        `32-admin-vacancies-header-vertical-crypto-desktop-${theme}.png`,
         'phase-2',
       );
     });

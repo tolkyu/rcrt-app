@@ -25,6 +25,7 @@ import { BottomNav } from './bottom-nav';
 import { BrandMark } from './brand';
 import { Sidebar } from './sidebar';
 import { UserMenu } from './user-menu';
+import { VacanciesVerticalSwitcher } from './vacancies-vertical-switcher';
 import { VerticalSwitcher } from './vertical-switcher';
 
 const loadTabletMenu = () => import('./tablet-menu');
@@ -64,6 +65,7 @@ export function AppShell({
   const mobile = useMemo(() => mobileNav(items), [items]);
   const [collapsed, setCollapsed] = useState(initialCollapsed);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [vertical, setVertical] = useState(verticalFilter);
   const menuTrigger = useRef<HTMLButtonElement>(null);
   const [mfaAt, setMfaAt] = useState<{
     pathname: string;
@@ -102,6 +104,11 @@ export function AppShell({
       PREFERENCE_COOKIES.sidebar,
       next ? 'collapsed' : 'expanded',
     );
+  };
+
+  const changeVertical = (next: string) => {
+    setVertical(next);
+    writePreference(PREFERENCE_COOKIES.vertical, next);
   };
 
   return (
@@ -168,8 +175,19 @@ export function AppShell({
             <div className="hidden md:block">
               <VerticalSwitcher
                 verticals={verticals}
-                initialValue={verticalFilter}
+                value={vertical}
+                onChange={changeVertical}
               />
+            </div>
+          )}
+          {verticals.length > 0 && pathname === '/vacancies' && (
+            <div className="hidden md:block">
+              <Suspense fallback={null}>
+                <VacanciesVerticalSwitcher
+                  verticals={verticals}
+                  onChange={changeVertical}
+                />
+              </Suspense>
             </div>
           )}
           <div className="ml-auto flex items-center gap-1 md:gap-2">

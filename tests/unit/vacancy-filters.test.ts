@@ -7,6 +7,8 @@ import {
   vacancyApiFilters,
   vacancyPageSearch,
   vacancyPageUrlSearch,
+  vacancyPresetSearch,
+  vacancyVerticalPreset,
   withVacancyFilters,
   withVacancyPage,
   withVacancySelection,
@@ -15,6 +17,11 @@ import { vacancyListQuerySchema } from '@/lib/schemas/vacancy';
 
 const VERTICAL = '11111111-1111-4111-8111-111111111111';
 const VACANCY = '22222222-2222-4222-8222-222222222222';
+const OTHER = '33333333-3333-4333-8333-333333333333';
+const VERTICALS = [
+  { id: VERTICAL, name: 'Гемблінг' },
+  { id: OTHER, name: 'Крипто' },
+];
 const parse = (query: string) =>
   parseVacancyPageState(new URLSearchParams(query));
 
@@ -188,6 +195,170 @@ describe('URL transitions', () => {
         withVacancyFilters(parse('limit=50'), { status: 'OPEN' }),
       ),
     ).toBe('status=OPEN&limit=50');
+  });
+});
+
+describe('explicit «Усі» (vertical=all) [D83]', () => {
+  it('parses vertical=all as an explicit choice that is not a vertical filter', () => {
+    const state = parse('vertical=all&status=OPEN');
+    expect(state.allVerticals).toBe(true);
+    expect(state.filters).toEqual({ status: 'OPEN', limit: 25 });
+    expect(hasVacancyFilters(state)).toBe(true);
+    expect(hasVacancyFilters(parse('vertical=all'))).toBe(false);
+    expect(parse('').allVerticals).toBeUndefined();
+    expect(parse(`vertical=${VERTICAL}`).allVerticals).toBeUndefined();
+  });
+
+  it('round-trips through the URL and survives paging, selection and other filter changes', () => {
+    const state = parse('vertical=all');
+    expect(vacancyPageUrlSearch(state)).toBe('vertical=all');
+    expect(vacancyPageUrlSearch(withVacancyFilters(state, { q: 'Face' }))).toBe(
+      'q=Face&vertical=all',
+    );
+    expect(vacancyPageUrlSearch(withVacancyFilters(state, {}))).toBe(
+      'vertical=all',
+    );
+    expect(vacancyPageUrlSearch(withVacancyPage(state, '7', 'older'))).toBe(
+      'cursor=7&direction=older&vertical=all',
+    );
+    expect(
+      vacancyPageUrlSearch(withVacancySelection(state, VACANCY)),
+    ).toContain('vertical=all');
+  });
+
+  it('choosing a vertical replaces all, and choosing all replaces a vertical', () => {
+    expect(
+      vacancyPageUrlSearch(
+        withVacancyFilters(parse('vertical=all&cursor=4'), {
+          vertical: VERTICAL,
+        }),
+      ),
+    ).toBe(`vertical=${VERTICAL}`);
+    expect(
+      vacancyPageUrlSearch(
+        withVacancyFilters(parse(`vertical=${VERTICAL}&status=OPEN`), {
+          vertical: 'all',
+        }),
+      ),
+    ).toBe('status=OPEN&vertical=all');
+  });
+
+  it.each([
+    ['a malformed vertical', 'vertical=garbage'],
+    ['an empty vertical', 'vertical='],
+    ['a repeated vertical', `vertical=${VERTICAL}&vertical=${OTHER}`],
+  ])(
+    '%s counts as explicit «Усі» and keeps vertical=all in follow-up URLs',
+    (_name, query) => {
+      const state = parse(query);
+      expect(state.allVerticals).toBe(true);
+      expect(state.filters.vertical).toBeUndefined();
+      expect(
+        vacancyPageUrlSearch(withVacancySelection(state, VACANCY)),
+      ).toContain('vertical=all');
+      expect(
+        vacancyPageUrlSearch(withVacancyPage(state, '5', 'older')),
+      ).toContain('vertical=all');
+      expect(
+        vacancyPageUrlSearch(withVacancyFilters(state, { status: 'OPEN' })),
+      ).toContain('vertical=all');
+    },
+  );
+
+  it('clearing to undefined leaves a bare URL', () => {
+    expect(
+      vacancyPageUrlSearch(
+        withVacancyFilters(parse('vertical=all'), { vertical: undefined }),
+      ),
+    ).toBe('');
+  });
+});
+
+describe('header vertical preset for «Вакансії» [D83]', () => {
+  const preset = (query: string, stored: string | undefined) =>
+    vacancyVerticalPreset(new URLSearchParams(query), stored, VERTICALS);
+
+  it('applies the stored vertical only when the URL has no vertical parameter', () => {
+    expect(preset('', OTHER)).toBe(OTHER);
+    expect(preset('status=OPEN&q=Face', OTHER)).toBe(OTHER);
+  });
+
+  it.each([
+    ['an explicit vertical', `vertical=${VERTICAL}`],
+    ['an explicit «all»', 'vertical=all'],
+    ['a malformed vertical', 'vertical=gambling'],
+    ['an empty vertical', 'vertical='],
+    ['a repeated vertical', `vertical=${VERTICAL}&vertical=${OTHER}`],
+  ])('never overrides %s', (_name, query) => {
+    expect(preset(query, OTHER)).toBeUndefined();
+  });
+
+  it.each([
+    ['no cookie', undefined],
+    ['an empty cookie', ''],
+    ['the «all» cookie', 'all'],
+    ['a vertical outside my scope', '44444444-4444-4444-8444-444444444444'],
+    ['garbage', 'x;y'],
+  ])('ignores %s', (_name, stored) => {
+    expect(preset('', stored)).toBeUndefined();
+  });
+
+  it('applies to users with several verticals only', () => {
+    expect(
+      vacancyVerticalPreset({}, VERTICAL, VERTICALS.slice(0, 1)),
+    ).toBeUndefined();
+    expect(vacancyVerticalPreset({}, VERTICAL, [])).toBeUndefined();
+  });
+
+  it('reads the plain search-parameter objects of the RSC page', () => {
+    expect(vacancyVerticalPreset({}, OTHER, VERTICALS)).toBe(OTHER);
+    expect(vacancyVerticalPreset({ vertical: 'all' }, OTHER, VERTICALS)).toBe(
+      undefined,
+    );
+    expect(
+      vacancyVerticalPreset({ vertical: [VERTICAL, OTHER] }, OTHER, VERTICALS),
+    ).toBeUndefined();
+    expect(vacancyVerticalPreset({ status: 'OPEN' }, OTHER, VERTICALS)).toBe(
+      OTHER,
+    );
+    expect(vacancyVerticalPreset({}, 'all', VERTICALS)).toBeUndefined();
+  });
+
+  it('a deep-linked vacancy is already specific, so it is not redirected; an invalid one does not count', () => {
+    expect(preset(`vacancy=${VACANCY}`, OTHER)).toBeUndefined();
+    expect(preset(`status=OPEN&vacancy=${VACANCY.toUpperCase()}`, OTHER)).toBe(
+      undefined,
+    );
+    expect(
+      vacancyVerticalPreset({ vacancy: VACANCY }, OTHER, VERTICALS),
+    ).toBeUndefined();
+    expect(preset('vacancy=garbage', OTHER)).toBe(OTHER);
+    expect(preset(`vacancy=${VACANCY}&vacancy=${VACANCY}`, OTHER)).toBe(OTHER);
+  });
+});
+
+describe('vacancyPresetSearch redirect target [D83]', () => {
+  it('keeps search, status and page size but drops cursor and selection', () => {
+    expect(
+      vacancyPresetSearch(
+        new URLSearchParams(
+          `q=Face&status=OPEN&limit=50&cursor=9&direction=newer&vacancy=${VACANCY}`,
+        ),
+        OTHER,
+      ),
+    ).toBe(`q=Face&vertical=${OTHER}&status=OPEN&limit=50`);
+  });
+
+  it('works for a bare URL and for the plain objects of the RSC page', () => {
+    expect(vacancyPresetSearch({}, OTHER)).toBe(`vertical=${OTHER}`);
+    expect(vacancyPresetSearch({ status: 'DRAFT' }, OTHER)).toBe(
+      `vertical=${OTHER}&status=DRAFT`,
+    );
+  });
+
+  it('never emits vertical=all or a malformed vertical', () => {
+    expect(vacancyPresetSearch({ status: 'OPEN' }, 'all')).toBe('status=OPEN');
+    expect(vacancyPresetSearch({}, 'garbage')).toBe('');
   });
 });
 

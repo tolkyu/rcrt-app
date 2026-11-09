@@ -2,9 +2,8 @@
 
 import { ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { lazy, useState, type ComponentProps } from 'react';
+import { lazy, type ComponentProps } from 'react';
 import { DeferredMenu, useDeferredMenu } from '@/components/ui/deferred-menu';
-import { PREFERENCE_COOKIES, writePreference } from '@/lib/preference-cookie';
 import type { VerticalOption } from '@/lib/vertical-filter';
 
 const loadMenu = () => import('./vertical-switcher-menu');
@@ -13,13 +12,14 @@ const VerticalSwitcherMenu = lazy(loadMenu);
 /** «Усі мої вертикалі ▾»: only the user's verticals; hidden with fewer than two (design-system §5). */
 export function VerticalSwitcher({
   verticals,
-  initialValue,
+  value,
+  onChange,
 }: {
   verticals: readonly VerticalOption[];
-  initialValue: string;
+  value: string;
+  onChange: (value: string) => void;
 }) {
   const t = useTranslations('shell');
-  const [value, setValue] = useState(initialValue);
   const menu = useDeferredMenu(loadMenu);
   if (verticals.length < 2) return null;
   const selected = verticals.find((vertical) => vertical.id === value);
@@ -46,10 +46,7 @@ export function VerticalSwitcher({
           openedBy={openedBy}
           verticals={verticals}
           value={value}
-          onChange={(next) => {
-            setValue(next);
-            writePreference(PREFERENCE_COOKIES.vertical, next);
-          }}
+          onChange={onChange}
         />
       )}
     </DeferredMenu>

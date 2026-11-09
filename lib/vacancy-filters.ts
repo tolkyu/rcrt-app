@@ -1,4 +1,9 @@
 import type { VacancyListQuery } from './schemas/vacancy';
+import {
+  ALL_VERTICALS,
+  resolveVerticalFilter,
+  type VerticalOption,
+} from './vertical-filter';
 
 export const VACANCY_STATUSES = [
   'DRAFT',
@@ -93,9 +98,16 @@ export const vacancyApiFilters = (
 export interface VacancyPageState {
   readonly filters: VacancyListQuery;
   readonly selected?: string;
+  /** `vertical=all` in the URL: «Усі» chosen explicitly, which a header-vertical preset must not override. */
+  readonly allVerticals?: true;
 }
 
 export const VACANCY_SELECTED_PARAM = 'vacancy';
+
+const hasParam = (source: SearchSource, key: string): boolean =>
+  source instanceof URLSearchParams
+    ? source.has(key)
+    : source[key] !== undefined;
 
 export function parseVacancyPageState(source: SearchSource): VacancyPageState {
   const filters: VacancyListQuery = parseVacancyPageFilters(source);
@@ -106,33 +118,90 @@ export function parseVacancyPageState(source: SearchSource): VacancyPageState {
     ...(selected && UUID.test(selected)
       ? { selected: selected.toLowerCase() }
       : {}),
+    // A present but unusable `vertical` (garbage, empty, repeated) still counts as explicit, so follow-up URLs carry `vertical=all`.
+    ...(hasParam(source, 'vertical') && !filters.vertical
+      ? { allVerticals: true as const }
+      : {}),
   };
 }
 
 export function vacancyPageUrlSearch(state: VacancyPageState): string {
   const params = vacancyPageSearch(state.filters);
+  if (state.allVerticals && !state.filters.vertical)
+    params.set('vertical', ALL_VERTICALS);
   if (state.selected) params.set(VACANCY_SELECTED_PARAM, state.selected);
   return params.toString();
 }
 
+/** `vertical` is a vertical id, `ALL_VERTICALS` for the explicit «Усі», or undefined for no vertical in the URL. */
 export type VacancyFilterPatch = Partial<
-  Pick<VacancyListQuery, 'q' | 'vertical' | 'status'>
->;
+  Pick<VacancyListQuery, 'q' | 'status'>
+> & {
+  vertical?: string | undefined;
+};
 
 /** A changed filter invalidates the cursor and the selection, because both belong to the previous result set. */
 export function withVacancyFilters(
   state: VacancyPageState,
   patch: VacancyFilterPatch,
 ): VacancyPageState {
-  const { q, vertical, status } = { ...state.filters, ...patch };
+  const { q, status } = { ...state.filters, ...patch };
+  const vertical =
+    'vertical' in patch
+      ? patch.vertical
+      : (state.filters.vertical ??
+        (state.allVerticals ? ALL_VERTICALS : undefined));
   return {
     filters: {
       ...(q ? { q } : {}),
-      ...(vertical ? { vertical } : {}),
+      ...(vertical && vertical !== ALL_VERTICALS ? { vertical } : {}),
       ...(status ? { status } : {}),
       ...(state.filters.limit ? { limit: state.filters.limit } : {}),
     },
+    ...(vertical === ALL_VERTICALS ? { allVerticals: true as const } : {}),
   };
+}
+
+/** Only a bare URL falls back to the header vertical (D83): any `vertical`, even `all`, wins, and a deep-linked vacancy is already specific. */
+const mayPresetVacancyVertical = (
+  source: SearchSource,
+  stored: string | null | undefined,
+): boolean => {
+  const selected = one(source, VACANCY_SELECTED_PARAM);
+  return (
+    Boolean(stored) &&
+    stored !== ALL_VERTICALS &&
+    !hasParam(source, 'vertical') &&
+    !(selected && UUID.test(selected))
+  );
+};
+
+/**
+ * D83: the header vertical seeds the filter for users with several verticals. The page redirects once to an
+ * explicit `?vertical=<id>`, so a shared bare link resolves to the recipient's own header vertical a single time
+ * and every later reload, Back or copied URL says exactly what is filtered.
+ */
+export function vacancyVerticalPreset(
+  source: SearchSource,
+  stored: string | null | undefined,
+  verticals: readonly VerticalOption[],
+): string | undefined {
+  if (!mayPresetVacancyVertical(source, stored) || verticals.length < 2)
+    return undefined;
+  const id = resolveVerticalFilter(stored, verticals);
+  return id === ALL_VERTICALS ? undefined : id;
+}
+
+/** Redirect target of the preset: keeps search, status and page size, drops cursor and selection, and only ever carries a real vertical id. */
+export function vacancyPresetSearch(
+  source: SearchSource,
+  preset: string,
+): string {
+  return vacancyPageUrlSearch(
+    withVacancyFilters(parseVacancyPageState(source), {
+      vertical: UUID.test(preset) ? preset.toLowerCase() : undefined,
+    }),
+  );
 }
 
 export function withVacancyPage(
@@ -140,7 +209,10 @@ export function withVacancyPage(
   cursor: string,
   direction: 'older' | 'newer',
 ): VacancyPageState {
-  return { filters: { ...state.filters, cursor, direction } };
+  return {
+    filters: { ...state.filters, cursor, direction },
+    ...(state.allVerticals ? { allVerticals: true as const } : {}),
+  };
 }
 
 export const withVacancySelection = (
@@ -149,6 +221,7 @@ export const withVacancySelection = (
 ): VacancyPageState => ({
   filters: state.filters,
   ...(selected ? { selected } : {}),
+  ...(state.allVerticals ? { allVerticals: true as const } : {}),
 });
 
 export const hasVacancyFilters = ({ filters }: VacancyPageState): boolean =>

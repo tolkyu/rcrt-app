@@ -33,18 +33,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { vacanciesQuery, vacancyDetailQuery } from '@/lib/queries/vacancies';
 import { verticalsQuery } from '@/lib/queries/verticals';
 import { useWideScreen } from '@/lib/use-wide-screen';
-import { rememberVacancyList } from '@/lib/vacancy-list-memory';
 import {
   hasVacancyFilters,
   parseVacancyPageState,
   VACANCY_SEARCH_MAX,
   VACANCY_STATUSES,
-  vacancyPageUrlSearch,
   withVacancyFilters,
   withVacancyPage,
   withVacancySelection,
-  type VacancyPageState,
 } from '@/lib/vacancy-filters';
+import { rememberVacancyList } from '@/lib/vacancy-list-memory';
+import { navigateVacancies as navigate } from '@/lib/vacancy-navigation';
+import { ALL_VERTICALS } from '@/lib/vertical-filter';
 import { VacanciesList } from './vacancies-list';
 import { VacancyPreview } from './vacancy-preview';
 
@@ -79,17 +79,6 @@ function FilterSelect({
       </select>
     </div>
   );
-}
-
-/** Reads the live URL so a debounced search never overwrites a filter chosen meanwhile. */
-function navigate(
-  update: (current: VacancyPageState) => VacancyPageState,
-  mode: 'pushState' | 'replaceState',
-) {
-  const next = vacancyPageUrlSearch(
-    update(parseVacancyPageState(new URLSearchParams(window.location.search))),
-  );
-  window.history[mode](null, '', next ? `?${next}` : window.location.pathname);
 }
 
 function ListSkeleton() {
@@ -169,7 +158,7 @@ export function VacanciesView() {
       (current) =>
         withVacancyFilters(current, {
           q: undefined,
-          vertical: undefined,
+          vertical: clearedVertical,
           status: undefined,
         }),
       'replaceState',
@@ -197,6 +186,9 @@ export function VacanciesView() {
   const emptyResult = Boolean(query.data) && items.length === 0;
   const selectedId = state.selected ?? items[0]?.id;
   const visibleVerticals = verticals.data?.items ?? [];
+  /** With several verticals a cleared filter is written as `vertical=all`, so the header preset cannot bring a vertical back (D83). */
+  const clearedVertical =
+    visibleVerticals.length > 1 ? ALL_VERTICALS : undefined;
   const unknownVertical =
     filters.vertical &&
     !visibleVerticals.some((vertical) => vertical.id === filters.vertical);
@@ -280,7 +272,9 @@ export function VacanciesView() {
           onChange={(value) =>
             navigate(
               (current) =>
-                withVacancyFilters(current, { vertical: value || undefined }),
+                withVacancyFilters(current, {
+                  vertical: value || clearedVertical,
+                }),
               'replaceState',
             )
           }

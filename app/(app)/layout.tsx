@@ -10,11 +10,10 @@ import { PREFERENCE_COOKIES } from '@/lib/preference-cookie';
 import { queryKeys } from '@/lib/query-keys';
 import { parseTheme } from '@/lib/theme';
 import { resolveVerticalFilter } from '@/lib/vertical-filter';
-import { hasAnyGrant } from '@/server/authz/can';
 import { getQueryClient } from '@/server/query/query-client';
 import { getMe } from '@/server/services/me';
-import { listVisibleVerticals } from '@/server/services/vertical';
 import { requireSession } from './_lib/session';
+import { getVisibleVerticals } from './_lib/verticals';
 
 /** Client components below the shell read only these namespaces (perf plan §7: per-namespace messages). */
 const CLIENT_NAMESPACES = [
@@ -31,18 +30,17 @@ const CLIENT_NAMESPACES = [
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const ctx = await requireSession();
   const queryClient = getQueryClient();
-  const [cookieStore, messages, verticals] = await Promise.all([
-    cookies(),
-    getMessages(),
-    hasAnyGrant(ctx.auth, 'vertical.read')
-      ? listVisibleVerticals(ctx).then((result) => result.items)
-      : Promise.resolve([]),
-    queryClient.prefetchQuery({
-      queryKey: queryKeys.me(),
-      queryFn: () => getMe(ctx),
-    }),
-  ]);
-  if (hasAnyGrant(ctx.auth, 'vertical.read'))
+  const [cookieStore, messages, { items: verticals, readable }] =
+    await Promise.all([
+      cookies(),
+      getMessages(),
+      getVisibleVerticals(),
+      queryClient.prefetchQuery({
+        queryKey: queryKeys.me(),
+        queryFn: () => getMe(ctx),
+      }),
+    ]);
+  if (readable)
     queryClient.setQueryData(queryKeys.verticals(), { items: verticals });
   const navIds = visibleNavItems(new Set(ctx.auth.grants.keys())).map(
     (item) => item.id,

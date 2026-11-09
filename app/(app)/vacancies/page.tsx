@@ -1,15 +1,19 @@
 import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { Suspense } from 'react';
 import { PageHeader } from '@/components/shell/page-header';
 import { VacanciesView } from '@/components/vacancies/vacancies-view';
 import { Skeleton } from '@/components/ui/skeleton';
+import { PREFERENCE_COOKIES } from '@/lib/preference-cookie';
 import { vacanciesQuery, vacancyDetailQuery } from '@/lib/queries/vacancies';
 import {
   parseVacancyPageState,
   vacancyPageUrlSearch,
+  vacancyPresetSearch,
+  vacancyVerticalPreset,
   withVacancyFilters,
 } from '@/lib/vacancy-filters';
 import { NotFoundError } from '@/server/http/errors';
@@ -17,8 +21,9 @@ import { describeError, logger } from '@/server/observability/logger';
 import { getQueryClient } from '@/server/query/query-client';
 import { getVacancyDetail, listVacancyPage } from '@/server/services/vacancy';
 import { requireSession } from '../_lib/session';
+import { getVisibleVerticals } from '../_lib/verticals';
 
-type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+type SearchParams = Record<string, string | string[] | undefined>;
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('vacancies');
@@ -38,12 +43,8 @@ async function VacanciesFallback() {
   );
 }
 
-async function VacanciesContent({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
-  const [ctx, params] = await Promise.all([requireSession(), searchParams]);
+async function VacanciesContent({ params }: { params: SearchParams }) {
+  const ctx = await requireSession();
   const state = parseVacancyPageState(params);
   const queryClient = getQueryClient();
   const prefetchDetail = (id: string) =>
@@ -105,14 +106,22 @@ async function VacanciesContent({
 }
 
 /** «Вакансії» (STORY-VAC-04-1): scoped list prefetched on the server; the layout above already enforced `vacancy.read`. */
-export default function VacanciesPage({
+export default async function VacanciesPage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams: Promise<SearchParams>;
 }) {
+  const [params, cookieStore] = await Promise.all([searchParams, cookies()]);
+  const stored = cookieStore.get(PREFERENCE_COOKIES.vertical)?.value;
+  const preset = vacancyVerticalPreset(
+    params,
+    stored,
+    (await getVisibleVerticals()).items,
+  );
+  if (preset) redirect(`/vacancies?${vacancyPresetSearch(params, preset)}`);
   return (
     <Suspense fallback={<VacanciesFallback />}>
-      <VacanciesContent searchParams={searchParams} />
+      <VacanciesContent params={params} />
     </Suspense>
   );
 }
