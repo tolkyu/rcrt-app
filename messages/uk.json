@@ -778,12 +778,14 @@
         "user": "Користувач",
         "user_invite": "Запрошення",
         "vertical": "Вертикаль",
+        "position": "Посада",
         "settings": "Налаштування"
       },
       "actionGroups": {
         "users": "Користувачі",
         "security": "Входи та безпека",
-        "verticals": "Вертикалі"
+        "verticals": "Вертикалі",
+        "positions": "Посади"
       },
       "actions": {
         "auth": {
@@ -815,6 +817,12 @@
           "created": "Створено вертикаль",
           "renamed": "Перейменовано вертикаль",
           "tl_priority_changed": "Змінено пріоритет тімліда"
+        },
+        "position": {
+          "created": "Створено посаду",
+          "renamed": "Перейменовано посаду",
+          "deactivated": "Деактивовано посаду",
+          "reactivated": "Відновлено посаду"
         }
       },
       "actionUnknown": "Інша дія ({code})",

@@ -25,6 +25,8 @@ const FOLDER_ORDER = [
   'Verticals',
   'Priorities',
   'Audit',
+  'Vacancies',
+  'Positions',
 ];
 const postmanDir = resolve(root, 'tests/postman');
 const source = readFileSync(input, 'utf8');

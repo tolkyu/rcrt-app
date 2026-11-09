@@ -1,0 +1,672 @@
+[
+  {
+    "operation": "listPositions",
+    "name": "no token",
+    "as": null,
+    "query": {
+      "status": "active"
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "listPositions",
+    "name": "Finance has no catalog access",
+    "as": "finance",
+    "query": {
+      "status": "active"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listPositions",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "query": {
+      "status": "active"
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "listPositions",
+    "name": "Admin loads the catalog and starts the run",
+    "as": "admin",
+    "query": {
+      "status": "active"
+    },
+    "status": 200,
+    "script": "positions-run-start"
+  },
+  {
+    "operation": "listPositions",
+    "name": "Admin manager list of both verticals with counts",
+    "as": "admin",
+    "query": {
+      "status": "all"
+    },
+    "status": 200,
+    "script": "positions-admin-all"
+  },
+  {
+    "operation": "listPositions",
+    "name": "Head Recruiter manager list holds only Гемблінг",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "status": "all"
+    },
+    "status": 200,
+    "script": "positions-head-all"
+  },
+  {
+    "operation": "listPositions",
+    "name": "Head Recruiter filtering by a foreign vertical gets an empty list",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "status": "all",
+      "verticalId": "{{position_crypto_vertical_id}}"
+    },
+    "status": 200,
+    "script": "positions-empty"
+  },
+  {
+    "operation": "listPositions",
+    "name": "Recruiter cannot open the manager list",
+    "as": "recruiter_crypto",
+    "query": {
+      "status": "all"
+    },
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "listPositions",
+    "name": "HR cannot open the manager list",
+    "as": "hr",
+    "query": {
+      "status": "all"
+    },
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "listPositions",
+    "name": "unknown status",
+    "as": "admin",
+    "query": {
+      "status": "archived"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.status",
+        "code": "invalid_value"
+      }
+    ]
+  },
+  {
+    "operation": "listPositions",
+    "name": "malformed vertical filter",
+    "as": "admin",
+    "query": {
+      "status": "active",
+      "verticalId": "not-a-uuid"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.verticalId",
+        "code": "invalid_format"
+      }
+    ]
+  },
+  {
+    "operation": "createPosition",
+    "name": "Head Recruiter creates a position in their vertical",
+    "as": "head_recruiter_gambling",
+    "body": "{\"verticalId\":\"{{position_gambling_vertical_id}}\",\"name\":\"  Тест API {{position_run}} A  \"}",
+    "status": 201,
+    "script": "position-created-a"
+  },
+  {
+    "operation": "createPosition",
+    "name": "duplicate ignoring case and spaces",
+    "as": "head_recruiter_gambling",
+    "body": "{\"verticalId\":\"{{position_gambling_vertical_id}}\",\"name\":\" Тест api {{position_run}} a \"}",
+    "status": 409,
+    "code": "POSITION_NAME_TAKEN"
+  },
+  {
+    "operation": "createPosition",
+    "name": "Admin reuses the name in another vertical",
+    "as": "admin",
+    "body": "{\"verticalId\":\"{{position_crypto_vertical_id}}\",\"name\":\"Тест API {{position_run}} A\"}",
+    "status": 201,
+    "script": "position-created-b"
+  },
+  {
+    "operation": "createPosition",
+    "name": "Head Recruiter of another vertical gets 404",
+    "as": "head_recruiter_gambling",
+    "body": "{\"verticalId\":\"{{position_crypto_vertical_id}}\",\"name\":\"Тест API {{position_run}} X\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createPosition",
+    "name": "Recruiter can read but not write",
+    "as": "recruiter_crypto",
+    "body": "{\"verticalId\":\"{{position_crypto_vertical_id}}\",\"name\":\"Тест API {{position_run}} X\"}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "createPosition",
+    "name": "HR can read but not write",
+    "as": "hr",
+    "body": "{\"verticalId\":\"{{position_gambling_vertical_id}}\",\"name\":\"Тест API {{position_run}} X\"}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "createPosition",
+    "name": "Recruiter gets 403 before the body is read",
+    "as": "recruiter_crypto",
+    "body": {},
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "createPosition",
+    "name": "HR gets 403 for an invalid vertical and name",
+    "as": "hr",
+    "body": "{\"verticalId\":\"not-a-uuid\",\"name\":\"\"}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "createPosition",
+    "name": "Finance gets 404 before the body is read",
+    "as": "finance",
+    "body": {},
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createPosition",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "body": "{\"verticalId\":\"{{position_gambling_vertical_id}}\",\"name\":\"Тест API {{position_run}} X\"}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "createPosition",
+    "name": "no token",
+    "as": null,
+    "body": "{\"verticalId\":\"{{position_gambling_vertical_id}}\",\"name\":\"Тест API {{position_run}} X\"}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "createPosition",
+    "name": "unknown vertical",
+    "as": "admin",
+    "body": "{\"verticalId\":\"00000000-0000-4000-8000-000000000000\",\"name\":\"Тест API {{position_run}} X\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createPosition",
+    "name": "one-letter name",
+    "as": "admin",
+    "body": "{\"verticalId\":\"{{position_gambling_vertical_id}}\",\"name\":\" Т \"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.name",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "createPosition",
+    "name": "name over 80 characters",
+    "as": "admin",
+    "body": "{\"verticalId\":\"{{position_gambling_vertical_id}}\",\"name\":\"ТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТТ\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.name",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "createPosition",
+    "name": "NUL in the name",
+    "as": "admin",
+    "body": "{\"verticalId\":\"{{position_gambling_vertical_id}}\",\"name\":\"Тест\\u0000\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.name",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "createPosition",
+    "name": "zero-width space in the name",
+    "as": "admin",
+    "body": "{\"verticalId\":\"{{position_gambling_vertical_id}}\",\"name\":\"Тест\\u200bAPI\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.name",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "createPosition",
+    "name": "bidi override in the name",
+    "as": "admin",
+    "body": "{\"verticalId\":\"{{position_gambling_vertical_id}}\",\"name\":\"Тест\\u202eAPI\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.name",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "createPosition",
+    "name": "unknown field",
+    "as": "admin",
+    "body": "{\"verticalId\":\"{{position_gambling_vertical_id}}\",\"name\":\"Тест API {{position_run}} X\",\"isActive\":false}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "createPosition",
+    "name": "missing vertical",
+    "as": "admin",
+    "body": "{\"name\":\"Тест API {{position_run}} X\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.verticalId",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "createPosition",
+    "name": "missing X-CSRF-Protection",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "body": "{\"verticalId\":\"{{position_gambling_vertical_id}}\",\"name\":\"Тест API {{position_run}} X\"}",
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "createPosition",
+    "name": "foreign Origin",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Origin": "https://evil.example"
+    },
+    "body": "{\"verticalId\":\"{{position_gambling_vertical_id}}\",\"name\":\"Тест API {{position_run}} X\"}",
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "createPosition",
+    "name": "Head Recruiter creates a second position",
+    "as": "head_recruiter_gambling",
+    "body": "{\"verticalId\":\"{{position_gambling_vertical_id}}\",\"name\":\"Тест API {{position_run}} C\"}",
+    "status": 201,
+    "script": "position-created-c"
+  },
+  {
+    "operation": "listPositions",
+    "name": "Recruiter in Крипто picks the active throwaway position",
+    "as": "recruiter_crypto",
+    "query": {
+      "status": "active"
+    },
+    "status": 200,
+    "script": "positions-recruiter-crypto-active"
+  },
+  {
+    "operation": "listPositions",
+    "name": "HR picks active positions of both verticals",
+    "as": "hr",
+    "query": {
+      "status": "active"
+    },
+    "status": 200,
+    "script": "positions-hr-active"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "Head Recruiter renames",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "positionId": "{{position_a_id}}"
+    },
+    "body": "{\"expectedVersion\":{{position_a_version}},\"name\":\"Тест API {{position_run}} A2\"}",
+    "status": 200,
+    "script": "position-renamed"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "stale expectedVersion",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "positionId": "{{position_a_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"name\":\"Тест API {{position_run}} A3\"}",
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "rename onto an existing name",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "positionId": "{{position_c_id}}"
+    },
+    "body": "{\"expectedVersion\":{{position_c_version}},\"name\":\" Тест API {{position_run}} a2 \"}",
+    "status": 409,
+    "code": "POSITION_NAME_TAKEN"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "same values is a no-op",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "positionId": "{{position_a_id}}"
+    },
+    "body": "{\"expectedVersion\":{{position_a_version}},\"name\":\"Тест API {{position_run}} A2\",\"isActive\":true}",
+    "status": 200,
+    "script": "position-unchanged"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "deactivate",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "positionId": "{{position_a_id}}"
+    },
+    "body": "{\"expectedVersion\":{{position_a_version}},\"isActive\":false}",
+    "status": 200,
+    "script": "position-deactivated"
+  },
+  {
+    "operation": "listPositions",
+    "name": "manager list keeps the deactivated position",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "status": "all",
+      "verticalId": "{{position_gambling_vertical_id}}"
+    },
+    "status": 200,
+    "script": "positions-head-inactive-listed"
+  },
+  {
+    "operation": "listPositions",
+    "name": "pickers hide the deactivated position",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "status": "active"
+    },
+    "status": 200,
+    "script": "positions-head-active-hides"
+  },
+  {
+    "operation": "createPosition",
+    "name": "a deactivated name stays reserved",
+    "as": "head_recruiter_gambling",
+    "body": "{\"verticalId\":\"{{position_gambling_vertical_id}}\",\"name\":\"Тест API {{position_run}} A2\"}",
+    "status": 409,
+    "code": "POSITION_NAME_TAKEN"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "reactivate",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "positionId": "{{position_a_id}}"
+    },
+    "body": "{\"expectedVersion\":{{position_a_version}},\"isActive\":true}",
+    "status": 200,
+    "script": "position-reactivated"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "deactivate again",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "positionId": "{{position_a_id}}"
+    },
+    "body": "{\"expectedVersion\":{{position_a_version}},\"isActive\":false}",
+    "status": 200,
+    "script": "position-deactivated"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "deactivate the second position",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "positionId": "{{position_c_id}}"
+    },
+    "body": "{\"expectedVersion\":{{position_c_version}},\"isActive\":false}",
+    "status": 200,
+    "script": "position-c-deactivated"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "Head Recruiter of another vertical gets 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "positionId": "{{position_b_id}}"
+    },
+    "body": "{\"expectedVersion\":{{position_b_version}},\"isActive\":false}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "Recruiter can read but not write",
+    "as": "recruiter_crypto",
+    "params": {
+      "positionId": "{{position_b_id}}"
+    },
+    "body": "{\"expectedVersion\":{{position_b_version}},\"isActive\":false}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "HR can read but not write",
+    "as": "hr",
+    "params": {
+      "positionId": "{{position_b_id}}"
+    },
+    "body": "{\"expectedVersion\":{{position_b_version}},\"isActive\":false}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "Recruiter gets 403 before path and body are read",
+    "as": "recruiter_crypto",
+    "params": {
+      "positionId": "not-a-uuid"
+    },
+    "body": {},
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "Finance gets 404 before path and body are read",
+    "as": "finance",
+    "params": {
+      "positionId": "not-a-uuid"
+    },
+    "body": {},
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "positionId": "{{position_b_id}}"
+    },
+    "body": "{\"expectedVersion\":{{position_b_version}},\"isActive\":false}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "positionId": "{{position_b_id}}"
+    },
+    "body": "{\"expectedVersion\":{{position_b_version}},\"isActive\":false}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "unknown position",
+    "as": "admin",
+    "params": {
+      "positionId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": "{\"expectedVersion\":1,\"isActive\":false}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "malformed position id",
+    "as": "admin",
+    "params": {
+      "positionId": "not-a-uuid"
+    },
+    "body": "{\"expectedVersion\":0}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "nothing to change",
+    "as": "admin",
+    "params": {
+      "positionId": "{{position_b_id}}"
+    },
+    "body": "{\"expectedVersion\":{{position_b_version}}}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.name",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "patchPosition",
+    "name": "zero version",
+    "as": "admin",
+    "params": {
+      "positionId": "{{position_b_id}}"
+    },
+    "body": "{\"expectedVersion\":0,\"name\":\"Тест API {{position_run}} B\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.expectedVersion",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "patchPosition",
+    "name": "unknown field",
+    "as": "admin",
+    "params": {
+      "positionId": "{{position_b_id}}"
+    },
+    "body": "{\"expectedVersion\":{{position_b_version}},\"name\":\"Тест API {{position_run}} B\",\"verticalId\":\"{{position_gambling_vertical_id}}\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "patchPosition",
+    "name": "missing X-CSRF-Protection",
+    "as": "admin",
+    "params": {
+      "positionId": "{{position_b_id}}"
+    },
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "body": "{\"expectedVersion\":{{position_b_version}},\"isActive\":false}",
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "patchPosition",
+    "name": "Admin deactivates a position of another vertical",
+    "as": "admin",
+    "params": {
+      "positionId": "{{position_b_id}}"
+    },
+    "body": "{\"expectedVersion\":{{position_b_version}},\"isActive\":false}",
+    "status": 200,
+    "script": "position-b-deactivated"
+  },
+  {
+    "operation": "listPositions",
+    "name": "every throwaway position ends inactive",
+    "as": "admin",
+    "query": {
+      "status": "all"
+    },
+    "status": 200,
+    "script": "positions-admin-final"
+  }
+]

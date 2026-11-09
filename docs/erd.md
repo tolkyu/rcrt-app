@@ -172,6 +172,7 @@ erDiagram
         uuid id PK
         uuid vertical_id FK
         text name
+        int version
     }
     vacancy_recruiter {
         uuid vacancy_id PK
@@ -574,15 +575,17 @@ NN = NOT NULL. Defaults left blank = none.
 
 #### `position`
 
-| Column      | Type    | Null | Default           | Notes                                                 |
-| ----------- | ------- | ---- | ----------------- | ----------------------------------------------------- |
-| id          | uuid    | NN   | gen_random_uuid() |                                                       |
-| vertical_id | uuid    | NN   |                   | FK; position × vertical = routing group               |
-| name        | text    | NN   |                   |                                                       |
-| is_active   | boolean | NN   | true              | deactivate instead of delete (vacancies reference it) |
-| [ts], [by]  |         |      |                   |                                                       |
+| Column      | Type    | Null | Default           | Notes                                                         |
+| ----------- | ------- | ---- | ----------------- | ------------------------------------------------------------- |
+| id          | uuid    | NN   | gen_random_uuid() |                                                               |
+| vertical_id | uuid    | NN   |                   | FK; position × vertical = routing group                       |
+| name        | text    | NN   |                   | stored NFC, spaces collapsed (`positionNameSchema`)           |
+| name_key    | text    | NN   |                   | app-computed fold of `name` for uniqueness (migration `0013`) |
+| is_active   | boolean | NN   | true              | deactivate instead of delete (vacancies reference it)         |
+| version     | integer | NN   | 1                 | optimistic lock; CHECK `version > 0` (migration `0012`)       |
+| [ts], [by]  |         |      |                   |                                                               |
 
-- UQ `(vertical_id, lower(name))`; UQ `(id, vertical_id)` (target of composite FKs, §3.6); CHECK name not blank. Implemented in migration `0011` with `created_by` + timestamps only; `updated_by`/version arrive with the catalog write migration.
+- UQ `position_name_uq` `(vertical_id, name_key)`: `name_key` is written by `positionNameKey` (NFC, collapsed spaces, `uk` case fold) because SQL `lower()` follows the database `LC_CTYPE`, which may be `C` on Supabase (SEC-POS-01); UQ `(id, vertical_id)` (target of composite FKs, §3.6); CHECK name not blank. Created in migration `0011`; `version` and the runtime INSERT/UPDATE(name, is_active, version, updated_at) grants arrive in `0012` (ADR-013), `name_key` and its UPDATE grant in `0013`; no `updated_by`, no DELETE.
 
 #### `vacancy`
 

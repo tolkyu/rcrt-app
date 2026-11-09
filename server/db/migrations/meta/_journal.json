@@ -85,6 +85,20 @@
       "when": 1794164671048,
       "tag": "0011_vacancies_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794212826806,
+      "tag": "0012_position_catalog_writes",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794214776646,
+      "tag": "0013_position_name_key",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Sql } from 'postgres';
+import { positionNameKey } from '../../lib/position-name';
 
 export const WORLD_OPENED_AT = new Date('2026-11-02T09:00:00Z');
 
@@ -40,9 +41,13 @@ export async function createVacancyWorld(sql: Sql) {
       full_name: `Користувач ${name}`,
     })),
   )}`;
-  await sql`insert into app.position (id, vertical_id, name, created_by) values
-    (${positions.p1}, ${verticals.v1}, ${`Медіабаєр ${tag}`}, ${users.admin}),
-    (${positions.p2}, ${verticals.v2}, ${`Трейдер ${tag}`}, ${users.admin})`;
+  const positionNames = {
+    p1: `Медіабаєр ${tag}`,
+    p2: `Трейдер ${tag}`,
+  };
+  await sql`insert into app.position (id, vertical_id, name, name_key, created_by) values
+    (${positions.p1}, ${verticals.v1}, ${positionNames.p1}, ${positionNameKey(positionNames.p1)}, ${users.admin}),
+    (${positions.p2}, ${verticals.v2}, ${positionNames.p2}, ${positionNameKey(positionNames.p2)}, ${users.admin})`;
 
   /** Valid OPEN vacancy in the first vertical unless overridden. */
   function vacancyRow(overrides: Row = {}): Row {

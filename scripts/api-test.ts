@@ -6,6 +6,7 @@ import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import newman, { type NewmanRunSummary } from 'newman';
 import { requireLoopbackUrl } from '../tests/support/loopback';
+import { removeThrowawayPositions } from '../tests/postman/cleanup';
 import { signInForApi, type ApiSession } from '../tests/postman/sessions';
 import { API_USERS } from '../tests/postman/users';
 import { testedFolders, type PmCollection } from './postman-cases';
@@ -214,7 +215,7 @@ async function main() {
   const server = startServer(env);
   const sessions = new Map<string, ApiSession>();
   let cleaned: Promise<boolean> | undefined;
-  /** Logs every session out (and checks its tokens are dead), then stops the server; runs once. */
+  /** Logs every session out (and checks its tokens are dead), stops the server, then removes the run's throwaway positions; runs once, also on SIGINT/SIGTERM. */
   const cleanup = () =>
     (cleaned ??= (async () => {
       const closed = await Promise.allSettled(
@@ -224,7 +225,19 @@ async function main() {
       const revoked = closed.every((r) => r.status === 'fulfilled' && r.value);
       if (!revoked)
         console.error('Warning: a test session was not revoked after logout.');
-      return revoked;
+      const removed = await removeThrowawayPositions(process.env).then(
+        (count) => {
+          console.info(`Removed ${count} throwaway positions.`);
+          return true;
+        },
+        (error: unknown) => {
+          console.error(
+            `Throwaway positions were not removed: ${error instanceof Error ? error.message : String(error)}`,
+          );
+          return false;
+        },
+      );
+      return revoked && removed;
     })());
   const interrupt = () => void cleanup().finally(() => process.exit(130));
   process.once('SIGINT', interrupt);

@@ -14,6 +14,7 @@ export const API_USERS: Record<
     totp: false,
   },
   recruiter_crypto: { email: 'recruiter.crypto@demo', totp: false },
+  hr: { email: 'hr@demo', totp: false },
   tl_crypto: { email: 'tl.crypto@demo', totp: false, cookie: true },
   /** Second session of the same user: «end other sessions» from `tl_crypto` must end exactly this one. */
   tl_crypto_other: { email: 'tl.crypto@demo', totp: false, cookie: true },

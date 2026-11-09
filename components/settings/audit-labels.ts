@@ -32,7 +32,7 @@ export function useAuditLabels() {
       : t('system');
   };
   const entityType = (type: string) => {
-    return type === 'user' || type === 'vertical'
+    return type === 'user' || type === 'vertical' || type === 'position'
       ? t(`entityTypes.${type}`)
       : type;
   };

@@ -1,5 +1,5 @@
 import { inArray, or, sql, type SQL } from 'drizzle-orm';
-import { appUser, userRole, vertical } from '../db/schema';
+import { appUser, position, userRole, vertical } from '../db/schema';
 import { NotFoundError } from '../http/errors';
 import type { AuthContext } from './context';
 import {
@@ -103,6 +103,12 @@ export async function findVisibleOrThrow<R extends ResourceType, T>(
 export const verticalScope: ScopeAdapter<'vertical'> = {
   resource: 'vertical',
   VERTICAL: ({ verticalIds }) => inArray(vertical.id, [...verticalIds]),
+};
+
+/** Catalog rows are addressed by their vertical; `position.read` and `position.manage` share this predicate (ADR-013). */
+export const positionScope: ScopeAdapter<'vertical'> = {
+  resource: 'vertical',
+  VERTICAL: ({ verticalIds }) => inArray(position.verticalId, [...verticalIds]),
 };
 
 /** Directory entries: users holding any role in one of the caller's verticals (user_role_user_idx). */

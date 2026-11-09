@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { positionNameKey } from '../../lib/position-name';
 import {
   createVacancyWorld,
   type VacancyWorld,
@@ -172,21 +173,42 @@ describe('vacancy constraints [VAC-01, VAC-07, ADR-012]', () => {
     });
   });
 
-  it('rejects a position from another vertical and a duplicate case-insensitive Cyrillic position name', async () => {
+  it('rejects a position from another vertical, a duplicate name key and a blank name', async () => {
+    const duplicate = `МЕДІАБАЄР ${world.tag.toUpperCase()}`;
     await expect(
       admin`insert into app.vacancy ${admin(world.vacancyRow({ position_id: world.positions.p2 }))}`,
     ).rejects.toMatchObject(violation('vacancy_position_vertical_fk', '23503'));
     await expect(
-      admin`insert into app.position (vertical_id, name, created_by)
-        values (${world.verticals.v1}, ${`МЕДІАБАЄР ${world.tag.toUpperCase()}`}, ${world.users.admin})`,
+      admin`insert into app.position (vertical_id, name, name_key, created_by)
+        values (${world.verticals.v1}, ${duplicate}, ${positionNameKey(duplicate)}, ${world.users.admin})`,
     ).rejects.toMatchObject(violation('position_name_uq', '23505'));
     await expect(
-      admin`insert into app.position (vertical_id, name, created_by)
-        values (${world.verticals.v1}, '  ', ${world.users.admin})`,
+      admin`insert into app.position (vertical_id, name, name_key, created_by)
+        values (${world.verticals.v1}, '  ', '', ${world.users.admin})`,
     ).rejects.toMatchObject(violation('position_name_chk'));
+    await expect(
+      admin`insert into app.position (vertical_id, name, created_by)
+        values (${world.verticals.v1}, ${`Без ключа ${world.tag}`}, ${world.users.admin})`,
+    ).rejects.toMatchObject({ code: '23502', column_name: 'name_key' });
     await rolledBack(async (tx) => {
-      await tx`insert into app.position (vertical_id, name, created_by)
-        values (${world.verticals.v2}, ${`Медіабаєр ${world.tag}`}, ${world.users.admin})`;
+      const name = `Медіабаєр ${world.tag}`;
+      await tx`insert into app.position (vertical_id, name, name_key, created_by)
+        values (${world.verticals.v2}, ${name}, ${positionNameKey(name)}, ${world.users.admin})`;
+    });
+  });
+
+  it('arbitrates duplicates by the stored name key only, whatever the database locale folds [SEC-POS-01]', async () => {
+    const name = `Ключ ${world.tag}`;
+    await rolledBack(async (tx) => {
+      await tx`insert into app.position (vertical_id, name, name_key, created_by)
+        values (${world.verticals.v2}, ${name}, ${'ключ-1'}, ${world.users.admin})`;
+      // Different case, different key: only the application's fold may equate names, never `lower()`.
+      await tx`insert into app.position (vertical_id, name, name_key, created_by)
+        values (${world.verticals.v2}, ${name.toUpperCase()}, ${'КЛЮЧ-1'}, ${world.users.admin})`;
+      await expect(
+        tx`insert into app.position (vertical_id, name, name_key, created_by)
+          values (${world.verticals.v2}, ${`Інша ${world.tag}`}, ${'ключ-1'}, ${world.users.admin})`,
+      ).rejects.toMatchObject(violation('position_name_uq', '23505'));
     });
   });
 
@@ -277,7 +299,7 @@ describe('vacancy numbers [VAC-07, STORY-VAC-07-1]', () => {
 });
 
 describe('vacancy privileges and event link [ADR-012]', () => {
-  it('gives the runtime role read access only', async () => {
+  it('gives the runtime role read access to vacancies and assignments only', async () => {
     const [countRow] =
       await runtime`select count(*)::int as count from app.vacancy where id = ${world.v.assignedOpen}`;
     const count = countRow!.count as number;
@@ -285,7 +307,6 @@ describe('vacancy privileges and event link [ADR-012]', () => {
     await runtime`select count(*) from app.position`;
     await runtime`select count(*) from app.vacancy_recruiter`;
     for (const statement of [
-      runtime`insert into app.position (vertical_id, name, created_by) values (${world.verticals.v1}, 'Нова', ${world.users.admin})`,
       runtime`insert into app.vacancy ${runtime(world.vacancyRow())}`,
       runtime`update app.vacancy set title = 'Зміна' where id = ${world.v.assignedOpen}`,
       runtime`delete from app.vacancy where id = ${world.v.assignedOpen}`,
@@ -320,6 +341,98 @@ describe('vacancy privileges and event link [ADR-012]', () => {
       await tx`insert into app.entity_event (occurred_at, actor_kind, type, subject_type, subject_id, vacancy_id, payload)
         values (now(), 'SYSTEM', 'user.profile_updated', 'vacancy', 'x', ${world.v.assignedOpen}, '{"v":1}')`;
     });
+  });
+});
+
+describe('position catalog privileges and version [ADR-013]', () => {
+  const created: string[] = [];
+  const createdName = (suffix: string) => `Каталог ${suffix} ${world.tag}`;
+
+  afterAll(async () => {
+    if (created.length)
+      await admin`delete from app.position where id in ${admin(created)}`;
+  });
+
+  async function insertAsRuntime(name: string, verticalId: string) {
+    const [row] =
+      await runtime`insert into app.position (vertical_id, name, name_key, created_by)
+      values (${verticalId}, ${name}, ${positionNameKey(name)}, ${world.users.admin}) returning id, version, is_active`;
+    created.push(row!.id as string);
+    return row!;
+  }
+
+  it('lets the runtime role create positions that start at version 1 and active', async () => {
+    const row = await insertAsRuntime(
+      createdName('створення'),
+      world.verticals.v1,
+    );
+    expect(row.version).toBe(1);
+    expect(row.is_active).toBe(true);
+  });
+
+  it('lets the runtime role change only name, name_key, is_active, version and updated_at', async () => {
+    const row = await insertAsRuntime(createdName('зміна'), world.verticals.v1);
+    const [updated] = await runtime`update app.position
+      set name = ${createdName('нова назва')}, name_key = ${positionNameKey(createdName('нова назва'))},
+        is_active = false, version = version + 1, updated_at = now()
+      where id = ${row.id} returning name, name_key, is_active, version`;
+    expect(updated).toEqual({
+      name: createdName('нова назва'),
+      name_key: positionNameKey(createdName('нова назва')),
+      is_active: false,
+      version: 2,
+    });
+    for (const assignment of [
+      runtime`update app.position set vertical_id = ${world.verticals.v2} where id = ${row.id}`,
+      runtime`update app.position set id = ${randomUUID()} where id = ${row.id}`,
+      runtime`update app.position set created_by = ${world.users.finance} where id = ${row.id}`,
+      runtime`update app.position set created_at = now() where id = ${row.id}`,
+    ])
+      await expect(assignment).rejects.toMatchObject({ code: '42501' });
+    const [unchanged] =
+      await admin`select vertical_id from app.position where id = ${row.id}`;
+    expect(unchanged!.vertical_id).toBe(world.verticals.v1);
+  });
+
+  it('never lets the runtime role delete a position, even an unused one', async () => {
+    const row = await insertAsRuntime(
+      createdName('видалення'),
+      world.verticals.v2,
+    );
+    await expect(
+      runtime`delete from app.position where id = ${row.id}`,
+    ).rejects.toMatchObject({ code: '42501' });
+    const [still] =
+      await admin`select count(*)::int as count from app.position where id = ${row.id}`;
+    expect(still!.count).toBe(1);
+  });
+
+  it('rejects a non-positive version on insert and update', async () => {
+    await expect(
+      admin`insert into app.position (vertical_id, name, name_key, created_by, version)
+        values (${world.verticals.v1}, ${createdName('нульова')}, ${positionNameKey(createdName('нульова'))}, ${world.users.admin}, 0)`,
+    ).rejects.toMatchObject(violation('position_version_chk'));
+    const row = await insertAsRuntime(
+      createdName('версія'),
+      world.verticals.v1,
+    );
+    await expect(
+      runtime`update app.position set version = 0 where id = ${row.id}`,
+    ).rejects.toMatchObject(violation('position_version_chk'));
+  });
+
+  it('keeps the unique name guard for runtime writes and lets concurrent creates have one winner', async () => {
+    const name = createdName('дубль');
+    const outcomes = await Promise.allSettled(
+      Array.from({ length: 5 }, () =>
+        insertAsRuntime(name, world.verticals.v2),
+      ),
+    );
+    expect(outcomes.filter((o) => o.status === 'fulfilled')).toHaveLength(1);
+    for (const outcome of outcomes.filter((o) => o.status === 'rejected'))
+      expect(outcome.reason).toMatchObject(
+        violation('position_name_uq', '23505'),
+      );
   });
 });
 

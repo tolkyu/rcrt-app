@@ -6,6 +6,7 @@ import {
   assertDisposableLocalData,
   parseLocalDatabaseTargets,
 } from '../../../lib/env';
+import { positionNameKey } from '../../../lib/position-name';
 import * as schema from '../schema';
 import { toolErrorSummary } from '../tool-error';
 import { DEMO_VERTICALS, demoId, kyiv } from './index';
@@ -419,6 +420,7 @@ export async function seedDemoVacancies(
             id: demoPositionId(p.key),
             verticalId: DEMO_VERTICALS[p.vertical],
             name: p.name,
+            nameKey: positionNameKey(p.name),
             isActive: p.isActive ?? true,
             createdBy: need(p.createdBy),
             createdAt: p.createdAt,

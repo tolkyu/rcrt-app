@@ -27,9 +27,15 @@ export const AUDIT_ACTION_GROUPS = {
     'vertical.renamed',
     'vertical.tl_priority_changed',
   ],
+  positions: [
+    'position.created',
+    'position.renamed',
+    'position.deactivated',
+    'position.reactivated',
+  ],
 } as const;
 export type AuditActionGroup = keyof typeof AUDIT_ACTION_GROUPS;
-export const AUDIT_ENTITY_TYPES = ['user', 'vertical'] as const;
+export const AUDIT_ENTITY_TYPES = ['user', 'vertical', 'position'] as const;
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPES)[number];
 export const AUDIT_PERIOD_MAX_DAYS = 366;
 export const AUDIT_PAGE = 50;

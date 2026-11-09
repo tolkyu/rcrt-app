@@ -3,7 +3,7 @@ import type {
   RouteConfig,
 } from '@asteasolutions/zod-to-openapi';
 import { z } from 'zod';
-import { requirePermission } from '../authz/can';
+import { hasAnyGrant, requirePermission } from '../authz/can';
 import type { PermissionCode } from '../authz/permissions';
 import {
   requestMeta,
@@ -40,6 +40,8 @@ export interface RouteSpec<
   readonly path: string;
   readonly operationId: string;
   readonly permission?: PermissionCode;
+  /** 403 unless the caller holds this permission in some scope; checked right after `permission`, before params, query or body are parsed. */
+  readonly requireGrant?: PermissionCode;
   readonly summary: string;
   readonly tags: readonly string[];
   readonly params?: P;
@@ -183,6 +185,8 @@ export function createRouteFactory(deps: RouteFactoryDependencies) {
         const ctx = await resolveRequestContext(deps, request.headers, meta);
         userId = ctx.auth.userId;
         if (spec.permission) requirePermission(ctx.auth, spec.permission);
+        if (spec.requireGrant && !hasAnyGrant(ctx.auth, spec.requireGrant))
+          throw new ForbiddenError();
         const input = {
           params: parsePart(
             spec.params,

@@ -7,8 +7,8 @@ import {
   VACANCY_SEARCH_MIN,
   VACANCY_STATUSES,
 } from '../vacancy-filters';
+import { uuid } from './uuid';
 
-const uuid = z.uuid().transform((value) => value.toLowerCase());
 const cursor = z.string().max(19).refine(isVacancyCursor, 'invalid_cursor');
 const identity = z.object({ id: z.uuid(), name: z.string() });
 const participant = z.object({

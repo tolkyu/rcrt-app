@@ -63,6 +63,10 @@ export const EVENT_PAYLOADS = {
   'vertical.tl_priority_changed': z
     .object({ userId: id, old: priority, new: priority })
     .strict(),
+  'position.created': empty,
+  'position.renamed': empty,
+  'position.deactivated': empty,
+  'position.reactivated': empty,
   'settings.updated': z
     .object({
       changes: z

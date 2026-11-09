@@ -442,6 +442,79 @@
         "required": ["fullName"],
         "additionalProperties": false
       },
+      "Position": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "verticalId": { "type": "string", "format": "uuid" },
+          "name": { "type": "string" },
+          "isActive": { "type": "boolean" },
+          "version": { "type": "integer", "exclusiveMinimum": 0 },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "openVacanciesCount": {
+            "type": ["integer", "null"],
+            "minimum": 0,
+            "description": "Live DRAFT, OPEN and ON_HOLD vacancies of the position. Present only in the manager list (`status=all`); null everywhere else."
+          }
+        },
+        "required": [
+          "id",
+          "verticalId",
+          "name",
+          "isActive",
+          "version",
+          "createdAt",
+          "openVacanciesCount"
+        ]
+      },
+      "PatchPosition": {
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "description": "Version the client last read; a different current version answers 409 STALE_STATE."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80,
+            "description": "Stored in NFC with runs of whitespace collapsed to one space; 2..80 UTF-16 code units after that. Control, zero-width/bidi format, line and paragraph separator and private-use code points and lone surrogates are rejected. Unique per vertical ignoring case and apostrophe variants (409 POSITION_NAME_TAKEN); inactive positions keep their name reserved."
+          },
+          "isActive": {
+            "type": "boolean",
+            "description": "false deactivates, true reactivates the position."
+          }
+        },
+        "required": ["expectedVersion"],
+        "additionalProperties": false,
+        "description": "At least one of `name` or `isActive` is required. A request that changes nothing is a no-op: 200, no version bump, no audit row. A combined rename and status change writes two audit rows and two events."
+      },
+      "PositionList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Position" },
+            "maxItems": 1000
+          }
+        },
+        "required": ["items"]
+      },
+      "CreatePosition": {
+        "type": "object",
+        "properties": {
+          "verticalId": { "type": "string", "format": "uuid" },
+          "name": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 80,
+            "description": "Stored in NFC with runs of whitespace collapsed to one space; 2..80 UTF-16 code units after that. Control, zero-width/bidi format, line and paragraph separator and private-use code points and lone surrogates are rejected. Unique per vertical ignoring case and apostrophe variants (409 POSITION_NAME_TAKEN); inactive positions keep their name reserved."
+          }
+        },
+        "required": ["verticalId", "name"],
+        "additionalProperties": false
+      },
       "TeamLeadPriorityVerticals": {
         "type": "object",
         "properties": {
@@ -1410,15 +1483,18 @@
           {
             "schema": {
               "type": "string",
-              "description": "Comma-separated known action codes (maximum 21 before deduplication), ORed together. Cannot be combined with `action`."
+              "description": "Comma-separated known action codes (maximum 25 before deduplication), ORed together. Cannot be combined with `action`."
             },
             "required": false,
-            "description": "Comma-separated known action codes (maximum 21 before deduplication), ORed together. Cannot be combined with `action`.",
+            "description": "Comma-separated known action codes (maximum 25 before deduplication), ORed together. Cannot be combined with `action`.",
             "name": "actions",
             "in": "query"
           },
           {
-            "schema": { "type": "string", "enum": ["user", "vertical"] },
+            "schema": {
+              "type": "string",
+              "enum": ["user", "vertical", "position"]
+            },
             "required": false,
             "name": "entityType",
             "in": "query"
@@ -2745,6 +2821,279 @@
           },
           "413": {
             "description": "Request body exceeds 1 MiB",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/positions/{positionId}": {
+      "patch": {
+        "operationId": "patchPosition",
+        "summary": "Rename, deactivate or reactivate a position (audited; no-op when nothing changes). 409 `POSITION_NAME_TAKEN` or `STALE_STATE`; 429 after 30 writes per user per minute",
+        "tags": ["Positions"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "format": "uuid" },
+            "required": true,
+            "name": "positionId",
+            "in": "path"
+          },
+          {
+            "schema": { "type": "string", "enum": ["1"] },
+            "required": true,
+            "name": "X-CSRF-Protection",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PatchPosition" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Position" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 1 MiB",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/positions": {
+      "get": {
+        "operationId": "listPositions",
+        "summary": "Position catalog of the caller’s verticals (`status=all` is the manager view with inactive rows and open-vacancy counts)",
+        "tags": ["Positions"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "format": "uuid" },
+            "required": false,
+            "name": "verticalId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": ["active", "all"],
+              "default": "active"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PositionList" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createPosition",
+        "summary": "Create an active position (Admin, Head Recruiter of the vertical; audited, position.created). 409 `POSITION_NAME_TAKEN` or `POSITION_LIMIT_REACHED` (300 per vertical); 429 after 30 writes per user per minute",
+        "tags": ["Positions"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "enum": ["1"] },
+            "required": true,
+            "name": "X-CSRF-Protection",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreatePosition" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Position" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 1 MiB",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
             "content": {
               "application/problem+json": {
                 "schema": { "$ref": "#/components/schemas/Problem" }

@@ -46,6 +46,7 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRole, readonly Grant[]>> = {
     'vacancy.cancel',
     'vacancy.reopen',
     'vacancy.delete',
+    'position.read',
     'position.manage',
     'candidate.read',
     'candidate.contacts.read',
@@ -101,6 +102,7 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRole, readonly Grant[]>> = {
       'application.create',
       'user.directory.read',
       'vertical.read',
+      'position.read',
     ),
     ...grant(OWN_INITIATED_NEW, 'vacancy.delete'),
     ...grant(
@@ -153,6 +155,7 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRole, readonly Grant[]>> = {
       'statistics.export',
       'user.directory.read',
       'vertical.read',
+      'position.read',
     ),
     ...grant(
       FROM_POLYGRAPH,
@@ -180,6 +183,7 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRole, readonly Grant[]>> = {
       'application.move.probation',
       'user.directory.read',
       'vertical.read',
+      'position.read',
     ),
     ...grant(
       FROM_POLYGRAPH,
@@ -210,6 +214,7 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRole, readonly Grant[]>> = {
       'vacancy.create',
       'user.directory.read',
       'vertical.read',
+      'position.read',
     ),
     ...grant(
       SUBMITTED,

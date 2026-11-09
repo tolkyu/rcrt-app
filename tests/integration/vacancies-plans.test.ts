@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import type { SQL } from 'drizzle-orm';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { positionNameKey } from '../../lib/position-name';
 import { vacancyListQuerySchema } from '../../lib/schemas/vacancy';
 import { buildAuthContext } from '../../server/authz/context';
 import { scopeWhere } from '../../server/authz/scopes';
@@ -48,10 +49,21 @@ beforeAll(async () => {
     (${ids.lead}, ${`lead.${tag}@fixture.test`}, 'Тімлід'),
     (${ids.recruiter}, ${`recruiter.${tag}@fixture.test`}, 'Рекрутер'),
     (${ids.idle}, ${`idle.${tag}@fixture.test`}, 'Без роботи')`;
-  await admin`insert into app.position (id, vertical_id, name, created_by) values
-    (${ids.position1}, ${ids.v1}, ${`Позиція А ${tag}`}, ${ids.creator}),
-    (${ids.position2}, ${ids.v2}, ${`Позиція Б ${tag}`}, ${ids.creator}),
-    (${ids.position3}, ${ids.v3}, ${`Позиція В ${tag}`}, ${ids.creator})`;
+  const positionRow = (id: string, verticalId: string, suffix: string) => {
+    const name = `Позиція ${suffix} ${tag}`;
+    return {
+      id,
+      vertical_id: verticalId,
+      name,
+      name_key: positionNameKey(name),
+      created_by: ids.creator,
+    };
+  };
+  await admin`insert into app.position ${admin([
+    positionRow(ids.position1, ids.v1, 'А'),
+    positionRow(ids.position2, ids.v2, 'Б'),
+    positionRow(ids.position3, ids.v3, 'В'),
+  ])}`;
   // A mature company: mostly closed history, two broad verticals and one narrow (2%) one, 4% soft-deleted,
   // one Team Lead leading ~40 rows and one recruiter holding the 60 oldest live rows.
   await admin`insert into app.vacancy (vertical_id, position_id, title, team_lead_id, recruiter_initiated,

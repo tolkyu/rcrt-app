@@ -9,8 +9,11 @@ import {
   type AuditPage,
   type AuditQuery,
 } from '../../lib/schemas/audit';
+import { AUDIT_ACTION_COUNT } from '../../lib/audit-actions';
 import { encodeTimeIdCursor } from '../../lib/schemas/cursor';
 import { writeAudit } from '../../server/audit';
+import { buildAuthContext } from '../../server/authz/context';
+import type { UserId } from '../../server/authz/types';
 import type { VerifiedIdentity } from '../../server/context/identity';
 import { loadAuthContext } from '../../server/context/request-context';
 import * as schema from '../../server/db/schema';
@@ -22,6 +25,7 @@ import {
   listAudit,
   listAuditActors,
 } from '../../server/services/audit';
+import { createPosition, patchPosition } from '../../server/services/position';
 import { createVertical, renameVertical } from '../../server/services/vertical';
 import { createAuthFixture } from '../support/auth-fixture';
 import { startJwksFixture } from '../unit/auth/jwks-fixture';
@@ -357,7 +361,7 @@ describe('Security view intersects manual selection [STORY-AUD-2, Q-158]', () =>
           'view=unknown',
           'actions=',
           'actions=future.action',
-          `actions=${Array.from({ length: 22 }, () => 'user.invited').join(',')}`,
+          `actions=${Array.from({ length: AUDIT_ACTION_COUNT + 1 }, () => 'user.invited').join(',')}`,
           `actions=${'a'.repeat(2000)}`,
         ]) {
           expect((await get(query)).status, query).toBe(400);
@@ -434,6 +438,92 @@ describe('«Журнал дій» viewer [STORY-AUD-2, AUD, D25]', () => {
       expect(
         byActor.items.every((item) => item.actor?.id === args.user.id),
       ).toBe(true);
+    });
+  });
+
+  it('shows position writes by a Head Recruiter with the position name as label and filters them by entity type and action [ADR-013, AUD]', async () => {
+    await fixture.run(async (args) => {
+      const admin = await adminRequest(args);
+      const headId = randomUUID();
+      await admin.db.insert(schema.appUser).values({
+        id: headId,
+        email: `${headId}@fixture.test`,
+        fullName: 'Голова рекрутингу',
+      });
+      const head = {
+        ...admin,
+        auth: buildAuthContext({
+          userId: headId as UserId,
+          roles: [{ role: 'HEAD_RECRUITER', verticalId: args.user.verticalId }],
+          aal: 'aal2',
+          timezone: 'Europe/Kyiv',
+        }),
+      };
+      const created = await createPosition(head, {
+        verticalId: args.user.verticalId,
+        name: 'Афілейт-менеджер',
+      });
+      args.at(new Date('2026-11-16T08:05:00Z'));
+      await patchPosition(head, created.id, {
+        expectedVersion: 1,
+        name: 'Афілейт-менеджер Senior',
+      });
+
+      const byEntity = await listAudit(admin, {
+        entityType: 'position',
+        entityId: created.id,
+      });
+      expect(byEntity.items.map((item) => item.action)).toEqual([
+        'position.renamed',
+        'position.created',
+      ]);
+      for (const item of byEntity.items) {
+        expect(item.entity).toEqual({
+          type: 'position',
+          id: created.id,
+          label: 'Афілейт-менеджер Senior',
+        });
+        expect(item.actor).toMatchObject({
+          id: headId,
+          fullName: 'Голова рекрутингу',
+        });
+        auditEntrySchema.parse(item);
+      }
+      // Other suites commit position audit rows to the shared database, so every query is pinned to this actor.
+      const renamed = await listAudit(admin, {
+        entityType: 'position',
+        actions: 'position.renamed',
+        actorId: headId,
+      });
+      expect(renamed.items.map((item) => item.entity?.id)).toEqual([
+        created.id,
+      ]);
+      const allPosition = await listAudit(admin, {
+        entityType: 'position',
+        actorId: headId,
+      });
+      expect(allPosition.items.map((item) => item.action).sort()).toEqual([
+        'position.created',
+        'position.renamed',
+      ]);
+
+      // Historic or foreign rows whose entity id is not a UUID must not break the join: the label is null.
+      await writeAudit(admin.db, admin, {
+        action: 'position.deactivated',
+        entityType: 'position',
+        entityId: 'legacy-position-1',
+      });
+      const legacy = await listAudit(admin, {
+        entityType: 'position',
+        actions: 'position.deactivated',
+        actorId: args.user.id,
+      });
+      expect(legacy.items).toHaveLength(1);
+      expect(legacy.items[0]?.entity).toEqual({
+        type: 'position',
+        id: 'legacy-position-1',
+        label: null,
+      });
     });
   });
 

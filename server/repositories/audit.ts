@@ -19,7 +19,7 @@ import {
   AUDIT_UNKNOWN_ACTOR_ACTION,
 } from '../../lib/audit-constants';
 import type { AuditDirection } from '../../lib/schemas/audit';
-import { appUser, auditLog, vertical } from '../db/schema';
+import { appUser, auditLog, position, vertical } from '../db/schema';
 
 export interface AuditFilters {
   readonly view?: 'all' | 'security' | undefined;
@@ -54,10 +54,10 @@ const entryColumns = {
   actorActive: actor.isActive,
   entityLabel: sql<
     string | null
-  >`coalesce(${entityUser.fullName}, ${vertical.name})`,
+  >`coalesce(${entityUser.fullName}, ${vertical.name}, ${position.name})`,
 };
 
-/** Labels come from current user/vertical names only — never from PII side tables (wireframe §3.1). */
+/** Labels come from current user/vertical/position names only — never from PII side tables (wireframe §3.1). */
 function entryQuery(db: DbExecutor) {
   return db
     .select(entryColumns)
@@ -70,6 +70,10 @@ function entryQuery(db: DbExecutor) {
     .leftJoin(
       vertical,
       and(eq(auditLog.entityType, 'vertical'), eq(vertical.id, entityUuid)),
+    )
+    .leftJoin(
+      position,
+      and(eq(auditLog.entityType, 'position'), eq(position.id, entityUuid)),
     );
 }
 

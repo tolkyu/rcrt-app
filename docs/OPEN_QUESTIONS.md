@@ -339,7 +339,7 @@
 | authz `vacancy.self_assign`                                                                     | Самопризначення рекрутера                                                              | Q-01                         |
 | authz `vacancy.team_lead.set`                                                                   | Призначення тімліда на вакансію від рекрутера                                          | Q-49                         |
 | authz `vacancy.approve`                                                                         | Погодження запиту тімліда                                                              | Q-02                         |
-| authz `position.manage`                                                                         | Довідник посад                                                                         | Q-48                         |
+| authz `position.manage`                                                                         | Довідник посад                                                                         | Q-48 ✅ D76                  |
 | authz `candidate.update`                                                                        | Хто редагує кандидата                                                                  | Q-122                        |
 | authz `comment.create`                                                                          | Хто пише коментарі                                                                     | Q-27                         |
 | authz ³                                                                                         | Кандидати в кількох вертикалях                                                         | Q-13                         |

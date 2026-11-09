@@ -55,6 +55,7 @@ export const PERMISSIONS = {
   'vacancy.bonus_scheme.override': write(['vacancy'], [G], MFA),
   'vacancy.bonus.update': write(['vacancy'], [G], MFA),
   'vacancy.probation_length.set': write(['vacancy'], [G, V]),
+  'position.read': read(['vertical'], [G, V]),
   'position.manage': write(['vertical'], [G, V]),
 
   'candidate.read': read(['candidate'], [G, V, O, VP, S]),

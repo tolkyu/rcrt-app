@@ -718,7 +718,7 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       entity_event_pii: appendOnly,
       file_object: noDelete,
       job_run: noDelete,
-      position: ['SELECT'],
+      position: ['INSERT', 'SELECT'],
       rate_limit_bucket: readWrite,
       saved_filter: readWrite,
       team_lead_priority: readWrite,
@@ -767,6 +767,11 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
     expect(columnAcl.map((row) => row.entry).sort()).toEqual([
       'audit_log.after|app_purge|UPDATE',
       'audit_log.before|app_purge|UPDATE',
+      'position.is_active|app_rw|UPDATE',
+      'position.name_key|app_rw|UPDATE',
+      'position.name|app_rw|UPDATE',
+      'position.updated_at|app_rw|UPDATE',
+      'position.version|app_rw|UPDATE',
     ]);
 
     const sequenceAcl = await admin`

@@ -46,8 +46,8 @@ function baseRead(permission: PermissionCode): PermissionCode {
   if (permission.startsWith('bonus.payout_report.'))
     return 'bonus.payout_report.read';
   if (permission.startsWith('bonus.')) return 'bonus.read';
-  if (permission.startsWith('vacancy.') || permission === 'position.manage')
-    return 'vacancy.read';
+  if (permission === 'position.manage') return 'position.read';
+  if (permission.startsWith('vacancy.')) return 'vacancy.read';
   if (permission.startsWith('candidate.') || permission === 'comment.create')
     return 'candidate.read';
   if (/^(application|polygraph|offer|probation)\./.test(permission))

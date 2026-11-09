@@ -100,7 +100,7 @@ const actorSchema = z.object({
 const entitySchema = z.object({
   type: z.string(),
   id: z.string(),
-  /** Current name for users and verticals; never values from PII side tables. */
+  /** Current name for users, verticals and positions; never values from PII side tables. */
   label: z.string().nullable(),
 });
 

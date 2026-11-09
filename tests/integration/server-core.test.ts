@@ -593,6 +593,22 @@ describe('defineRoute: transport checks, context and problem+json mapping [FND-4
           },
           async () => ({ ok: true }),
         ),
+        gated: defineRoute(
+          {
+            method: 'POST',
+            path: '/gated',
+            operationId: 'gated',
+            permission: 'position.read',
+            requireGrant: 'position.manage',
+            summary: 'gated',
+            tags: ['t'],
+            query: z.object({ limit: z.coerce.number().int().max(100) }),
+            body: z.object({ name: z.string().min(2) }).strict(),
+            response: z.object({ ok: z.boolean() }),
+            errors: [400, 403, 404],
+          },
+          async () => ({ ok: true }),
+        ),
         create: defineRoute(
           {
             method: 'POST',
@@ -622,7 +638,9 @@ describe('defineRoute: transport checks, context and problem+json mapping [FND-4
         const route =
           name === 'things'
             ? routes.create
-            : routes[name as 'me' | 'verticals' | 'page' | 'protected'];
+            : routes[
+                name as 'me' | 'verticals' | 'page' | 'protected' | 'gated'
+              ];
         const headers = new Headers(init.headers);
         if (init.actor) headers.set('x-test-actor', init.actor);
         if (init.aal) headers.set('x-test-aal', init.aal);
@@ -633,7 +651,14 @@ describe('defineRoute: transport checks, context and problem+json mapping [FND-4
       await fn(call, log);
       expect(
         Object.keys(buildOpenApiDocument(registry).paths ?? {}).sort(),
-      ).toEqual(['/me', '/page', '/protected', '/things/{id}', '/verticals']);
+      ).toEqual([
+        '/gated',
+        '/me',
+        '/page',
+        '/protected',
+        '/things/{id}',
+        '/verticals',
+      ]);
     });
   }
   const unsafeHeaders = {
@@ -687,6 +712,48 @@ describe('defineRoute: transport checks, context and problem+json mapping [FND-4
         code: 'VALIDATION_FAILED',
       });
       expect((await callAsAdmin('aal2', '{"name":"ok"}')).status).toBe(200);
+    });
+  });
+
+  it('answers 403 to readers without the required grant before parsing the query, JSON or body, and keeps 404 for callers without the route permission [SEC-POS-04]', async () => {
+    await withRoutes(async (call) => {
+      const send = (actor: Actor, aal: 'aal1' | 'aal2', body: string) =>
+        call('/gated?limit=invalid', {
+          actor,
+          aal,
+          method: 'POST',
+          headers: unsafeHeaders,
+          body,
+        });
+      for (const body of ['{invalid json', '{}', '{"name":"ok"}']) {
+        expect(
+          await problem(await send('recruiterB', 'aal2', body)),
+        ).toMatchObject({
+          status: 403,
+          code: 'FORBIDDEN',
+        });
+        for (const actor of ['finance', 'noRole'] as const)
+          expect(await problem(await send(actor, 'aal2', body))).toMatchObject({
+            status: 404,
+            code: 'NOT_FOUND',
+          });
+        expect(await problem(await send('admin', 'aal1', body))).toMatchObject({
+          status: 401,
+          code: 'MFA_REQUIRED',
+        });
+      }
+      for (const actor of ['headA', 'multi'] as const)
+        expect(await problem(await send(actor, 'aal2', '{bad'))).toMatchObject({
+          status: 400,
+        });
+      const ok = await call('/gated?limit=5', {
+        actor: 'headA',
+        aal: 'aal2',
+        method: 'POST',
+        headers: unsafeHeaders,
+        body: '{"name":"ok"}',
+      });
+      expect(ok.status).toBe(200);
     });
   });
 

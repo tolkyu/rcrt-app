@@ -1,4 +1,4 @@
-/** docs/test-plan.md §3.2 (owner decisions D65–D67: rows 012, 021, 025, 092) (rows 001–090) + 091 `vertical.read` (STORY-VIS-02-1). Columns: ADM HREC REC HHR HR TL FIN. */
+/** docs/test-plan.md §3.2 (owner decisions D65–D67: rows 012, 021, 025, 092) (rows 001–090) + 091 `vertical.read` (STORY-VIS-02-1) + 093 `position.read` (ADR-013). Columns: ADM HREC REC HHR HR TL FIN. */
 export const MATRIX = `
 001 | vacancy.read | G | V | asg+uo | V | V | own | 404
 002 | vacancy.create | G | V | V | 403 | 403 | V | 404
@@ -92,4 +92,5 @@ export const MATRIX = `
 090 | candidate.contacts.read | G | V | own | V≥P | V≥P | absent | 404
 091 | vertical.read | G | V | V | V | V | V | 404
 092 | candidate.bonus_flags.clear | G | 403 | 403 | 403 | 403 | 403 | 404
+093 | position.read | G | V | V | V | V | V | 404
 `;

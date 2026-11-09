@@ -3,6 +3,12 @@
 > Read order: `CLAUDE.md` → this file → `docs/PROGRESS.md` → `docs/PRD.md` §14 (owner decisions D1–D70).
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
+## V2a checkpoint — 2026-11-09 (position catalog backend)
+
+- Backend of ADR-013 done (T1 migration 0012/0013 + authz, T2 API/service); details in `docs/PROGRESS.md`. **Next: T3 UI** `/vacancies/positions` per `docs/ux/wireframes/position-catalog.md` (strings under `positions.*`, query key `['positions', {status, verticalId}]`, keep cached count on optimistic updates, `notFound` without `position.manage`, MFA redirect), then QA/E2E/screenshots, then V2b vacancy creation + TL «Запросити вакансію» (OPEN, D87/D89..D91).
+- DB note: migration 0013 was edited before commit; the local ledger hash was updated by hand. Any other local DB that applied the earlier 0013 needs the same hash fix or a recreate. 0012 is unchanged.
+- Newman now deletes its throwaway `Тест API %` positions after each run (loopback + demo-data guarded).
+
 ## Phase 2 V1 checkpoint — 2026-11-08 (vacancy list + detail complete locally)
 
 - Branch `phase-2`. V1 = real scoped read slice; details and numbers in `docs/PROGRESS.md` (same date). All gates green and re-review APPROVED; committed as one `feat(vacancies)` commit.

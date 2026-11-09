@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { positionNameKey } from '../../lib/position-name';
 import { loadAuthContext } from '../../server/context/request-context';
 import * as schema from '../../server/db/schema';
 import {
@@ -66,11 +67,13 @@ async function member(args: Fixture, roles: Role[]) {
 }
 
 async function position(args: Fixture) {
+  const name = `Позиція ${randomUUID()}`;
   const [row] = await args.ctx.db
     .insert(schema.position)
     .values({
       verticalId: args.user.verticalId,
-      name: `Позиція ${randomUUID()}`,
+      name,
+      nameKey: positionNameKey(name),
       createdBy: args.user.id,
     })
     .returning({ id: schema.position.id });

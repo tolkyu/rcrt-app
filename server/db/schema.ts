@@ -643,7 +643,9 @@ export const position = app
         .notNull()
         .references(() => vertical.id, { onDelete: 'restrict' }),
       name: text('name').notNull(),
+      nameKey: text('name_key').notNull(),
       isActive: boolean('is_active').notNull().default(true),
+      version: version(),
       createdBy: uuid('created_by')
         .notNull()
         .references(() => appUser.id, { onDelete: 'restrict' }),
@@ -651,8 +653,9 @@ export const position = app
     },
     (t) => [
       unique('position_id_vertical_uq').on(t.id, t.verticalId),
-      uniqueIndex('position_name_uq').on(t.verticalId, sql`lower(${t.name})`),
+      uniqueIndex('position_name_uq').on(t.verticalId, t.nameKey),
       check('position_name_chk', sql`length(trim(${t.name})) > 0`),
+      check('position_version_chk', sql`${t.version} > 0`),
     ],
   )
   .enableRLS();
