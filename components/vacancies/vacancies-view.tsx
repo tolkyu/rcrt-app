@@ -16,17 +16,18 @@ import { useSearchParams } from 'next/navigation';
 import {
   useCallback,
   useEffect,
-  useId,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react';
+import { PositionsEntryLink } from '@/components/positions/positions-entry-link';
 import { PageHeader } from '@/components/shell/page-header';
 import { EmptyState } from '@/components/states/empty-state';
 import { SectionError } from '@/components/states/section-error';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { FilterSelect } from '@/components/ui/filter-select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -49,37 +50,6 @@ import { VacanciesList } from './vacancies-list';
 import { VacancyPreview } from './vacancy-preview';
 
 const SEARCH_DEBOUNCE_MS = 300;
-const selectClass =
-  'border-input bg-surface text-foreground h-11 w-full rounded-lg border px-3 text-base md:h-10 md:text-sm';
-
-function FilterSelect({
-  label,
-  value,
-  onChange,
-  children,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  children: ReactNode;
-}) {
-  const id = useId();
-  return (
-    <div className="flex min-w-0 flex-col gap-1">
-      <Label htmlFor={id} className="text-xs">
-        {label}
-      </Label>
-      <select
-        id={id}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className={selectClass}
-      >
-        {children}
-      </select>
-    </div>
-  );
-}
 
 function ListSkeleton() {
   const t = useTranslations('states');
@@ -94,7 +64,11 @@ function ListSkeleton() {
 }
 
 /** «Вакансії»: filters, cursor and preview selection live in the URL (VAC-04); one page of at most 100 rows is retained. */
-export function VacanciesView() {
+export function VacanciesView({
+  canManagePositions,
+}: {
+  canManagePositions: boolean;
+}) {
   const t = useTranslations('vacancies');
   const params = useSearchParams();
   const searchKey = params.toString();
@@ -237,7 +211,11 @@ export function VacanciesView() {
 
   return (
     <>
-      <PageHeader title={t('title')} subtitle={t('subtitle')} />
+      <PageHeader
+        title={t('title')}
+        subtitle={t('subtitle')}
+        actions={canManagePositions ? <PositionsEntryLink /> : undefined}
+      />
       <section
         aria-label={t('filtersLabel')}
         className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]"

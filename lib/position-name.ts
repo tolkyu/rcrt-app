@@ -1,3 +1,6 @@
+export const POSITION_NAME_MIN = 2;
+export const POSITION_NAME_MAX = 80;
+
 /** Invisible or look-alike code points: control, format (zero-width, bidi), line/paragraph separators, private-use and lone surrogates. */
 const FORBIDDEN_CHARS = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}\p{Co}\p{Cs}]/u;
 
@@ -21,3 +24,16 @@ export const positionNameKey = (value: string): string =>
     .replace(APOSTROPHE_VARIANTS, MODIFIER_APOSTROPHE)
     .toLowerCase()
     .normalize('NFC');
+
+export type PositionNameProblem =
+  'required' | 'tooShort' | 'tooLong' | 'invalid';
+
+/** Client-side twin of `positionNameSchema` that stays free of the Zod bundle; the server remains the arbiter. */
+export function positionNameProblem(value: string): PositionNameProblem | null {
+  if (!hasOnlyVisibleChars(value)) return 'invalid';
+  const { length } = normalizePositionName(value);
+  if (length === 0) return 'required';
+  if (length < POSITION_NAME_MIN) return 'tooShort';
+  if (length > POSITION_NAME_MAX) return 'tooLong';
+  return null;
+}

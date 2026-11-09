@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { AUDIT_ACTION_COUNT } from '../../lib/audit-actions';
 import { AUDIT_ACTION_GROUPS } from '../../lib/audit-constants';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import type {
@@ -221,7 +222,7 @@ test('grouped actions apply by keyboard, preserve open focus and scroll, and int
   await expect(invited).toBeFocused();
   await expect(invited).toBeChecked();
   await expect(renamed).toBeChecked();
-  await expect(picker.getByRole('checkbox')).toHaveCount(21);
+  await expect(picker.getByRole('checkbox')).toHaveCount(AUDIT_ACTION_COUNT);
   await invited.press('Space');
   await expect(page).toHaveURL(/action=vertical.renamed/);
   await renamed.focus();

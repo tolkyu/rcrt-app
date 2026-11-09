@@ -3,6 +3,13 @@
 > Read order: `CLAUDE.md` → this file → `docs/PROGRESS.md` → `docs/PRD.md` §14 (owner decisions D1–D70).
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
+## V2a T3 checkpoint — 2026-11-09 (position catalog UI done, committed)
+
+- Done: «Довідник посад» `/vacancies/positions` (details in `docs/PROGRESS.md`). QA, code-reviewer, security (APPROVED, `docs/security/review-phase-2-positions.md`) and perf (`docs/perf/report-phase-2-positions.md`) completed; fixes applied. Verified: lint, typecheck, prettier, 2,657 Vitest, build, `/vacancies/positions` 170.16 kB, full E2E 440 + 13 skips, Newman 368 / 2,118 / 0 failed, gallery `screenshots/phase-2/index.html` (+ latest).
+- **Next: V2b** — vacancy creation (Admin / Head Recruiter; recruiter-initiated vacancies may lack a TL; probation 30..90, default 90) + TL «Запросити вакансію» creating `OPEN` (D87, D89..D91). Open Q-166 (TL form), Q-167 (HR landing), Q-168 (fate of «Погодження вакансій» / `DRAFT`; blocks creation), Q-169 (vacancy completeness) — ask the owner before building. Also `DRAFT→CANCELLED` + `cancelled_at` (D82) and role-based landing (D84/D88).
+- Carry-overs for V2b: SEC-POS-09 (list limit vs 300/vertical cap), single-layout render for large catalogs, optional partial index `vacancy_position_open_idx` in the V2b migration, positions in perf seed / `tests/perf/foundation.spec.ts`, `settings` messages out of the global provider.
+- Test notes: positions writes limited 30/min/user (two e2e runs <1 min apart can 429); `--no-deps` e2e fails on the MFA-pending test after `pnpm test:api` (Newman revokes Admin sessions) — run `test:e2e` before `test:api`; Radix focus-restore quirk probably affects existing verticals dialogs (not touched).
+
 ## V2a checkpoint — 2026-11-09 (position catalog backend)
 
 - Backend of ADR-013 done (T1 migration 0012/0013 + authz, T2 API/service); details in `docs/PROGRESS.md`. **Next: T3 UI** `/vacancies/positions` per `docs/ux/wireframes/position-catalog.md` (strings under `positions.*`, query key `['positions', {status, verticalId}]`, keep cached count on optimistic updates, `notFound` without `position.manage`, MFA redirect), then QA/E2E/screenshots, then V2b vacancy creation + TL «Запросити вакансію» (OPEN, D87/D89..D91).

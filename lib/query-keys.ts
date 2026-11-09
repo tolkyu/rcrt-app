@@ -5,6 +5,8 @@ export const queryKeys = {
   myMfa: () => ['me', 'mfa'] as const,
   myLoginHistory: () => ['me', 'login-history'] as const,
   verticals: () => ['verticals'] as const,
+  positions: (filters: Readonly<{ status: string; verticalId?: string }>) =>
+    ['positions', filters] as const,
   vacancies: (filters: Readonly<Record<string, unknown>>) =>
     ['vacancies', filters] as const,
   vacancy: (id: string) => ['vacancy', id.toLowerCase()] as const,

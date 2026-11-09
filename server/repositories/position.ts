@@ -15,15 +15,15 @@ const columns = {
 export type PositionRow = Awaited<ReturnType<typeof insertPosition>>;
 
 /**
- * Live vacancies still being worked on; served by `vacancy_position_idx`. Columns are spelled out because
- * Drizzle drops table qualifiers in single-table selects, which would bind both sides to the inner table.
+ * Live OPEN vacancies only (owner 2026-11-09: drafts and vacancies on hold are not «відкриті»); served by
+ * `vacancy_position_idx`. Columns are spelled out because Drizzle drops table qualifiers in single-table selects, which would bind both sides to the inner table.
  */
 const openVacanciesCount = sql<number>`(
   select count(*)::int from ${vacancy} as "open_vacancy"
   where "open_vacancy"."position_id" = "position"."id"
     and "open_vacancy"."vertical_id" = "position"."vertical_id"
     and "open_vacancy"."deleted_at" is null
-    and "open_vacancy"."status" in ('DRAFT', 'OPEN', 'ON_HOLD')
+    and "open_vacancy"."status" = 'OPEN'
 )`;
 
 /**

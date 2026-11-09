@@ -150,6 +150,33 @@ describe('position catalog permissions [VAC-01, D76, D90, ADR-013]', () => {
   });
 });
 
+describe('catalog page gate: «Довідник посад» is 404 without position.manage [VAC-01, VIS-02]', () => {
+  it.each([
+    ['ADMIN', 'aal2', true],
+    ['HEAD_RECRUITER', 'aal2', true],
+    ['HEAD_RECRUITER', 'aal1', true],
+    ['ADMIN', 'aal1', false],
+    ['RECRUITER', 'aal2', false],
+    ['TEAM_LEAD', 'aal2', false],
+    ['HEAD_HR', 'aal2', false],
+    ['HR', 'aal2', false],
+    ['FINANCE', 'aal2', false],
+  ] as const)('%s (%s): page opens = %s', (role, aal, opens) => {
+    expect(hasAnyGrant(roleContext(role, aal), 'position.manage')).toBe(opens);
+  });
+
+  it('a user without any role and a reader in one vertical who manages another see the page only where they manage', () => {
+    expect(hasAnyGrant(contextFor([]), 'position.manage')).toBe(false);
+    const mixed = contextFor([
+      { role: 'RECRUITER', verticalId: GAMBLING },
+      { role: 'HEAD_RECRUITER', verticalId: CRYPTO },
+    ]);
+    expect(hasAnyGrant(mixed, 'position.manage')).toBe(true);
+    expect(can(mixed, 'position.manage', catalog(GAMBLING))).toBe(false);
+    expect(can(mixed, 'position.manage', catalog(CRYPTO))).toBe(true);
+  });
+});
+
 describe('position.manage invariant [SEC-POS-06, ADR-013]', () => {
   /** The manager list counts live vacancies, so managing a vertical must come with reading its catalog and its vacancies. */
   const covers = (held: Grant, needed: Grant) =>

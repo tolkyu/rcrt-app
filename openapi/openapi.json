@@ -454,7 +454,7 @@
           "openVacanciesCount": {
             "type": ["integer", "null"],
             "minimum": 0,
-            "description": "Live DRAFT, OPEN and ON_HOLD vacancies of the position. Present only in the manager list (`status=all`); null everywhere else."
+            "description": "Live vacancies of the position with status OPEN (drafts and vacancies on hold are not counted). Present only in the manager list (`status=all`); null everywhere else."
           }
         },
         "required": [

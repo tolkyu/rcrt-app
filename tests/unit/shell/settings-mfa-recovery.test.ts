@@ -65,7 +65,7 @@ it.each(['MFA_REQUIRED', 'STALE_STATE'])(
       );
       expect(
         screen
-          .getByRole('link', { name: messages.settings.verifyMfa })
+          .getByRole('link', { name: messages.settings.common.mfaVerify })
           .getAttribute('href'),
       ).toBe('/mfa/verify?next=%2Fsettings%2Fusers%3Fstatus%3DACTIVE');
       expect(window.location.pathname).toBe('/settings/users');
@@ -109,7 +109,7 @@ it('keeps one verification action inside the open dialog, then moves it to the p
     expect(await screen.findAllByRole('alert')).toHaveLength(1);
     expect(
       dialog.contains(
-        screen.getByRole('link', { name: messages.settings.verifyMfa }),
+        screen.getByRole('link', { name: messages.settings.common.mfaVerify }),
       ),
     ).toBe(true);
     await act(async () => {
@@ -117,11 +117,11 @@ it('keeps one verification action inside the open dialog, then moves it to the p
     });
     await waitFor(() => expect(screen.getAllByRole('alert')).toHaveLength(1));
     expect(
-      document
-        .querySelector('main')
-        ?.contains(
-          screen.getByRole('link', { name: messages.settings.verifyMfa }),
-        ),
+      document.querySelector('main')?.contains(
+        screen.getByRole('link', {
+          name: messages.settings.common.mfaVerify,
+        }),
+      ),
     ).toBe(true);
   } finally {
     dialog.remove();

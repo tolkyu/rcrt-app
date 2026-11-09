@@ -1,9 +1,13 @@
 import { z } from 'zod';
-import { hasOnlyVisibleChars, normalizePositionName } from '../position-name';
+import {
+  hasOnlyVisibleChars,
+  normalizePositionName,
+  POSITION_NAME_MAX,
+  POSITION_NAME_MIN,
+} from '../position-name';
 import { uuid } from './uuid';
 
-export const POSITION_NAME_MIN = 2;
-export const POSITION_NAME_MAX = 80;
+export { POSITION_NAME_MAX, POSITION_NAME_MIN };
 /** Above verticals x POSITION_PER_VERTICAL_LIMIT for any realistic number of verticals, so the unfiltered Admin list cannot overflow before a cap does. */
 export const POSITION_LIST_LIMIT = 1000;
 export const POSITION_PER_VERTICAL_LIMIT = 300;
@@ -43,7 +47,7 @@ export const positionSchema = z
     createdAt: z.iso.datetime(),
     openVacanciesCount: z.number().int().nonnegative().nullable().meta({
       description:
-        'Live DRAFT, OPEN and ON_HOLD vacancies of the position. Present only in the manager list (`status=all`); null everywhere else.',
+        'Live vacancies of the position with status OPEN (drafts and vacancies on hold are not counted). Present only in the manager list (`status=all`); null everywhere else.',
     }),
   })
   .meta({ id: 'Position' });

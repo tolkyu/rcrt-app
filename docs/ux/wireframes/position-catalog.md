@@ -41,7 +41,6 @@ Content = `PageHeader` + `Card p-0` (radius 16), `max-w-5xl` (1024) left-aligned
 │ └────────────────────────────┴─────────────┴────────────────────┴────────────┴──────────────────────────────────┘ │
 │ Показано 5 посад                                                                                               │
 │ ⓘ Посади не видаляються. Неактивну посаду можна повернути, а її назва лишається зайнятою.                       │
-│ Враховано чернетки, відкриті й призупинені вакансії.                                                           │
 ```
 
 (Word breaks in the long name above are only an ASCII artefact; real text wraps whole words, no hyphenation, `lang="uk"`.)
@@ -54,9 +53,9 @@ Content = `PageHeader` + `Card p-0` (radius 16), `max-w-5xl` (1024) left-aligned
 - **URL state:** `?vertical=<id|all>&inactive=1` (`replaceState`, survives reload and Back).
 - **Sort:** inside a group by name (uk collation), like verticals; active and inactive interleaved.
 - **Status column:** `PositionStatusChip` (dot + text, never colour alone): Активна = green (`--success-subtle` / `--success-text`), Неактивна = slate with dashed border (same as deactivated user chip). Inactive row text uses `--muted-foreground`; name stays AA.
-- **Відкриті вакансії:** integer, `tabular-nums`, right-aligned header/cell not required (left, like other columns). Count = DRAFT + OPEN + ON_HOLD (ADR-013); no link yet (vacancy list has no position filter in V2a; add `?position=` link when it ships). `null` → «—».
+- **Відкриті вакансії:** integer, `tabular-nums`, right-aligned header/cell not required (left, like other columns). Count = live vacancies with status OPEN only (owner 2026-11-09: no drafts, no ON_HOLD; ADR-013); no link yet (vacancy list has no position filter in V2a; add `?position=` link when it ships). `null` → «—».
 - **Row actions:** two ghost buttons, h 32. Active row: «Перейменувати» + «Деактивувати»; inactive row: «Перейменувати» + «Активувати». Below `lg` (1024) the labels collapse to icons (`pencil`, `power-off`/`power`) with `aria-label` «Перейменувати: {name}» etc.; hit area still ≥ 32.
-- **Footer:** `role="status"` «Показано N посад» (count of visible rows), info note, count note — all `text-sm`/`text-xs` muted.
+- **Footer:** `role="status"` «Показано N посад» (count of visible rows) and the info note — `text-sm`/`text-xs` muted.
 
 ### 1.2 Head Recruiter with one managed vertical
 
@@ -200,7 +199,7 @@ No Tooltip/DisabledReason, Table/Virtual or Popover needed (≤ 500 rows, semant
 
 ## 6. Copy — proposal for `messages/uk.json` → `positions`
 
-Reuse (do not duplicate): `settings.common.{cancel,saving,charCounter}`, `common.close`, `states.loading`, `settings.common.mfaVerify`. Entry link lives here as `positions.entryLink` so the vacancy header only imports it. Glossary term: UI says «Посада» (glossary «Position → Посада»).
+Reuse (do not duplicate): `settings.common.{cancel,saving,charCounter}`, `common.close`, `states.loading`, `settings.common.mfaVerify`. The entry link label is `vacancies.positionsEntry` (the vacancy list shell carries it; `positions.*` loads only on the catalog route). Glossary term: UI says «Посада» (glossary «Position → Посада»).
 
 ```json
 "positions": {
@@ -208,7 +207,6 @@ Reuse (do not duplicate): `settings.common.{cancel,saving,charCounter}`, `common
   "title": "Довідник посад",
   "subtitle": "Посади, які можна обрати у вакансіях",
   "subtitleVertical": "Посади вертикалі «{vertical}», які можна обрати у вакансіях",
-  "entryLink": "Довідник посад",
   "backToVacancies": "Вакансії",
   "create": "Додати посаду",
   "filtersLabel": "Фільтри довідника",
@@ -240,7 +238,6 @@ Reuse (do not duplicate): `settings.common.{cancel,saving,charCounter}`, `common
   "reactivate": "Активувати",
   "reactivateLabel": "Активувати: {name}",
   "permanentNote": "Посади не видаляються. Неактивну посаду можна повернути, а її назва лишається зайнятою.",
-  "countNote": "Враховано чернетки, відкриті й призупинені вакансії.",
   "empty": {
     "title": "Посад ще немає",
     "description": "Додайте першу посаду — її можна буде обрати у вакансії."
@@ -339,5 +336,5 @@ E2E assertions paired with the gallery: keyboard-only create → duplicate → r
 
 ## 8. Open UX questions
 
-1. «Відкриті вакансії» counts DRAFT + OPEN + ON_HOLD (ADR-013). If the owner reads "open" as only «Відкрита», the column/warning wording must change (proposal here: keep the label and show the count note in the footer).
+1. Resolved by the owner (2026-11-09): «Відкриті вакансії» counts only status OPEN; no count footnote.
 2. Copy term: the requested duplicate message said «Позиція…»; the glossary fixes «Посада», so §6 uses «Посада з такою назвою вже є; неактивна посада резервує назву.» If the literal «Позиція» wording is required, change `dialog.errors.duplicate` and add a glossary exception.

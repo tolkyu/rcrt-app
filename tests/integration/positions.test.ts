@@ -963,7 +963,7 @@ describe('Position catalog writes [VAC-01, D76, ADR-013]', () => {
 });
 
 describe('Open vacancy counts [ADR-013]', () => {
-  it('counts live DRAFT, OPEN and ON_HOLD vacancies only, in the manager list only', async () => {
+  it('counts live OPEN vacancies only (not DRAFT or ON_HOLD), in the manager list only', async () => {
     await scenario(async (s) => {
       const { p1, p2 } = world.positions;
       const { v1 } = world.verticals;
@@ -975,8 +975,8 @@ describe('Open vacancy counts [ADR-013]', () => {
       const manager = await listPositionCatalog(admin, { status: 'all' });
       const count = (id: string) =>
         manager.items.find((item) => item.id === id)?.openVacanciesCount;
-      // 3 OPEN + 1 ON_HOLD + 1 DRAFT; the cancelled and the soft-deleted vacancy are excluded.
-      expect(count(p1)).toBe(5);
+      // 3 OPEN of p1; its ON_HOLD, DRAFT, cancelled and soft-deleted vacancies are excluded.
+      expect(count(p1)).toBe(3);
       expect(count(p2)).toBe(2);
       expect(count(created.id)).toBe(0);
       const picker = await listPositionCatalog(admin, { status: 'active' });
@@ -987,13 +987,60 @@ describe('Open vacancy counts [ADR-013]', () => {
     });
   });
 
+  it('shows 0 for a position whose vacancies are all DRAFT, ON_HOLD or CANCELLED and counts only its live OPEN ones', async () => {
+    const extra = randomUUID();
+    const name = `Без відкритих ${world.tag}`;
+    const { v1 } = world.verticals;
+    const vacancies: string[] = [];
+    await admin`insert into app.position (id, vertical_id, name, name_key, created_by)
+      values (${extra}, ${v1}, ${name}, ${positionNameKey(name)}, ${world.users.admin})`;
+    try {
+      const counted: (number | null | undefined)[] = [];
+      const countOf = () =>
+        scenario(async (s) => {
+          const { items } = await listPositionCatalog(s.as(roles().head), {
+            status: 'all',
+          });
+          counted.push(items.find((i) => i.id === extra)?.openVacanciesCount);
+        });
+      for (const [status, extraColumns] of [
+        ['DRAFT', { opened_at: null }],
+        ['ON_HOLD', {}],
+        ['CANCELLED', { closed_at: new Date('2026-11-02T09:00:00Z') }],
+      ] as const)
+        vacancies.push(
+          await world.addVacancy({
+            position_id: extra,
+            status,
+            ...extraColumns,
+          }),
+        );
+      await countOf();
+      vacancies.push(await world.addVacancy({ position_id: extra }));
+      vacancies.push(
+        await world.addVacancy({
+          position_id: extra,
+          deleted_at: new Date('2026-11-02T09:00:00Z'),
+          deleted_by: world.users.admin,
+          delete_reason: 'Дублікат',
+        }),
+      );
+      await countOf();
+      expect(counted).toEqual([0, 1]);
+    } finally {
+      if (vacancies.length)
+        await admin`delete from app.vacancy where id in ${admin(vacancies)}`;
+      await admin`delete from app.position where id = ${extra}`;
+    }
+  });
+
   it('never carries counts of a vertical the caller does not manage', async () => {
     await scenario(async (s) => {
       const { p1, p2 } = world.positions;
       const head = await listPositionCatalog(s.as(roles().head), {
         status: 'all',
       });
-      expect(head.items.find((i) => i.id === p1)?.openVacanciesCount).toBe(5);
+      expect(head.items.find((i) => i.id === p1)?.openVacanciesCount).toBe(3);
       expect(head.items.find((i) => i.id === p2)).toBeUndefined();
       const mixed = await listPositionCatalog(s.as(roles().mixed), {
         status: 'all',
@@ -1024,7 +1071,7 @@ describe('Open vacancy counts [ADR-013]', () => {
       const all = await listPositionCatalog(head, { status: 'all' });
       expect(all.items.find((i) => i.id === p1)).toMatchObject({
         isActive: false,
-        openVacanciesCount: 5,
+        openVacanciesCount: 3,
       });
     });
   });
