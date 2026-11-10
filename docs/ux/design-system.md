@@ -150,20 +150,20 @@ Ukrainian text rules: labels run ~25–35 % longer than English. Chips, tabs and
 
 ## 3. Space, radius, border, shadow, grid, size
 
-| Token                | Values                                                                                                                                                                 |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Spacing (4 px scale) | 4 · 8 · 12 · 16 · 20 · 24 · 32 · 40 · 48 (`1,2,3,4,5,6,8,10,12`); 2 px allowed only for hairline offsets                                                               |
-| Radius               | `xs` 2 · `sm` 4 · `md` 8 · `lg` 12 · `xl` 16 · `2xl` 24 · `full`                                                                                                       |
-| Border               | 1 px default (`--border`) · 2 px emphasis (selected card, drop target, current step ring) · 1 px dashed (Чернетка, empty drop zone, «+ Додати тег», «+ Додати фільтр») |
-| Shadow `sm`          | `0 1px 2px 0 rgb(0 0 0 / .05)` — cards, KPI cards, table container, kanban cards                                                                                       |
-| Shadow `md`          | `0 4px 12px 0 rgb(0 0 0 / .08)` — dropdowns, popovers, tooltips, hovered kanban card                                                                                   |
-| Shadow `lg`          | `0 10px 32px 0 rgb(0 0 0 / .12)` — dialogs, drawers, bottom sheets, dragged card, toasts                                                                               |
-| Dark shadows         | same offsets with `rgb(0 0 0 / .30 / .40 / .50)` + 1 px `--border` on every surface                                                                                    |
-| Grid                 | 12 columns, 24 px gutter, fluid; content padding 24 desktop / 16 mobile                                                                                                |
-| Breakpoints          | sm 640 · md 768 · lg 1024 · xl 1280 · 2xl 1440                                                                                                                         |
-| Z-index              | sticky 10 · header 20 · dropdown 30 · drawer/dialog 40 · toast 50 · command 60                                                                                         |
-| Motion               | Tokens, curves and rules in §8: press 120 · tooltip 125 · popover 160/120 · dialog 200/150 · drawer 240/180 ms; strong ease-out; reduced motion keeps opacity only; off in screenshot mode                                    |
-| Focus                | `outline: 2px solid var(--ring); outline-offset: 2px` on `:focus-visible`, never removed                                                                               |
+| Token                | Values                                                                                                                                                                                     |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Spacing (4 px scale) | 4 · 8 · 12 · 16 · 20 · 24 · 32 · 40 · 48 (`1,2,3,4,5,6,8,10,12`); 2 px allowed only for hairline offsets                                                                                   |
+| Radius               | `xs` 2 · `sm` 4 · `md` 8 · `lg` 12 · `xl` 16 · `2xl` 24 · `full`                                                                                                                           |
+| Border               | 1 px default (`--border`) · 2 px emphasis (selected card, drop target, current step ring) · 1 px dashed (Чернетка, empty drop zone, «+ Додати тег», «+ Додати фільтр»)                     |
+| Shadow `sm`          | `0 1px 2px 0 rgb(0 0 0 / .05)` — cards, KPI cards, table container, kanban cards                                                                                                           |
+| Shadow `md`          | `0 4px 12px 0 rgb(0 0 0 / .08)` — dropdowns, popovers, tooltips, hovered kanban card                                                                                                       |
+| Shadow `lg`          | `0 10px 32px 0 rgb(0 0 0 / .12)` — dialogs, drawers, bottom sheets, dragged card, toasts                                                                                                   |
+| Dark shadows         | same offsets with `rgb(0 0 0 / .30 / .40 / .50)` + 1 px `--border` on every surface                                                                                                        |
+| Grid                 | 12 columns, 24 px gutter, fluid; content padding 24 desktop / 16 mobile                                                                                                                    |
+| Breakpoints          | sm 640 · md 768 · lg 1024 · xl 1280 · 2xl 1440                                                                                                                                             |
+| Z-index              | sticky 10 · header 20 · dropdown 30 · drawer/dialog 40 · toast 50 · command 60                                                                                                             |
+| Motion               | Tokens, curves and rules in §8: press 120 · tooltip 125 · popover 160/120 · dialog 200/150 · drawer 240/180 ms; strong ease-out; reduced motion keeps opacity only; off in screenshot mode |
+| Focus                | `outline: 2px solid var(--ring); outline-offset: 2px` on `:focus-visible`, never removed                                                                                                   |
 
 **Radius by component**
 
@@ -325,25 +325,25 @@ Also used (no mockup frame, unchanged): `Dialog`, `AlertDialog` (every destructi
 }
 ```
 
-| Token (utility)                              | Value                 | Use                                                    |
-| -------------------------------------------- | --------------------- | ------------------------------------------------------ |
-| `ease-out`                                   | strong ease-out       | every enter/exit, press, default                       |
-| `ease-in-out`                                | strong ease-in-out    | on-screen movement (rare: only if something moves/morphs) |
-| `ease-drawer`                                | iOS-like drawer curve | bottom sheets and right drawers                        |
-| `duration-press` / `-tooltip`                | 120 / 125 ms          | `:active` scale, colour hover / tooltip                |
-| `duration-popover` / `-popover-exit`         | 160 / 120 ms          | dropdown, Select, Combobox, Popover                    |
-| `duration-dialog` / `-dialog-exit`           | 200 / 150 ms          | Dialog, AlertDialog (desktop)                          |
-| `duration-drawer` / `-drawer-exit`           | 240 / 180 ms          | mobile bottom sheet, Sheet                             |
+| Token (utility)                      | Value                 | Use                                                       |
+| ------------------------------------ | --------------------- | --------------------------------------------------------- |
+| `ease-out`                           | strong ease-out       | every enter/exit, press, default                          |
+| `ease-in-out`                        | strong ease-in-out    | on-screen movement (rare: only if something moves/morphs) |
+| `ease-drawer`                        | iOS-like drawer curve | bottom sheets and right drawers                           |
+| `duration-press` / `-tooltip`        | 120 / 125 ms          | `:active` scale, colour hover / tooltip                   |
+| `duration-popover` / `-popover-exit` | 160 / 120 ms          | dropdown, Select, Combobox, Popover                       |
+| `duration-dialog` / `-dialog-exit`   | 200 / 150 ms          | Dialog, AlertDialog (desktop)                             |
+| `duration-drawer` / `-drawer-exit`   | 240 / 180 ms          | mobile bottom sheet, Sheet                                |
 
 ### 8.2 Keyframes and utilities (shared by every Radix surface)
 
-| Utility            | Keyframe `from` → `to`                                                         | Applied to                                              |
-| ------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------- |
-| `motion-pop`       | `opacity 0; scale var(--motion-scale)` → `opacity 1; scale 1`, origin = `var(--radix-*-content-transform-origin)` | dropdown, Select, Combobox, Popover, tooltip (`.97`)    |
-| `motion-modal`     | same, origin `center`, `duration-dialog` in / `-exit` out                      | Dialog, AlertDialog on ≥ 768 px                         |
-| `motion-sheet-up`  | `translate: 0 var(--motion-shift)` + opacity → 0, `ease-drawer`                | Dialog/AlertDialog bottom sheet below 768 px            |
-| `motion-sheet-side`| `translate: var(--motion-shift) 0` + opacity → 0, `ease-drawer`                | right Sheet                                             |
-| `motion-fade`      | `opacity 0 → 1`, `duration-dialog`                                             | overlays (backdrops)                                    |
+| Utility             | Keyframe `from` → `to`                                                                                            | Applied to                                           |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `motion-pop`        | `opacity 0; scale var(--motion-scale)` → `opacity 1; scale 1`, origin = `var(--radix-*-content-transform-origin)` | dropdown, Select, Combobox, Popover, tooltip (`.97`) |
+| `motion-modal`      | same, origin `center`, `duration-dialog` in / `-exit` out                                                         | Dialog, AlertDialog on ≥ 768 px                      |
+| `motion-sheet-up`   | `translate: 0 var(--motion-shift)` + opacity → 0, `ease-drawer`                                                   | Dialog/AlertDialog bottom sheet below 768 px         |
+| `motion-sheet-side` | `translate: var(--motion-shift) 0` + opacity → 0, `ease-drawer`                                                   | right Sheet                                          |
+| `motion-fade`       | `opacity 0 → 1`, `duration-dialog`                                                                                | overlays (backdrops)                                 |
 
 - Keyboard-opened surfaces carry `data-instant` and `animation: none` (the `openedBy` flag already exists in `useDeferredMenu`).
 - Tooltip `data-state="instant-open"` (a neighbour was just open): `animation: none`.
@@ -357,12 +357,12 @@ Row hover and selection · tab switch · list refresh, search typing, filter and
 
 ### 8.4 Review checklist (every UI task)
 
-| Check                                                            | Pass when                                                         |
-| ---------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Frequency gate answered for each animation                       | purpose named; "looks nice" is rejected                           |
-| Properties                                                       | only `transform`/`opacity` (+ colour on hover)                    |
-| Curve and duration                                               | tokens above, ≤ 300 ms, exit faster than enter                    |
-| Origin                                                           | popovers from the trigger, modals centred                         |
-| Hover                                                            | only inside `hover:`; touch uses `:active`                        |
-| Reduced motion                                                   | opacity only; verified with emulation                             |
-| Slow-motion pass                                                 | played at 3× once and re-checked on another day                   |
+| Check                                      | Pass when                                       |
+| ------------------------------------------ | ----------------------------------------------- |
+| Frequency gate answered for each animation | purpose named; "looks nice" is rejected         |
+| Properties                                 | only `transform`/`opacity` (+ colour on hover)  |
+| Curve and duration                         | tokens above, ≤ 300 ms, exit faster than enter  |
+| Origin                                     | popovers from the trigger, modals centred       |
+| Hover                                      | only inside `hover:`; touch uses `:active`      |
+| Reduced motion                             | opacity only; verified with emulation           |
+| Slow-motion pass                           | played at 3× once and re-checked on another day |
