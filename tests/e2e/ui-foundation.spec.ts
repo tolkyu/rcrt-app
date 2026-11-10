@@ -2,8 +2,10 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import { E2E_ORIGIN, sessionFile } from '../support/e2e-session';
 import { openHydrated } from '../support/hydration';
+import { chooseOption, listboxOf, optionsOf } from '../support/select';
 
 const t = messages;
+const RADIX_SELECT_MARKER = 'data-radix-select-viewport';
 const THEME_COLOR = { light: '#ffffff', dark: '#111827' } as const;
 const SUBTLE_FILL = {
   OPEN: { light: 'rgb(240, 253, 244)', dark: 'rgb(23, 54, 57)' },
@@ -314,5 +316,162 @@ test.describe('vacancy chips and the lazy tooltip [UI-F2]', () => {
     page.on('request', (request) => requests.push(request.url()));
     await openHydrated(page, '/vacancies');
     expect(requests.filter((url) => /tooltip/i.test(url))).toEqual([]);
+  });
+});
+
+test.describe('Select in the vacancies filter [UI-F3]', () => {
+  test.use({ storageState: sessionFile('admin@demo') });
+
+  const status = (page: Page) =>
+    page.getByLabel(t.vacancies.filterStatus, { exact: true });
+  const vertical = (page: Page) =>
+    page.getByLabel(t.vacancies.filterVertical, { exact: true });
+  const statusParam = (page: Page) =>
+    expect.poll(() => new URL(page.url()).searchParams.get('status'));
+  const popup = (page: Page) => page.locator('[data-slot="select-content"]');
+
+  test('a pointer choice writes the status to the URL, «Усі» clears it and the field does not move', async ({
+    page,
+  }) => {
+    await openHydrated(page, '/vacancies');
+    const field = status(page);
+    const before = await field.boundingBox();
+    await chooseOption(page, field, t.vacancies.status.ON_HOLD);
+    await statusParam(page).toBe('ON_HOLD');
+    await expect(field).toHaveText(t.vacancies.status.ON_HOLD);
+    expect(await field.boundingBox()).toEqual(before);
+
+    await chooseOption(page, field, t.vacancies.all);
+    await statusParam(page).toBeNull();
+    await expect(field).toHaveText(t.vacancies.all);
+    expect(await field.boundingBox()).toEqual(before);
+  });
+
+  test('Escape closes the list, keeps the filter and returns focus to the field', async ({
+    page,
+  }) => {
+    await openHydrated(page, '/vacancies');
+    const field = status(page);
+    await field.click();
+    await expect(listboxOf(page)).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(listboxOf(page)).toHaveCount(0);
+    await expect(field).toBeFocused();
+    await expect(field).toHaveText(t.vacancies.all);
+    await statusParam(page).toBeNull();
+  });
+
+  test('keyboard: Tab reaches the field, ArrowDown opens it, arrows and Enter choose, type-ahead picks on the closed field', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'the keyboard contract is viewport independent');
+    await openHydrated(page, '/vacancies');
+    await page
+      .getByRole('searchbox', { name: t.vacancies.searchLabel, exact: true })
+      .focus();
+    await page.keyboard.press('Tab');
+    await expect(vertical(page)).toHaveAttribute('data-state', 'closed');
+    await expect(vertical(page)).toBeFocused();
+    await page.keyboard.press('Tab');
+    const field = status(page);
+    await expect(field).toHaveAttribute('data-state', 'closed');
+    await expect(field).toBeFocused();
+
+    await page.keyboard.press('ArrowDown');
+    await expect(listboxOf(page)).toBeVisible();
+    await expect(optionsOf(page).first()).toBeFocused();
+    // Radix moves focus in a timeout, so a second key sent before the first has landed targets the old option.
+    await page.keyboard.press('ArrowDown');
+    await expect(optionsOf(page).nth(1)).toBeFocused();
+    await page.keyboard.press('ArrowDown');
+    await expect(
+      optionsOf(page).filter({ hasText: t.vacancies.status.OPEN }),
+    ).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(listboxOf(page)).toHaveCount(0);
+    await expect(field).toBeFocused();
+    await statusParam(page).toBe('OPEN');
+    await expect(field).toHaveText(t.vacancies.status.OPEN);
+
+    // Playwright cannot press Cyrillic keys, so the key events Radix type-ahead listens to are dispatched.
+    await page.evaluate(
+      (typed) => {
+        for (const key of typed)
+          document.activeElement?.dispatchEvent(
+            new KeyboardEvent('keydown', { key, bubbles: true }),
+          );
+      },
+      t.vacancies.status.ON_HOLD.slice(0, 2),
+    );
+    await statusParam(page).toBe('ON_HOLD');
+    await expect(field).toHaveText(t.vacancies.status.ON_HOLD);
+  });
+
+  test('touch: a tap opens the list, the field text is 16 px, options and the list fit a phone', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, 'touch targets are a phone contract');
+    await openHydrated(page, '/vacancies');
+    const field = status(page);
+    const metrics = await field.evaluate((node) => ({
+      height: node.getBoundingClientRect().height,
+      font: getComputedStyle(node).fontSize,
+    }));
+    expect(metrics.font).toBe('16px');
+    expect(metrics.height).toBeGreaterThanOrEqual(44);
+
+    await field.tap();
+    await expect(optionsOf(page)).toHaveCount(
+      Object.keys(t.vacancies.status).length + 1,
+    );
+    await popup(page).evaluate((node) =>
+      Promise.all(node.getAnimations().map((animation) => animation.finished)),
+    );
+    const heights = await optionsOf(page).evaluateAll((nodes) =>
+      nodes.map((node) => node.getBoundingClientRect().height),
+    );
+    expect(Math.min(...heights)).toBeGreaterThanOrEqual(44);
+    const box = await popup(page).boundingBox();
+    const viewport = page.viewportSize()!;
+    expect(box!.x).toBeGreaterThanOrEqual(0);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
+
+    await page
+      .getByRole('option', { name: t.vacancies.status.ON_HOLD, exact: true })
+      .tap();
+    await expect(listboxOf(page)).toHaveCount(0);
+    await statusParam(page).toBe('ON_HOLD');
+    await expect(field).toHaveText(t.vacancies.status.ON_HOLD);
+  });
+
+  test('the Radix Select chunk is not requested on page load and arrives on the first hover', async ({
+    page,
+  }) => {
+    const scripts: string[] = [];
+    page.on('request', (request) => {
+      if (/^\/_next\/static\/.*\.js$/.test(new URL(request.url()).pathname))
+        scripts.push(request.url());
+    });
+    const hasSelectCode = async (url: string) =>
+      (await (await page.request.get(url)).text()).includes(
+        RADIX_SELECT_MARKER,
+      );
+
+    await openHydrated(page, '/vacancies');
+    const onLoad = scripts.length;
+    expect(onLoad).toBeGreaterThan(0);
+    expect(await Promise.all(scripts.map(hasSelectCode))).not.toContain(true);
+
+    await status(page).hover();
+    await expect
+      .poll(async () =>
+        (await Promise.all(scripts.slice(onLoad).map(hasSelectCode))).some(
+          Boolean,
+        ),
+      )
+      .toBe(true);
+    await expect(listboxOf(page)).toHaveCount(0);
   });
 });

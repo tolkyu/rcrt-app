@@ -6,6 +6,11 @@ import type { VacancyDetail, VacancyPage } from '../../lib/schemas/vacancy';
 import { E2E_ORIGIN, sessionFile } from '../support/e2e-session';
 import { openHydrated, waitForHydration } from '../support/hydration';
 import {
+  chooseOption,
+  expectOptionCount,
+  expectOptions,
+} from '../support/select';
+import {
   ALL_VISIBLE,
   DELETED_VACANCY,
   DRAFT_VACANCY,
@@ -273,11 +278,8 @@ test.describe('head.recruiter.gambling@demo', () => {
     isMobile,
   }) => {
     await openHydrated(page, '/vacancies');
-    await expect(verticalFilter(page).locator('option')).toHaveText([
-      t.all,
-      'Гемблінг',
-    ]);
-    await expect(statusFilter(page).locator('option')).toHaveText([
+    await expectOptions(page, verticalFilter(page), [t.all, 'Гемблінг']);
+    await expectOptions(page, statusFilter(page), [
       t.all,
       ...Object.values(t.status),
     ]);
@@ -285,9 +287,7 @@ test.describe('head.recruiter.gambling@demo', () => {
     await expect(
       page.getByText(t.filteredEmpty.title, { exact: true }),
     ).toBeVisible();
-    await expect(
-      verticalFilter(page).locator('option', { hasText: t.unknownVertical }),
-    ).toHaveCount(1);
+    await expectOptionCount(page, verticalFilter(page), t.unknownVertical, 1);
     await expect(page.locator('body')).not.toContainText('Крипто');
     await openHydrated(
       page,
@@ -471,13 +471,13 @@ test.describe('head.recruiter.gambling@demo', () => {
     await expect(page).toHaveURL(/\/vacancies$/);
     await expectNumbers(page, isMobile, visible);
 
-    await statusFilter(page).selectOption({ label: t.status.FILLED });
+    await chooseOption(page, statusFilter(page), t.status.FILLED);
     await expect(page).toHaveURL(/[?&]status=FILLED(&|$)/);
     await expect(
       results.getByText(t.filteredEmpty.title, { exact: true }),
     ).toBeVisible();
     await page.getByRole('button', { name: t.resetFilters }).first().click();
-    await expect(statusFilter(page)).toHaveValue('');
+    await expect(statusFilter(page)).toHaveText(t.all);
     await expectNumbers(page, isMobile, visible);
   });
 
@@ -493,12 +493,12 @@ test.describe('head.recruiter.gambling@demo', () => {
     await page.route(failing, (route) =>
       route.fulfill({ status: 503, json: { code: 'INTERNAL_ERROR' } }),
     );
-    await statusFilter(page).selectOption({ label: t.status.ON_HOLD });
+    await chooseOption(page, statusFilter(page), t.status.ON_HOLD);
     await expect(
       page.getByText(messages.states.errorTitle, { exact: true }),
     ).toBeVisible({ timeout: 20_000 });
     await expect(page).toHaveURL(/[?&]status=ON_HOLD(&|$)/);
-    await expect(statusFilter(page)).toHaveValue('ON_HOLD');
+    await expect(statusFilter(page)).toHaveText(t.status.ON_HOLD);
     await page.getByRole('button', { name: messages.shell.userMenu }).click();
     await expect(page.getByRole('menu')).toBeVisible();
     await page.keyboard.press('Escape');
@@ -538,42 +538,42 @@ test.describe('admin@demo', () => {
     isMobile,
   }) => {
     await openHydrated(page, '/vacancies');
-    await expect(verticalFilter(page).locator('option')).toHaveText([
+    await expectOptions(page, verticalFilter(page), [
       t.all,
       'Гемблінг',
       'Крипто',
     ]);
 
-    await statusFilter(page).selectOption({ label: t.status.ON_HOLD });
+    await chooseOption(page, statusFilter(page), t.status.ON_HOLD);
     await expectNumbers(page, isMobile, [2]);
     await expect(page).toHaveURL(/[?&]status=ON_HOLD(&|$)/);
 
-    await statusFilter(page).selectOption({ label: t.status.OPEN });
-    await verticalFilter(page).selectOption({ label: 'Крипто' });
+    await chooseOption(page, statusFilter(page), t.status.OPEN);
+    await chooseOption(page, verticalFilter(page), 'Крипто');
     await expectNumbers(page, isMobile, [12, 7, 3]);
     await expect(page).toHaveURL(/[?&]vertical=[0-9a-f-]{36}(&|$)/);
     await expect(page).toHaveURL(/[?&]status=OPEN(&|$)/);
 
     await page.reload();
     await waitForHydration(page);
-    await expect(verticalFilter(page)).toHaveValue(DEMO_VERTICALS.crypto);
-    await expect(statusFilter(page)).toHaveValue('OPEN');
+    await expect(verticalFilter(page)).toHaveText('Крипто');
+    await expect(statusFilter(page)).toHaveText(t.status.OPEN);
     await expectNumbers(page, isMobile, [12, 7, 3]);
 
-    await statusFilter(page).selectOption({ label: t.status.DRAFT });
+    await chooseOption(page, statusFilter(page), t.status.DRAFT);
     await expect(
       page.getByText(t.filteredEmpty.title, { exact: true }),
     ).toBeVisible();
-    await verticalFilter(page).selectOption({ label: 'Гемблінг' });
+    await chooseOption(page, verticalFilter(page), 'Гемблінг');
     await expectNumbers(page, isMobile, [8]);
-    await statusFilter(page).selectOption({ label: t.status.CANCELLED });
+    await chooseOption(page, statusFilter(page), t.status.CANCELLED);
     await expectNumbers(page, isMobile, [6]);
 
     await rowsOf(page, isMobile).first().getByRole('link').first().click();
     await expect(page).toHaveURL(/\/vacancies\/[0-9a-f-]{36}$/);
     await page.goBack();
-    await expect(verticalFilter(page)).toHaveValue(DEMO_VERTICALS.gambling);
-    await expect(statusFilter(page)).toHaveValue('CANCELLED');
+    await expect(verticalFilter(page)).toHaveText('Гемблінг');
+    await expect(statusFilter(page)).toHaveText(t.status.CANCELLED);
     await expectNumbers(page, isMobile, [6]);
 
     await page.getByRole('button', { name: t.resetFilters }).click();
@@ -610,11 +610,11 @@ test.describe('admin@demo', () => {
     await expect(page).toHaveURL(
       new RegExp(`[?&]vertical=${DEMO_VERTICALS.crypto}(&|$)`),
     );
-    await expect(verticalFilter(page)).toHaveValue(DEMO_VERTICALS.crypto);
+    await expect(verticalFilter(page)).toHaveText('Крипто');
     await expect(switcher('Крипто')).toBeVisible();
     expect(await storedVertical()).toBe(DEMO_VERTICALS.crypto);
 
-    await verticalFilter(page).selectOption({ label: 'Гемблінг' });
+    await chooseOption(page, verticalFilter(page), 'Гемблінг');
     await expectNumbers(page, isMobile, inVertical('gambling'));
     await expect(switcher('Гемблінг')).toBeVisible();
     expect(await storedVertical()).toBe(DEMO_VERTICALS.crypto);
@@ -624,7 +624,7 @@ test.describe('admin@demo', () => {
     await expect(page).toHaveURL(
       new RegExp(`/vacancies[?]vertical=${DEMO_VERTICALS.crypto}$`),
     );
-    await expect(verticalFilter(page)).toHaveValue(DEMO_VERTICALS.crypto);
+    await expect(verticalFilter(page)).toHaveText('Крипто');
     await expectNumbers(page, isMobile, inVertical('crypto'));
 
     await page.goto(`/vacancies?vertical=${DEMO_VERTICALS.gambling}`);
@@ -632,21 +632,21 @@ test.describe('admin@demo', () => {
     await expect(page).toHaveURL(
       new RegExp(`/vacancies[?]vertical=${DEMO_VERTICALS.gambling}$`),
     );
-    await expect(verticalFilter(page)).toHaveValue(DEMO_VERTICALS.gambling);
+    await expect(verticalFilter(page)).toHaveText('Гемблінг');
     await expectNumbers(page, isMobile, inVertical('gambling'));
 
-    await verticalFilter(page).selectOption({ label: t.all });
+    await chooseOption(page, verticalFilter(page), t.all);
     await expect(page).toHaveURL(/\/vacancies\?vertical=all$/);
     await expectNumbers(page, isMobile, ALL_VISIBLE);
     await expect(switcher(messages.shell.allVerticals)).toBeVisible();
     await page.reload();
     await waitForHydration(page);
     await expect(page).toHaveURL(/\/vacancies\?vertical=all$/);
-    await expect(verticalFilter(page)).toHaveValue('');
+    await expect(verticalFilter(page)).toHaveText(t.all);
     await expectNumbers(page, isMobile, ALL_VISIBLE);
 
     await page.goBack();
-    await expect(verticalFilter(page)).toHaveValue(DEMO_VERTICALS.crypto);
+    await expect(verticalFilter(page)).toHaveText('Крипто');
     await expectNumbers(page, isMobile, inVertical('crypto'));
   });
 
@@ -701,7 +701,7 @@ test.describe('admin@demo', () => {
     await expect(page).toHaveURL(
       new RegExp(`/vacancies[?]vertical=${DEMO_VERTICALS.crypto}$`),
     );
-    await expect(verticalFilter(page)).toHaveValue(DEMO_VERTICALS.crypto);
+    await expect(verticalFilter(page)).toHaveText('Крипто');
     await expectNumbers(page, isMobile, [14, 12, 7, 3]);
   });
 
@@ -749,7 +749,7 @@ test.describe('admin@demo', () => {
         });
       },
     );
-    await statusFilter(page).selectOption({ label: t.status.OPEN });
+    await chooseOption(page, statusFilter(page), t.status.OPEN);
     const older = page.getByRole('button', { name: t.older });
     const newer = page.getByRole('button', { name: t.newer });
     await expect(older).toBeEnabled();
@@ -850,7 +850,7 @@ test.describe('admin@demo', () => {
     await expect(
       preview.getByText(demoVacancy(2).number, { exact: true }),
     ).toBeVisible();
-    await statusFilter(page).selectOption({ label: t.status.OPEN });
+    await chooseOption(page, statusFilter(page), t.status.OPEN);
     await expect(page).not.toHaveURL(/vacancy=/);
     await expect(
       preview.getByText(demoVacancy(12).number, { exact: true }),

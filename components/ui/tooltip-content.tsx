@@ -10,6 +10,7 @@ import {
   type ReactElement,
   type ReactNode,
 } from 'react';
+import { useRestoreFocus } from './use-restore-focus';
 
 export type TooltipSide = 'top' | 'right' | 'bottom' | 'left';
 export type FocusIntent = 'keyboard' | 'pointer' | 'none';
@@ -63,7 +64,6 @@ export default function TooltipContent({
 }: TooltipContentProps) {
   const [open, setOpen] = useState(focus === 'keyboard');
   const [instant, setInstant] = useState(false);
-  const pendingFocus = useRef(focus !== 'none');
   const trigger = useRef<HTMLElement | null>(null);
   const skip = useSyncExternalStore(
     subscribe,
@@ -71,14 +71,14 @@ export default function TooltipContent({
     () => false,
   );
 
-  // The static trigger remounts when this chunk arrives, so a trigger that was focused gets its focus back once.
-  const attach = useCallback((node: HTMLElement | null) => {
-    trigger.current = node;
-    if (!node || !pendingFocus.current) return;
-    pendingFocus.current = false;
-    if (document.activeElement === document.body)
-      node.focus({ preventScroll: true });
-  }, []);
+  const restoreFocus = useRestoreFocus(focus !== 'none');
+  const attach = useCallback(
+    (node: HTMLElement | null) => {
+      trigger.current = node;
+      restoreFocus(node);
+    },
+    [restoreFocus],
+  );
 
   // The pointer is already over the replaced trigger, so Radix gets the pointermove it opens on (delay, pointerleave and skip semantics stay Radix's).
   // Deferred a task so a development double-mount (which resets Radix's timer) dispatches once.

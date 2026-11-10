@@ -27,7 +27,7 @@ import { EmptyState } from '@/components/states/empty-state';
 import { SectionError } from '@/components/states/section-error';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { FilterSelect } from '@/components/ui/filter-select';
+import { FilterSelectField } from '@/components/ui/filter-select-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -166,6 +166,23 @@ export function VacanciesView({
   const unknownVertical =
     filters.vertical &&
     !visibleVerticals.some((vertical) => vertical.id === filters.vertical);
+  const verticalOptions = [
+    { value: '', label: t('all') },
+    ...visibleVerticals.map((vertical) => ({
+      value: vertical.id,
+      label: vertical.name,
+    })),
+    ...(unknownVertical && filters.vertical
+      ? [{ value: filters.vertical, label: t('unknownVertical') }]
+      : []),
+  ];
+  const statusOptions = [
+    { value: '', label: t('all') },
+    ...VACANCY_STATUSES.map((status) => ({
+      value: status,
+      label: t(`status.${status}`),
+    })),
+  ];
 
   let body: ReactNode;
   if (!query.data) {
@@ -244,7 +261,8 @@ export function VacanciesView({
             {t('searchHint')}
           </span>
         </div>
-        <FilterSelect
+        <FilterSelectField
+          id="vacancies-filter-vertical"
           label={t('filterVertical')}
           value={filters.vertical ?? ''}
           onChange={(value) =>
@@ -256,18 +274,10 @@ export function VacanciesView({
               'replaceState',
             )
           }
-        >
-          <option value="">{t('all')}</option>
-          {visibleVerticals.map((vertical) => (
-            <option key={vertical.id} value={vertical.id}>
-              {vertical.name}
-            </option>
-          ))}
-          {unknownVertical && (
-            <option value={filters.vertical}>{t('unknownVertical')}</option>
-          )}
-        </FilterSelect>
-        <FilterSelect
+          options={verticalOptions}
+        />
+        <FilterSelectField
+          id="vacancies-filter-status"
           label={t('filterStatus')}
           value={filters.status ?? ''}
           onChange={(value) =>
@@ -279,14 +289,8 @@ export function VacanciesView({
               'replaceState',
             )
           }
-        >
-          <option value="">{t('all')}</option>
-          {VACANCY_STATUSES.map((status) => (
-            <option key={status} value={status}>
-              {t(`status.${status}`)}
-            </option>
-          ))}
-        </FilterSelect>
+          options={statusOptions}
+        />
       </section>
       {filtered && !emptyResult && (
         <div className="mb-4">

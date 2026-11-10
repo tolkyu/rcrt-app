@@ -556,6 +556,13 @@ const groups2 = [
           'Вакансії — пошук «tiktok» знайшов три вакансії; «Скинути фільтри» доступне',
       },
       {
+        file: '32-admin-vacancies-status-select-open',
+        label: 'список статусів',
+        dir: VAC,
+        heading:
+          'Вакансії — відкритий список фільтра «Статус»: поточний статус «Відкрита» позначено галочкою',
+      },
+      {
         file: '32-admin-vacancies-filtered-empty',
         label: 'нічого не знайдено',
         dir: VAC,
