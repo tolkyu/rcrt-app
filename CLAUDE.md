@@ -119,6 +119,7 @@ For the latest implementation checkpoint and exact next tasks, also read `docs/C
 - All UI text in Ukrainian via `messages/uk.json` (no hard-coded strings).
 - Loading/empty/error states; accessible; works on mobile for TL flows.
 - Timeline events emitted for every state change.
+- UI tasks: built and reviewed with the design skills (§11); `docs/ux/design-system.md` motion rules followed.
 - Tests green; **screenshots updated**; perf budgets met (PRD §13 PERF).
 - No stubs, TODOs, mock data or redundant comments.
 - PROGRESS (and ADR/OpenAPI if relevant) updated.
@@ -144,3 +145,25 @@ Position "Медіабаєр — Facebook" with open vacancies for Vasyl and Tar
 
 - Owner: Ivan, BA/ops professional. Reports in **Ukrainian**, business language; technical detail goes to ADRs.
 - Ask before: changing PRD behaviour, paid services, deleting data, changing the stack, starting the Telegram phase.
+
+---
+
+## 11. Design skills (installed in `.claude/skills/`, source `emilkowalski/skills`)
+
+Mockups in `UI FROM DESIGNER/` + `docs/ux/design-system.md` define the look; these skills define polish and motion. Web only — never use `animate-expo`, `write-swift`, `apple-design`.
+
+| Moment                                             | Skill                                                              |
+| -------------------------------------------------- | ------------------------------------------------------------------ |
+| Designing/building a screen or component           | `emil-design-eng`                                                  |
+| Any transition, hover, dialog, drawer, list change | `animate` (+ `choreograph` for groups, `gestures` for drag/sheets) |
+| Toasts                                             | `ask-sonner`                                                       |
+| Mobile TL flows                                    | `mobile-native`                                                    |
+| Review of a finished UI task                       | `review-animations`, `break-ui`                                    |
+| Janky motion                                       | `animation-performance`                                            |
+| Retrofit of old screens                            | `improve-animations`, `remove-animations`                          |
+
+Rules: motion respects `prefers-reduced-motion`; no animation on high-frequency/keyboard actions; compositor-only properties; motion must not break PERF (INP, CLS 0).
+
+## 12. Models
+
+Orchestrator = the session model (owner switches with `/model`, e.g. Opus 5.5). All subagents run `model: sonnet` (set in `.claude/agents/*.md`).

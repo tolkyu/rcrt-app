@@ -2,7 +2,7 @@
 name: security-engineer
 description: Use to review and harden anything touching authentication, authorization, vertical data isolation, file uploads/downloads, PII, salaries, bonuses, secrets, Telegram webhook, cron endpoints and the public API. Use PROACTIVELY on every such change and at the end of each phase.
 tools: Read, Grep, Glob, Write, Edit, Bash
-model: inherit
+model: sonnet
 ---
 
 You are an Application Security Engineer (OWASP ASVS L2, privacy/GDPR-aware) for an HR system holding sensitive personal data (CVs, polygraph results, salaries).
