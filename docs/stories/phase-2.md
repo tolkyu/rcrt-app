@@ -129,7 +129,7 @@ As an **Admin or Head Recruiter of a vertical**, I want to create, rename and de
 
 **Data / validation:** vertical (required, fixed after creation), name (trimmed, not blank, unique per vertical case-insensitively — DB `(vertical_id, lower(name))`; maximum length fixed in design), `isActive`, version. Unique name applies to inactive rows too.
 **Events / notifications / statistics:** audit and entity events `position.created`, `position.renamed` (old→new), `position.deactivated`, `position.reactivated`, each with actor and vertical; failed/denied attempts audited as security events per the existing pattern. No notifications. No statistics change (routing groups are unchanged by rename; a deactivated group simply gets no new vacancies).
-**Edges:** deactivated Head Recruiter loses access immediately; Head Recruiter holding several verticals manages each separately; soft-deleted/foreign positions are never offered; entry point for both Admin and Head Recruiter is the separate menu item «Довідник посад» outside «Налаштування» (D95; the settings area stays Admin-only).
+**Edges:** deactivated Head Recruiter loses access immediately; a Head Recruiter heads exactly one vertical (D106; the earlier «several verticals» edge is void); soft-deleted/foreign positions are never offered; entry point for both Admin and Head Recruiter is the separate menu item «Довідник посад» outside «Налаштування» (D95; the settings area stays Admin-only).
 
 ### STORY-VAC-01-1: Create a vacancy or save a draft (Admin, Head Recruiter, Recruiter)
 
@@ -137,7 +137,10 @@ As a **Recruiter, Head Recruiter or Admin in a vertical**, I want to create a va
 
 **Acceptance criteria**
 
-- Given a Recruiter of Гемблінг, When I create «Медіабаєр — Facebook» without a Team Lead, headcount 2, on 10.11.2026 10:00 (Kyiv), Then a vacancy with the next `V-NNNN` number is created `OPEN`, `recruiter_initiated = true`, source `APP`, opening date 10.11.2026, probation 90 days, bonus scheme inherited from the vertical default, me auto-assigned as recruiter; it is not eligible for Team Lead submission or routing until a Team Lead is assigned (D77).
+- Given a Recruiter of Гемблінг, When I create «Медіабаєр — Facebook» without a Team Lead, headcount 2, on 10.11.2026 10:00 (Kyiv), Then a vacancy with the next `V-NNNN` number is created `OPEN`, `recruiter_initiated = true`, source `APP`, opening date 10.11.2026, probation 90 days, bonus scheme inherited from the vertical default, me auto-assigned as recruiter; it is not eligible for Team Lead submission or routing until a Team Lead is assigned (D77). Only a plain Recruiter creator is auto-assigned: a Head Recruiter or Admin is the ASSIGNER and is not auto-assigned (D102); assigning himself later is D103.
+- Given a Head Recruiter of Гемблінг (no Recruiter role needed, D104; he heads only this vertical, D106), When I assign myself as executor on a vacancy of Гемблінг, Then I appear among its recruiters with `assigned_by = me` and a `vacancy.recruiter_assigned` event is written (D103); my rights on the vacancy are not reduced to the Recruiter limits (VAC-08).
+- (negative) Given an Admin, When I try to assign myself as executor (UI or API), Then I am not offered in the picker and the API answers 403 (D103); given a Head Recruiter of Крипто only, When I try to assign myself on a Гемблінг vacancy, Then it is refused (out of scope, 404 if I cannot see it); a deactivated user cannot be assigned.
+- Given any authorised creator (Admin, Head Recruiter, Recruiter) on the create form, When I set «Терміновість вакансії» to «Термінова», Then it is stored at creation (D100); changing it afterwards needs `vacancy.update` (Head Recruiter/Admin) — a Recruiter is refused (403).
 - Given an Admin or Head Recruiter in scope, When I create a vacancy and pick an active Team Lead of the same vertical, Then it is `OPEN` with that Team Lead and `recruiter_initiated = false`; leaving the Team Lead empty gives a recruiter-initiated vacancy.
 - Given the create form, When I choose «Зберегти чернетку», Then a `DRAFT` is saved with only vertical and title required (position, dates optional); it has no opening date. Only I (the author) can see, edit, publish, cancel or delete it (D92; handled in STORY-VAC-01-3). When I publish it (`DRAFT` → `OPEN`), Then the opening date is the publish moment, not the save moment. A draft can be cancelled directly (D82) or soft-deleted (§12); the two are different.
 - Given a new `OPEN` vacancy, Then it needs: vertical, active position of that vertical, title (prefilled with the position name, editable), headcount ≥ 1 (default 1). Optional: Team Lead, seniority, format, employment type, location, salary range (currency required when min or max is set; min ≤ max), description, requirements, priority (default Звичайна).
@@ -147,7 +150,7 @@ As a **Recruiter, Head Recruiter or Admin in a vertical**, I want to create a va
 - (negative) Given a recruiter-created vacancy, Then other recruiters of the vertical do not see it as "unassigned open" (the creator is assigned); a `DRAFT` is visible only to its author — not to Head Recruiter and not to Admin (D92); for anyone else it does not exist (404; absent from lists, search by `V-NNNN`, counts and statistics).
 
 **Data / validation:** shared Zod schema for form and API; money as integer minor units + currency; time stored UTC, shown in Europe/Kyiv.
-**Events / notifications / statistics:** `vacancy.created` (number, status, source, recruiter-initiated) and `vacancy.recruiter_assigned` for the creator; no notification for recruiter-initiated vacancies (D89 notifies on Team Lead requests only). Open-vacancy counters of the vertical change only when the status becomes `OPEN`; a `DRAFT` is counted nowhere except in its author's own «Чернетки» chip.
+**Events / notifications / statistics:** `vacancy.created` (number, status, source, recruiter-initiated) and `vacancy.recruiter_assigned` for a Recruiter creator only (D102; also written when a Head Recruiter assigns himself, D103); no audit row for a draft, one audit row at publish with author and original creation date (D101); no notification for recruiter-initiated vacancies (D89 notifies on Team Lead requests only). Open-vacancy counters of the vertical change only when the status becomes `OPEN`; a `DRAFT` is counted nowhere except in its author's own «Чернетки» chip.
 **Edges:** creation at 23:30 UTC shows next-day Kyiv date (UTC+2 after 25.10.2026); position deactivated during submit → refusal; creator later deactivated keeps history and open-work protection (D24/D43); clone (VAC-05) reuses these rules.
 
 ### STORY-VAC-01-3: Handle my own draft vacancy (author only)
@@ -243,6 +246,22 @@ As **any user who can see a vacancy**, I want an urgent vacancy to stand out in 
 | STORY-UI-09-1   | «Поділитися» copies the actual vacancy link; the recipient's access is checked independently and denied access returns 404                                           | D58; usable vacancy card and accessible copy-failure state                                                     |
 
 Each subsequent write story is expanded into Given/When/Then, field validation, event/notification/statistics effects and edge cases before its implementation; this table is the delivery backlog rather than acceptance of unanswered policy.
+
+## Queued tasks (owner: not started)
+
+### STORY-ROLE-07-1: Role-combination enforcement (queued, not started)
+
+As an **Admin**, I want «Користувачі та ролі» to refuse role sets that break the role rules, so that the data matches D105..D108. **Owner 2026-11-09: do not start; queued only (D109).**
+
+**Acceptance criteria**
+
+- Given an invite, «Змінити ролі» or «Активувати знову» whose role set contains ADMIN or FINANCE together with any other role, or `HEAD_RECRUITER` in more than one vertical, Then the API refuses it (422 `ROLE_COMBINATION_INVALID`, field error on `body.roles`) and nothing is saved; accepting an invite re-checks the same rule.
+- Given the RoleMatrix, Then it cannot produce an invalid combination (selecting ADMIN or FINANCE clears and disables the other roles; selecting `HEAD_RECRUITER` in a vertical disables it in the others) and shows a Ukrainian hint.
+- Given HR, Head HR, Team Lead or Recruiter in several verticals, or several Head Recruiters in one vertical, Then it stays valid (D108).
+- Before the rule ships, existing users are checked and a list of violating users is given to the owner for a decision; no data is changed silently.
+- (negative) Given a non-Admin or an Admin at aal1, Then the role screens stay denied exactly as today.
+
+**Data / events:** no schema change except a possible check of existing rows; `user.roles_changed` audit unchanged. **Tests:** void legacy fixtures MFA-07 and `finance.rec@fixture.test` (FIN-09) are replaced by refusal tests.
 
 ## Traceability
 

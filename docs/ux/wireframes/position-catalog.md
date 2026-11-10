@@ -16,7 +16,7 @@ Pattern source: Verticals screen in `settings-admin.md` §2 + `components/settin
 
 Content = `PageHeader` + `Card p-0` (radius 16), `max-w-5xl` (1024) left-aligned so rows stay readable. Row h 48, single line (long names wrap to a 2nd line, never ellipsis). The page-header button sits inside this column. Only one layout is in the DOM: table from 768 px, cards below (server hint from the User-Agent, then `matchMedia`); cards use `content-visibility: auto`.
 
-### 1.1 Several verticals (Admin; Head Recruiter with ≥ 2 managed verticals) — grouped, filter «Усі вертикалі»
+### 1.1 Several verticals (Admin only; a Head Recruiter heads exactly one vertical, D106) — grouped, filter «Усі вертикалі»
 
 ```
 │ ‹ Вакансії                                                                                     │

@@ -166,4 +166,4 @@ Rules: motion respects `prefers-reduced-motion`; no animation on high-frequency/
 
 ## 12. Models
 
-Orchestrator = the session model (owner switches with `/model`, e.g. Opus 5.5). All subagents run `model: sonnet` (set in `.claude/agents/*.md`).
+Orchestrator = the session model (owner switches with `/model`, e.g. Opus 5.5). All subagents run `model: sonnet` (set in `.claude/agents/*.md`) and are launched with effort `high` (owner decision 2026-11-10).

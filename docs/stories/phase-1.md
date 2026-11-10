@@ -127,7 +127,7 @@ As an **Admin or Фінансист**, I want a second factor on every sign-in, 
 - Given an enrolled Admin/Finance user, When they sign in to use those grants, Then a 6-digit code from an enrolled TOTP factor is required.
 - Given a user lost their device, When an Admin chooses «Скинути 2FA» with a reason, Then the user must re-enrol at next sign-in.
 - All other roles may optionally enable TOTP in «Профіль».
-- (negative) Given a user at `aal1`, When they access an action requiring their Admin/Finance grant, Then 401 `MFA_REQUIRED`. Other role assignments remain usable; e.g. Admin + Recruiter may use Recruiter pages/APIs until completing MFA (owner-confirmed D63).
+- (negative) Given a user at `aal1`, When they access an action requiring their Admin/Finance grant, Then 401 `MFA_REQUIRED`. Other role assignments remain usable; the former example «Admin + Recruiter» is void since D105 (an Admin holds no other role); D63 still governs any combination with a global grant.
 - (negative) An Admin cannot reset their own 2FA — another Admin must.
 
 **Events:** `user.mfa_enrolled`, `auth.mfa_challenge_failed`, `user.mfa_reset` (actor, target, reason).
@@ -335,7 +335,7 @@ As an **Admin**, I want to give a user a role in one or more verticals, so that 
 
 - Given a user, When I add «Керівник рекрутингу · Гемблінг», Then it takes effect on the user's next request (no re-login).
 - Given ADMIN or FINANCE, Then the assignment is global only; all other roles require a vertical (D40).
-- Any combination of roles is allowed, including Тімлід + Рекрутер in the same vertical (D35); self-approval of bonuses is blocked later in Phase 4 (§9.3).
+- Role combinations are allowed, including Тімлід + Рекрутер in the same vertical (D35), except that Адміністратор and Фінансист never hold another role (D105, D107) and Керівник рекрутингу is in exactly one vertical (D106); validation is queued, not built (D109); self-approval of bonuses is blocked later in Phase 4 (§9.3).
 - (negative) Assigning a scoped role without vertical, a global role with vertical, or a duplicate (same role + vertical) → validation error.
 - (negative) Non-Admin → 404.
 

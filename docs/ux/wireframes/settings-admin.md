@@ -99,7 +99,7 @@ Reference: `reference/00-foundations.webp`, `reference/01-components.webp` (§02
 ```
 
 - **RoleMatrix** (new): rows = vertical-scoped roles, columns = verticals (from `vertical.read`, alphabetical); global section with one checkbox per role (D40 — UI cannot produce an invalid combination). > 4 verticals → horizontal scroll, sticky first column. Custom roles (ROLE-04) appear here when they exist (Phase 2+).
-- Any combination allowed (D35). ADMIN/FINANCE row shows «🛡 Потрібна 2FA» with tooltip «Користувач налаштує 2FA під час першого входу з цією роллю.»
+- Any combination allowed (D35) except: Admin and Finance are single-role (D105, D107) and Head Recruiter is one vertical only (D106); the RoleMatrix must not let these be chosen (queued, not built: D109, STORY-ROLE-07-1). ADMIN/FINANCE row shows «🛡 Потрібна 2FA» with tooltip «Користувач налаштує 2FA під час першого входу з цією роллю.»
 - Summary line below = selected RoleChips (`aria-live="polite"`).
 - No verticals yet → matrix body replaced by Alert «Вертикалей ще немає — доступні лише глобальні ролі.» + link «Створити вертикаль».
 - Validation on blur + submit (react-hook-form + shared `createInviteSchema`); first invalid field focused.

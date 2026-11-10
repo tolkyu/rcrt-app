@@ -6,3 +6,6 @@ coverage
 playwright-report
 test-results
 screenshots
+.agents
+.claude/skills
+skills-lock.json

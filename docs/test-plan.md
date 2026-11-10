@@ -282,15 +282,15 @@ Per-role DTO snapshot tests for candidate, application, offer, vacancy, payout r
 
 **MFA (Q-30, Q-128 b)**
 
-| ID     | Case                                                  | Expected                                                                                         |
-| ------ | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| MFA-01 | Admin / Finance first sign-in                         | TOTP before Admin/Finance grants; optional second TOTP for recovery, no recovery codes (D22/D63) |
-| MFA-02 | Admin-only action with aal1 token                     | 401 `MFA_REQUIRED`                                                                               |
-| MFA-03 | Finance statistics call with aal1                     | 401 `MFA_REQUIRED`                                                                               |
-| MFA-04 | HREC / REC / HHR / HR / TL with aal1                  | Allowed (2FA optional)                                                                           |
-| MFA-05 | Reset by another Admin with reason; own reset refused | Re-enrol at next sign-in; event `user.mfa_reset`                                                 |
-| MFA-06 | 5 wrong codes                                         | Temporary lock                                                                                   |
-| MFA-07 | Admin + Recruiter with aal1                           | Recruiter grants remain usable; Admin grants require aal2 (owner-confirmed D63)                  |
+| ID     | Case                                                                                                                                               | Expected                                                                                         |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| MFA-01 | Admin / Finance first sign-in                                                                                                                      | TOTP before Admin/Finance grants; optional second TOTP for recovery, no recovery codes (D22/D63) |
+| MFA-02 | Admin-only action with aal1 token                                                                                                                  | 401 `MFA_REQUIRED`                                                                               |
+| MFA-03 | Finance statistics call with aal1                                                                                                                  | 401 `MFA_REQUIRED`                                                                               |
+| MFA-04 | HREC / REC / HHR / HR / TL with aal1                                                                                                               | Allowed (2FA optional)                                                                           |
+| MFA-05 | Reset by another Admin with reason; own reset refused                                                                                              | Re-enrol at next sign-in; event `user.mfa_reset`                                                 |
+| MFA-06 | 5 wrong codes                                                                                                                                      | Temporary lock                                                                                   |
+| MFA-07 | Admin + Recruiter with aal1 (void by D105: an Admin holds no other role; keep only as a legacy-data test until the queued enforcement D109 exists) | Recruiter grants remain usable; Admin grants require aal2 (owner-confirmed D63)                  |
 
 **Multi-role (ROLE-02)** — fixture `multi.role@fixture.test` = HEAD_RECRUITER@Гемблінг + RECRUITER@Крипто
 
@@ -711,15 +711,15 @@ Checks: SHOT-GAL-01 (gallery ↔ files 1:1, captions in Ukrainian), SHOT-DET-01 
 
 **Test fixtures (never in the CLAUDE.md §8 demo seed).** Created by `tests/fixtures/` in the integration template DB and in the E2E/Newman global setup (through `/api/v1` as Admin, so they exist only in test databases):
 
-| Fixture                       | Roles                                                                                   | Used by                                           | Levels                   |
-| ----------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------ |
-| `tl3.gambling@fixture.test`   | TEAM_LEAD@Гемблінг, priority 2, vacancy V-3 «Медіабаєр — Facebook» (created 2026-10-10) | RT-03/04/16/17, E2E-04 (exhaustion via three TLs) | unit, integration, E2E   |
-| `multi.role@fixture.test`     | HEAD_RECRUITER@Гемблінг + RECRUITER@Крипто                                              | MR-01..07                                         | integration, E2E, Newman |
-| `admin2@fixture.test`         | ADMIN (global), TOTP fixture secret                                                     | SB-02..12                                         | integration, E2E, Newman |
-| `tl4.gambling@fixture.test`   | TEAM_LEAD@Гемблінг, no priority                                                         | RT-24                                             | unit, integration        |
-| `tlrec.gambling@fixture.test` | TEAM_LEAD + RECRUITER@Гемблінг                                                          | MR-08                                             | integration              |
-| `finance.rec@fixture.test`    | FINANCE + RECRUITER@Крипто                                                              | FIN-09                                            | integration              |
-| vertical «Е-комерція»         | no seeded user                                                                          | `V` scope denial for HHR/HR (§3.1)                | integration              |
+| Fixture                       | Roles                                                                                                              | Used by                                           | Levels                   |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | ------------------------ |
+| `tl3.gambling@fixture.test`   | TEAM_LEAD@Гемблінг, priority 2, vacancy V-3 «Медіабаєр — Facebook» (created 2026-10-10)                            | RT-03/04/16/17, E2E-04 (exhaustion via three TLs) | unit, integration, E2E   |
+| `multi.role@fixture.test`     | HEAD_RECRUITER@Гемблінг + RECRUITER@Крипто                                                                         | MR-01..07                                         | integration, E2E, Newman |
+| `admin2@fixture.test`         | ADMIN (global), TOTP fixture secret                                                                                | SB-02..12                                         | integration, E2E, Newman |
+| `tl4.gambling@fixture.test`   | TEAM_LEAD@Гемблінг, no priority                                                                                    | RT-24                                             | unit, integration        |
+| `tlrec.gambling@fixture.test` | TEAM_LEAD + RECRUITER@Гемблінг                                                                                     | MR-08                                             | integration              |
+| `finance.rec@fixture.test`    | FINANCE + RECRUITER@Крипто (void by D107: Finance is single-role; legacy-data fixture only until D109 enforcement) | FIN-09                                            | integration              |
+| vertical «Е-комерція»         | no seeded user                                                                                                     | `V` scope denial for HHR/HR (§3.1)                | integration              |
 
 **Vacancies:** V-V (Vasyl, «Медіабаєр — Facebook», OPEN, created 2026-10-01, headcount 4, reward 100000 USD set 2026-09-15) · V-T (Taras, same position, OPEN, 2026-10-05, headcount 4, reward 150000 → 100000 USD changed 2026-11-02, locked until 2027-01-02) · VAC-G-FILLED (Vasyl, same position, FILLED, 2026-08-01) · VAC-G-CANC (Taras, same position, CANCELLED, 2026-07-01) · VAC-G-HOLD (Taras, same position, ON_HOLD, 2026-09-01) · VAC-G-REC (recruiter-initiated by REC, no TL) · VAC-G-URG (Vasyl, «Affiliate-менеджер», Urgent) · VAC-G-UO (Taras, «Медіабаєр — TikTok», OPEN, no recruiters) · VAC-G-BOT (Vasyl, TikTok, `TELEGRAM_BOT`) · VAC-G-DEL (soft-deleted) · VAC-C-1 (tl.crypto, «Крипто-аналітик»). Schemes: Гемблінг default S30; global default S100.
 

@@ -164,7 +164,7 @@ The candidate has exactly one vertical (owner 2026-10-31), so candidate V scope 
 - Card endpoints put scope into the fetch (`WHERE c.id = $1 AND <scope>`); 0 rows → 404. There is no separate `can()` round trip for reads.
 - Mutations load the target row `FOR UPDATE` with the scope predicate, then call the pure `can()` / state-machine check in memory.
 - If RLS is adopted as defence-in-depth (ADR-002), its policies must reuse the same predicates and the request must run inside a transaction with `set_config(..., true)`. That costs +2 round trips (~2–3 ms) and is accepted only if the architect chooses it.
-- EXPLAIN harness (§8.4) runs every list query once per role fixture: admin, head recruiter with 3 verticals, power recruiter (3k owned applications and ~2k sourced, partly overlapping), TL with 400 submissions, HR, mixed-role user.
+- EXPLAIN harness (§8.4) runs every list query once per role fixture: admin, head recruiter (one vertical, D106), power recruiter (3k owned applications and ~2k sourced, partly overlapping), TL with 400 submissions, HR, mixed-role user.
 
 ---
 
@@ -388,17 +388,17 @@ Notes: `application` ends with 15 indexes in erd (16 with P-01). A stage move is
 
 ### 8.1 `pnpm db:seed:perf` (PERF-01)
 
-| Entity                                                                    | Volume / distribution                                                                                                                                                                     |
-| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| verticals                                                                 | 10 (2 "large" holding 30% of data each, so the plan is checked against skew)                                                                                                              |
-| users                                                                     | ~120: 40 recruiters (1 "power recruiter" owning 3k applications), 30 TLs (1 with 400 submissions), 10 head recruiters (1 with 3 verticals), HR/Head HR, Admin, Finance, 1 mixed-role user |
-| vacancies                                                                 | 2,000 (60% OPEN, 10% ON_HOLD, 20% FILLED, 10% CANCELLED; 3% soft-deleted)                                                                                                                 |
-| candidates                                                                | 50,000 (5% soft-deleted, 1% purged stubs), realistic Ukrainian names, normalised contacts                                                                                                 |
-| applications                                                              | ~65,000 across all stages incl. routed chains; ~20k active                                                                                                                                |
-| entity_event                                                              | 200,000                                                                                                                                                                                   |
-| comments / interviews / polygraphs / offers / probations / bonus tranches | ~30k / 25k / 6k / 3k / 2k / 3k                                                                                                                                                            |
-| aggregates                                                                | built by running the reconcile jobs, not by direct inserts                                                                                                                                |
-| reserved                                                                  | 5,000 NEW applications tagged for k6 stage-move iterations (each iteration consumes one, so no reset is needed)                                                                           |
+| Entity                                                                    | Volume / distribution                                                                                                                                                                          |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| verticals                                                                 | 10 (2 "large" holding 30% of data each, so the plan is checked against skew)                                                                                                                   |
+| users                                                                     | ~120: 40 recruiters (1 "power recruiter" owning 3k applications), 30 TLs (1 with 400 submissions), 10 head recruiters (one vertical each, D106), HR/Head HR, Admin, Finance, 1 mixed-role user |
+| vacancies                                                                 | 2,000 (60% OPEN, 10% ON_HOLD, 20% FILLED, 10% CANCELLED; 3% soft-deleted)                                                                                                                      |
+| candidates                                                                | 50,000 (5% soft-deleted, 1% purged stubs), realistic Ukrainian names, normalised contacts                                                                                                      |
+| applications                                                              | ~65,000 across all stages incl. routed chains; ~20k active                                                                                                                                     |
+| entity_event                                                              | 200,000                                                                                                                                                                                        |
+| comments / interviews / polygraphs / offers / probations / bonus tranches | ~30k / 25k / 6k / 3k / 2k / 3k                                                                                                                                                                 |
+| aggregates                                                                | built by running the reconcile jobs, not by direct inserts                                                                                                                                     |
+| reserved                                                                  | 5,000 NEW applications tagged for k6 stage-move iterations (each iteration consumes one, so no reset is needed)                                                                                |
 
 Deterministic PRNG seed; bulk insert via `COPY`/`generate_series`; `ANALYZE` at the end; target < 90 s. CI caches a `pg_dump -Fc` keyed by `hash(migrations + seed-perf.ts)` and restores it in about 10 s.
 
