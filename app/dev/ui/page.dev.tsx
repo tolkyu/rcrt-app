@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { BadgesSection } from '@/components/dev-ui/badges-section';
 import { ButtonsSection } from '@/components/dev-ui/buttons-section';
 import { MotionSection } from '@/components/dev-ui/motion-section';
+import { TooltipSection } from '@/components/dev-ui/tooltip-section';
 import { TokensSection } from '@/components/dev-ui/tokens-section';
 import { devLoginAvailable } from '@/server/dev/dev-login';
 
@@ -27,6 +28,7 @@ export default async function DevUiPage() {
       <TokensSection />
       <BadgesSection />
       <ButtonsSection />
+      <TooltipSection />
       <MotionSection />
     </main>
   );

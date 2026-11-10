@@ -1,16 +1,20 @@
 'use client';
 
+import { Bot, Flame } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Badge, type BadgeProps } from '@/components/ui/badge';
 import type { VacancySummary } from '@/lib/schemas/vacancy';
-import { cn } from '@/lib/utils';
 
-const statusStyles = {
-  DRAFT: 'bg-surface-muted text-muted-foreground-strong',
-  OPEN: 'bg-success-subtle text-success-text',
-  ON_HOLD: 'bg-warning-subtle text-warning-text',
-  FILLED: 'bg-primary-subtle text-link',
-  CANCELLED: 'bg-surface-muted text-muted-foreground-strong',
-} as const;
+const statusBadge = {
+  DRAFT: { tone: 'neutral', dashed: true, outline: true },
+  OPEN: { tone: 'success' },
+  ON_HOLD: { tone: 'warning' },
+  FILLED: { tone: 'brand' },
+  CANCELLED: { tone: 'neutral' },
+} as const satisfies Record<
+  VacancySummary['status'],
+  Pick<BadgeProps, 'tone' | 'dashed' | 'outline'>
+>;
 
 export function VacancyStatus({
   status,
@@ -19,15 +23,9 @@ export function VacancyStatus({
 }) {
   const t = useTranslations('vacancies.status');
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium whitespace-nowrap',
-        statusStyles[status],
-      )}
-    >
-      <span aria-hidden="true" className="size-1.5 rounded-full bg-current" />
+    <Badge dot {...statusBadge[status]}>
       {t(status)}
-    </span>
+    </Badge>
   );
 }
 
@@ -53,22 +51,19 @@ export function VacancyFlags({ vacancy }: { vacancy: VacancySummary }) {
   return (
     <>
       {vacancy.priority === 'URGENT' && (
-        <span
+        <Badge
+          size="sm"
+          icon={Flame}
+          tone={highlighted ? 'danger' : 'neutral'}
           data-urgent={highlighted}
-          className={cn(
-            'rounded-md px-2 py-0.5 text-xs font-medium',
-            highlighted
-              ? 'bg-destructive-subtle text-error-text'
-              : 'bg-surface-muted text-muted-foreground-strong',
-          )}
         >
           {t('urgent')}
-        </span>
+        </Badge>
       )}
       {vacancy.source === 'TELEGRAM_BOT' && (
-        <span className="bg-primary-subtle text-link rounded-md px-2 py-0.5 text-xs font-medium">
+        <Badge size="sm" icon={Bot} tone="info" outline>
           {t('fromBot')}
-        </span>
+        </Badge>
       )}
     </>
   );

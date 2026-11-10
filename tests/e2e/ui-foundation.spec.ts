@@ -258,3 +258,61 @@ test.describe('status pills render a fill [UI-F1]', () => {
     }
   }
 });
+
+test.describe('vacancy chips and the lazy tooltip [UI-F2]', () => {
+  test.use({ storageState: sessionFile('admin@demo') });
+
+  const visibleChip = (page: Page, text: string) =>
+    page
+      .getByRole('region', { name: t.vacancies.resultsLabel, exact: true })
+      .locator('[data-slot="badge"]')
+      .filter({ hasText: new RegExp(`^${text}$`) })
+      .and(page.locator(':visible'))
+      .first();
+  const styleOf = (chip: Locator, property: string) =>
+    chip.evaluate(
+      (node, name) => getComputedStyle(node).getPropertyValue(name),
+      property,
+    );
+
+  for (const status of ['OPEN', 'ON_HOLD'] as const) {
+    test(`the ${status} chip is a one-line pill`, async ({ page }) => {
+      await openHydrated(page, `/vacancies?status=${status}`);
+      const chip = visibleChip(page, t.vacancies.status[status]);
+      await expect(chip).toBeVisible();
+      expect(await styleOf(chip, 'white-space')).toBe('nowrap');
+      expect(
+        parseFloat(await styleOf(chip, 'border-top-left-radius')),
+      ).toBeGreaterThan(1000);
+      expect((await chip.boundingBox())!.height).toBeLessThanOrEqual(28);
+    });
+  }
+
+  test('the draft chip has a dashed border', async ({ page }) => {
+    await openHydrated(page, '/vacancies?status=DRAFT');
+    const chip = visibleChip(page, t.vacancies.status.DRAFT);
+    await expect(chip).toBeVisible();
+    expect(await styleOf(chip, 'border-top-style')).toBe('dashed');
+  });
+
+  test('an open urgent vacancy shows the red flame chip and a closed one the neutral chip', async ({
+    page,
+  }) => {
+    await openHydrated(page, '/vacancies?status=ON_HOLD');
+    const highlighted = visibleChip(page, t.vacancies.urgent);
+    await expect(highlighted).toHaveAttribute('data-urgent', 'true');
+    await expect(highlighted.locator('svg.lucide-flame')).toHaveCount(1);
+
+    await openHydrated(page, '/vacancies?status=CANCELLED');
+    const closed = visibleChip(page, t.vacancies.urgent);
+    await expect(closed).toHaveAttribute('data-urgent', 'false');
+    await expect(closed.locator('svg.lucide-flame')).toHaveCount(1);
+  });
+
+  test('the vacancy list requests no tooltip chunk', async ({ page }) => {
+    const requests: string[] = [];
+    page.on('request', (request) => requests.push(request.url()));
+    await openHydrated(page, '/vacancies');
+    expect(requests.filter((url) => /tooltip/i.test(url))).toEqual([]);
+  });
+});

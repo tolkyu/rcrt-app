@@ -24,6 +24,7 @@
     "test:db:up": "docker compose -f docker-compose.test.yml up -d --wait",
     "test:db:down": "docker compose -f docker-compose.test.yml down -v",
     "test:e2e": "playwright test --project=e2e-desktop --project=e2e-mobile --project=e2e-admin-desktop --project=e2e-admin-mobile",
+    "test:e2e:dev-ui": "playwright test -c playwright.dev-ui.config.ts",
     "test:screens": "playwright test --project=screens-* && node scripts/screenshot-gallery.mjs",
     "db:start": "supabase start",
     "db:stop": "supabase stop",

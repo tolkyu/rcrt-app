@@ -1,4 +1,5 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { glob } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const { pages } = JSON.parse(
@@ -9,6 +10,12 @@ const entries = Object.entries(pages).filter(([route]) =>
 );
 if (!entries.length)
   throw new Error('No page entries in the Next.js build manifest');
+
+/** size-limit treats paths as globs (relative to the config's folder, hence absolute): `[vacancyId]` would match one character and silently drop the file. */
+const toGlob = (chunk) =>
+  resolve('.next', chunk)
+    .replaceAll('\\', '/')
+    .replace(/[[\]]/g, (char) => (char === '[' ? '[[]' : '[]]'));
 
 const checks = entries.map(([route, files]) => {
   const chunks = new Set(files);
@@ -22,13 +29,26 @@ const checks = entries.map(([route, files]) => {
   }
   return {
     name: `${route} initial JavaScript (PERF-04)`,
-    path: [...chunks]
-      .filter((chunk) => chunk.endsWith('.js'))
-      .map((chunk) => resolve('.next', chunk)),
+    path: [
+      ...new Set(
+        [...chunks].filter((chunk) => chunk.endsWith('.js')).map(toGlob),
+      ),
+    ],
     gzip: true,
     limit: '180 kB',
   };
 });
+
+// Same glob engine as size-limit: every listed chunk must resolve to exactly one file.
+for (const check of checks)
+  for (const pattern of check.path) {
+    const matches = await Array.fromAsync(glob(pattern));
+    if (matches.length !== 1)
+      throw new Error(
+        `${check.name}: ${pattern} matched ${matches.length} files, expected 1`,
+      );
+  }
+
 mkdirSync('.cache', { recursive: true });
 writeFileSync(
   '.cache/client-size-limit.json',

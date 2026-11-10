@@ -3,8 +3,9 @@
 > Read order: `CLAUDE.md` → this file → `docs/PROGRESS.md` → `docs/PRD.md` §14 (owner decisions D1–D70).
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
-## UI foundation checkpoint — 2026-11-10 (F1 committed)
+## UI foundation checkpoint — 2026-11-10 (F1, F2 committed)
 
+- F2 done (Badge, Tooltip, DisabledReason; size-limit `[param]` fix; dev-server suite `pnpm test:e2e:dev-ui`). **Next: F3 (Select)**, then F5, F7, F8, F4, F6, F9, F10.
 - F1 done (details in `docs/PROGRESS.md`). **Next: F2–F10 per `docs/ux/ui-foundation.md`** — order F2, F3, F5, F7, F8 (parallel-safe where files don't overlap), then F4, F6, F9, F10; then S3 UI. Agents read design skills as files (CLAUDE.md §11), run on Sonnet with effort high.
 - Owner questions open (asked 2026-11-10, needed before S3): (1) author's drafts only under chip «Чернетки» or also in «Усі» (rec. chip only); (2) seniority / employment type fixed lists Джуніор/Мідл/Сеніор/Лід and Повна/Часткова/Проєктна vs free text (rec. lists); (3) Q-177 (rec. 1a/2a/3a).
 - Run notes: `pnpm` only via `corepack pnpm` in the agent shell; Playwright Chromium was reinstalled 2026-11-10; screenshots for phase-2 screens come from `test:e2e` (`captureScreen`), not `test:screens`.

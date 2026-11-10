@@ -144,3 +144,22 @@ describe('brand tokens in both themes [UI foundation F1, ui-foundation §0 findi
       ).toBeGreaterThanOrEqual(4.5);
   });
 });
+
+describe('badge text pairs [UI foundation F2]', () => {
+  it.each(['light', 'dark'] as const)(
+    'brand, neutral and outlined info text is at least 4.5:1 in the %s theme',
+    (theme) => {
+      const pairs = [
+        ['link', 'primary-subtle'],
+        ['muted-foreground-strong', 'surface-muted'],
+        ['muted-foreground-strong', 'surface'],
+        ['info-text', 'surface'],
+        ['info-text', 'background'],
+      ] as const;
+      for (const [foreground, background] of pairs)
+        expect(
+          contrast(token(foreground, theme), token(background, theme)),
+        ).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+});

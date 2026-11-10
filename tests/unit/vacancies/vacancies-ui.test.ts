@@ -5,7 +5,10 @@ import { NextIntlClientProvider } from 'next-intl';
 import { createElement, type ReactElement, type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { VacanciesList } from '@/components/vacancies/vacancies-list';
-import { VacancyFlags } from '@/components/vacancies/vacancy-badges';
+import {
+  VacancyFlags,
+  VacancyStatus,
+} from '@/components/vacancies/vacancy-badges';
 import { VacancyOverview } from '@/components/vacancies/vacancy-overview';
 import type { VacancyDetail, VacancySummary } from '@/lib/schemas/vacancy';
 import messages from '@/messages/uk.json';
@@ -356,5 +359,55 @@ describe('VacancyOverview [STORY-VAC-04-2, UI-09]', () => {
     expect(within(alert).getByRole('link').getAttribute('href')).toBe(
       `/vacancies/${vacancy.id}`,
     );
+  });
+});
+
+describe('vacancy badges [UI foundation F2, design-system 1.6]', () => {
+  const chip = (text: string) =>
+    screen.getByText(text).closest<HTMLElement>('[data-slot="badge"]')!;
+
+  it.each([
+    ['DRAFT', 'border-dashed'],
+    ['OPEN', 'bg-success-subtle'],
+    ['ON_HOLD', 'bg-warning-subtle'],
+    ['FILLED', 'bg-primary-subtle'],
+    ['CANCELLED', 'bg-surface-muted'],
+  ] as const)(
+    'renders %s as a pill with a dot and its label',
+    (status, marker) => {
+      mount(createElement(VacancyStatus, { status }));
+      const element = chip(messages.vacancies.status[status]);
+      expect(element.className).toContain('rounded-full');
+      expect(element.className).toContain(marker);
+      expect(element.querySelector('[aria-hidden="true"]')).not.toBeNull();
+    },
+  );
+
+  it('marks urgency with a flame and exposes the highlight state', () => {
+    mount(
+      createElement(VacancyFlags, {
+        vacancy: summary({ priority: 'URGENT' }),
+      }),
+    );
+    const element = chip(messages.vacancies.urgent);
+    expect(element.getAttribute('data-urgent')).toBe('true');
+    expect(element.querySelector('svg')).not.toBeNull();
+  });
+
+  it('shows the bot origin as a blue outline with the bot icon', () => {
+    mount(
+      createElement(VacancyFlags, {
+        vacancy: summary({ source: 'TELEGRAM_BOT' }),
+      }),
+    );
+    const element = chip(messages.vacancies.fromBot);
+    expect(element.className).toContain('border-info');
+    expect(element.className).toContain('text-info-text');
+    expect(element.querySelector('svg')).not.toBeNull();
+  });
+
+  it('renders no badge for a normal vacancy created in the app', () => {
+    mount(createElement(VacancyFlags, { vacancy: summary() }));
+    expect(document.querySelector('[data-slot="badge"]')).toBeNull();
   });
 });

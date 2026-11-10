@@ -1,51 +1,73 @@
 import { Bot, Flame } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
+import { Badge } from '@/components/ui/badge';
 import { GalleryGroup, GallerySection } from './gallery-section';
-
-const pill =
-  'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap';
 
 export async function BadgesSection() {
   const t = await getTranslations('devUi.badges');
-  const statuses = [
-    { label: t('open'), className: 'bg-success-subtle text-success-text' },
-    { label: t('onHold'), className: 'bg-warning-subtle text-warning-text' },
-    { label: t('filled'), className: 'bg-primary-subtle text-link' },
-    {
-      label: t('cancelled'),
-      className: 'bg-surface-muted text-muted-foreground-strong',
-    },
-  ];
+  const tags = t.raw('tags') as string[];
+  const flags = (
+    <>
+      <Badge size="sm" icon={Flame} tone="danger">
+        {t('urgent')}
+      </Badge>
+      <Badge size="sm" icon={Bot} tone="info" outline>
+        {t('fromBot')}
+      </Badge>
+    </>
+  );
   return (
     <GallerySection id="badges" title={t('title')} hint={t('hint')}>
-      <GalleryGroup title={t('title')}>
-        {statuses.map((status) => (
-          <span key={status.label} className={`${pill} ${status.className}`}>
-            <span
-              aria-hidden="true"
-              className="size-1.5 rounded-full bg-current"
-            />
-            {status.label}
-          </span>
-        ))}
-        <span
-          className={`${pill} border-input text-muted-foreground-strong border border-dashed`}
-        >
+      <GalleryGroup title={t('statuses')}>
+        <Badge dot tone="success">
+          {t('open')}
+        </Badge>
+        <Badge dot tone="warning">
+          {t('onHold')}
+        </Badge>
+        <Badge dot tone="brand">
+          {t('filled')}
+        </Badge>
+        <Badge dot tone="neutral">
+          {t('cancelled')}
+        </Badge>
+        <Badge dot tone="neutral" dashed outline>
           {t('draft')}
-        </span>
-        <span className={`${pill} bg-destructive-subtle text-error-text`}>
-          <Flame className="size-3.5" aria-hidden="true" />
+        </Badge>
+      </GalleryGroup>
+      <GalleryGroup title={t('flags')}>
+        {flags}
+        <Badge size="sm" icon={Flame} tone="neutral" title={t('closedUrgent')}>
           {t('urgent')}
-        </span>
-        <span className={`${pill} bg-info-subtle text-info-text`}>
-          <Bot className="size-3.5" aria-hidden="true" />
-          {t('fromBot')}
-        </span>
-        <span className={`${pill} bg-info-subtle text-info-text max-w-48`}>
-          <span className="truncate" title={t('longTag')}>
-            {t('longTag')}
-          </span>
-        </span>
+        </Badge>
+      </GalleryGroup>
+      <GalleryGroup title={t('worstCase')} hint={t('worstCaseHint')}>
+        <Badge tone="info" truncate>
+          {t('longTag')}
+        </Badge>
+        <Badge tone="neutral" className="tabular-nums">
+          {t('count')}
+        </Badge>
+        <Badge tone="neutral">{t('overflow')}</Badge>
+        <div className="flex w-full flex-wrap gap-1.5">
+          {tags.map((tag) => (
+            <Badge key={tag} size="sm" tone="brand" truncate>
+              {tag}
+            </Badge>
+          ))}
+          <Badge size="sm" tone="neutral">
+            {t('overflow')}
+          </Badge>
+        </div>
+        <div
+          aria-label={t('oneTitle')}
+          className="flex w-full max-w-xs flex-wrap gap-1.5"
+        >
+          <Badge dot tone="warning">
+            {t('onHold')}
+          </Badge>
+          {flags}
+        </div>
       </GalleryGroup>
     </GallerySection>
   );
