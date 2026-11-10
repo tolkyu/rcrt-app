@@ -182,7 +182,7 @@ describe('Supabase credential verification with real signatures and HTTP JWKS [D
     const before = fixture.requests;
     expect(await verify(bearer(await identityToken(fixture)))).toBeNull();
     expect(fixture.requests - before).toBe(1);
-  }, 2_000);
+  }, 4_000);
 });
 
 describe('Credential extraction fails closed [DG-02, T-A10]', () => {

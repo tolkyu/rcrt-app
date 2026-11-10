@@ -7,7 +7,7 @@ export function BrandMark({ withWordmark = true }: { withWordmark?: boolean }) {
     <span className="flex min-w-0 items-center gap-2.5">
       <span
         aria-hidden="true"
-        className="bg-brand flex size-8 shrink-0 items-center justify-center rounded-md text-base font-bold text-white"
+        className="bg-brand-fill flex size-8 shrink-0 items-center justify-center rounded-md text-base font-bold text-white"
       >
         <svg
           viewBox="0 0 24 24"

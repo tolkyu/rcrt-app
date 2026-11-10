@@ -11,10 +11,10 @@ export const SheetClose = SheetPrimitive.Close;
 
 const sideClass = {
   right:
-    'inset-y-0 right-0 h-full w-full sm:w-[30rem] sm:border-l data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right',
-  left: 'inset-y-0 left-0 h-full w-[min(20rem,85vw)] border-r data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left',
+    'inset-y-0 right-0 h-full w-full pr-[env(safe-area-inset-right)] sm:w-[30rem] sm:border-l data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right',
+  left: 'inset-y-0 left-0 h-full w-[min(20rem,85vw)] border-r pl-[env(safe-area-inset-left)] data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left',
   bottom:
-    'inset-x-0 bottom-0 max-h-[85dvh] rounded-t-2xl border-t pb-[env(safe-area-inset-bottom)] data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom',
+    'inset-x-0 bottom-0 max-h-[85dvh] rounded-t-2xl border-t pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom',
 } as const;
 
 export function SheetContent({
@@ -45,7 +45,7 @@ export function SheetContent({
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          'border-border bg-surface data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-40 flex flex-col gap-2 overflow-y-auto shadow-lg duration-200 ease-out',
+          'border-border bg-surface data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-40 flex flex-col gap-2 overflow-y-auto shadow-lg duration-200 ease-out motion-reduce:duration-0',
           sideClass[side],
           className,
         )}

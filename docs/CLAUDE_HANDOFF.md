@@ -3,6 +3,12 @@
 > Read order: `CLAUDE.md` → this file → `docs/PROGRESS.md` → `docs/PRD.md` §14 (owner decisions D1–D70).
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
+## UI foundation checkpoint — 2026-11-10 (F1 committed)
+
+- F1 done (details in `docs/PROGRESS.md`). **Next: F2–F10 per `docs/ux/ui-foundation.md`** — order F2, F3, F5, F7, F8 (parallel-safe where files don't overlap), then F4, F6, F9, F10; then S3 UI. Agents read design skills as files (CLAUDE.md §11), run on Sonnet with effort high.
+- Owner questions open (asked 2026-11-10, needed before S3): (1) author's drafts only under chip «Чернетки» or also in «Усі» (rec. chip only); (2) seniority / employment type fixed lists Джуніор/Мідл/Сеніор/Лід and Повна/Часткова/Проєктна vs free text (rec. lists); (3) Q-177 (rec. 1a/2a/3a).
+- Run notes: `pnpm` only via `corepack pnpm` in the agent shell; Playwright Chromium was reinstalled 2026-11-10; screenshots for phase-2 screens come from `test:e2e` (`captureScreen`), not `test:screens`.
+
 ## V2b S2 checkpoint — 2026-11-10 (draft lifecycle backend, committed)
 
 - **Status:** code review (2 rounds), security and perf APPROVED, all findings fixed. Verified: typecheck, lint, prettier, 2,979 Vitest, build, Newman 441 requests / 2,565 assertions 0 failed. E2E/screens not run (no UI in S2). Local Supabase was recreated fresh on 2026-11-10 (new image) → migrations 0000–0015 + provision + seeds applied; the 0015 hash note below no longer applies to this machine.

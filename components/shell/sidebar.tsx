@@ -80,7 +80,7 @@ function NavLink({
         collapsed && 'justify-center px-0',
         active
           ? 'bg-primary-subtle text-link'
-          : 'text-foreground hover:bg-surface-muted',
+          : 'text-foreground hover:bg-surface-muted active:bg-surface-muted',
       )}
     >
       <Icon
@@ -167,7 +167,7 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        'border-border bg-surface fixed inset-y-0 left-0 z-20 hidden flex-col border-r transition-[width] duration-200 ease-out lg:flex',
+        'border-border bg-surface fixed inset-y-0 left-0 z-20 hidden flex-col border-r lg:flex',
         collapsed ? 'w-18' : 'w-60',
       )}
     >

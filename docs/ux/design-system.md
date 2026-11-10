@@ -22,22 +22,23 @@ Brand in UI: logo tile «H» + wordmark **«Hiring»** (approved 2026-10-31). Pr
 
 ### 1.1 Base tokens (exactly as `00-foundations.webp`)
 
-| Token (CSS var)                     | Light     | Dark      | Use                                                                                                |
-| ----------------------------------- | --------- | --------- | -------------------------------------------------------------------------------------------------- |
-| `--brand`                           | `#6366F1` | `#818CF8` | Primary/Індиго accent: logo tile, icons, focus ring, selected indicators, progress, chart series 1 |
-| `--cyan`                            | `#06B6D4` | `#22D3EE` | Accent: KPI icon tiles, chart series 2 (decorative, never text)                                    |
-| `--magenta`                         | `#EC4899` | `#F472B6` | Accent: KPI icon tiles, chart series (decorative)                                                  |
-| `--yellow`                          | `#F59E0B` | `#FBBF24` | Accent: KPI icon tiles, bonus gift icon (decorative)                                               |
-| `--background`                      | `#F8FAFC` | `#0B1220` | App background (Фон)                                                                               |
-| `--surface` (`--card`, `--popover`) | `#FFFFFF` | `#111827` | Cards, panels, sidebar, top bar, dialogs (Поверхня)                                                |
-| `--surface-muted` (`--muted`)       | `#F1F5F9` | `#1F2937` | Hover rows, segmented controls, skeleton base, kbd hint (Поверхня приглушена)                      |
-| `--foreground`                      | `#0F172A` | `#F8FAFC` | Main text (Основний текст)                                                                         |
-| `--muted-foreground`                | `#5B6B82` | `#94A3B8` | Secondary text (Другорядний текст), **only on surface/background** — see §1.4                      |
-| `--muted-foreground-strong`         | `#475569` | `#94A3B8` | Secondary text on `--surface-muted` and tinted backgrounds                                         |
-| `--border`                          | `#E2E8F0` | `#334155` | Card borders, dividers (decorative, Межа)                                                          |
-| `--success`                         | `#22C55E` | `#34D399` | Icons, dots, bars, positive fills (Успіх)                                                          |
-| `--warning`                         | `#F59E0B` | `#FBBF24` | Icons, dots (Попередження)                                                                         |
-| `--error`                           | `#EF4444` | `#F87171` | Icons, dots, error borders (Помилка)                                                               |
+| Token (CSS var)                     | Light     | Dark      | Use                                                                                                                  |
+| ----------------------------------- | --------- | --------- | -------------------------------------------------------------------------------------------------------------------- |
+| `--brand`                           | `#6366F1` | `#818CF8` | Primary/Індиго accent: logo tile, icons, focus ring, selected indicators, progress, chart series 1                   |
+| `--brand-fill`                      | `#6366F1` | `#5558EF` | Solid brand fill behind a white glyph (logo tile). Dark stays `#5558EF` because `#818CF8` under white is only 2.98:1 |
+| `--cyan`                            | `#06B6D4` | `#22D3EE` | Accent: KPI icon tiles, chart series 2 (decorative, never text)                                                      |
+| `--magenta`                         | `#EC4899` | `#F472B6` | Accent: KPI icon tiles, chart series (decorative)                                                                    |
+| `--yellow`                          | `#F59E0B` | `#FBBF24` | Accent: KPI icon tiles, bonus gift icon (decorative)                                                                 |
+| `--background`                      | `#F8FAFC` | `#0B1220` | App background (Фон)                                                                                                 |
+| `--surface` (`--card`, `--popover`) | `#FFFFFF` | `#111827` | Cards, panels, sidebar, top bar, dialogs (Поверхня)                                                                  |
+| `--surface-muted` (`--muted`)       | `#F1F5F9` | `#1F2937` | Hover rows, segmented controls, skeleton base, kbd hint (Поверхня приглушена)                                        |
+| `--foreground`                      | `#0F172A` | `#F8FAFC` | Main text (Основний текст)                                                                                           |
+| `--muted-foreground`                | `#5B6B82` | `#94A3B8` | Secondary text (Другорядний текст), **only on surface/background** — see §1.4                                        |
+| `--muted-foreground-strong`         | `#475569` | `#94A3B8` | Secondary text on `--surface-muted` and tinted backgrounds                                                           |
+| `--border`                          | `#E2E8F0` | `#334155` | Card borders, dividers (decorative, Межа)                                                                            |
+| `--success`                         | `#22C55E` | `#34D399` | Icons, dots, bars, positive fills (Успіх)                                                                            |
+| `--warning`                         | `#F59E0B` | `#FBBF24` | Icons, dots (Попередження)                                                                                           |
+| `--error`                           | `#EF4444` | `#F87171` | Icons, dots, error borders (Помилка)                                                                                 |
 
 Image note: the light secondary-text label reads «#6474BB» because the image is blurry; the swatch is slate. We use **`#64748B`** (Tailwind slate-500, the obvious intent). Phase-1 AA verification derives secondary text `#5B6B82` and success text `#166534` so selected/hovered rows also meet 4.5:1.
 

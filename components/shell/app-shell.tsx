@@ -122,7 +122,7 @@ export function AppShell({
       <Sidebar items={items} collapsed={collapsed} />
       <div
         className={cn(
-          'flex min-h-dvh min-w-0 flex-col transition-[padding] duration-200 ease-out',
+          'flex min-h-dvh min-w-0 flex-col',
           collapsed ? 'lg:pl-18' : 'lg:pl-60',
         )}
       >

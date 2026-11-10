@@ -16,7 +16,7 @@ export default async function AuthLayout({
           <div className="flex items-center justify-center gap-3">
             <span
               aria-hidden="true"
-              className="bg-brand text-primary-foreground flex size-10 items-center justify-center rounded-lg text-lg font-bold"
+              className="bg-brand-fill text-primary-foreground flex size-10 items-center justify-center rounded-lg text-lg font-bold"
             >
               {t('brandMark')}
             </span>

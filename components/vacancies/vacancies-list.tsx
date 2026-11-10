@@ -104,9 +104,9 @@ export const VacanciesList = memo(function VacanciesList({
                   key={vacancy.id}
                   onClick={(event) => selectFromRow(event, vacancy.id)}
                   className={cn(
-                    'border-border hover:bg-surface-muted border-b align-middle last:border-0',
+                    'border-border hover:bg-surface-muted active:bg-surface-muted border-b align-middle last:border-0',
                     selected
-                      ? 'bg-primary-subtle hover:bg-primary-subtle shadow-[inset_2px_0_0_0_var(--brand)]'
+                      ? 'bg-primary-subtle hover:bg-primary-subtle active:bg-primary-subtle shadow-[inset_2px_0_0_0_var(--brand)]'
                       : urgentEdge(vacancy),
                   )}
                 >
@@ -165,7 +165,7 @@ export const VacanciesList = memo(function VacanciesList({
           <li
             key={vacancy.id}
             className={cn(
-              'hover:bg-surface-muted has-[a:focus-visible]:outline-ring relative flex flex-col gap-2 p-4 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2',
+              'hover:bg-surface-muted active:bg-surface-muted has-[a:focus-visible]:outline-ring relative flex flex-col gap-2 p-4 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2',
               urgentEdge(vacancy),
             )}
           >

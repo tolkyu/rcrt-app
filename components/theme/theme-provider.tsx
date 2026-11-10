@@ -9,7 +9,12 @@ import {
   type ReactNode,
 } from 'react';
 import { PREFERENCE_COOKIES, writePreference } from '@/lib/preference-cookie';
-import { themeClassName, type Theme } from '@/lib/theme';
+import {
+  THEME_COLOR_MEDIA,
+  themeClassName,
+  themeColorFor,
+  type Theme,
+} from '@/lib/theme';
 
 interface ThemeContextValue {
   readonly theme: Theme;
@@ -18,7 +23,7 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-/** Applies the class immediately and stores the cookie, so the next server render has the same class (no flash). */
+/** Applies the class and the status-bar colour immediately and stores the cookie, so the next server render matches (no flash). */
 export function ThemeProvider({
   initialTheme,
   children,
@@ -32,6 +37,13 @@ export function ThemeProvider({
     root.classList.remove('light', 'dark');
     const className = themeClassName(next);
     if (className) root.classList.add(className);
+    for (const meta of document.querySelectorAll<HTMLMetaElement>(
+      'meta[name="theme-color"]',
+    ))
+      meta.content = themeColorFor(
+        next,
+        meta.media === THEME_COLOR_MEDIA.dark ? 'dark' : 'light',
+      );
     writePreference(PREFERENCE_COOKIES.theme, next);
     setState(next);
   }, []);

@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { useLogout } from './use-logout';
 
 const slotClass =
-  'flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 text-xs font-medium';
+  'active:bg-surface-muted flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 text-xs font-medium';
 
 export function MoreNavigation({ items }: { items: readonly NavItem[] }) {
   const t = useTranslations('shell');
@@ -60,7 +60,7 @@ export function MoreNavigation({ items }: { items: readonly NavItem[] }) {
                     'flex min-h-12 items-center gap-3 rounded-lg px-3 text-base font-medium',
                     active
                       ? 'bg-primary-subtle text-link'
-                      : 'text-foreground hover:bg-surface-muted',
+                      : 'text-foreground hover:bg-surface-muted active:bg-surface-muted',
                   )}
                 >
                   <Icon
@@ -80,7 +80,7 @@ export function MoreNavigation({ items }: { items: readonly NavItem[] }) {
               type="button"
               disabled={logout.isPending}
               onClick={() => logout.mutate()}
-              className="text-error-text hover:bg-destructive-subtle flex min-h-12 w-full items-center gap-3 rounded-lg px-3 text-base font-medium disabled:opacity-60"
+              className="text-error-text hover:bg-destructive-subtle active:bg-destructive-subtle flex min-h-12 w-full items-center gap-3 rounded-lg px-3 text-base font-medium disabled:opacity-60"
             >
               <LogOut className="size-5" aria-hidden="true" />
               {logout.isPending ? t('loggingOut') : t('logout')}

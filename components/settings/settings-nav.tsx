@@ -40,7 +40,7 @@ export function SettingsNav({
                   'flex min-h-11 items-center rounded-xl px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors duration-120 md:min-h-10 md:whitespace-normal',
                   active
                     ? 'bg-primary-subtle text-link'
-                    : 'text-foreground hover:bg-surface-muted',
+                    : 'text-foreground hover:bg-surface-muted active:bg-surface-muted',
                 )}
               >
                 {item.label}

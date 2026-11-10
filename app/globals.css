@@ -9,7 +9,8 @@
 :root {
   color-scheme: light dark;
 
-  --brand: light-dark(#6366f1, #5558ef);
+  --brand: light-dark(#6366f1, #818cf8);
+  --brand-fill: light-dark(#6366f1, #5558ef);
   --cyan: light-dark(#06b6d4, #22d3ee);
   --magenta: light-dark(#ec4899, #f472b6);
   --yellow: light-dark(#f59e0b, #fbbf24);
@@ -36,6 +37,11 @@
   --success-text: light-dark(#166534, #34d399);
   --warning-text: light-dark(#92400e, #fbbf24);
   --error-text: light-dark(#b91c1c, #f87171);
+  --success-subtle: light-dark(#f0fdf4, #173639);
+  --warning-subtle: light-dark(#fffbeb, #363327);
+  --info: light-dark(#3b82f6, #60a5fa);
+  --info-subtle: light-dark(#eff6ff, #1e2f49);
+  --info-text: light-dark(#1d4ed8, #93c5fd);
   --destructive: #dc2626;
   --destructive-subtle: light-dark(#fef2f2, #3a1d24);
   --now-line: light-dark(#ef4444, #f87171);
@@ -45,6 +51,10 @@
   --shadow-color-sm: light-dark(rgb(0 0 0 / 0.05), rgb(0 0 0 / 0.3));
   --shadow-color-md: light-dark(rgb(0 0 0 / 0.08), rgb(0 0 0 / 0.4));
   --shadow-color-lg: light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.5));
+
+  --motion-scale: 0.96;
+  --motion-scale-tooltip: 0.97;
+  --motion-shift: 100%;
 }
 
 :root.light {
@@ -59,6 +69,7 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
   --color-brand: var(--brand);
+  --color-brand-fill: var(--brand-fill);
   --color-cyan: var(--cyan);
   --color-magenta: var(--magenta);
   --color-yellow: var(--yellow);
@@ -92,6 +103,11 @@
   --color-success-text: var(--success-text);
   --color-warning-text: var(--warning-text);
   --color-error-text: var(--error-text);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-text: var(--info-text);
   --color-destructive: var(--destructive);
   --color-destructive-subtle: var(--destructive-subtle);
   --color-now-line: var(--now-line);
@@ -101,6 +117,22 @@
   --shadow-sm: 0 1px 2px 0 var(--shadow-color-sm);
   --shadow-md: 0 4px 12px 0 var(--shadow-color-md);
   --shadow-lg: 0 10px 32px 0 var(--shadow-color-lg);
+}
+
+/* Motion tokens (design-system §8): overriding --ease-out makes every existing `ease-out` class strong. */
+@theme static {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --duration-press: 120ms;
+  --duration-tooltip: 125ms;
+  --duration-popover: 160ms;
+  --duration-popover-exit: 120ms;
+  --duration-dialog: 200ms;
+  --duration-dialog-exit: 150ms;
+  --duration-drawer: 240ms;
+  --duration-drawer-exit: 180ms;
 }
 
 /* Radius and type scale: design-system §2–3. Tailwind's text-base/sm/xs already match 16/24, 14/20, 12/16. */
@@ -201,11 +233,16 @@
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
     text-rendering: optimizeLegibility;
+    /* Data refreshes through TanStack Query; vertical only so the macOS swipe-back gesture keeps working. */
+    overscroll-behavior-y: none;
   }
 
+  /* viewport-fit=cover draws under the landscape notch; the insets are zero in portrait. */
   body {
     @apply bg-background text-foreground font-sans text-sm antialiased;
+    padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
   }
 
   *,
@@ -219,15 +256,191 @@
     outline-offset: 2px;
   }
 
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    ::before,
-    ::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
-    }
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [role='button'],
+    [role='tab'],
+    [role='menuitem'],
+    [role='option']
+  ) {
+    touch-action: manipulation;
+  }
+
+  /* Controls only: body text and form values must stay selectable. */
+  :where(button, [role='button']) {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+}
+
+/*
+ * Radix Presence waits for CSS animations, not transitions, so every exit below is a keyframe.
+ * Reduced motion keeps the opacity part of each keyframe: scale and travel collapse to no-ops.
+ */
+@keyframes motion-pop-in {
+  from {
+    opacity: 0;
+    scale: var(--motion-scale);
+  }
+}
+@keyframes motion-pop-out {
+  to {
+    opacity: 0;
+    scale: var(--motion-scale);
+  }
+}
+@keyframes motion-tooltip-in {
+  from {
+    opacity: 0;
+    scale: var(--motion-scale-tooltip);
+  }
+}
+@keyframes motion-tooltip-out {
+  to {
+    opacity: 0;
+    scale: var(--motion-scale-tooltip);
+  }
+}
+@keyframes motion-sheet-up-in {
+  from {
+    opacity: 0;
+    translate: 0 var(--motion-shift);
+  }
+}
+@keyframes motion-sheet-up-out {
+  to {
+    opacity: 0;
+    translate: 0 var(--motion-shift);
+  }
+}
+@keyframes motion-sheet-side-in {
+  from {
+    opacity: 0;
+    translate: var(--motion-shift) 0;
+  }
+}
+@keyframes motion-sheet-side-out {
+  to {
+    opacity: 0;
+    translate: var(--motion-shift) 0;
+  }
+}
+@keyframes motion-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes motion-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Anchored surfaces grow from their trigger (Popper exposes the origin to its content). */
+@utility motion-pop {
+  transform-origin: var(--radix-popper-transform-origin, center);
+  &[data-state='open'] {
+    animation: motion-pop-in var(--duration-popover) var(--ease-out);
+  }
+  &[data-state='closed'] {
+    animation: motion-pop-out var(--duration-popover-exit) var(--ease-out)
+      forwards;
+  }
+  &[data-instant] {
+    animation: none;
+  }
+}
+
+/* `instant-open`: a neighbouring tooltip was just open, so this one appears without motion. */
+@utility motion-tooltip {
+  transform-origin: var(--radix-popper-transform-origin, center);
+  &[data-state='delayed-open'] {
+    animation: motion-tooltip-in var(--duration-tooltip) var(--ease-out);
+  }
+  &[data-state='closed'] {
+    animation: motion-tooltip-out var(--duration-tooltip) var(--ease-out)
+      forwards;
+  }
+  &[data-state='instant-open'],
+  &[data-instant] {
+    animation: none;
+  }
+}
+
+/* Modals are not anchored to a trigger: they stay centred. */
+@utility motion-modal {
+  transform-origin: center;
+  &[data-state='open'] {
+    animation: motion-pop-in var(--duration-dialog) var(--ease-out);
+  }
+  &[data-state='closed'] {
+    animation: motion-pop-out var(--duration-dialog-exit) var(--ease-out)
+      forwards;
+  }
+  &[data-instant] {
+    animation: none;
+  }
+}
+
+@utility motion-sheet-up {
+  &[data-state='open'] {
+    animation: motion-sheet-up-in var(--duration-drawer) var(--ease-drawer);
+  }
+  &[data-state='closed'] {
+    animation: motion-sheet-up-out var(--duration-drawer-exit)
+      var(--ease-drawer) forwards;
+  }
+}
+
+@utility motion-sheet-side {
+  &[data-state='open'] {
+    animation: motion-sheet-side-in var(--duration-drawer) var(--ease-drawer);
+  }
+  &[data-state='closed'] {
+    animation: motion-sheet-side-out var(--duration-drawer-exit)
+      var(--ease-drawer) forwards;
+  }
+}
+
+@utility motion-fade {
+  &[data-state='open'] {
+    animation: motion-fade-in var(--duration-dialog) var(--ease-out);
+  }
+  &[data-state='closed'] {
+    animation: motion-fade-out var(--duration-dialog-exit) var(--ease-out)
+      forwards;
+  }
+}
+
+/* Unlayered on purpose: it must beat the utilities layer, including tw-animate-css scale and slide variables. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-scale: 1;
+    --motion-scale-tooltip: 1;
+    --motion-shift: 0%;
+    --duration-popover: 120ms;
+    --duration-dialog: 120ms;
+    --duration-dialog-exit: 120ms;
+    --duration-drawer: 120ms;
+    --duration-drawer-exit: 120ms;
+  }
+
+  *,
+  ::before,
+  ::after {
+    --tw-enter-scale: 1;
+    --tw-exit-scale: 1;
+    --tw-enter-translate-x: 0;
+    --tw-enter-translate-y: 0;
+    --tw-exit-translate-x: 0;
+    --tw-exit-translate-y: 0;
+    scroll-behavior: auto !important;
   }
 }
 

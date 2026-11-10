@@ -160,7 +160,7 @@ export function RoleMatrix({
                 className="text-muted-foreground px-3 py-3 text-sm"
               >
                 {verticalsState === 'pending' ? (
-                  <span className="skeleton-delayed bg-surface-muted block h-8 w-full animate-pulse rounded-lg" />
+                  <span className="skeleton-delayed bg-surface-muted block h-8 w-full animate-pulse rounded-lg motion-reduce:animate-none" />
                 ) : verticalsState === 'error' ? (
                   <span className="flex flex-wrap items-center gap-2">
                     {t('verticalsFailed')}

@@ -14,7 +14,7 @@ const MoreNavigation = lazy(() =>
 );
 
 const slotClass =
-  'flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 text-xs font-medium';
+  'active:bg-surface-muted flex min-h-11 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 text-xs font-medium';
 
 /** Mobile bottom nav (A-46): bar sections + «Ще» sheet with the rest and «Вийти»; active = --link. */
 export function BottomNav({ nav }: { nav: MobileNav }) {
@@ -24,7 +24,7 @@ export function BottomNav({ nav }: { nav: MobileNav }) {
   return (
     <nav
       aria-label={t('mobileNav')}
-      className="border-border bg-surface fixed inset-x-0 bottom-0 z-20 border-t pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="border-border bg-surface fixed inset-x-0 bottom-0 z-20 border-t pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] md:hidden"
     >
       <ul className="flex h-16 items-stretch gap-1 px-2 py-1.5">
         {nav.bar.map((item) => {
