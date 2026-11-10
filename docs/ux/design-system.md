@@ -162,7 +162,7 @@ Ukrainian text rules: labels run ~25–35 % longer than English. Chips, tabs and
 | Grid                 | 12 columns, 24 px gutter, fluid; content padding 24 desktop / 16 mobile                                                                                                |
 | Breakpoints          | sm 640 · md 768 · lg 1024 · xl 1280 · 2xl 1440                                                                                                                         |
 | Z-index              | sticky 10 · header 20 · dropdown 30 · drawer/dialog 40 · toast 50 · command 60                                                                                         |
-| Motion               | 120 ms hover/press · 160 ms popover/card move · 200 ms drawer/sheet; ease-out; `prefers-reduced-motion` → 0; off in screenshot mode                                    |
+| Motion               | Tokens, curves and rules in §8: press 120 · tooltip 125 · popover 160/120 · dialog 200/150 · drawer 240/180 ms; strong ease-out; reduced motion keeps opacity only; off in screenshot mode                                    |
 | Focus                | `outline: 2px solid var(--ring); outline-offset: 2px` on `:focus-visible`, never removed                                                                               |
 
 **Radius by component**
@@ -286,3 +286,83 @@ Also used (no mockup frame, unchanged): `Dialog`, `AlertDialog` (every destructi
 - `prefers-reduced-motion` respected.
 - Touch targets ≥ 44.
 - `aria-label`s in Ukrainian, from `messages/uk.json`.
+
+## 8. Motion
+
+> Decision record, interaction matrix and the "stay CSS-only" justification: `ui-foundation.md` §3. Built in task F1.
+
+**Rules in one breath:** animate only what is seen occasionally (dialogs, drawers, popovers, toasts) and tiny press feedback; never keyboard-initiated actions, list filtering, tab/row selection, sidebar collapse; `transform` + `opacity` only (colour for hover); never `transition: all`, `ease-in`, or `scale(0)`; UI ≤ 300 ms, exits faster than enters; Radix exits are keyframes (Presence ignores transitions); no motion library.
+
+### 8.1 Tokens (`@theme`, concrete values)
+
+```css
+@theme {
+  /* Overrides Tailwind's weak built-in ease-out, so existing `ease-out` classes get the strong curve. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --duration-press: 120ms;
+  --duration-tooltip: 125ms;
+  --duration-popover: 160ms;
+  --duration-popover-exit: 120ms;
+  --duration-dialog: 200ms;
+  --duration-dialog-exit: 150ms;
+  --duration-drawer: 240ms;
+  --duration-drawer-exit: 180ms;
+}
+
+:root {
+  --motion-scale: 0.96; /* entering popovers/dialogs start here, never below 0.95 */
+  --motion-shift: 100%; /* sheets/drawers travel their own size */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-scale: 1; /* no scale */
+    --motion-shift: 0%; /* no travel: only the opacity part of each keyframe remains */
+  }
+}
+```
+
+| Token (utility)                              | Value                 | Use                                                    |
+| -------------------------------------------- | --------------------- | ------------------------------------------------------ |
+| `ease-out`                                   | strong ease-out       | every enter/exit, press, default                       |
+| `ease-in-out`                                | strong ease-in-out    | on-screen movement (rare: only if something moves/morphs) |
+| `ease-drawer`                                | iOS-like drawer curve | bottom sheets and right drawers                        |
+| `duration-press` / `-tooltip`                | 120 / 125 ms          | `:active` scale, colour hover / tooltip                |
+| `duration-popover` / `-popover-exit`         | 160 / 120 ms          | dropdown, Select, Combobox, Popover                    |
+| `duration-dialog` / `-dialog-exit`           | 200 / 150 ms          | Dialog, AlertDialog (desktop)                          |
+| `duration-drawer` / `-drawer-exit`           | 240 / 180 ms          | mobile bottom sheet, Sheet                             |
+
+### 8.2 Keyframes and utilities (shared by every Radix surface)
+
+| Utility            | Keyframe `from` → `to`                                                         | Applied to                                              |
+| ------------------ | ------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| `motion-pop`       | `opacity 0; scale var(--motion-scale)` → `opacity 1; scale 1`, origin = `var(--radix-*-content-transform-origin)` | dropdown, Select, Combobox, Popover, tooltip (`.97`)    |
+| `motion-modal`     | same, origin `center`, `duration-dialog` in / `-exit` out                      | Dialog, AlertDialog on ≥ 768 px                         |
+| `motion-sheet-up`  | `translate: 0 var(--motion-shift)` + opacity → 0, `ease-drawer`                | Dialog/AlertDialog bottom sheet below 768 px            |
+| `motion-sheet-side`| `translate: var(--motion-shift) 0` + opacity → 0, `ease-drawer`                | right Sheet                                             |
+| `motion-fade`      | `opacity 0 → 1`, `duration-dialog`                                             | overlays (backdrops)                                    |
+
+- Keyboard-opened surfaces carry `data-instant` and `animation: none` (the `openedBy` flag already exists in `useDeferredMenu`).
+- Tooltip `data-state="instant-open"` (a neighbour was just open): `animation: none`.
+- Press: `.btn:active { scale: .97 }` with `transition: scale var(--duration-press) var(--ease-out), background-color …, color …`; disabled and reduced-motion: none.
+- Skeleton: no shimmer; `skeleton-delayed` (150 ms) stays.
+- Overlay opacity animates together with its panel so they read as one surface; overlay colour `rgb(0 0 0 / .40)` light, `.60` dark.
+
+### 8.3 Do-not-animate list
+
+Row hover and selection · tab switch · list refresh, search typing, filter and chip changes, pagination · preview panel content swap · validation errors and "saved" text · status chip changes · sidebar collapse · page navigation · theme switch · anything opened from the keyboard.
+
+### 8.4 Review checklist (every UI task)
+
+| Check                                                            | Pass when                                                         |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Frequency gate answered for each animation                       | purpose named; "looks nice" is rejected                           |
+| Properties                                                       | only `transform`/`opacity` (+ colour on hover)                    |
+| Curve and duration                                               | tokens above, ≤ 300 ms, exit faster than enter                    |
+| Origin                                                           | popovers from the trigger, modals centred                         |
+| Hover                                                            | only inside `hover:`; touch uses `:active`                        |
+| Reduced motion                                                   | opacity only; verified with emulation                             |
+| Slow-motion pass                                                 | played at 3× once and re-checked on another day                   |

@@ -150,7 +150,7 @@ Position "Медіабаєр — Facebook" with open vacancies for Vasyl and Tar
 
 ## 11. Design skills (installed in `.claude/skills/`, source `emilkowalski/skills`)
 
-Mockups in `UI FROM DESIGNER/` + `docs/ux/design-system.md` define the look; these skills define polish and motion. Web only — never use `animate-expo`, `write-swift`, `apple-design`.
+Mockups in `UI FROM DESIGNER/` + `docs/ux/design-system.md` define the look; these skills define polish and motion. Subagents have no Skill tool: they read `.claude/skills/<name>/SKILL.md` (and its linked files) before the work. Web only — never use `animate-expo`, `write-swift`, `apple-design`.
 
 | Moment                                             | Skill                                                              |
 | -------------------------------------------------- | ------------------------------------------------------------------ |
