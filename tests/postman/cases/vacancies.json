@@ -569,5 +569,674 @@
         "code": "invalid_team_lead"
       }
     ]
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "HR has no authoring role and gets the 404 of an unknown draft",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "Recruiter of another vertical gets 404",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "an opened vacancy is not a draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 409,
+    "code": "VACANCY_NOT_DRAFT"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "an unknown vacancy is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "a malformed id is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0009"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0010"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0011"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "HR has no authoring role and gets the 404 of an unknown draft",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0012"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "Recruiter of another vertical gets 404",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0013"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "an opened vacancy is not a draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0014"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 409,
+    "code": "VACANCY_NOT_DRAFT"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "an unknown vacancy is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0015"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "a malformed id is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0016"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "HR has no authoring role and gets the 404 of an unknown draft",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Recruiter of another vertical gets 404",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "an opened vacancy is not a draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 409,
+    "code": "VACANCY_NOT_DRAFT"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "an unknown vacancy is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a malformed id is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "HR has no authoring role and gets the 404 of an unknown draft",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Recruiter of another vertical gets 404",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "an opened vacancy is not a draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{}",
+    "status": 409,
+    "code": "VACANCY_NOT_DRAFT"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "an unknown vacancy is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "a malformed id is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "unknown fields such as status or vertical are refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\",\"status\":\"OPEN\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "an edit without any field is refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "the version is required",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"title\":\"Назва чернетки\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.expectedVersion",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "a missing Idempotency-Key is a validation error",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": null
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "header.Idempotency-Key",
+        "code": "invalid_key"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a blank reason is refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"reason\":\"   \"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "Admin saves a throwaway draft with only vertical and title",
+    "as": "admin",
+    "headers": {
+      "Idempotency-Key": "newman-draft-{{vacancy_run}}"
+    },
+    "body": "{\"mode\":\"DRAFT\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\",\"title\":\"Тест API — чернетка {{vacancy_run}}\"}",
+    "status": 201,
+    "script": "vacancy-draft-created"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "the same key and body replays the same draft",
+    "as": "admin",
+    "headers": {
+      "Idempotency-Key": "newman-draft-{{vacancy_run}}"
+    },
+    "body": "{\"mode\":\"DRAFT\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\",\"title\":\"Тест API — чернетка {{vacancy_run}}\"}",
+    "status": 201,
+    "script": "vacancy-draft-replayed"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Head Recruiter cannot read the Admin draft (D92)",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Admin reads the own draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "status": 200,
+    "script": "vacancy-draft-read"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "Admin edits the own draft with the version it read",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_draft_version}},\"title\":\"Тест API — оновлена {{vacancy_run}}\",\"headcount\":2,\"location\":\"Київ\"}",
+    "status": 200,
+    "script": "vacancy-draft-updated"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "a stale version saves nothing",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Тест API — стара вкладка\"}",
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "Head Recruiter gets 404 for the Admin draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "Head Recruiter gets 404 for the Admin draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0006"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "a stale version cannot be published",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0017"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "a draft without a position cannot be published",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0007"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_draft_version}}}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.positionId",
+        "code": "required"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Head Recruiter gets 404 for the Admin draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a reason is required",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Head Recruiter gets 404 for the Admin draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Admin soft-deletes the own throwaway draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{}",
+    "status": 200,
+    "script": "vacancy-draft-deleted"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "a deleted draft is gone even for its author",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "a deleted draft cannot be edited",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "a deleted draft cannot be deleted again",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
   }
 ]

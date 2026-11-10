@@ -66,3 +66,9 @@ export function vacancyAuthorKind(
   if (covers(assigner, verticalId)) return 'ASSIGNER';
   return covers(selfAssigner, verticalId) ? 'SELF_ASSIGNER' : null;
 }
+
+/** Object-independent gate of the draft routes: the caller authors in at least one vertical (a Team Lead only requests, D87). */
+export function authorsAnywhere(ctx: AuthContext): boolean {
+  const { any } = vacancyAuthorVerticals(ctx);
+  return any === 'ALL' || any.size > 0;
+}

@@ -73,7 +73,7 @@ beforeAll(async () => {
       case when n % 997 = 0 then 'Рідкісний фахівець ' || n else 'Менеджер напряму ' || n end,
       case when n % 701 = 0 then ${ids.lead}::uuid else ${ids.creator}::uuid end,
       false,
-      b.status, now(), case when b.status in ('FILLED', 'CANCELLED') then now() end,
+      b.status, case when b.status = 'DRAFT' then null else now() end, case when b.status in ('FILLED', 'CANCELLED') then now() end,
       case when b.status = 'CANCELLED' then now() end,
       ${ids.creator},
       case when (n / 7) % 25 = 0 then now() end,
@@ -88,8 +88,13 @@ beforeAll(async () => {
           when 4 then 'CANCELLED' when 5 then 'CANCELLED' else 'FILLED' end as status
       from generate_series(1, ${ROWS}) n
     ) b`;
-  await admin`update app.vacancy set opened_at = null where status = 'DRAFT' and vertical_id in (${ids.v1}, ${ids.v2}, ${ids.v3})`;
   await admin`update app.vacancy set position_id = null where status = 'DRAFT' and vertical_id in (${ids.v1}, ${ids.v2}, ${ids.v3})`;
+  // Never-opened cancelled drafts of one author, so the cancelled-list plan runs the author arm on data.
+  await admin`insert into app.vacancy (vertical_id, position_id, title, team_lead_id, recruiter_initiated,
+      status, opened_at, closed_at, cancelled_at, created_by)
+    select ${ids.v1}::uuid, ${ids.position1}::uuid, 'Скасована чернетка ' || n, ${ids.creator}::uuid, false,
+      'CANCELLED', null, now(), now(), ${ids.idle}::uuid
+    from generate_series(1, 8) n`;
   await admin`insert into app.vacancy_recruiter (vacancy_id, user_id, assigned_by)
     select id, ${ids.recruiter}::uuid, ${ids.creator}::uuid from app.vacancy
     where vertical_id in (${ids.v1}, ${ids.v2}, ${ids.v3}) and team_lead_id = ${ids.creator} and deleted_at is null
@@ -224,6 +229,21 @@ describe('vacancy list query plans on 30k rows [PERF-02, PERF-05]', () => {
     );
     expect(result.seqScans).toEqual([]);
     expect(result.time).toBeLessThan(100);
+  });
+
+  it('answers the cancelled list, role arm plus the author’s own cancelled drafts, without a table scan [S2]', async () => {
+    const result = await plan(
+      list(
+        scopeFor(
+          ids.idle,
+          [{ role: 'RECRUITER', verticalId: ids.v1 }],
+          'CANCELLED',
+        ),
+        { status: 'CANCELLED' },
+      ),
+    );
+    expect(result.seqScans).toEqual([]);
+    expect(result.time).toBeLessThan(50);
   });
 
   it('keeps a status filter other than DRAFT free of the draft arm', () => {

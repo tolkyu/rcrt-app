@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { USER_PROFILE_FIELDS } from '../../lib/user-constants';
+import { VACANCY_STATUSES } from '../../lib/vacancy-filters';
 import type { WriteContext } from '../context/request-context';
 import type { DbExecutor } from '../db';
 import { changeFeed, entityEvent, entityEventPii } from '../db/schema';
@@ -19,6 +20,23 @@ const settingField = z.enum([
   'retentionRejectedMonths',
 ]);
 const empty = z.object({}).strict();
+const vacancyStatus = z.enum(VACANCY_STATUSES);
+/** Field names of a vacancy edit; values never enter an event (SEC-CORE-07). */
+export const VACANCY_EDIT_FIELDS = [
+  'title',
+  'positionId',
+  'teamLeadId',
+  'headcount',
+  'seniority',
+  'workFormat',
+  'employmentType',
+  'location',
+  'salary',
+  'priority',
+  'probationDays',
+  'descriptionDoc',
+  'requirementsDoc',
+] as const;
 
 /** Subject type of every user event; the user timeline is keyed on it (HIST-03). */
 export const USER_SUBJECT = 'app_user';
@@ -73,6 +91,14 @@ export const EVENT_PAYLOADS = {
     })
     .strict(),
   'vacancy.recruiter_assigned': z.object({ userId: id }).strict(),
+  'vacancy.updated': z
+    .object({ fields: z.array(z.enum(VACANCY_EDIT_FIELDS)).min(1) })
+    .strict(),
+  /** The cancellation reason is free text and travels only in the PII side row. */
+  'vacancy.status_changed': z
+    .object({ from: vacancyStatus, to: vacancyStatus })
+    .strict(),
+  'vacancy.deleted': empty,
   'position.created': empty,
   'position.renamed': empty,
   'position.deactivated': empty,

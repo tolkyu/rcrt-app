@@ -153,10 +153,11 @@ function evaluate(
 ): boolean {
   const resources: readonly string[] = PERMISSIONS[permission].resources;
   if (!resources.includes(resource.type)) return false;
-  // D92, D98: a DRAFT belongs to its author alone, and only while they still hold a vacancy-creating role in its vertical (as `vacancyReadWhere`); no other grant, not even GLOBAL, reaches it.
+  // D92, D98: a draft, also a cancelled one, is its author's alone while they author in its vertical (as `vacancyReadWhere`); not even GLOBAL reaches it.
   if (
     resource.type === 'vacancy' &&
-    resource.status === 'DRAFT' &&
+    (resource.status === 'DRAFT' ||
+      (resource.status === 'CANCELLED' && resource.neverOpened)) &&
     (resource.createdBy !== ctx.userId ||
       vacancyAuthorKind(ctx, resource.verticalId) === null)
   )

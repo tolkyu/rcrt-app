@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -423,13 +424,21 @@ describe('open vacancy work [ROLE-06, D24, D43, STORY-ROLE-06-1]', () => {
     expect(await open('nobody')).toBe(false);
   });
 
-  it('does not treat a draft led by a Team Lead as open work [D98]', async () => {
-    await admin`update app.vacancy set status = 'CANCELLED', closed_at = now(), cancelled_at = now() where id = ${world.v.unassignedOnHold}`;
-    try {
-      expect(await open('tlB')).toBe(false);
-    } finally {
-      await admin`update app.vacancy set status = 'ON_HOLD', closed_at = null, cancelled_at = null where id = ${world.v.unassignedOnHold}`;
-    }
+  it('does not treat a cancelled vacancy led by a Team Lead as open work [D98]', async () => {
+    // CANCELLED is final (lifecycle trigger), so the change is made in a transaction that is rolled back.
+    const rolledBack = Symbol('rollback');
+    await db
+      .transaction(async (tx) => {
+        await tx.execute(
+          sql`update app.vacancy set status = 'CANCELLED', closed_at = now(), cancelled_at = now() where id = ${world.v.unassignedOnHold}`,
+        );
+        expect(await userHasOpenVacancyWork(tx, world.users.tlB)).toBe(false);
+        throw rolledBack;
+      })
+      .catch((error: unknown) => {
+        if (error !== rolledBack) throw error;
+      });
+    expect(await open('tlB')).toBe(true);
   });
 
   it('evaluates the proposed remaining roles per vertical and per responsibility', async () => {

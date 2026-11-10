@@ -4,11 +4,15 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 import { describe, expect, it } from 'vitest';
 import { can, permissionsFor } from '@/server/authz/can';
 import {
+  authorsAnywhere,
   grantCovers,
   vacancyAuthorKind,
   vacancyAuthorVerticals,
 } from '@/server/authz/vacancy-author';
-import { vacancyReadWhere } from '@/server/authz/vacancy-scope';
+import {
+  vacancyEventReadWhere,
+  vacancyReadWhere,
+} from '@/server/authz/vacancy-scope';
 import type { BuiltinRole } from '@/server/authz/types';
 import {
   contextFor,
@@ -21,8 +25,10 @@ import {
 } from './fixtures';
 
 const dialect = new PgDialect();
-const render = (ctx: ReturnType<typeof roleContext>) =>
-  dialect.sqlToQuery(vacancyReadWhere(ctx));
+const render = (
+  ctx: ReturnType<typeof roleContext>,
+  status?: Parameters<typeof vacancyReadWhere>[1],
+) => dialect.sqlToQuery(vacancyReadWhere(ctx, status));
 
 describe('full-form vacancy authors [VAC-03, D77, D87, D89]', () => {
   it.each<[BuiltinRole, 'ASSIGNER' | 'SELF_ASSIGNER' | null]>([
@@ -35,6 +41,18 @@ describe('full-form vacancy authors [VAC-03, D77, D87, D89]', () => {
     ['FINANCE', null],
   ])('%s in the vertical is %s', (role, expected) => {
     expect(vacancyAuthorKind(roleContext(role), GAMBLING)).toBe(expected);
+  });
+
+  it.each<[BuiltinRole, boolean]>([
+    ['ADMIN', true],
+    ['HEAD_RECRUITER', true],
+    ['RECRUITER', true],
+    ['TEAM_LEAD', false],
+    ['HEAD_HR', false],
+    ['HR', false],
+    ['FINANCE', false],
+  ])('the draft-route gate for %s is %s', (role, expected) => {
+    expect(authorsAnywhere(roleContext(role))).toBe(expected);
   });
 
   it('keeps the vertical bound for vertical roles and drops Admin while MFA is pending', () => {
@@ -143,6 +161,28 @@ describe('DRAFT belongs to its author alone [D92, D98]', () => {
     ).toBe(false);
   });
 
+  it('treats a draft its author cancelled like a draft, and a vacancy cancelled after opening like any other [D92, D82]', () => {
+    const cancelled = (createdBy: string, neverOpened: boolean) =>
+      vacancy({
+        status: 'CANCELLED',
+        createdBy: createdBy as typeof ME,
+        neverOpened,
+      });
+    for (const role of ['ADMIN', 'HEAD_RECRUITER', 'HEAD_HR'] as const)
+      expect(
+        can(roleContext(role), 'vacancy.read', cancelled(OTHER, true)),
+      ).toBe(false);
+    expect(can(roleContext('ADMIN'), 'vacancy.read', cancelled(ME, true))).toBe(
+      true,
+    );
+    expect(
+      can(roleContext('HEAD_HR'), 'vacancy.read', cancelled(ME, true)),
+    ).toBe(false);
+    expect(
+      can(roleContext('ADMIN'), 'vacancy.read', cancelled(OTHER, false)),
+    ).toBe(true);
+  });
+
   it('applies the draft rule only to drafts', () => {
     expect(
       can(roleContext('ADMIN'), 'vacancy.read', vacancy({ createdBy: OTHER })),
@@ -151,6 +191,21 @@ describe('DRAFT belongs to its author alone [D92, D98]', () => {
 });
 
 describe('the one vacancy read predicate [D92]', () => {
+  it('keeps a cancelled draft out of the role arm and gives it to its author through its own arm', () => {
+    const all = render(roleContext('ADMIN'));
+    expect(all.sql).toContain('"opened_at" is null');
+    expect(all.sql).toContain('not (');
+    const cancelled = render(roleContext('ADMIN'), 'CANCELLED');
+    expect(cancelled.params).toEqual(
+      expect.arrayContaining(['CANCELLED', 'DRAFT', ME]),
+    );
+    expect(cancelled.sql).toContain('"opened_at" is null');
+    expect(render(roleContext('ADMIN'), 'OPEN').sql).not.toContain('opened_at');
+    expect(render(roleContext('ADMIN'), 'DRAFT').sql).not.toContain(
+      'opened_at',
+    );
+  });
+
   it('ties every draft to the caller, so another author’s id never matches', () => {
     const query = render(roleContext('ADMIN'));
     expect(query.sql).toContain('"status" <> $1');
@@ -169,6 +224,45 @@ describe('the one vacancy read predicate [D92]', () => {
     const query = render(roleContext('RECRUITER'));
     expect(query.params).toContain(GAMBLING);
     expect(render(roleContext('ADMIN')).sql).toContain('true');
+  });
+});
+
+describe('the one event read predicate [D92, SEC-VC-06]', () => {
+  const eventWhere = (ctx: ReturnType<typeof roleContext>) =>
+    dialect.sqlToQuery(vacancyEventReadWhere(ctx));
+
+  it('is row-local: events without a vacancy pass, draft-era rows (no vertical) pass only for their actor, with every column qualified', () => {
+    const query = eventWhere(roleContext('RECRUITER'));
+    expect(query.sql).toContain('"entity_event"."vacancy_id" is null');
+    expect(query.sql).toContain(
+      '"entity_event"."vertical_id" is null and "entity_event"."actor_id" = $',
+    );
+    expect(query.sql).toContain('"entity_event"."vertical_id" is not null and');
+    expect(query.params).toContain(ME);
+  });
+
+  it('never reads the vacancy for the draft rule or for a vertical-wide role: the vertical on the event row is the scope', () => {
+    for (const role of ['ADMIN', 'HEAD_RECRUITER', 'HR'] as const)
+      expect(eventWhere(roleContext(role)).sql, role).not.toContain(
+        'from "app"."vacancy"',
+      );
+    const head = eventWhere(roleContext('HEAD_RECRUITER'));
+    expect(head.sql).toContain('"entity_event"."vertical_id" in ($');
+    expect(head.params).toContain(GAMBLING);
+  });
+
+  it('probes the vacancy by primary key only for the per-vacancy scopes (own Team Lead vacancies, assigned or unassigned recruiter work)', () => {
+    for (const role of ['TEAM_LEAD', 'RECRUITER'] as const) {
+      const { sql } = eventWhere(roleContext(role));
+      expect(sql, role).toContain(
+        'exists (select 1 from "app"."vacancy" where "app"."vacancy"."id" = "entity_event"."vacancy_id"',
+      );
+    }
+  });
+
+  it('matches no vacancy event for a role without vacancy access beyond the author rule', () => {
+    for (const role of ['FINANCE'] as const)
+      expect(eventWhere(roleContext(role)).sql, role).toContain('false');
   });
 });
 
@@ -218,6 +312,46 @@ describe('vacancy read paths cannot bypass the draft rule [D92]', () => {
         allowed,
       ).toBe(true);
     }
+  });
+
+  /** Readers of `entity_event`: a new one must apply `vacancyEventReadWhere` to vacancy events (D92) and then be listed here. */
+  const EVENT_MODULES = [
+    'server/authz/vacancy-scope.ts',
+    'server/db/seed/index.ts',
+    'server/events/index.ts',
+    'server/repositories/user.ts',
+  ];
+  const EVENT_TABLE =
+    /import\s*\{[^}]*(?:entityEvent|changeFeed)[^}]*\}\s*from\s*'[^']*db\/schema'|schema\.(?:entityEvent|changeFeed)/;
+  /** Raw SQL, `sql.identifier` or a view reaches the same tables without the Drizzle import; comments are not code. */
+  const EVENT_SQL_NAME = /\b(?:entity_event|change_feed)\b/;
+  const code = (text: string) =>
+    text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+
+  it('only the allowlisted modules touch entity_event, so no timeline reader can skip the draft rule', () => {
+    const offenders = files
+      .filter(({ text }) => EVENT_TABLE.test(text))
+      .map(({ path }) => path)
+      .filter((path) => path !== 'server/db/schema.ts')
+      .filter((path) => !EVENT_MODULES.includes(path));
+    expect(offenders).toEqual([]);
+  });
+
+  it('no module reaches entity_event or change_feed through raw SQL outside the allowlist', () => {
+    const offenders = files
+      .filter(({ text }) => EVENT_SQL_NAME.test(code(text)))
+      .map(({ path }) => path)
+      .filter((path) => path !== 'server/db/schema.ts')
+      .filter((path) => !EVENT_MODULES.includes(path));
+    expect(offenders).toEqual([]);
+  });
+
+  it('the only existing timeline reader selects user events, never vacancy events', () => {
+    const reader = files.find(
+      ({ path }) => path === 'server/repositories/user.ts',
+    )!;
+    expect(reader.text).toMatch(/e\.type like 'user\.%'/);
+    expect(reader.text).not.toMatch(/vacancy_id/);
   });
 
   it('keeps the role scope adapter private to its module', () => {

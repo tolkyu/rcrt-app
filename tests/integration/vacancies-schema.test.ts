@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { positionNameKey } from '../../lib/position-name';
 import {
   createVacancyWorld,
+  WORLD_OPENED_AT,
   type VacancyWorld,
 } from '../support/vacancy-world';
 import { connectTestDatabase, testDatabaseUrls } from './database';
@@ -327,7 +328,7 @@ describe('vacancy numbers [VAC-07, STORY-VAC-07-1]', () => {
 });
 
 describe('vacancy privileges and event link [ADR-012]', () => {
-  it('lets the runtime role read and insert vacancies and assignments but never update or delete them (S1)', async () => {
+  it('lets the runtime role read and insert vacancies and assignments, update only the lifecycle columns, and never delete or reassign (S2)', async () => {
     const [countRow] =
       await runtime`select count(*)::int as count from app.vacancy where id = ${world.v.assignedOpen}`;
     const count = countRow!.count as number;
@@ -335,7 +336,10 @@ describe('vacancy privileges and event link [ADR-012]', () => {
     await runtime`select count(*) from app.position`;
     await runtime`select count(*) from app.vacancy_recruiter`;
     for (const statement of [
-      runtime`update app.vacancy set title = 'Зміна' where id = ${world.v.assignedOpen}`,
+      runtime`update app.vacancy set created_by = ${world.users.recA} where id = ${world.v.assignedOpen}`,
+      runtime`update app.vacancy set vertical_id = ${world.verticals.v2} where id = ${world.v.assignedOpen}`,
+      runtime`update app.vacancy set source = 'TELEGRAM_BOT' where id = ${world.v.assignedOpen}`,
+      runtime`update app.vacancy set created_at = now() where id = ${world.v.assignedOpen}`,
       runtime`delete from app.vacancy where id = ${world.v.assignedOpen}`,
       runtime`delete from app.vacancy_recruiter where vacancy_id = ${world.v.assignedOpen}`,
       runtime`update app.vacancy_recruiter set assigned_by = ${world.users.recA} where vacancy_id = ${world.v.assignedOpen}`,
@@ -345,6 +349,8 @@ describe('vacancy privileges and event link [ADR-012]', () => {
       await tx`set local role app_rw`;
       await tx`insert into app.vacancy ${tx(world.vacancyRow())}`;
       await tx`insert into app.vacancy_recruiter (vacancy_id, user_id, assigned_by) values (${world.v.draft}, ${world.users.recA}, ${world.users.admin})`;
+      await tx`update app.vacancy set title = 'Зміна', version = version + 1, updated_at = now() where id = ${world.v.draft}`;
+      await tx`select id from app.vacancy where id = ${world.v.draft} for update`;
     });
   });
 
@@ -493,5 +499,65 @@ describe('vacancy indexes [PERF-02, PERF-05]', () => {
       /\(user_id, vacancy_id\)/,
     );
     expect(definitions.get('vacancy_public_no_uq')).toMatch(/UNIQUE/);
+  });
+
+  it('has no index of its own for cancelled drafts: they are a handful per author and no statement reads them alone', async () => {
+    const rows = await admin`select indexname from pg_indexes
+      where schemaname = 'app' and tablename = 'vacancy' and indexname like '%cancelled%'`;
+    expect(rows).toEqual([]);
+  });
+});
+
+describe('vacancy lifecycle guard [SEC-V2S2-03, D92]', () => {
+  const refused = (message: string) => ({ code: '23514', message });
+
+  it('keeps the opening date once set: it cannot be cleared or moved', async () => {
+    for (const change of [
+      admin`update app.vacancy set opened_at = null where id = ${world.v.assignedOpen}`,
+      admin`update app.vacancy set opened_at = now() where id = ${world.v.assignedOpen}`,
+      admin`update app.vacancy set opened_at = null where id = ${world.v.cancelled}`,
+    ])
+      await expect(change).rejects.toMatchObject(
+        refused('vacancy_opened_at_immutable'),
+      );
+  });
+
+  it('never returns an opened vacancy to DRAFT', async () => {
+    for (const id of [world.v.assignedOpen, world.v.unassignedOnHold])
+      await expect(
+        admin`update app.vacancy set status = 'DRAFT' where id = ${id}`,
+      ).rejects.toMatchObject(refused('vacancy_draft_is_first_status'));
+  });
+
+  it('keeps a cancelled vacancy cancelled, with or without an opening date', async () => {
+    const neverOpened = world.addVacancy({
+      title: `Скасована чернетка ${world.tag}`,
+      status: 'CANCELLED',
+      opened_at: null,
+      closed_at: WORLD_OPENED_AT,
+      cancelled_at: WORLD_OPENED_AT,
+    });
+    for (const id of [world.v.cancelled, await neverOpened])
+      for (const status of ['OPEN', 'ON_HOLD', 'FILLED', 'DRAFT'])
+        await expect(
+          admin`update app.vacancy set status = ${status} where id = ${id}`,
+          `${id} ${status}`,
+        ).rejects.toMatchObject({ code: '23514' });
+  });
+
+  it('lets the lifecycle that exists through: publish, cancel, hold, resume and ordinary edits', async () => {
+    await rolledBack(async (tx) => {
+      await tx`set local role app_rw`;
+      await tx`update app.vacancy set status = 'OPEN', opened_at = now(), version = version + 1 where id = ${world.v.draft}`;
+      await tx`update app.vacancy set status = 'ON_HOLD' where id = ${world.v.draft}`;
+      await tx`update app.vacancy set status = 'OPEN' where id = ${world.v.draft}`;
+      await tx`update app.vacancy set status = 'CANCELLED', closed_at = now(), cancelled_at = now() where id = ${world.v.draft}`;
+      await tx`update app.vacancy set title = 'Зміна', version = version + 1 where id = ${world.v.assignedOpen}`;
+    });
+    await rolledBack(async (tx) => {
+      await tx`set local role app_rw`;
+      await tx`update app.vacancy set status = 'CANCELLED', closed_at = now(), cancelled_at = now() where id = ${world.v.draft}`;
+      await tx`update app.vacancy set deleted_at = now(), deleted_by = ${world.users.admin}, delete_reason = 'Тест' where id = ${world.v.draft}`;
+    });
   });
 });

@@ -18,3 +18,4 @@ pm.collectionVariables.set(
   'vacancy_gambling_position_id',
   page.items.find((v) => v.position).position.id,
 );
+pm.collectionVariables.set('vacancy_run', Date.now().toString(36));

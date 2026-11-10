@@ -8,6 +8,7 @@ import {
   idempotencyKeySchema,
 } from '../../lib/idempotency';
 import { hasAnyGrant, requirePermission } from '../authz/can';
+import type { AuthContext } from '../authz/context';
 import type { PermissionCode } from '../authz/permissions';
 import {
   requestMeta,
@@ -47,6 +48,8 @@ export interface RouteSpec<
   readonly permission?: PermissionCode;
   /** 403 unless the caller holds this permission in some scope; checked right after `permission`, before params, query or body are parsed. */
   readonly requireGrant?: PermissionCode;
+  /** 404 of an unknown object unless this holds; checked right after `permission`/`requireGrant`, before params, `Idempotency-Key` and body are read, for routes whose objects must not be probed (D92). */
+  readonly hideUnless?: (auth: AuthContext) => boolean;
   readonly summary: string;
   readonly tags: readonly string[];
   readonly params?: P;
@@ -205,7 +208,9 @@ export function createRouteFactory(deps: RouteFactoryDependencies) {
         userId = ctx.auth.userId;
         if (spec.permission) requirePermission(ctx.auth, spec.permission);
         if (spec.requireGrant && !hasAnyGrant(ctx.auth, spec.requireGrant))
-          throw new ForbiddenError();
+          throw spec.hideUnless ? new NotFoundError() : new ForbiddenError();
+        if (spec.hideUnless && !spec.hideUnless(ctx.auth))
+          throw new NotFoundError();
         const idempotency = spec.idempotent
           ? idempotencyKeySchema.safeParse(
               request.headers.get(IDEMPOTENCY_HEADER) ?? undefined,

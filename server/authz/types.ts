@@ -83,6 +83,8 @@ export interface VacancyRef {
   readonly status: VacancyStatus;
   readonly teamLeadId: UserId | null;
   readonly createdBy: UserId;
+  /** No opening date: a draft, or one its author cancelled; private to the author (D92). */
+  readonly neverOpened: boolean;
   /** Created by a recruiter without a Team Lead (VAC-03 footnote 1); only these are recruiter-deletable (D13). */
   readonly recruiterInitiated: boolean;
   readonly assignedRecruiterIds: readonly UserId[];

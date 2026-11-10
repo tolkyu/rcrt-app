@@ -9,8 +9,8 @@ import {
   vacancyListQuerySchema,
   VACANCY_DAILY_CREATE_LIMIT,
   VACANCY_DRAFT_LIMIT,
+  VACANCY_PROBATION_DEFAULT,
   VACANCY_WRITE_RATE_LIMIT,
-  type CreateVacancyBody,
   type CreateVacancyInput,
   type VacancyDetail,
   type VacancyListQuery,
@@ -99,16 +99,25 @@ export async function listVacancyPage(
   };
 }
 
-async function readVacancy(
+/** A detail whose vertical id is already the branded id the authz helpers take. */
+export type VacancyView = Omit<VacancyDetail, 'vertical'> & {
+  readonly vertical: { readonly id: VerticalId; readonly name: string };
+};
+
+export async function readVacancy(
   ctx: RequestContext,
   db: DbExecutor,
   id: string,
-): Promise<VacancyDetail> {
-  return present(
+): Promise<VacancyView> {
+  const detail = present(
     await findVisibleVacancyOrThrow(ctx.auth, (scope) =>
       findVacancy(db, scope, id),
     ),
   );
+  return {
+    ...detail,
+    vertical: { ...detail.vertical, id: detail.vertical.id as VerticalId },
+  };
 }
 
 export async function getVacancyDetail(
@@ -123,27 +132,76 @@ export async function getVacancyDetail(
 
 const CREATE_OPERATION = 'vacancy.create';
 
-/**
- * Who may create this vacancy with these fields; run before the transaction for a fast refusal and again inside it on
- * role rows read after the users were locked, so a role removed meanwhile cannot slip through (ADR-012).
- */
-function authorizeCreate(
+/** Throttle shared by every vacancy write (create, edit, publish, cancel, delete); consumed once the route's permission gates passed. */
+export async function consumeVacancyWriteLimit(ctx: RequestContext) {
+  await consumeRateLimit(
+    ctx.db,
+    ctx.clock.now(),
+    rateLimitSecret(),
+    [
+      {
+        namespace: 'vacancy:write:user',
+        value: ctx.auth.userId,
+        limit: VACANCY_WRITE_RATE_LIMIT.perUser,
+      },
+    ],
+    VACANCY_WRITE_RATE_LIMIT.windowSeconds,
+  );
+}
+
+/** Fields whose setting needs a permission of its own beyond the right to author (D77, D78). */
+export interface AuthoringGates {
+  readonly setsTeamLead: boolean;
+  readonly setsProbation: boolean;
+}
+
+/** Who may author a vacancy with these fields; run before the transaction for a fast refusal and again on fresh role rows inside it (ADR-012). */
+export function authorizeAuthoring(
   auth: AuthContext,
-  body: CreateVacancyBody,
   verticalId: VerticalId,
+  gates: AuthoringGates,
 ): VacancyAuthorKind {
   if (!can(auth, 'vertical.read', { type: 'vertical', id: verticalId }))
     throw new NotFoundError();
   const kind = vacancyAuthorKind(auth, verticalId);
   if (!kind) throw new ForbiddenError();
   if (
-    (body.teamLeadId &&
+    (gates.setsTeamLead &&
       !grantCovers(auth, 'vacancy.team_lead.set', verticalId)) ||
-    (body.probationDays !== undefined &&
+    (gates.setsProbation &&
       !grantCovers(auth, 'vacancy.probation_length.set', verticalId))
   )
     throw new ForbiddenError();
   return kind;
+}
+
+/** Locks the caller and `others` `FOR SHARE` in id order, then reads their roles in a later statement so a role removal that waited on the lock is seen (SEC-VC-03). */
+export async function lockAuthors(
+  ctx: RequestContext,
+  tx: DbExecutor,
+  others: readonly string[],
+) {
+  const involved = [...new Set([ctx.auth.userId, ...others])].sort();
+  const locked = await lockUsersShared(tx, involved);
+  const roles = await listRoleAssignments(tx, involved);
+  if (!locked.some((user) => user.id === ctx.auth.userId && user.isActive))
+    throw new ForbiddenError();
+  return {
+    auth: buildAuthContext({
+      userId: ctx.auth.userId as UserId,
+      roles: roles.filter((role) => role.userId === ctx.auth.userId),
+      aal: ctx.auth.aal,
+      timezone: ctx.auth.timezone,
+    }),
+    isEligibleTeamLead: (userId: string, verticalId: VerticalId) =>
+      locked.some((user) => user.id === userId && user.isActive) &&
+      roles.some(
+        (role) =>
+          role.userId === userId &&
+          isTeamLeadAssignment(role) &&
+          role.verticalId === verticalId,
+      ),
+  };
 }
 
 /**
@@ -159,19 +217,7 @@ export async function createVacancy(
 ): Promise<VacancyDetail> {
   requirePermission(ctx.auth, 'vacancy.read');
   if (!hasAnyGrant(ctx.auth, 'vacancy.create')) throw new ForbiddenError();
-  await consumeRateLimit(
-    ctx.db,
-    ctx.clock.now(),
-    rateLimitSecret(),
-    [
-      {
-        namespace: 'vacancy:write:user',
-        value: ctx.auth.userId,
-        limit: VACANCY_WRITE_RATE_LIMIT.perUser,
-      },
-    ],
-    VACANCY_WRITE_RATE_LIMIT.windowSeconds,
-  );
+  await consumeVacancyWriteLimit(ctx);
   await consumeRateLimit(
     ctx.db,
     ctx.clock.now(),
@@ -188,7 +234,11 @@ export async function createVacancy(
   const key = idempotencyKeySchema.parse(rawKey);
   const body = createVacancySchema.parse(input);
   const verticalId = body.verticalId as VerticalId;
-  authorizeCreate(ctx.auth, body, verticalId);
+  const gates: AuthoringGates = {
+    setsTeamLead: !!body.teamLeadId,
+    setsProbation: body.probationDays !== undefined,
+  };
+  authorizeAuthoring(ctx.auth, verticalId, gates);
   const teamLeadId = body.teamLeadId ?? null;
 
   const now = ctx.clock.now();
@@ -211,35 +261,9 @@ export async function createVacancy(
       return readVacancy(ctx, tx, claim.resourceId);
     }
     if (!(await verticalExists(tx, verticalId))) throw new NotFoundError();
-    const involved = [
-      ...new Set([ctx.auth.userId, ...(teamLeadId ? [teamLeadId] : [])]),
-    ].sort();
-    const locked = await lockUsersShared(tx, involved);
-    const roles = await listRoleAssignments(tx, involved);
-    if (!locked.some((user) => user.id === ctx.auth.userId && user.isActive))
-      throw new ForbiddenError();
-    const kind = authorizeCreate(
-      buildAuthContext({
-        userId: ctx.auth.userId as UserId,
-        roles: roles.filter((role) => role.userId === ctx.auth.userId),
-        aal: ctx.auth.aal,
-        timezone: ctx.auth.timezone,
-      }),
-      body,
-      verticalId,
-    );
-    if (
-      teamLeadId &&
-      !(
-        locked.some((user) => user.id === teamLeadId && user.isActive) &&
-        roles.some(
-          (role) =>
-            role.userId === teamLeadId &&
-            isTeamLeadAssignment(role) &&
-            role.verticalId === verticalId,
-        )
-      )
-    )
+    const authors = await lockAuthors(ctx, tx, teamLeadId ? [teamLeadId] : []);
+    const kind = authorizeAuthoring(authors.auth, verticalId, gates);
+    if (teamLeadId && !authors.isEligibleTeamLead(teamLeadId, verticalId))
       throw new ValidationError([
         { path: 'body.teamLeadId', code: 'invalid_team_lead' },
       ]);
@@ -271,7 +295,7 @@ export async function createVacancy(
         body.salaryMaxMinor == null ? null : BigInt(body.salaryMaxMinor),
       salaryCurrency: body.salaryCurrency ?? null,
       priorityFlag: body.priority ?? 'NORMAL',
-      probationDays: body.probationDays ?? 90,
+      probationDays: body.probationDays ?? VACANCY_PROBATION_DEFAULT,
       source: 'APP',
       descriptionDoc: body.descriptionDoc ?? null,
       requirementsDoc: body.requirementsDoc ?? null,
@@ -287,10 +311,11 @@ export async function createVacancy(
         assignedBy: ctx.auth.userId,
         assignedAt: now,
       });
+    // Events of a vacancy that never opened carry no vertical, so no vertical-scoped feed can pick up a private draft (D92).
     const subject = {
       subjectType: 'vacancy',
       subjectId: vacancyId,
-      verticalId,
+      verticalId: published ? verticalId : null,
       vacancyId,
     } as const;
     await appendEvent(tx, ctx, {

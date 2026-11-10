@@ -123,6 +123,7 @@ export const VACANCY_TITLE_MAX = 200;
 export const VACANCY_HEADCOUNT_MAX = 100;
 export const VACANCY_PROBATION_MIN = 30;
 export const VACANCY_PROBATION_MAX = 90;
+export const VACANCY_PROBATION_DEFAULT = 90;
 
 /** Same normal form as catalog names: NFC, collapsed whitespace; control, zero-width and bidi characters are rejected before storing. */
 const line = (min: number, max: number) =>
@@ -134,9 +135,8 @@ const line = (min: number, max: number) =>
     .max(max);
 const minorUnits = z.string().regex(/^(?:0|[1-9]\d{0,14})$/);
 
-const baseFields = {
-  verticalId: uuid,
-  title: line(VACANCY_TITLE_MIN, VACANCY_TITLE_MAX),
+const title = line(VACANCY_TITLE_MIN, VACANCY_TITLE_MAX);
+const editableFields = {
   teamLeadId: uuid.nullish(),
   headcount: z.number().int().min(1).max(VACANCY_HEADCOUNT_MAX).optional(),
   seniority: line(1, 100).nullish(),
@@ -162,6 +162,7 @@ const baseFields = {
   descriptionDoc: richTextDocSchema.nullish(),
   requirementsDoc: richTextDocSchema.nullish(),
 };
+const baseFields = { verticalId: uuid, title, ...editableFields };
 
 type SalaryFields = {
   readonly salaryMinMinor?: string | null | undefined;
@@ -170,7 +171,7 @@ type SalaryFields = {
 };
 
 /** Currency is required exactly when a bound is set and min never exceeds max (VAC-01, DB check vacancy_salary_chk). */
-function salaryIssues(value: SalaryFields, add: (path: string) => void) {
+export function salaryIssues(value: SalaryFields, add: (path: string) => void) {
   const { salaryMinMinor: min, salaryMaxMinor: max, salaryCurrency } = value;
   const hasBound = min != null || max != null;
   if (hasBound !== (salaryCurrency != null)) add('salaryCurrency');
@@ -205,3 +206,57 @@ export const createVacancySchema = z
   });
 export type CreateVacancyInput = z.input<typeof createVacancySchema>;
 export type CreateVacancyBody = z.output<typeof createVacancySchema>;
+
+const expectedVersion = z.number().int().positive().meta({
+  description:
+    'Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved.',
+});
+
+export const patchVacancySchema = z
+  .object({
+    expectedVersion,
+    title: title.optional(),
+    positionId: uuid.nullish(),
+    ...editableFields,
+  })
+  .strict()
+  .superRefine((value, ctx) => {
+    if (Object.keys(value).length < 2)
+      ctx.addIssue({ code: 'custom', path: [], message: 'empty_patch' });
+  })
+  .meta({
+    id: 'PatchVacancy',
+    description:
+      'Partial update of the author’s own DRAFT: a missing key keeps the stored value, `null` clears an optional field. The vertical, the status and the author cannot be changed (unknown keys answer 400). A change of `teamLeadId` needs vacancy.team_lead.set, a change of `probationDays` needs vacancy.probation_length.set (403). A salary bound needs the currency and min ≤ max once merged with the stored values.',
+  });
+export type PatchVacancyInput = z.input<typeof patchVacancySchema>;
+export type PatchVacancyBody = z.output<typeof patchVacancySchema>;
+
+export const publishDraftSchema = z.object({ expectedVersion }).strict().meta({
+  id: 'PublishDraft',
+  description:
+    'Publishes exactly the draft the author last saw: when the stored version differs the answer is 409 STALE_STATE and the draft stays a draft.',
+});
+export type PublishDraftInput = z.input<typeof publishDraftSchema>;
+
+export const VACANCY_REASON_MAX = 500;
+export const cancelVacancySchema = z
+  .object({
+    reason: z
+      .string()
+      .refine(hasOnlyVisibleChars, 'invalid_chars')
+      .overwrite(normalizePositionName)
+      .min(1)
+      .max(VACANCY_REASON_MAX),
+  })
+  .strict()
+  .meta({
+    id: 'CancelVacancy',
+    description:
+      'Why the author closes the draft (D82). Kept only in the purgeable side row of the event, never in the audit log.',
+  });
+export type CancelVacancyInput = z.input<typeof cancelVacancySchema>;
+
+export const vacancyDeletedSchema = z
+  .object({ id: z.uuid() })
+  .meta({ id: 'VacancyDeleted' });

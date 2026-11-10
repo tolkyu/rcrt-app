@@ -65,6 +65,7 @@ export const vacancy = (overrides: Partial<VacancyRef> = {}): VacancyRef => ({
   status: 'OPEN',
   teamLeadId: OTHER,
   createdBy: OTHER,
+  neverOpened: false,
   recruiterInitiated: false,
   assignedRecruiterIds: [OTHER],
   maxApplicationStage: null,

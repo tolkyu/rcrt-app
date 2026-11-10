@@ -1,7 +1,8 @@
-import { and, eq, isNull, sql, type SQL } from 'drizzle-orm';
+import { and, eq, getTableColumns, isNull, sql, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 import type { ResolvedVacancyListQuery } from '../../lib/schemas/vacancy';
+import type { VacancyStatus } from '../authz/types';
 import type { DbExecutor } from '../db';
 import {
   appUser,
@@ -191,4 +192,96 @@ export async function countLiveDrafts(
       ),
     );
   return row!.count;
+}
+
+export type VacancyRow = typeof vacancy.$inferSelect;
+type DocColumn = 'descriptionDoc' | 'requirementsDoc';
+/** Scalar columns of a locked vacancy; the two rich-text documents are loaded only for a patch that touches them. */
+export type VacancyLock = Omit<VacancyRow, DocColumn> &
+  Partial<Pick<VacancyRow, DocColumn>>;
+export type VacancyChanges = Partial<
+  Omit<
+    VacancyInsert,
+    | 'id'
+    | 'publicNo'
+    | 'verticalId'
+    | 'source'
+    | 'createdBy'
+    | 'createdAt'
+    | 'updatedAt'
+    | 'version'
+  >
+>;
+
+const { descriptionDoc, requirementsDoc, ...scalarColumns } =
+  getTableColumns(vacancy);
+const stateColumns = {
+  status: vacancy.status,
+  deletedAt: vacancy.deletedAt,
+  createdBy: vacancy.createdBy,
+  version: vacancy.version,
+};
+
+/** `NO KEY UPDATE` serialises lifecycle writers but, unlike `UPDATE`, does not stall the FK checks of event and recruiter inserts (KEY SHARE). */
+export async function lockVacancy(
+  db: DbExecutor,
+  id: string,
+  options: { readonly docs?: boolean } = {},
+): Promise<VacancyLock | null> {
+  const [row] = await db
+    .select(
+      options.docs
+        ? { ...scalarColumns, descriptionDoc, requirementsDoc }
+        : scalarColumns,
+    )
+    .from(vacancy)
+    .where(eq(vacancy.id, id))
+    .for('no key update')
+    .limit(1);
+  return row ?? null;
+}
+
+/** Unlocked state read that tells why a compare-and-set matched no row. */
+export async function findVacancyState(db: DbExecutor, id: string) {
+  const [row] = await db
+    .select(stateColumns)
+    .from(vacancy)
+    .where(eq(vacancy.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
+/** What the row must still be for a lifecycle write to apply; `deleted_at IS NULL` always holds. */
+export interface VacancyExpectation {
+  readonly status: VacancyStatus;
+  readonly version?: number;
+  readonly authorId?: string;
+}
+
+/** Compare-and-set on the columns `app_rw` may update; false means the row no longer matched (state, author, version or deletion). */
+export async function updateVacancy(
+  db: DbExecutor,
+  id: string,
+  expected: VacancyExpectation,
+  changes: VacancyChanges,
+  now: Date,
+): Promise<boolean> {
+  const rows = await db
+    .update(vacancy)
+    .set({ ...changes, updatedAt: now, version: sql`${vacancy.version} + 1` })
+    .where(
+      and(
+        eq(vacancy.id, id),
+        eq(vacancy.status, expected.status),
+        isNull(vacancy.deletedAt),
+        expected.authorId === undefined
+          ? undefined
+          : eq(vacancy.createdBy, expected.authorId),
+        expected.version === undefined
+          ? undefined
+          : eq(vacancy.version, expected.version),
+      ),
+    )
+    .returning({ id: vacancy.id });
+  return rows.length === 1;
 }
