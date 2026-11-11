@@ -15,6 +15,7 @@ import {
 } from 'react';
 import { cn } from '@/lib/utils';
 import { LoadBoundary } from './load-boundary';
+import { useFocusHold } from './use-restore-focus';
 import {
   findOption,
   isStaleValue,
@@ -109,6 +110,7 @@ export function Select(props: SelectFieldProps) {
   const [swap, setSwap] = useState<Swap | null>(null);
   const [failed, setFailed] = useState<Failure | null>(null);
   const touchPress = useRef(false);
+  const { held, track } = useFocusHold();
   const selected = findOption(options, value);
   const emptyLabel = isStaleValue(options, value)
     ? t('unavailable')
@@ -151,6 +153,7 @@ export function Select(props: SelectFieldProps) {
     <button
       {...aria}
       id={id}
+      ref={track}
       type="button"
       // A closed select has no listbox to control; aria-controls appears on the Radix trigger once it is open.
       // eslint-disable-next-line jsx-a11y/role-has-required-aria-props
@@ -234,6 +237,7 @@ export function Select(props: SelectFieldProps) {
               open={swap.open}
               openedBy={swap.by}
               refocus={swap.refocus}
+              focusHeld={held}
             />
           ) : (
             trigger

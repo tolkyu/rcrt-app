@@ -3,7 +3,7 @@
 import { Check, ChevronDown } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Select as SelectPrimitive } from 'radix-ui';
-import { useRef, useState } from 'react';
+import { useRef, useState, type RefObject } from 'react';
 import { cn } from '@/lib/utils';
 import { useRestoreFocus } from './use-restore-focus';
 import {
@@ -53,6 +53,8 @@ interface SelectContentProps extends Omit<SelectFieldProps, 'name'> {
   openedBy: SelectOpenedBy;
   /** The static trigger had keyboard focus when it was replaced. */
   refocus: boolean;
+  /** Set by the static trigger when it held focus as it was removed. */
+  focusHeld: RefObject<boolean>;
 }
 
 export default function SelectContent({
@@ -67,6 +69,7 @@ export default function SelectContent({
   open,
   openedBy,
   refocus,
+  focusHeld,
   ...aria
 }: SelectContentProps) {
   const t = useTranslations('common');
@@ -74,7 +77,7 @@ export default function SelectContent({
   const via = useRef<SelectOpenedBy>(openedBy);
   const selected = findOption(options, value);
 
-  const attach = useRestoreFocus(refocus);
+  const attach = useRestoreFocus(refocus, focusHeld);
 
   return (
     <SelectPrimitive.Root

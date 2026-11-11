@@ -5,20 +5,24 @@ import {
   lazy,
   startTransition,
   Suspense,
+  useCallback,
   useRef,
   useState,
   type FocusEventHandler,
   type PointerEventHandler,
   type ReactElement,
   type ReactNode,
+  type Ref,
 } from 'react';
 import { LoadBoundary } from './load-boundary';
 import type { FocusIntent, TooltipSide } from './tooltip-content';
+import { useFocusHold } from './use-restore-focus';
 
 const loadContent = () => import('./tooltip-content');
 const TooltipContent = lazy(loadContent);
 
 export interface TooltipTriggerProps {
+  ref?: Ref<HTMLElement>;
   onPointerEnter?: PointerEventHandler<HTMLElement>;
   onPointerLeave?: PointerEventHandler<HTMLElement>;
   onPointerDown?: PointerEventHandler<HTMLElement>;
@@ -34,6 +38,21 @@ export interface TooltipProps {
   decorative?: boolean;
   /** One focusable element that forwards its ref and DOM props (a Button, a link). */
   children: ReactElement<TooltipTriggerProps>;
+}
+
+/** Sets the caller's own ref on the static trigger, which a plain `cloneElement` ref would replace. */
+function composeRef(
+  ref: Ref<HTMLElement> | undefined,
+  node: HTMLElement | null,
+) {
+  if (typeof ref === 'function') {
+    const cleanup = ref(node);
+    return typeof cleanup === 'function' ? cleanup : () => ref(null);
+  }
+  if (ref) ref.current = node;
+  return () => {
+    if (ref) ref.current = null;
+  };
 }
 
 function focusIntentOf(element: HTMLElement): FocusIntent {
@@ -61,6 +80,19 @@ export function Tooltip({
   const [failed, setFailed] = useState(false);
   const pressed = useRef(false);
   const hovering = useRef(false);
+  const { held, track } = useFocusHold();
+  const ownRef = children.props.ref;
+  const ref = useCallback(
+    (node: HTMLElement | null) => {
+      const untrack = track(node);
+      const release = composeRef(ownRef, node);
+      return () => {
+        untrack?.();
+        release();
+      };
+    },
+    [ownRef, track],
+  );
 
   const request = (element: HTMLElement) => {
     if (disabled || failed) return;
@@ -85,6 +117,7 @@ export function Tooltip({
   // The handlers read refs only when an event fires; the rule cannot see that through cloneElement.
   // eslint-disable-next-line react-hooks/refs
   const trigger = cloneElement(children, {
+    ref,
     onPointerEnter: (event) => {
       props.onPointerEnter?.(event);
       if (event.pointerType === 'touch') return;
@@ -123,6 +156,7 @@ export function Tooltip({
             decorative={decorative}
             focus={intent.focus}
             hover={intent.hover}
+            focusHeld={held}
           >
             {children}
           </TooltipContent>

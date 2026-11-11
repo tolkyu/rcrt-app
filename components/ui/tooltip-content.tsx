@@ -9,6 +9,7 @@ import {
   useSyncExternalStore,
   type ReactElement,
   type ReactNode,
+  type RefObject,
 } from 'react';
 import { useRestoreFocus } from './use-restore-focus';
 
@@ -50,6 +51,8 @@ export interface TooltipContentProps {
   focus: FocusIntent;
   /** The pointer is still over the trigger that this chunk replaced. */
   hover: boolean;
+  /** Set by the static trigger when it held focus as it was removed. */
+  focusHeld: RefObject<boolean>;
   children: ReactElement;
 }
 
@@ -60,6 +63,7 @@ export default function TooltipContent({
   decorative,
   focus,
   hover,
+  focusHeld,
   children,
 }: TooltipContentProps) {
   const [open, setOpen] = useState(focus === 'keyboard');
@@ -71,7 +75,7 @@ export default function TooltipContent({
     () => false,
   );
 
-  const restoreFocus = useRestoreFocus(focus !== 'none');
+  const restoreFocus = useRestoreFocus(focus !== 'none', focusHeld);
   const attach = useCallback(
     (node: HTMLElement | null) => {
       trigger.current = node;
