@@ -169,7 +169,7 @@ export function AuditActorCombobox({
           align="start"
           sideOffset={4}
           collisionPadding={8}
-          className="border-border bg-popover text-popover-foreground z-30 flex max-h-(--radix-popover-content-available-height) w-(--radix-popover-trigger-width) max-w-[calc(100vw-1rem)] min-w-72 flex-col rounded-lg border shadow-md"
+          className="border-border bg-popover text-popover-foreground z-popover flex max-h-(--radix-popover-content-available-height) w-(--radix-popover-trigger-width) max-w-[calc(100vw-1rem)] min-w-72 flex-col rounded-lg border shadow-md"
           onOpenAutoFocus={(event) => {
             event.preventDefault();
             interactedOutside.current = false;

@@ -151,20 +151,20 @@ Ukrainian text rules: labels run ~25–35 % longer than English. Chips, tabs and
 
 ## 3. Space, radius, border, shadow, grid, size
 
-| Token                | Values                                                                                                                                                                                     |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Spacing (4 px scale) | 4 · 8 · 12 · 16 · 20 · 24 · 32 · 40 · 48 (`1,2,3,4,5,6,8,10,12`); 2 px allowed only for hairline offsets                                                                                   |
-| Radius               | `xs` 2 · `sm` 4 · `md` 8 · `lg` 12 · `xl` 16 · `2xl` 24 · `full`                                                                                                                           |
-| Border               | 1 px default (`--border`) · 2 px emphasis (selected card, drop target, current step ring) · 1 px dashed (Чернетка, empty drop zone, «+ Додати тег», «+ Додати фільтр»)                     |
-| Shadow `sm`          | `0 1px 2px 0 rgb(0 0 0 / .05)` — cards, KPI cards, table container, kanban cards                                                                                                           |
-| Shadow `md`          | `0 4px 12px 0 rgb(0 0 0 / .08)` — dropdowns, popovers, tooltips, hovered kanban card                                                                                                       |
-| Shadow `lg`          | `0 10px 32px 0 rgb(0 0 0 / .12)` — dialogs, drawers, bottom sheets, dragged card, toasts                                                                                                   |
-| Dark shadows         | same offsets with `rgb(0 0 0 / .30 / .40 / .50)` + 1 px `--border` on every surface                                                                                                        |
-| Grid                 | 12 columns, 24 px gutter, fluid; content padding 24 desktop / 16 mobile                                                                                                                    |
-| Breakpoints          | sm 640 · md 768 · lg 1024 · xl 1280 · 2xl 1440                                                                                                                                             |
-| Z-index              | sticky 10 · header 20 · dropdown 30 · drawer/dialog 40 · toast 50 · command 60                                                                                                             |
-| Motion               | Tokens, curves and rules in §8: press 120 · tooltip 125 · popover 160/120 · dialog 200/150 · drawer 240/180 ms; strong ease-out; reduced motion keeps opacity only; off in screenshot mode |
-| Focus                | `outline: 2px solid var(--ring); outline-offset: 2px` on `:focus-visible`, never removed                                                                                                   |
+| Token                | Values                                                                                                                                                                                             |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Spacing (4 px scale) | 4 · 8 · 12 · 16 · 20 · 24 · 32 · 40 · 48 (`1,2,3,4,5,6,8,10,12`); 2 px allowed only for hairline offsets                                                                                           |
+| Radius               | `xs` 2 · `sm` 4 · `md` 8 · `lg` 12 · `xl` 16 · `2xl` 24 · `full`                                                                                                                                   |
+| Border               | 1 px default (`--border`) · 2 px emphasis (selected card, drop target, current step ring) · 1 px dashed (Чернетка, empty drop zone, «+ Додати тег», «+ Додати фільтр»)                             |
+| Shadow `sm`          | `0 1px 2px 0 rgb(0 0 0 / .05)` — cards, KPI cards, table container, kanban cards                                                                                                                   |
+| Shadow `md`          | `0 4px 12px 0 rgb(0 0 0 / .08)` — dropdowns, popovers, tooltips, hovered kanban card                                                                                                               |
+| Shadow `lg`          | `0 10px 32px 0 rgb(0 0 0 / .12)` — dialogs, drawers, bottom sheets, dragged card, toasts                                                                                                           |
+| Dark shadows         | same offsets with `rgb(0 0 0 / .30 / .40 / .50)` + 1 px `--border` on every surface                                                                                                                |
+| Grid                 | 12 columns, 24 px gutter, fluid; content padding 24 desktop / 16 mobile                                                                                                                            |
+| Breakpoints          | sm 640 · md 768 · lg 1024 · xl 1280 · 2xl 1440                                                                                                                                                     |
+| Z-index              | sticky 10 · header 20 · rail tooltip 30 · drawer/dialog 40 · popover, menu, select, tooltip 45 (above dialogs) · toast 50 · command 60; tokens `--z-dialog/--z-popover/--z-toast` in `globals.css` |
+| Motion               | Tokens, curves and rules in §8: press 120 · tooltip 125 · popover 160/120 · dialog 200/150 · drawer 240/180 ms; strong ease-out; reduced motion keeps opacity only; off in screenshot mode         |
+| Focus                | `outline: 2px solid var(--ring); outline-offset: 2px` on `:focus-visible`, never removed                                                                                                           |
 
 **Radius by component**
 

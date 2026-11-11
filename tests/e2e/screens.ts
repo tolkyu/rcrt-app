@@ -39,12 +39,16 @@ export async function settleRendering(page: Page) {
   });
 }
 
-/** A page-tall viewport places fixed bars at the image edge instead of halfway through a full-page capture. */
+/**
+ * A page-tall viewport places fixed bars at the image edge instead of halfway through a full-page capture.
+ * `deviceViewport` keeps the real screen for states where a fixed layer must be shown against pinned sticky bars (toasts).
+ */
 export async function captureScreen(
   page: Page,
   testInfo: TestInfo,
   file: string,
   phase: 'phase-1' | 'phase-2' = 'phase-1',
+  { deviceViewport = false }: { deviceViewport?: boolean } = {},
 ) {
   await page.mouse.move(0, 0);
   // The ring left by the last click or Escape is not part of the screen (UX-G-11); text fields keep focus, blurring them would validate.
@@ -101,7 +105,9 @@ export async function captureScreen(
   try {
     await page.setViewportSize({
       width: viewport.width,
-      height: Math.max(viewport.height, height),
+      height: deviceViewport
+        ? viewport.height
+        : Math.max(viewport.height, height),
     });
     expect(await noHorizontalOverflow()).toBe(true);
     await settleRendering(page);

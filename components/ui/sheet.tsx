@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { Dialog as SheetPrimitive } from 'radix-ui';
 import { useCallback, useRef, type ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
+import { keepOpenOnToast } from './toast-guard';
 
 export const Sheet = SheetPrimitive.Root;
 export const SheetTrigger = SheetPrimitive.Trigger;
@@ -24,6 +25,7 @@ export function SheetContent({
   closeLabel,
   ref,
   onEscapeKeyDown,
+  onInteractOutside,
   ...props
 }: ComponentProps<typeof SheetPrimitive.Content> & {
   side?: keyof typeof sideClass;
@@ -41,16 +43,17 @@ export function SheetContent({
   );
   return (
     <SheetPrimitive.Portal>
-      <SheetPrimitive.Overlay className="data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 fixed inset-0 z-40 bg-black/40" />
+      <SheetPrimitive.Overlay className="data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 z-dialog fixed inset-0 bg-black/40" />
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          'border-border bg-surface data-[state=open]:animate-in data-[state=closed]:animate-out fixed z-40 flex flex-col gap-2 overflow-y-auto shadow-lg duration-200 ease-out motion-reduce:duration-0',
+          'border-border bg-surface data-[state=open]:animate-in data-[state=closed]:animate-out z-dialog fixed flex flex-col gap-2 overflow-y-auto shadow-lg duration-200 ease-out motion-reduce:duration-0',
           sideClass[side],
           className,
         )}
         {...props}
         ref={setContent}
+        onInteractOutside={keepOpenOnToast(onInteractOutside)}
         onEscapeKeyDown={(event) => {
           const target = event.target;
           // Radix moves the Escape listener to a nested dialog only after a re-render; until then its keys arrive here.

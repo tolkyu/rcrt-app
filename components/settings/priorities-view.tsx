@@ -44,6 +44,7 @@ import {
   type PriorityValue,
 } from '@/lib/team-lead-priority-draft';
 import { toast } from '@/lib/toast';
+import { useStickyBar } from '@/lib/use-sticky-bar';
 import { cn } from '@/lib/utils';
 
 const PrioritiesLeaveDialog = dynamic(() =>
@@ -342,6 +343,7 @@ function PriorityEditor({
   const tShared = useTranslations('common');
   const queryClient = useQueryClient();
   const baseId = useId();
+  const stickyBar = useStickyBar();
   const table = useRef<HTMLTableElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const focusTarget = useRef<FocusTarget>(null);
@@ -798,7 +800,10 @@ function PriorityEditor({
           )}
         </div>
         {changes.length > 0 && (
-          <div className="border-border bg-surface sticky bottom-[calc(4rem+env(safe-area-inset-bottom))] z-10 flex flex-col gap-3 rounded-b-xl border-t p-4 shadow-md md:bottom-0 md:flex-row md:items-center md:justify-between">
+          <div
+            ref={stickyBar}
+            className="border-border bg-surface sticky bottom-(--chrome-bottom) z-10 flex flex-col gap-3 rounded-b-xl border-t p-4 shadow-md md:bottom-0 md:flex-row md:items-center md:justify-between"
+          >
             <div aria-live="polite" className="text-sm">
               <p className="text-foreground font-semibold">
                 {t('unsaved', { count: changes.length })}

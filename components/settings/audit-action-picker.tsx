@@ -40,7 +40,7 @@ export function AuditActionPicker({
           align="start"
           sideOffset={4}
           collisionPadding={16}
-          className="border-border bg-popover text-popover-foreground z-30 max-h-(--radix-popover-content-available-height) w-96 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border p-2 shadow-md"
+          className="border-border bg-popover text-popover-foreground z-popover max-h-(--radix-popover-content-available-height) w-96 max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border p-2 shadow-md"
           onOpenAutoFocus={(event) => {
             event.preventDefault();
             interactedOutside.current = false;

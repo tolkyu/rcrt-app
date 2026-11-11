@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
+import { keepOpenOnToast } from './toast-guard';
 
 export const Dialog = DialogPrimitive.Root;
 
@@ -12,20 +13,22 @@ export function DialogContent({
   className,
   children,
   closeLabel,
+  onInteractOutside,
   ...props
 }: ComponentProps<typeof DialogPrimitive.Content> & { closeLabel: string }) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 fixed inset-0 z-50 bg-black/40" />
+      <DialogPrimitive.Overlay className="data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 z-dialog fixed inset-0 bg-black/40" />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          'border-border bg-surface data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 fixed z-50 flex flex-col gap-4 border p-6 shadow-lg duration-200 ease-out',
+          'border-border bg-surface data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 z-dialog fixed flex flex-col gap-4 border p-6 shadow-lg duration-200 ease-out',
           'inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-2xl pb-[max(1.5rem,env(safe-area-inset-bottom))]',
           'md:inset-x-auto md:top-1/2 md:bottom-auto md:left-1/2 md:w-[min(28rem,calc(100vw-2rem))] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl md:pb-6',
           className,
         )}
         {...props}
+        onInteractOutside={keepOpenOnToast(onInteractOutside)}
       >
         {children}
         <DialogPrimitive.Close

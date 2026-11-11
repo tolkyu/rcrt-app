@@ -216,6 +216,26 @@ test.describe('Admin manages the catalog of every vertical [VAC-01, D76]', () =>
     await expect(
       page.getByText(fill(t.toast.created, { name: original })),
     ).toBeVisible();
+    const toast = page
+      .locator('[data-slot="toast"]')
+      .filter({ hasText: fill(t.toast.created, { name: original }) });
+    await expect(
+      toast.locator('xpath=ancestor-or-self::*[@aria-hidden="true"]'),
+    ).toHaveCount(0);
+    if ((page.viewportSize()?.width ?? 0) < 768) {
+      const stickyCreate = createButton(page).last();
+      await expect
+        .poll(async () => {
+          const [toastBox, barBox] = await Promise.all([
+            toast.boundingBox(),
+            stickyCreate.boundingBox(),
+          ]);
+          return toastBox && barBox
+            ? Math.floor(barBox.y - (toastBox.y + toastBox.height))
+            : -1;
+        })
+        .toBeGreaterThanOrEqual(0);
+    }
     await expect(rowButton(page, 'rename', original)).toBeVisible();
     await expect(page.locator(':focus')).toHaveText(original);
     expect(posts).toHaveLength(1);

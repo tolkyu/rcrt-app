@@ -56,7 +56,7 @@ const AuditRecordSheet = dynamic(
   () => loadOrReload(loadRecordSheet).then((module) => module.AuditRecordSheet),
   {
     loading: () => (
-      <div className="bg-surface border-border fixed inset-y-0 right-0 z-40 flex w-full flex-col gap-4 p-6 shadow-lg sm:w-[30rem] sm:border-l">
+      <div className="bg-surface border-border z-dialog fixed inset-y-0 right-0 flex w-full flex-col gap-4 p-6 shadow-lg sm:w-[30rem] sm:border-l">
         <Skeleton className="h-7 w-2/3" />
         {Array.from({ length: 6 }, (_, index) => (
           <Skeleton key={index} className="h-5 w-full" />

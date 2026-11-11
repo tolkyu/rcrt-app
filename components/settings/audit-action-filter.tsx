@@ -11,7 +11,7 @@ function ActionLoading() {
   return (
     <div
       role="status"
-      className="bg-popover border-border absolute top-full z-30 mt-1 w-full rounded-lg border p-4 text-sm shadow-md"
+      className="bg-popover border-border z-popover absolute top-full mt-1 w-full rounded-lg border p-4 text-sm shadow-md"
     >
       {t('loading')}
     </div>

@@ -7,7 +7,7 @@ import { LoadBoundary } from './load-boundary';
 
 const ToastRuntime = lazy(() => import('./sonner-runtime'));
 
-/** Toasts per 01-components §05: surface card, radius 12, shadow lg, above dialogs (z 50). */
+/** Mounts the Sonner runtime on the first toast; the look lives in `AppToast`. */
 export function Toaster(props: ToasterProps) {
   const requested = useSyncExternalStore(
     subscribeToToasts,

@@ -38,9 +38,9 @@ test.describe('DisabledReason on a pointer device [UI-F2]', () => {
     await expect(publish).toBeFocused();
     await expect(publish).toHaveAttribute('aria-disabled', 'true');
     await expect(publish).not.toHaveAttribute('disabled', /.*/);
-    expect(new Set(await describedBy(publish))).toEqual(
-      new Set([t.publishReason]),
-    );
+    await expect
+      .poll(async () => [...new Set(await describedBy(publish))])
+      .toEqual([t.publishReason]);
   });
 
   test('with the tooltip open the reason is announced once, not twice', async ({
@@ -78,7 +78,9 @@ test.describe('DisabledReason on a pointer device [UI-F2]', () => {
     await page.keyboard.press('Space');
     await settleFrames(page);
     await expect(attempts(page)).toContainText(`${t.attempts} 0`);
-    expect(new Set(await describedBy(save))).toEqual(new Set([t.limitReason]));
+    await expect
+      .poll(async () => [...new Set(await describedBy(save))])
+      .toEqual([t.limitReason]);
   });
 
   test('an available action is a plain button that counts its clicks', async ({

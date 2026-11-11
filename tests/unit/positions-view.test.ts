@@ -159,6 +159,14 @@ const bandOf = (name: string) =>
 beforeEach(() => {
   viewport.desktop = true;
   viewport.listeners.clear();
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  );
   vi.stubGlobal('matchMedia', (query: string): Partial<MediaQueryList> => ({
     media: query,
     get matches() {

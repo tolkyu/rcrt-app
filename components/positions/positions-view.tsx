@@ -30,6 +30,7 @@ import { MANAGER_POSITIONS, positionsQuery } from '@/lib/queries/positions';
 import type { Position } from '@/lib/schemas/position';
 import { toast } from '@/lib/toast';
 import { useListLayout, type ListLayout } from '@/lib/use-list-layout';
+import { useStickyBar } from '@/lib/use-sticky-bar';
 import { cn } from '@/lib/utils';
 import { useVacancyListHref } from '@/lib/vacancy-list-memory';
 import { ALL_VERTICALS } from '@/lib/vertical-filter';
@@ -127,6 +128,7 @@ export function PositionsView({
   const [dialog, setDialog] = useState<DialogState>(null);
   const [mfaLost, setMfaLost] = useState(false);
   const inactiveToggle = useRef<HTMLInputElement>(null);
+  const stickyCreate = useStickyBar(8);
   /** Radix restores focus only to a Trigger, and these dialogs have none, so the view names the element itself. */
   const focusAfterClose = useRef('create');
 
@@ -436,7 +438,10 @@ export function PositionsView({
             {t('permanentNote')}
           </p>
           {showCreate && (
-            <div className="sticky bottom-[calc(4rem+env(safe-area-inset-bottom)+0.5rem)] z-10 mt-4 md:hidden">
+            <div
+              ref={stickyCreate}
+              className="sticky bottom-[calc(var(--chrome-bottom)+0.5rem)] z-10 mt-4 md:hidden"
+            >
               {createButton('h-12 w-full shadow-md')}
             </div>
           )}

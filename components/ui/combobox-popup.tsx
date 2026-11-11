@@ -80,8 +80,8 @@ export default function ComboboxPopup({
           collisionPadding={8}
           data-slot="combobox-content"
           data-instant={instant ? '' : undefined}
-          // Same z-index as Dialog; the later portal wins.
-          className="border-border bg-popover text-popover-foreground motion-pop z-50 flex max-h-[min(60dvh,var(--radix-popover-content-available-height))] w-(--radix-popover-trigger-width) max-w-[calc(100vw-1rem)] min-w-56 flex-col overflow-hidden rounded-lg border shadow-md"
+          // Above Dialog so the list opens over a modal, below toasts.
+          className="border-border bg-popover text-popover-foreground motion-pop z-popover flex max-h-[min(60dvh,var(--radix-popover-content-available-height))] w-(--radix-popover-trigger-width) max-w-[calc(100vw-1rem)] min-w-56 flex-col overflow-hidden rounded-lg border shadow-md"
           // Focus stays in the input the whole time.
           onOpenAutoFocus={(event) => event.preventDefault()}
           onCloseAutoFocus={(event) => event.preventDefault()}

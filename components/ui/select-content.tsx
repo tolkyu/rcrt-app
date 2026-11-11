@@ -121,7 +121,7 @@ export default function SelectContent({
           collisionPadding={8}
           data-slot="select-content"
           data-instant={instant ? '' : undefined}
-          className="border-border bg-popover text-popover-foreground motion-pop z-30 max-h-(--radix-select-content-available-height) max-w-[min(var(--radix-select-content-available-width),22rem)] min-w-(--radix-select-trigger-width) overflow-hidden rounded-lg border shadow-md"
+          className="border-border bg-popover text-popover-foreground motion-pop z-popover max-h-(--radix-select-content-available-height) max-w-[min(var(--radix-select-content-available-width),22rem)] min-w-(--radix-select-trigger-width) overflow-hidden rounded-lg border shadow-md"
         >
           <SelectPrimitive.Viewport className="p-1">
             {options.length === 0 ? (

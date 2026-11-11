@@ -24,6 +24,7 @@ export function BottomNav({ nav }: { nav: MobileNav }) {
   return (
     <nav
       aria-label={t('mobileNav')}
+      data-bottom-nav=""
       className="border-border bg-surface fixed inset-x-0 bottom-0 z-20 border-t pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] md:hidden"
     >
       <ul className="flex h-16 items-stretch gap-1 px-2 py-1.5">

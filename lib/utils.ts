@@ -5,6 +5,7 @@ import { extendTailwindMerge } from 'tailwind-merge';
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
+      z: [{ z: ['dialog', 'popover', 'toast'] }],
       'font-size': [
         { text: ['display-3xl', 'display-2xl', 'display-xl', 'heading-lg'] },
       ],

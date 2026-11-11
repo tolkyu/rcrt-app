@@ -187,6 +187,7 @@ async function capture(
   role: string,
   state: string,
   theme: Theme,
+  options?: Parameters<typeof captureScreen>[4],
 ) {
   await checkAccessibility(page, testInfo);
   await captureScreen(
@@ -194,6 +195,7 @@ async function capture(
     testInfo,
     `33-${role}-positions-${state}-${viewportOf(testInfo)}-${theme}.png`,
     'phase-2',
+    options,
   );
 }
 
@@ -566,7 +568,9 @@ test.describe('admin@demo only', () => {
         page.getByText(fill(t.toast.created, { name })),
       ).toBeVisible();
       await expect(rowButton(page, 'rename', name)).toBeVisible();
-      await capture(page, testInfo, 'admin', 'created-toast', theme);
+      await capture(page, testInfo, 'admin', 'created-toast', theme, {
+        deviceViewport: true,
+      });
     });
   });
 

@@ -1,28 +1,42 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 import { toast, Toaster as Sonner, type ToasterProps } from 'sonner';
+import { useTheme } from '@/components/theme/theme-provider';
 import { connectToasts } from '@/lib/toast';
+import { AppToast } from './app-toast';
 
+/** Sonner keeps stacking, swipe and timers; `AppToast` is the headless body. */
 export default function ToastRuntime(props: ToasterProps) {
+  const t = useTranslations('common');
+  const { theme } = useTheme();
   useEffect(
-    () => connectToasts(({ tone, message }) => toast[tone](message)),
+    () =>
+      connectToasts(({ id, duration, ...content }) =>
+        toast.custom((toastId) => <AppToast id={toastId} {...content} />, {
+          id,
+          duration,
+        }),
+      ),
     [],
   );
   return (
     <Sonner
       position="bottom-right"
-      closeButton
-      mobileOffset={{ bottom: 88 }}
-      style={{ zIndex: 50 }}
-      toastOptions={{
-        classNames: {
-          toast:
-            'rounded-lg! border! border-border! bg-surface! text-foreground! shadow-lg!',
-          description: 'text-muted-foreground!',
-          closeButton: 'border-border! bg-surface! text-muted-foreground!',
-        },
+      theme={theme}
+      visibleToasts={3}
+      customAriaLabel={t('notifications')}
+      offset={{
+        right: 24,
+        bottom:
+          'calc(var(--chrome-bottom) + var(--sticky-bar-bottom, 0px) + 24px)',
       }}
+      mobileOffset={{
+        bottom:
+          'calc(var(--chrome-bottom) + var(--sticky-bar-bottom, 0px) + 12px)',
+      }}
+      style={{ zIndex: 'var(--z-toast)' }}
       {...props}
     />
   );

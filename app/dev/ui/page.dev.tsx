@@ -7,6 +7,7 @@ import { ComboboxSection } from '@/components/dev-ui/combobox-section';
 import { FormSection } from '@/components/dev-ui/form-section';
 import { MotionSection } from '@/components/dev-ui/motion-section';
 import { SelectSection } from '@/components/dev-ui/select-section';
+import { ToastSection } from '@/components/dev-ui/toast-section';
 import { TooltipSection } from '@/components/dev-ui/tooltip-section';
 import { TokensSection } from '@/components/dev-ui/tokens-section';
 import { devLoginAvailable } from '@/server/dev/dev-login';
@@ -35,6 +36,7 @@ export default async function DevUiPage() {
       <ComboboxSection />
       <FormSection />
       <TooltipSection />
+      <ToastSection />
       <MotionSection />
     </main>
   );

@@ -502,8 +502,7 @@ function MoreActions({
           side="bottom"
           align="end"
           sideOffset={offset}
-          // Above the Sheet (z-40) that hosts the trigger; shell menus stay at z-30.
-          className="z-50 max-w-72"
+          className="max-w-72"
           onCloseAutoFocus={() => {
             // The dialog opens only once the menu has returned focus to its trigger (Radix menu→dialog focus fight).
             if (!opening.current) return;
