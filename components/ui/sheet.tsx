@@ -4,33 +4,50 @@ import { X } from 'lucide-react';
 import { Dialog as SheetPrimitive } from 'radix-ui';
 import { useCallback, useRef, type ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
+import { overlayClass } from './modal-surface';
 import { keepOpenOnToast } from './toast-guard';
+import { useOpenerFocus } from './use-opener-focus';
 
 export const Sheet = SheetPrimitive.Root;
 export const SheetTrigger = SheetPrimitive.Trigger;
 export const SheetClose = SheetPrimitive.Close;
 
-const sideClass = {
-  right:
-    'inset-y-0 right-0 h-full w-full pr-[env(safe-area-inset-right)] sm:w-[30rem] sm:border-l data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right',
-  left: 'inset-y-0 left-0 h-full w-[min(20rem,85vw)] border-r pl-[env(safe-area-inset-left)] data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left',
-  bottom:
-    'inset-x-0 bottom-0 max-h-[85dvh] rounded-t-2xl border-t pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom',
+/** Drawer widths of the right side: 360 preview, 400 candidate drawer, 480 wide forms (ui-foundation G18). */
+const widths = {
+  sm: 'sm:w-[22.5rem]',
+  md: 'sm:w-[25rem]',
+  lg: 'sm:w-[30rem]',
 } as const;
 
+export type SheetSize = keyof typeof widths;
+
+const sideClass = {
+  right:
+    'motion-sheet-side inset-y-0 right-0 h-full w-full pr-[env(safe-area-inset-right)] sm:border-l',
+  left: 'motion-sheet-side inset-y-0 left-0 h-full w-[min(20rem,85vw)] border-r pl-[env(safe-area-inset-left)] [--motion-dir:-1]',
+  bottom:
+    'motion-sheet-up inset-x-0 bottom-0 max-h-[85dvh] rounded-t-2xl border-t pr-[env(safe-area-inset-right)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)]',
+} as const;
+
+/** `size` sets the width of a right sheet only; left and bottom sheets keep their own geometry. */
 export function SheetContent({
   className,
   children,
   side = 'left',
+  size = 'lg',
   closeLabel,
   ref,
   onEscapeKeyDown,
   onInteractOutside,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
 }: ComponentProps<typeof SheetPrimitive.Content> & {
   side?: keyof typeof sideClass;
+  size?: SheetSize;
   closeLabel: string;
 }) {
+  const openerFocus = useOpenerFocus({ onOpenAutoFocus, onCloseAutoFocus });
   const content = useRef<HTMLDivElement | null>(null);
   // Stable: a new callback ref each render would detach and re-register the Radix layer.
   const setContent = useCallback(
@@ -43,17 +60,19 @@ export function SheetContent({
   );
   return (
     <SheetPrimitive.Portal>
-      <SheetPrimitive.Overlay className="data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 z-dialog fixed inset-0 bg-black/40" />
+      <SheetPrimitive.Overlay className={overlayClass} />
       <SheetPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          'border-border bg-surface data-[state=open]:animate-in data-[state=closed]:animate-out z-dialog fixed flex flex-col gap-2 overflow-y-auto shadow-lg duration-200 ease-out motion-reduce:duration-0',
+          'border-border bg-surface z-dialog fixed flex flex-col gap-2 overflow-y-auto shadow-lg',
           sideClass[side],
+          side === 'right' && widths[size],
           className,
         )}
         {...props}
         ref={setContent}
         onInteractOutside={keepOpenOnToast(onInteractOutside)}
+        {...openerFocus}
         onEscapeKeyDown={(event) => {
           const target = event.target;
           // Radix moves the Escape listener to a nested dialog only after a re-render; until then its keys arrive here.

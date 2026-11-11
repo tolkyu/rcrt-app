@@ -1450,6 +1450,10 @@ async function openRoles(page: Page, isMobile: boolean, name: string) {
   await trigger.click();
   const dialog = rolesDialog(page, name);
   await expect(dialog).toBeVisible();
+  // A forced click skips the stability check and would land while the bottom sheet is still sliding in (UI-F8).
+  await dialog.evaluate((node) =>
+    Promise.all(node.getAnimations().map((animation) => animation.finished)),
+  );
   return { card, trigger, dialog };
 }
 

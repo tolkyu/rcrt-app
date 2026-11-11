@@ -10,7 +10,7 @@ const allHydrated = () =>
 
 export async function openGallery(
   page: Page,
-  theme: 'light' | 'dark' = 'light',
+  theme: 'light' | 'dark' | 'system' = 'light',
 ) {
   await page
     .context()

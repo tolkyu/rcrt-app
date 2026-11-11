@@ -724,7 +724,8 @@ export function UserDrawer({
         ref={content}
         side="right"
         closeLabel={t('close')}
-        className="gap-5 p-6 sm:w-[25rem]"
+        size="md"
+        className="gap-5 p-6"
         onOpenAutoFocus={(event) => {
           if (!heading.current) return;
           event.preventDefault();

@@ -21,6 +21,7 @@ const OPEN_KEYS = new Set(['Enter', ' ', 'ArrowDown']);
  * the trigger stays and the next press reloads the page instead of crashing the shell.
  */
 type DeferredTriggerProps = ReturnType<typeof useDeferredMenu>['triggerProps'];
+type SourceProps = ReturnType<typeof useDeferredMenu>['sourceProps'];
 
 export function useDeferredMenu(load: () => Promise<unknown>) {
   const [openedBy, setOpenedBy] = useState<MenuOpenedBy | null>(null);
@@ -32,6 +33,15 @@ export function useDeferredMenu(load: () => Promise<unknown>) {
     if (failed) return window.location.reload();
     // A transition keeps the focused trigger on screen until the chunk is ready.
     startTransition(() => setOpenedBy(by));
+  };
+  // Once the Radix trigger replaces the static one it opens menus itself; these keep `openedBy` per open, not first open.
+  const sourceProps = {
+    onPointerDown: (event: PointerEvent<HTMLElement>) => {
+      if (event.button === 0 && !event.ctrlKey) setOpenedBy('pointer');
+    },
+    onKeyDown: (event: KeyboardEvent<HTMLElement>) => {
+      if (OPEN_KEYS.has(event.key)) setOpenedBy('keyboard');
+    },
   };
   const triggerProps = {
     'aria-haspopup': 'menu' as const,
@@ -52,6 +62,7 @@ export function useDeferredMenu(load: () => Promise<unknown>) {
   return {
     openedBy,
     triggerProps,
+    sourceProps,
     fail: () => {
       setOpenedBy(null);
       setFailed(true);
@@ -66,16 +77,16 @@ export function DeferredMenu({
   children,
 }: {
   menu: ReturnType<typeof useDeferredMenu>;
-  trigger: (
-    props: DeferredTriggerProps | Record<string, never>,
-  ) => ReactElement;
+  trigger: (props: DeferredTriggerProps | SourceProps) => ReactElement;
   children: (openedBy: MenuOpenedBy, trigger: ReactElement) => ReactNode;
 }) {
   const fallback = trigger(menu.triggerProps);
   return (
     <LoadBoundary fallback={fallback} onError={menu.fail}>
       <Suspense fallback={fallback}>
-        {menu.openedBy ? children(menu.openedBy, trigger({})) : fallback}
+        {menu.openedBy
+          ? children(menu.openedBy, trigger(menu.sourceProps))
+          : fallback}
       </Suspense>
     </LoadBoundary>
   );
@@ -88,7 +99,9 @@ function focusFirstMenuItem(event: Event) {
     ?.focus();
 }
 
-/** Menu-button pattern: opening from the keyboard focuses the first item, as the Radix trigger would. */
+/** Menu-button pattern: opening from the keyboard focuses the first item, as the Radix trigger would, and skips the open animation. */
 export function menuAutoFocus(openedBy: MenuOpenedBy) {
-  return openedBy === 'keyboard' ? { onOpenAutoFocus: focusFirstMenuItem } : {};
+  return openedBy === 'keyboard'
+    ? { onOpenAutoFocus: focusFirstMenuItem, 'data-instant': '' }
+    : {};
 }

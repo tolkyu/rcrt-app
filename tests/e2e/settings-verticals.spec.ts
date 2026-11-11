@@ -181,8 +181,13 @@ test('mobile: card list without horizontal scroll and the dialog as a bottom she
   ).toBe(true);
   await page.getByRole('button', { name: t.verticals.create }).click();
   const dialog = openDialog(page);
-  const box = await dialog.boundingBox();
-  expect(box && Math.round(box.y + box.height)).toBe(844);
+  // The bottom sheet slides in (UI-F8); its resting place is the bottom edge of the screen.
+  await expect
+    .poll(async () => {
+      const box = await dialog.boundingBox();
+      return box && Math.round(box.y + box.height);
+    })
+    .toBe(844);
   const cancel = dialog.getByRole('button', {
     name: t.common.cancel,
     exact: true,

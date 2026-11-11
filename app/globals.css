@@ -1,6 +1,18 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+/* Themes follow `color-scheme` (`.light` / `.dark` on <html>, none = the OS), so `dark:` must too, not the OS alone. */
+@custom-variant dark {
+  &:where(.dark, .dark *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not(.light) *) {
+      @slot;
+    }
+  }
+}
+
 /*
  * Design tokens — docs/ux/design-system.md (v1.0, designer mockups).
  * One declaration per token: light-dark() follows `color-scheme`, which the
@@ -335,13 +347,13 @@
 @keyframes motion-sheet-side-in {
   from {
     opacity: 0;
-    translate: var(--motion-shift) 0;
+    translate: calc(var(--motion-shift) * var(--motion-dir, 1)) 0;
   }
 }
 @keyframes motion-sheet-side-out {
   to {
     opacity: 0;
-    translate: var(--motion-shift) 0;
+    translate: calc(var(--motion-shift) * var(--motion-dir, 1)) 0;
   }
 }
 @keyframes motion-fade-in {
@@ -411,6 +423,7 @@
   }
 }
 
+/* Right sheet by default; `--motion-dir: -1` on the element mirrors it for a left sheet. */
 @utility motion-sheet-side {
   &[data-state='open'] {
     animation: motion-sheet-side-in var(--duration-drawer) var(--ease-drawer);

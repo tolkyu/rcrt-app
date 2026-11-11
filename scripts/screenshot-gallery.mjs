@@ -834,6 +834,90 @@ groups2.push(
   },
 );
 
+const DIALOG_DESKTOP = ['desktop-light', 'desktop-dark'];
+const dialogState = (state, heading, variants) => ({
+  file: `34-admin-ui-dialogs-${state}`,
+  label: 'адміністратор',
+  dir: VAC,
+  heading,
+  ...(variants ? { variants } : {}),
+});
+
+/** Dev gallery `/dev/ui` (UI foundation F8): the shots are taken by tests/dev-ui/dialog-screens.spec.ts. */
+groups2.push(
+  {
+    screen: 'Каркас інтерфейсу — діалоги',
+    role: 'Адміністратор (галерея розробника)',
+    roles: ['Адміністратор'],
+    states: [
+      dialogState(
+        'dialog-sm',
+        'Діалог малий (28 rem): шапка з іконкою й підзаголовком, дії праворуч',
+        DIALOG_DESKTOP,
+      ),
+      dialogState(
+        'dialog-md',
+        'Діалог середній (36 rem); на телефоні — нижня шторка з діями в стовпчик, головна дія внизу',
+      ),
+      dialogState('dialog-lg', 'Діалог великий (48 rem)', DIALOG_DESKTOP),
+    ],
+  },
+  {
+    screen: 'Каркас інтерфейсу — підтвердження',
+    role: 'Адміністратор (галерея розробника)',
+    roles: ['Адміністратор'],
+    states: [
+      dialogState(
+        'confirm-neutral',
+        'Підтвердження — нейтральна дія: фокус на «Скасувати»',
+      ),
+      dialogState(
+        'confirm-destructive',
+        'Підтвердження — небезпечна дія з переліком наслідків: кнопка червона',
+      ),
+      dialogState(
+        'confirm-reason-empty',
+        'Підтвердження з причиною — кнопка недоступна, поки в полі немає тексту; на телефоні причину видно під кнопкою',
+      ),
+      dialogState(
+        'confirm-reason-filled',
+        'Підтвердження з причиною — текст введено, кнопка активна, лічильник символів',
+      ),
+      dialogState(
+        'confirm-pending',
+        'Підтвердження — запит виконується: індикатор у кнопці, ширина кнопок не змінюється',
+      ),
+      dialogState(
+        'confirm-conflict',
+        'Підтвердження — помилка 409 показана в самому діалозі, причину збережено',
+      ),
+      dialogState(
+        'confirm-worst',
+        'Підтвердження — довга назва в лапках і причина з 500 символів переносяться без горизонтальної прокрутки',
+      ),
+      dialogState(
+        'confirm-long-labels',
+        'Підтвердження — довгі підписи кнопок (31 і 58 символів) переносяться, дії лишаються в діалозі',
+      ),
+    ],
+  },
+  {
+    screen: 'Каркас інтерфейсу — шари й шторка',
+    role: 'Адміністратор (галерея розробника)',
+    roles: ['Адміністратор'],
+    states: [
+      dialogState(
+        'layers-select-open',
+        'Випадний список відкривається над діалогом і не обрізається ним',
+      ),
+      dialogState(
+        'sheet-400',
+        'Бокова шторка 400 px; на телефоні займає всю ширину',
+      ),
+    ],
+  },
+);
+
 mkdirSync('screenshots/latest', { recursive: true });
 const listed = {
   'phase-1': new Set(),

@@ -338,13 +338,13 @@ Also used (no mockup frame, unchanged): `Dialog`, `AlertDialog` (every destructi
 
 ### 8.2 Keyframes and utilities (shared by every Radix surface)
 
-| Utility             | Keyframe `from` → `to`                                                                                            | Applied to                                           |
-| ------------------- | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| `motion-pop`        | `opacity 0; scale var(--motion-scale)` → `opacity 1; scale 1`, origin = `var(--radix-*-content-transform-origin)` | dropdown, Select, Combobox, Popover, tooltip (`.97`) |
-| `motion-modal`      | same, origin `center`, `duration-dialog` in / `-exit` out                                                         | Dialog, AlertDialog on ≥ 768 px                      |
-| `motion-sheet-up`   | `translate: 0 var(--motion-shift)` + opacity → 0, `ease-drawer`                                                   | Dialog/AlertDialog bottom sheet below 768 px         |
-| `motion-sheet-side` | `translate: var(--motion-shift) 0` + opacity → 0, `ease-drawer`                                                   | right Sheet                                          |
-| `motion-fade`       | `opacity 0 → 1`, `duration-dialog`                                                                                | overlays (backdrops)                                 |
+| Utility             | Keyframe `from` → `to`                                                                                         | Applied to                                               |
+| ------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `motion-pop`        | `opacity 0; scale var(--motion-scale)` → `opacity 1; scale 1`, origin = `var(--radix-popper-transform-origin)` | dropdown, Select, Combobox, Popover, tooltip (`.97`)     |
+| `motion-modal`      | same, origin `center`, `duration-dialog` in / `-exit` out                                                      | Dialog, AlertDialog on ≥ 768 px                          |
+| `motion-sheet-up`   | `translate: 0 var(--motion-shift)` + opacity → 0, `ease-drawer`                                                | Dialog/AlertDialog bottom sheet below 768 px             |
+| `motion-sheet-side` | `translate: var(--motion-shift) 0` + opacity → 0, `ease-drawer`                                                | right Sheet; --motion-dir -1 mirrors it for a left Sheet |
+| `motion-fade`       | `opacity 0 → 1`, `duration-dialog`                                                                             | overlays (backdrops)                                     |
 
 - Keyboard-opened surfaces carry `data-instant` and `animation: none` (the `openedBy` flag already exists in `useDeferredMenu`).
 - Tooltip `data-state="instant-open"` (a neighbour was just open): `animation: none`.

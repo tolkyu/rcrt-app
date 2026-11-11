@@ -3,14 +3,18 @@
 > Read order: `CLAUDE.md` → this file → `docs/PROGRESS.md` → `docs/PRD.md` §14 (owner decisions D1–D70).
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
-## UI foundation checkpoint — 2026-11-11 (F1, F2, F3, F4, F5, F7 + F3 focus fix committed)
+## UI foundation checkpoint — 2026-11-12 (F1–F5, F7, F8 + hydration fix committed)
+
+- **DisabledReason hydration fix committed** (`80ee5e4`): id pair created after hydration; root cause was dev-only `useId` path divergence, not the Tooltip Suspense. Open: Select/Combobox/Form sections still log a dev-only hydration mismatch in ~3–6 % of loads under load.
+- **F8 (Dialog family + ConfirmDialog) done and committed**: sizes, header/footer, mobile slide, `ConfirmDialog` (tone, consequence, reason, pending, 409 slot), focus return to the opener (`use-opener-focus.ts` + `lib/last-focus.ts`), global `@custom-variant dark` (all `dark:` now follow the app theme), per-open menu source. Full gates green (details in `docs/PROGRESS.md`).
+- **Next: F8.1** (small, from the re-review; list at the end of the «F8 gaps» bullet in `docs/PROGRESS.md`: Safari pointerdown opener, menu-item opener fallback, `DisabledReason reserveSpace`, test gaps), **then F6, F9, F10**, then S3 UI (first production user of ConfirmDialog → re-check `perf:size`; `/login` has 0.45 kB headroom).
 
 - **F5 (form kit) done and committed** (details + gaps in `docs/PROGRESS.md`). Owner decision D113 (Q-180): reason fields are multi-line — S3 adds a server multi-line schema helper for reasons and uses the matching counter.
 - **F3 (Select) done and committed** (details + non-blocking gaps in `docs/PROGRESS.md`).
 - **F3 focus race fixed and committed** (`c49dbb9`; root cause + verification in `docs/PROGRESS.md`).
 - **F4 (Combobox) done and committed** (details + gaps in `docs/PROGRESS.md`; F8 must fix Select `z-30` inside Dialog and set the z-scale).
 - **F7 (Toasts + z-scale) done and committed** (details + gaps in `docs/PROGRESS.md`; F8's z-index AC is already done).
-- **Next: fix the F2 Tooltip `useId` hydration mismatch** (lazy Suspense around `DisabledReason`; reproduce on a production build with `onRecoverableError` logged; no more polling in tests), **then F8**, F6, F9, F10 (per `docs/ux/ui-foundation.md`); then S3 UI. Flow per slice: senior-fullstack-engineer → qa-engineer + code-reviewer → fixes → re-review; orchestrator verifies and commits. Full `pnpm test` needs `pnpm test:db:up` first (integration project).
+- Flow per slice: senior-fullstack-engineer → qa-engineer + code-reviewer → fixes → re-review; orchestrator verifies and commits. Full `pnpm test` needs `pnpm test:db:up` first (integration project).
 - Run notes: stored E2E sign-ins expire overnight — the first E2E run of a day must **not** use `--no-deps` (the setup project refreshes them; otherwise every test lands on `/login`); `--no-deps` only for repeat runs within the session (avoids the sign-in 429). Local stack: start Docker Desktop, then `npx supabase start`; `corepack pnpm build` before E2E (`next start` serves `.next`).
 - F2 done (Badge, Tooltip, DisabledReason; size-limit `[param]` fix; dev-server suite `pnpm test:e2e:dev-ui`).
 - F1 done (details in `docs/PROGRESS.md`). **Next: F2–F10 per `docs/ux/ui-foundation.md`** — order F2, F3, F5, F7, F8 (parallel-safe where files don't overlap), then F4, F6, F9, F10; then S3 UI. Agents read design skills as files (CLAUDE.md §11), run on Sonnet with effort high.

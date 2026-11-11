@@ -35,7 +35,11 @@ export default defineConfig({
     },
     {
       name: 'dev-ui-mobile',
-      testMatch: ['**/*-touch.spec.ts', '**/badges.spec.ts'],
+      testMatch: [
+        '**/*-touch.spec.ts',
+        '**/badges.spec.ts',
+        '**/dialog-screens.spec.ts',
+      ],
       use: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } },
     },
   ],

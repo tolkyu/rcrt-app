@@ -25,6 +25,7 @@ const CLIENT_NAMESPACES = [
   'profile',
   'settings',
   'vacancies',
+  'form',
 ] as const;
 
 export default async function AppLayout({ children }: { children: ReactNode }) {

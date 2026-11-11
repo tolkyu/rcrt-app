@@ -2,33 +2,43 @@
 
 import { X } from 'lucide-react';
 import { Dialog as DialogPrimitive } from 'radix-ui';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import {
+  ModalFooter,
+  modalClass,
+  overlayClass,
+  type ModalSize,
+} from './modal-surface';
 import { keepOpenOnToast } from './toast-guard';
+import { useOpenerFocus } from './use-opener-focus';
 
 export const Dialog = DialogPrimitive.Root;
 
-/** Centered dialog on desktop, bottom sheet below 768 px (wireframe settings-admin §2.3). */
+/** Centered dialog on desktop (`size` sets the width: sm 28 / md 36 / lg 48 rem), bottom sheet below 768 px (wireframe settings-admin §2.3). */
 export function DialogContent({
   className,
   children,
   closeLabel,
+  size = 'sm',
   onInteractOutside,
+  onOpenAutoFocus,
+  onCloseAutoFocus,
   ...props
-}: ComponentProps<typeof DialogPrimitive.Content> & { closeLabel: string }) {
+}: ComponentProps<typeof DialogPrimitive.Content> & {
+  closeLabel: string;
+  size?: ModalSize;
+}) {
+  const openerFocus = useOpenerFocus({ onOpenAutoFocus, onCloseAutoFocus });
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 z-dialog fixed inset-0 bg-black/40" />
+      <DialogPrimitive.Overlay className={overlayClass} />
       <DialogPrimitive.Content
         data-slot="dialog-content"
-        className={cn(
-          'border-border bg-surface data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 z-dialog fixed flex flex-col gap-4 border p-6 shadow-lg duration-200 ease-out',
-          'inset-x-0 bottom-0 max-h-[85dvh] overflow-y-auto rounded-t-2xl pb-[max(1.5rem,env(safe-area-inset-bottom))]',
-          'md:inset-x-auto md:top-1/2 md:bottom-auto md:left-1/2 md:w-[min(28rem,calc(100vw-2rem))] md:-translate-x-1/2 md:-translate-y-1/2 md:rounded-2xl md:pb-6',
-          className,
-        )}
+        className={modalClass(size, className)}
         {...props}
         onInteractOutside={keepOpenOnToast(onInteractOutside)}
+        {...openerFocus}
       >
         {children}
         <DialogPrimitive.Close
@@ -50,7 +60,7 @@ export function DialogTitle({
     <DialogPrimitive.Title
       data-slot="dialog-title"
       className={cn(
-        'text-heading-lg text-foreground pr-10 text-balance',
+        'text-heading-lg text-foreground pr-10 text-balance [overflow-wrap:anywhere]',
         className,
       )}
       {...props}
@@ -69,4 +79,41 @@ export function DialogDescription({
       {...props}
     />
   );
+}
+
+/** Title with an optional icon tile and a subtitle, as in the invitation mockup; the subtitle is the dialog's accessible description. */
+export function DialogHeader({
+  icon,
+  title,
+  subtitle,
+  className,
+}: {
+  icon?: ReactNode;
+  title: ReactNode;
+  subtitle?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <div
+      data-slot="dialog-header"
+      className={cn('flex items-start gap-3 pr-10', className)}
+    >
+      {icon && (
+        <span
+          aria-hidden="true"
+          className="bg-primary-subtle text-brand flex size-11 shrink-0 items-center justify-center rounded-xl md:size-12 [&_svg]:size-6"
+        >
+          {icon}
+        </span>
+      )}
+      <div className="flex min-w-0 flex-col gap-0.5">
+        <DialogTitle className="pr-0">{title}</DialogTitle>
+        {subtitle && <DialogDescription>{subtitle}</DialogDescription>}
+      </div>
+    </div>
+  );
+}
+
+export function DialogFooter(props: ComponentProps<'div'>) {
+  return <ModalFooter data-slot="dialog-footer" {...props} />;
 }

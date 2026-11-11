@@ -507,8 +507,13 @@ test.describe('Head Recruiter manages only their own vertical', () => {
     ).toBeGreaterThanOrEqual(44);
     await sticky.click();
     const sheet = page.getByRole('dialog');
-    const sheetBox = (await sheet.boundingBox())!;
-    expect(Math.round(sheetBox.y + sheetBox.height)).toBe(844);
+    // The bottom sheet slides in (UI-F8); its resting place is the bottom edge of the screen.
+    await expect
+      .poll(async () => {
+        const sheetBox = (await sheet.boundingBox())!;
+        return Math.round(sheetBox.y + sheetBox.height);
+      })
+      .toBe(844);
     await expect(
       sheet.getByRole('button', { name: t.dialog.createSubmit }),
     ).toBeInViewport({ ratio: 1 });
