@@ -10,6 +10,7 @@ import {
   type MouseEventHandler,
   type ReactElement,
 } from 'react';
+import { useHydrated } from '@/lib/use-hydrated';
 import { cn } from '@/lib/utils';
 import { Tooltip, type TooltipTriggerProps } from './tooltip';
 
@@ -55,14 +56,17 @@ export function DisabledReason({
   className?: string;
   children: ReactElement<ActionProps>;
 }) {
-  const reasonId = useId();
+  // `useId` can diverge between SSR and hydration in dev, so the id pair exists only after hydration.
+  const hydrated = useHydrated();
+  const generatedId = useId();
+  const reasonId = hydrated ? generatedId : undefined;
   const props = children.props;
   const action = disabled
     ? cloneElement(children, {
         'aria-disabled': true,
-        'aria-describedby': [props['aria-describedby'], reasonId]
-          .filter(Boolean)
-          .join(' '),
+        'aria-describedby':
+          [props['aria-describedby'], reasonId].filter(Boolean).join(' ') ||
+          undefined,
         className: cn(props.className, 'cursor-not-allowed'),
         onClick: block,
         onAuxClick: block,

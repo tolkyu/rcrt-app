@@ -6,6 +6,6 @@ const subscribe = () => () => {};
 const client = () => true;
 const server = () => false;
 
-/** Native controls must not accept edits before React can retain their events. */
+/** False on the server and during hydration, true afterwards. */
 export const useHydrated = () =>
   useSyncExternalStore(subscribe, client, server);

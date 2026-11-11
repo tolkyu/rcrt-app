@@ -38,9 +38,8 @@ test.describe('DisabledReason on a pointer device [UI-F2]', () => {
     await expect(publish).toBeFocused();
     await expect(publish).toHaveAttribute('aria-disabled', 'true');
     await expect(publish).not.toHaveAttribute('disabled', /.*/);
-    await expect
-      .poll(async () => [...new Set(await describedBy(publish))])
-      .toEqual([t.publishReason]);
+    await expect(publish).toHaveAttribute('aria-describedby', /.+/);
+    expect([...new Set(await describedBy(publish))]).toEqual([t.publishReason]);
   });
 
   test('with the tooltip open the reason is announced once, not twice', async ({
@@ -73,14 +72,16 @@ test.describe('DisabledReason on a pointer device [UI-F2]', () => {
   test('the second disabled action behaves the same', async ({ page }) => {
     const save = action(page, t.save);
     await save.focus();
+    // Focus swaps in the Radix trigger; clicking the node being replaced is not visible.
+    await expect(save).toHaveAttribute('data-state', /.+/);
+    await expect(save).toBeFocused();
     await save.click({ force: true });
     await page.keyboard.press('Enter');
     await page.keyboard.press('Space');
     await settleFrames(page);
     await expect(attempts(page)).toContainText(`${t.attempts} 0`);
-    await expect
-      .poll(async () => [...new Set(await describedBy(save))])
-      .toEqual([t.limitReason]);
+    await expect(save).toHaveAttribute('aria-describedby', /.+/);
+    expect([...new Set(await describedBy(save))]).toEqual([t.limitReason]);
   });
 
   test('an available action is a plain button that counts its clicks', async ({
@@ -108,5 +109,27 @@ test.describe('DisabledReason on a pointer device [UI-F2]', () => {
         .locator('[data-radix-popper-content-wrapper] .motion-tooltip')
         .filter({ hasText: t.publishReason }),
     ).toBeVisible();
+  });
+});
+
+test.describe('DisabledReason hydration [UI-F2]', () => {
+  test('the reasons are wired to their actions once hydrated, with no id mismatch', async ({
+    page,
+  }) => {
+    const mismatches: string[] = [];
+    page.on('console', (message) => {
+      if (message.type() === 'error' && /DisabledReason/.test(message.text()))
+        mismatches.push(message.text());
+    });
+    await openGallery(page);
+    for (const { name, reason } of [
+      { name: t.publish, reason: t.publishReason },
+      { name: t.save, reason: t.limitReason },
+    ]) {
+      const button = action(page, name);
+      await expect(button).toHaveAttribute('aria-describedby', /.+/);
+      expect(await describedBy(button)).toEqual([reason]);
+    }
+    expect(mismatches).toEqual([]);
   });
 });
