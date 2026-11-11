@@ -6,7 +6,6 @@ import {
   lazy,
   startTransition,
   Suspense,
-  useCallback,
   useRef,
   useState,
   type FocusEvent,
@@ -15,6 +14,7 @@ import {
 } from 'react';
 import { cn } from '@/lib/utils';
 import { LoadBoundary } from './load-boundary';
+import { NativeSelect } from './native-select';
 import { useFocusHold } from './use-restore-focus';
 import {
   findOption,
@@ -40,51 +40,6 @@ interface Swap {
 
 interface Failure {
   refocus: boolean;
-}
-
-/** Without the Radix chunk the field degrades to a native `<select>` with the same value contract. */
-function NativeSelect({
-  options,
-  value,
-  onValueChange,
-  placeholder,
-  className,
-  refocus,
-  ...rest
-}: Omit<SelectFieldProps, 'name'> & { refocus: boolean }) {
-  const t = useTranslations('common');
-  const selected = findOption(options, value);
-  const focusOnMount = useCallback(
-    (node: HTMLSelectElement | null) => {
-      if (node && refocus) node.focus();
-    },
-    [refocus],
-  );
-  return (
-    <select
-      {...rest}
-      ref={focusOnMount}
-      value={selected ? selected.value : ''}
-      onChange={(event) => onValueChange(event.target.value)}
-      className={cn(triggerClass, className)}
-    >
-      {!selected && (
-        <option value="" disabled hidden>
-          {placeholder}
-        </option>
-      )}
-      {options.length === 0 && <option disabled>{t('selectEmpty')}</option>}
-      {options.map((option) => (
-        <option
-          key={option.value}
-          value={option.value}
-          disabled={option.disabled}
-        >
-          {option.label}
-        </option>
-      ))}
-    </select>
-  );
 }
 
 /**

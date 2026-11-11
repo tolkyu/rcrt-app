@@ -49,7 +49,7 @@ export function TooltipDemos({ labels }: { labels: Labels }) {
             {labels.edgeHint}
           </p>
         </div>
-        <div className="flex justify-between gap-3">
+        <div className="flex flex-wrap justify-between gap-3">
           <Tooltip content={labels.longText} side="bottom">
             <Button variant="outline">{labels.edgeStart}</Button>
           </Tooltip>

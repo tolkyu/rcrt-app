@@ -201,6 +201,7 @@ Apply per component in the dev gallery with a dev-only `?data=worst` toggle (Dem
 
 ## 6. Accessibility and mobile (TL flows)
 
+- **Combobox vs Select (as built, F4):** Combobox marks the active (highlighted) option with `aria-selected` (APG editable combobox) and the current value with a check + sr-only «вибрано»; Radix Select marks the value.
 - **Focus:** Dialog/AlertDialog trap and restore focus; menus opened by keyboard focus the first item (existing `menuAutoFocus`); Select/Combobox follow APG, with type-ahead and Esc returning focus to the trigger; focus ring `2px --ring`, offset 2, never removed.
 - **Disabled with reason:** use `aria-disabled` (stays focusable) plus `aria-describedby`, not `disabled`. On touch the reason is visible text under the control, because tooltips do not exist on touch.
 - **Labels and errors:** every control has a visible label; error text is linked and not colour-only (icon + text); required marked with `*` and announced; summary «Виправте N полів» on submit, focus to the first invalid field.
