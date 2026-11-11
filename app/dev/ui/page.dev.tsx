@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { BadgesSection } from '@/components/dev-ui/badges-section';
 import { ButtonsSection } from '@/components/dev-ui/buttons-section';
+import { FormSection } from '@/components/dev-ui/form-section';
 import { MotionSection } from '@/components/dev-ui/motion-section';
 import { SelectSection } from '@/components/dev-ui/select-section';
 import { TooltipSection } from '@/components/dev-ui/tooltip-section';
@@ -30,6 +31,7 @@ export default async function DevUiPage() {
       <BadgesSection />
       <ButtonsSection />
       <SelectSection />
+      <FormSection />
       <TooltipSection />
       <MotionSection />
     </main>

@@ -3,10 +3,11 @@
 > Read order: `CLAUDE.md` → this file → `docs/PROGRESS.md` → `docs/PRD.md` §14 (owner decisions D1–D70).
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
-## UI foundation checkpoint — 2026-11-11 (F1, F2, F3 committed)
+## UI foundation checkpoint — 2026-11-11 (F1, F2, F3, F5 committed)
 
-- **F3 (Select) done and committed** (details + non-blocking gaps in `docs/PROGRESS.md`). Final verification 2026-11-11: typecheck, lint, prettier, 2,468 unit, build, vacancies + ui-foundation E2E 142 passed + 11 viewport skips (153 total), dev-ui 51/51.
-- **Next: F5**, then F7, F8, F4, F6, F9, F10 (per `docs/ux/ui-foundation.md`); then S3 UI. Flow per slice: senior-fullstack-engineer → qa-engineer → code-reviewer → fixes; orchestrator verifies and commits.
+- **F5 (form kit) done and committed** (details + gaps in `docs/PROGRESS.md`). Owner decision D113 (Q-180): reason fields are multi-line — S3 adds a server multi-line schema helper for reasons and uses the matching counter.
+- **F3 (Select) done and committed** (details + non-blocking gaps in `docs/PROGRESS.md`).
+- **Next: fix the F3 keyboard focus race** (`tests/e2e/vacancies.spec.ts:894` failed once in a full run: Tab from the status filter did not land on the first row link; passes alone; suspect the lazy trigger swap in `components/ui/select.tsx` / `use-restore-focus.ts`), **then F4 (Combobox)** — owner agreed order F5 → F4 on 2026-11-11; then F7, F8, F6, F9, F10 (per `docs/ux/ui-foundation.md`); then S3 UI. Flow per slice: senior-fullstack-engineer → qa-engineer → code-reviewer → fixes; orchestrator verifies and commits.
 - Run notes: stored E2E sign-ins expire overnight — the first E2E run of a day must **not** use `--no-deps` (the setup project refreshes them; otherwise every test lands on `/login`); `--no-deps` only for repeat runs within the session (avoids the sign-in 429). Local stack: start Docker Desktop, then `npx supabase start`; `corepack pnpm build` before E2E (`next start` serves `.next`).
 - F2 done (Badge, Tooltip, DisabledReason; size-limit `[param]` fix; dev-server suite `pnpm test:e2e:dev-ui`).
 - F1 done (details in `docs/PROGRESS.md`). **Next: F2–F10 per `docs/ux/ui-foundation.md`** — order F2, F3, F5, F7, F8 (parallel-safe where files don't overlap), then F4, F6, F9, F10; then S3 UI. Agents read design skills as files (CLAUDE.md §11), run on Sonnet with effort high.
