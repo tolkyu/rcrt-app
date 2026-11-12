@@ -5,12 +5,13 @@
 
 ## UI foundation checkpoint — 2026-11-12 (F1–F5, F7, F8, F8.1 + hydration fix committed)
 
+- **Codex model policy (owner, 2026-11-12):** coordinator GPT-6.1 Sol; subagents GPT-6 Astra, effort high, bounded fresh contexts. See `CLAUDE.md` §12 and `.codex/config.toml`; Claude Code keeps Sonnet agents. Product work still resumes at F6a.
 - **F8.1 done and committed**: pointerdown opener capture, menu/submenu trigger focus fallback, `DisabledReason reserveSpace`, test isolation, tab theme assertion; tracker stays in `(app)` (root install would cost `/login` +0.31 kB). Full gates green (details + gaps in `docs/PROGRESS.md`). `/login` 179.55 kB → **0.45 kB headroom**.
 - **Next: F6, then F9, F10** (per `docs/ux/ui-foundation.md`), then S3 UI.
 - **F6 brief (ready to launch, split in two small slices; spec = `docs/ux/ui-foundation.md` row F6 + gaps G7/G9):**
   - **F6a — `FilterChips` only** (`components/ui/filter-chips.tsx` + gallery section + tests): single-select `radiogroup`, pill chips, selected = `--primary-subtle` + 2 px `--brand` ring, optional `count` (`tabular-nums`), arrow keys move within the group, horizontal scroll-snap with edge fade, selected chip scrolled into view, `pointer-coarse:min-h-11`, no animation on selection change; 390 px row scrolls with no page overflow and no clipped first chip. No production page changes → no `perf:size` risk.
   - **F6b — `FilterBar` + `vacancies-view.tsx`**: labelled controls grid, «Скинути фільтри» slot, `busy` dims results only after 150 ms; status `<select>` → chips keyed to `VACANCY_STATUSES` incl. «Чернетки» (count only when the API supplies a scoped total — S3), search + vertical via F3 Select; URL stays the source of truth. Re-check `perf:size` (`/vacancies` 170.44).
-  - Flow per slice: senior-fullstack-engineer → code-reviewer → QA full gates (PowerShell + `npx.cmd`; start Docker Desktop first) → commit + push.
+  - Flow per slice: senior-fullstack-engineer → qa-engineer full gates (PowerShell + `npx.cmd`; start Docker Desktop first) → code-reviewer → fixes/re-checks → commit + push.
 
 - **DisabledReason hydration fix committed** (`80ee5e4`): id pair created after hydration; root cause was dev-only `useId` path divergence, not the Tooltip Suspense. Open: Select/Combobox/Form sections still log a dev-only hydration mismatch in ~3–6 % of loads under load.
 - **F8 (Dialog family + ConfirmDialog) done and committed**: sizes, header/footer, mobile slide, `ConfirmDialog` (tone, consequence, reason, pending, 409 slot), focus return to the opener (`use-opener-focus.ts` + `lib/last-focus.ts`), global `@custom-variant dark` (all `dark:` now follow the app theme), per-open menu source. Full gates green (details in `docs/PROGRESS.md`).
@@ -24,7 +25,7 @@
 - Flow per slice: senior-fullstack-engineer → qa-engineer + code-reviewer → fixes → re-review; orchestrator verifies and commits. Full `pnpm test` needs `pnpm test:db:up` first (integration project).
 - Run notes: stored E2E sign-ins expire overnight — the first E2E run of a day must **not** use `--no-deps` (the setup project refreshes them; otherwise every test lands on `/login`); `--no-deps` only for repeat runs within the session (avoids the sign-in 429). Local stack: start Docker Desktop, then `npx supabase start`; `corepack pnpm build` before E2E (`next start` serves `.next`).
 - F2 done (Badge, Tooltip, DisabledReason; size-limit `[param]` fix; dev-server suite `pnpm test:e2e:dev-ui`).
-- F1 done (details in `docs/PROGRESS.md`). **Next: F2–F10 per `docs/ux/ui-foundation.md`** — order F2, F3, F5, F7, F8 (parallel-safe where files don't overlap), then F4, F6, F9, F10; then S3 UI. Agents read design skills as files (CLAUDE.md §11), run on Sonnet with effort high.
+- F1 done (details in `docs/PROGRESS.md`). **Next: F2–F10 per `docs/ux/ui-foundation.md`** — order F2, F3, F5, F7, F8 (parallel-safe where files don't overlap), then F4, F6, F9, F10; then S3 UI. Agents read design skills as files (CLAUDE.md §11); Claude Code agents run on Sonnet, Codex agents on GPT-6 Astra, both with effort high (§12).
 - Owner questions answered 2026-11-10 («ок реки»): (1) own drafts only under chip «Чернетки» (D110); (2) seniority / employment type fixed lists, no free text (D111; API/Zod must be restricted in S3 or a backend follow-up); (3) Q-177 → 1a/2a/3a (D112; author may delete a cancelled draft: backend follow-up).
 - Run notes: `pnpm` only via `corepack pnpm` in the agent shell; Playwright Chromium was reinstalled 2026-11-10; screenshots for phase-2 screens come from `test:e2e` (`captureScreen`), not `test:screens`.
 

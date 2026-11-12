@@ -166,4 +166,6 @@ Rules: motion respects `prefers-reduced-motion`; no animation on high-frequency/
 
 ## 12. Models
 
-Orchestrator = the session model (owner switches with `/model`, e.g. Opus 5.5). All subagents run `model: sonnet` (set in `.claude/agents/*.md`) and are launched with effort `high` (owner decision 2026-11-10).
+- **Claude Code:** orchestrator = the session model (owner switches with `/model`, e.g. Opus 5.5). Subagents run `model: sonnet` (set in `.claude/agents/*.md`) with effort `high` (owner decision 2026-11-10).
+- **Codex:** orchestrator = **GPT-6.1 Sol** (`gpt-6.1-sol`); all subagents = **GPT-6 Astra** (`gpt-6-astra`) with effort `high` (owner decision 2026-11-12). Defaults live in `.codex/config.toml`. The Claude role files still define responsibilities; their `model: sonnet` frontmatter applies only to Claude Code. Explicitly select Astra when spawning Codex agents; if a model override requires a fresh context, use `fork_turns: "none"` and supply the task, files, PRD IDs and Definition of Done. A project default does not switch the model of an already-running session; the owner selects Sol in the session model picker if needed.
+- **Token economy:** give agents bounded tasks and only the relevant context; reuse agents for related follow-ups. Parallelize independent work only; avoid duplicate exploration and repeated full test runs without new changes or failures. Keep the QA/review requirements above.

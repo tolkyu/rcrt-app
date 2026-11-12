@@ -2,6 +2,10 @@
 
 Single log of phase status, deliverables, gaps and decisions. Updated at the end of every task.
 
+## Tooling — 2026-11-12
+
+- Owner's Codex model policy: GPT-6.1 Sol coordinator, GPT-6 Astra subagents with effort high. Added project defaults in `.codex/config.toml`; clarified provider-specific models and bounded agent contexts in `CLAUDE.md` §12. Claude Code's Sonnet configuration is unchanged. Reviewed the latest Claude checkpoint; product work resumes at F6a (`FilterChips`). Configuration/docs only; no product changes. Verified model defaults and `git diff --check`; independent GPT-6 Astra code review APPROVED. App suites not run (no app changes); the active coordinator model still depends on the session selection.
+
 ## Phase status
 
 | Phase | Scope (PRD §15)                                                | Status                                                                      | Gallery                                                                                         |
