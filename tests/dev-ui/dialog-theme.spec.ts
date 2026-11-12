@@ -60,5 +60,20 @@ for (const { scheme, theme, dark } of CASES) {
         ),
       ).toBe(await tokenColour(page, dark ? '--primary-subtle' : '--surface'));
     });
+
+    test(`the selected tab is ${dark ? 'primary-subtle' : 'surface'}`, async ({
+      page,
+    }) => {
+      await openGallery(page, theme);
+      const selected = page
+        .getByRole('tablist', { name: t.tabsLabel })
+        .getByRole('tab', { selected: true });
+      await expect(selected).toBeVisible();
+      expect(
+        await selected.evaluate(
+          (node) => getComputedStyle(node).backgroundColor,
+        ),
+      ).toBe(await tokenColour(page, dark ? '--primary-subtle' : '--surface'));
+    });
   });
 }

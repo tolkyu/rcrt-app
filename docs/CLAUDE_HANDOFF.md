@@ -3,11 +3,14 @@
 > Read order: `CLAUDE.md` → this file → `docs/PROGRESS.md` → `docs/PRD.md` §14 (owner decisions D1–D70).
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
-## UI foundation checkpoint — 2026-11-12 (F1–F5, F7, F8 + hydration fix committed)
+## UI foundation checkpoint — 2026-11-12 (F1–F5, F7, F8, F8.1 + hydration fix committed)
+
+- **F8.1 done and committed**: pointerdown opener capture, menu/submenu trigger focus fallback, `DisabledReason reserveSpace`, test isolation, tab theme assertion; tracker stays in `(app)` (root install would cost `/login` +0.31 kB). Full gates green (details + gaps in `docs/PROGRESS.md`). `/login` 179.55 kB → **0.45 kB headroom**.
+- **Next: F6, then F9, F10** (per `docs/ux/ui-foundation.md`), then S3 UI.
 
 - **DisabledReason hydration fix committed** (`80ee5e4`): id pair created after hydration; root cause was dev-only `useId` path divergence, not the Tooltip Suspense. Open: Select/Combobox/Form sections still log a dev-only hydration mismatch in ~3–6 % of loads under load.
 - **F8 (Dialog family + ConfirmDialog) done and committed**: sizes, header/footer, mobile slide, `ConfirmDialog` (tone, consequence, reason, pending, 409 slot), focus return to the opener (`use-opener-focus.ts` + `lib/last-focus.ts`), global `@custom-variant dark` (all `dark:` now follow the app theme), per-open menu source. Full gates green (details in `docs/PROGRESS.md`).
-- **Next: F8.1** (small, from the re-review; list at the end of the «F8 gaps» bullet in `docs/PROGRESS.md`: Safari pointerdown opener, menu-item opener fallback, `DisabledReason reserveSpace`, test gaps), **then F6, F9, F10**, then S3 UI (first production user of ConfirmDialog → re-check `perf:size`; `/login` has 0.45 kB headroom).
+- S3 UI is the first production user of ConfirmDialog → re-check `perf:size`.
 
 - **F5 (form kit) done and committed** (details + gaps in `docs/PROGRESS.md`). Owner decision D113 (Q-180): reason fields are multi-line — S3 adds a server multi-line schema helper for reasons and uses the matching counter.
 - **F3 (Select) done and committed** (details + non-blocking gaps in `docs/PROGRESS.md`).

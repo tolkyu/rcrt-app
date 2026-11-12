@@ -107,6 +107,23 @@ test.describe('Dialog family on a phone [UI-F8, mobile TL flows]', () => {
     expect((await box(dialog)).height).toBeCloseTo(heightBefore, 0);
   });
 
+  test('a touch tablet at 820 px keeps the dialog height when the reason is typed, too [UI-F8.1]', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 820, height: 1180 });
+    await openGallery(page);
+    await open(page, t.confirms, t.withReason).click();
+    const dialog = page.getByRole('alertdialog');
+    await expect(dialog).toBeVisible();
+    await settled(dialog);
+    const helper = dialog.getByText(c.confirmReasonRequired, { exact: true });
+    await expect(helper).toBeVisible();
+    const heightBefore = (await box(dialog)).height;
+    await page.getByRole('textbox').fill('Причина');
+    await expect(helper).toHaveCount(0);
+    expect((await box(dialog)).height).toBeCloseTo(heightBefore, 0);
+  });
+
   test('worst-case content wraps inside the sheet and the page never scrolls sideways', async ({
     page,
   }) => {

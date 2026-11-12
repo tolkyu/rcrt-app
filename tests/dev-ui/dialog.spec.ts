@@ -390,6 +390,30 @@ test.describe('Dialog family and ConfirmDialog [UI-F8]', () => {
     });
   });
 
+  test.describe('focus after a menu item opens a modal', () => {
+    test('Escape and Cancel hand focus to the menu trigger, because the item that opened the dialog is gone [UI-F8.1]', async ({
+      page,
+    }) => {
+      await openGallery(page);
+      const trigger = group(page, t.menus).getByRole('button', {
+        name: t.menuDialogTrigger,
+        exact: true,
+      });
+      for (const close of ['Escape', 'Cancel'] as const) {
+        await trigger.click();
+        await page.getByRole('menuitem', { name: t.menuDelete }).click();
+        const dialog = page.getByRole('alertdialog', {
+          name: t.destructiveTitle,
+        });
+        await expect(dialog).toBeVisible();
+        if (close === 'Escape') await page.keyboard.press('Escape');
+        else await cancelButton(page).click();
+        await expect(dialog).toHaveCount(0);
+        await expect(trigger).toBeFocused();
+      }
+    });
+  });
+
   test.describe('menu animation', () => {
     test('a pointer-opened menu animates from its trigger; a keyboard-opened one carries data-instant and has no animation', async ({
       page,

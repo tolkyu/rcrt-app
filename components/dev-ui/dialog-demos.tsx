@@ -32,6 +32,8 @@ import {
   SheetTitle,
   type SheetSize,
 } from '@/components/ui/sheet';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { trackLastFocus } from '@/lib/last-focus';
 import { VACANCY_REASON_MAX } from '@/lib/schemas/vacancy';
 import { toast } from '@/lib/toast';
 import { GalleryGroup } from './gallery-section';
@@ -334,8 +336,56 @@ function MenuDemo() {
   );
 }
 
+/** The dialog opens from a menu item that unmounts with the menu, so focus has to go back to the menu's trigger. */
+function MenuDialogDemo() {
+  const t = useTranslations('devUi.dialogs');
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline">{t('menuDialogTrigger')}</Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start">
+          <DropdownMenuItem onSelect={() => setOpen(true)}>
+            {t('menuDelete')}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <ConfirmDialog
+        open={open}
+        onOpenChange={setOpen}
+        tone="destructive"
+        title={t('destructiveTitle')}
+        confirmLabel={t('destructiveConfirm')}
+        onConfirm={() => setOpen(false)}
+      />
+    </>
+  );
+}
+
+function TabsDemo() {
+  const t = useTranslations('devUi.dialogs');
+  return (
+    <Tabs defaultValue="profile" className="w-full max-w-md">
+      <TabsList aria-label={t('tabsLabel')}>
+        <TabsTrigger value="profile">{t('tabProfile')}</TabsTrigger>
+        <TabsTrigger value="history">{t('tabHistory')}</TabsTrigger>
+      </TabsList>
+      <TabsContent value="profile" className="text-sm">
+        {t('tabProfilePanel')}
+      </TabsContent>
+      <TabsContent value="history" className="text-sm">
+        {t('tabHistoryPanel')}
+      </TabsContent>
+    </Tabs>
+  );
+}
+
 export function DialogDemos() {
   const t = useTranslations('devUi.dialogs');
+  // The gallery sits outside AppProviders, which installs this in the real app.
+  useEffect(trackLastFocus, []);
   return (
     <>
       <GalleryGroup title={t('sizes')} hint={t('sizesHint')}>
@@ -354,6 +404,10 @@ export function DialogDemos() {
       </GalleryGroup>
       <GalleryGroup title={t('menus')} hint={t('menusHint')}>
         <MenuDemo />
+        <MenuDialogDemo />
+      </GalleryGroup>
+      <GalleryGroup title={t('tabs')} hint={t('tabsHint')}>
+        <TabsDemo />
       </GalleryGroup>
     </>
   );

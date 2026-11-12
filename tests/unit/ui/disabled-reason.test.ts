@@ -91,6 +91,31 @@ describe('DisabledReason [UI foundation F2, ui-foundation section 6]', () => {
     const tooltip = await screen.findByRole('tooltip', {}, { timeout: 3000 });
     expect(tooltip.textContent).toBe(REASON);
   });
+
+  it('keeps the touch reason line as an invisible, unannounced spacer only while enabled and asked to', () => {
+    const spacer = () =>
+      document.querySelector('span[aria-hidden="true"].invisible');
+    const reserving = (disabled: boolean, reserveSpace: boolean) => {
+      cleanup();
+      render(
+        createElement(DisabledReason, {
+          reason: REASON,
+          disabled,
+          reserveSpace,
+          children: createElement(Button, null, 'Опублікувати'),
+        }),
+      );
+    };
+    reserving(false, true);
+    expect(spacer()?.className).toContain('[@media(hover:none)]:block');
+    expect(spacer()?.className).toContain('hidden');
+    expect(spacer()?.textContent).not.toBe(REASON);
+    reserving(false, false);
+    expect(spacer()).toBeNull();
+    reserving(true, true);
+    expect(spacer()).toBeNull();
+    expect(document.body.textContent).toContain(REASON);
+  });
 });
 
 describe('DisabledReason around other elements [UI foundation F2]', () => {

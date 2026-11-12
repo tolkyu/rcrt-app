@@ -48,11 +48,14 @@ const guardKey =
 export function DisabledReason({
   reason,
   disabled = true,
+  reserveSpace = false,
   className,
   children,
 }: {
   reason: string;
   disabled?: boolean;
+  /** Keeps the touch-visible reason's line (and gap) while the action is enabled, so the layout around it does not jump. */
+  reserveSpace?: boolean;
   className?: string;
   children: ReactElement<ActionProps>;
 }) {
@@ -84,13 +87,22 @@ export function DisabledReason({
       <Tooltip content={reason} disabled={!disabled} decorative>
         {action}
       </Tooltip>
-      {disabled && (
+      {disabled ? (
         <span
           id={reasonId}
           className="[@media(hover:none)]:text-muted-foreground-strong sr-only [@media(hover:none)]:not-sr-only [@media(hover:none)]:text-xs"
         >
           {reason}
         </span>
+      ) : (
+        reserveSpace && (
+          <span
+            aria-hidden="true"
+            className="invisible hidden text-xs [@media(hover:none)]:block"
+          >
+            &nbsp;
+          </span>
+        )
       )}
     </span>
   );

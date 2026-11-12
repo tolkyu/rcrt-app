@@ -356,3 +356,100 @@ describe('every modal kind hands focus back to a plain button [UI foundation F8,
     await waitFor(() => expect(document.activeElement).toBe(document.body));
   });
 });
+
+/** Radix portals the menu out of its trigger and labels the content with the trigger's id. */
+function menuWithTrigger() {
+  const trigger = button('Меню');
+  trigger.id = 'menu-trigger';
+  const menu = document.createElement('div');
+  menu.setAttribute('role', 'menu');
+  menu.setAttribute('aria-labelledby', trigger.id);
+  const item = document.createElement('div');
+  item.setAttribute('role', 'menuitem');
+  item.tabIndex = -1;
+  menu.append(item);
+  document.body.append(menu);
+  return { trigger, menu, item };
+}
+
+describe('a modal opened from a menu item [UI foundation F8.1, WCAG 2.4.3]', () => {
+  it('hands focus to the menu trigger once the item is gone', () => {
+    const { trigger, menu, item } = menuWithTrigger();
+    item.focus();
+    const { onOpenAutoFocus, onCloseAutoFocus } = mountHook();
+    onOpenAutoFocus(cancelable());
+    menu.remove();
+    const close = cancelable();
+    onCloseAutoFocus(close);
+    expect(close.defaultPrevented).toBe(true);
+    expect(document.activeElement).toBe(trigger);
+    trigger.remove();
+  });
+
+  it('finds the trigger when the menu had unmounted before the modal mounted', async () => {
+    // A fresh module copy keeps the global listener and the remembered element out of the other tests.
+    vi.resetModules();
+    const [{ trackLastFocus }, { useOpenerFocus: freshHook }] =
+      await Promise.all([
+        import('@/lib/last-focus'),
+        import('@/components/ui/use-opener-focus'),
+      ]);
+    trackLastFocus();
+    const { trigger, menu, item } = menuWithTrigger();
+    item.focus();
+    menu.remove();
+    expect(document.activeElement).toBe(document.body);
+    const { onOpenAutoFocus, onCloseAutoFocus } = renderHook(() =>
+      freshHook({}),
+    ).result.current;
+    onOpenAutoFocus(cancelable());
+    onCloseAutoFocus(cancelable());
+    expect(document.activeElement).toBe(trigger);
+    trigger.remove();
+  });
+
+  it('climbs from a submenu item to the root trigger, because the sub-trigger unmounts with its menu', () => {
+    const { trigger, menu, item } = menuWithTrigger();
+    const subTrigger = document.createElement('div');
+    subTrigger.id = 'sub-trigger';
+    subTrigger.setAttribute('role', 'menuitem');
+    menu.append(subTrigger);
+    const subMenu = document.createElement('div');
+    subMenu.setAttribute('role', 'menu');
+    subMenu.setAttribute('aria-labelledby', subTrigger.id);
+    subMenu.append(item);
+    document.body.append(subMenu);
+    item.focus();
+    const { onOpenAutoFocus, onCloseAutoFocus } = mountHook();
+    onOpenAutoFocus(cancelable());
+    menu.remove();
+    subMenu.remove();
+    onCloseAutoFocus(cancelable());
+    expect(document.activeElement).toBe(trigger);
+    trigger.remove();
+  });
+
+  it('prefers the item itself while it is still on the page', () => {
+    const { trigger, menu, item } = menuWithTrigger();
+    item.focus();
+    const { onOpenAutoFocus, onCloseAutoFocus } = mountHook();
+    onOpenAutoFocus(cancelable());
+    trigger.focus();
+    onCloseAutoFocus(cancelable());
+    expect(document.activeElement).toBe(item);
+    trigger.remove();
+    menu.remove();
+  });
+
+  it('leaves the event to Radix when neither the item nor the trigger is left', () => {
+    const { trigger, menu, item } = menuWithTrigger();
+    item.focus();
+    const { onOpenAutoFocus, onCloseAutoFocus } = mountHook();
+    onOpenAutoFocus(cancelable());
+    menu.remove();
+    trigger.remove();
+    const close = cancelable();
+    onCloseAutoFocus(close);
+    expect(close.defaultPrevented).toBe(false);
+  });
+});

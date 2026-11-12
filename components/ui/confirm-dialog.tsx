@@ -134,13 +134,9 @@ function ConfirmBody({
         <DisabledReason
           disabled={blocker !== null}
           reason={blocker ?? ''}
-          // On touch the blocker is visible text under the button; keep its height when it goes, so the bottom sheet does not jump.
-          className={cn(
-            'max-md:w-full',
-            reason &&
-              blocker === null &&
-              'max-md:[@media(hover:none)]:pb-[1.375rem]',
-          )}
+          // On touch the blocker is visible text under the button; keep its height when it goes, so the sheet does not jump.
+          reserveSpace={Boolean(reason)}
+          className="max-md:w-full"
         >
           <Button
             variant={tone === 'destructive' ? 'destructive' : 'default'}

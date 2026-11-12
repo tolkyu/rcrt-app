@@ -264,11 +264,13 @@ describe('ConfirmDialog [UI foundation F8, G16]', () => {
 
   it('reserves the helper line on touch once the reason is given, and only then', () => {
     mount(withReason);
-    const wrapper = () => confirm().closest('span.inline-flex') as HTMLElement;
-    const reserve = 'max-md:[@media(hover:none)]:pb-[1.375rem]';
-    expect(wrapper().classList.contains(reserve)).toBe(false);
+    const spacer = () =>
+      confirm()
+        .closest('span.inline-flex')
+        ?.querySelector('span[aria-hidden="true"].invisible') ?? null;
+    expect(spacer()).toBeNull();
     fireEvent.change(reasonField(), { target: { value: 'Причина' } });
-    expect(wrapper().classList.contains(reserve)).toBe(true);
+    expect(spacer()).not.toBeNull();
   });
 
   it('shows an inline failure as an alert inside the dialog', () => {
