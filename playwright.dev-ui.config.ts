@@ -39,6 +39,8 @@ export default defineConfig({
         '**/*-touch.spec.ts',
         '**/badges.spec.ts',
         '**/dialog-screens.spec.ts',
+        '**/filter-chips.spec.ts',
+        '**/filter-chips-screens.spec.ts',
       ],
       use: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } },
     },

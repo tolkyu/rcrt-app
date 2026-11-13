@@ -918,6 +918,21 @@ groups2.push(
   },
 );
 
+groups2.push({
+  screen: 'Каркас інтерфейсу — фільтри статусів',
+  role: 'Адміністратор (галерея розробника)',
+  roles: ['Адміністратор'],
+  states: [
+    {
+      file: '35-admin-ui-filter-chips-states',
+      label: 'адміністратор',
+      dir: VAC,
+      heading:
+        'Фільтри статусів — лічильники, вибраний останній статус, недоступні та порожні стани; на телефоні рядок прокручується',
+    },
+  ],
+});
+
 mkdirSync('screenshots/latest', { recursive: true });
 const listed = {
   'phase-1': new Set(),

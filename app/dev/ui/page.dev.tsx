@@ -6,6 +6,7 @@ import { ButtonsSection } from '@/components/dev-ui/buttons-section';
 import { ComboboxSection } from '@/components/dev-ui/combobox-section';
 import { DialogSection } from '@/components/dev-ui/dialog-section';
 import { FormSection } from '@/components/dev-ui/form-section';
+import { FilterChipsSection } from '@/components/dev-ui/filter-chips-section';
 import { MotionSection } from '@/components/dev-ui/motion-section';
 import { SelectSection } from '@/components/dev-ui/select-section';
 import { ToastSection } from '@/components/dev-ui/toast-section';
@@ -34,6 +35,7 @@ export default async function DevUiPage() {
       <BadgesSection />
       <ButtonsSection />
       <SelectSection />
+      <FilterChipsSection />
       <ComboboxSection />
       <FormSection />
       <TooltipSection />
