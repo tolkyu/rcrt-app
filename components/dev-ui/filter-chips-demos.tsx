@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { Button } from '@/components/ui/button';
+import { FilterBar, FilterBarResults } from '@/components/ui/filter-bar';
 import {
   FilterChips,
   type FilterChipOption,
@@ -35,6 +37,8 @@ function Example({
 
 export function FilterChipsDemos() {
   const t = useTranslations('devUi.filterChips');
+  const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState('');
   const options = useMemo<FilterChipOption[]>(
     () => [
       { value: '', label: t('all'), count: 1284 },
@@ -52,6 +56,40 @@ export function FilterChipsDemos() {
   );
   return (
     <>
+      <GalleryGroup title={t('barTitle')} hint={t('barHint')}>
+        <div className="w-full min-w-0">
+          <FilterBar
+            label={t('barTitle')}
+            reset={
+              <Button variant="outline" onClick={() => setStatus('')}>
+                {t('reset')}
+              </Button>
+            }
+          >
+            <FilterChips
+              className="md:col-span-2"
+              label={t('barStatuses')}
+              options={options}
+              value={status}
+              onValueChange={setStatus}
+            />
+          </FilterBar>
+          <Button
+            variant="outline"
+            aria-pressed={busy}
+            onClick={() => setBusy(!busy)}
+          >
+            {t('toggleBusy')}
+          </Button>
+          <FilterBarResults
+            busy={busy}
+            aria-label={t('barResults')}
+            className="bg-surface-muted mt-3 rounded-xl p-4"
+          >
+            {t('barResults')}
+          </FilterBarResults>
+        </div>
+      </GalleryGroup>
       <GalleryGroup title={t('states')} hint={t('statesHint')}>
         <Example label={t('statuses')} options={options} />
         <Example label={t('offscreen')} options={options} initial="CANCELLED" />

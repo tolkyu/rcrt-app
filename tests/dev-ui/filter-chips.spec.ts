@@ -132,6 +132,9 @@ test.describe('FilterChips [UI-F6a]', () => {
     await expect(disabled).toHaveAttribute('aria-disabled', 'true');
     await expect(disabled.locator('[tabindex="0"]')).toHaveCount(0);
     expect(
+      await disabled.evaluate((node) => node.scrollWidth <= node.clientWidth),
+    ).toBe(true);
+    expect(
       await disabled
         .getByRole('radio')
         .evaluateAll((nodes) =>

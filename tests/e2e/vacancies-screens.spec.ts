@@ -311,41 +311,32 @@ test.describe('admin@demo states', () => {
     });
   });
 
-  test('captures the open status list of the filter with the current status marked [SHOT-01..03, UI-F3]', async ({
+  test('captures status chips with the current status selected [SHOT-01..03, UI-F6b]', async ({
     page,
     isMobile,
   }, testInfo) => {
     await freezeClock(page);
-    const viewport = viewportOf(testInfo);
-    const original = page.viewportSize()!;
     await forEachTheme(page, async (theme) => {
       await openHydrated(page, '/vacancies?status=OPEN');
       await expect(rowCount(page, isMobile).first()).toBeVisible();
       await previewReady(page, isMobile);
-      // Radix closes an open list on window resize, so the page is made full-height before opening (captureScreen then has nothing to resize).
-      for (let pass = 0; pass < 2; pass += 1)
-        await page.setViewportSize({
-          width: original.width,
-          height: await page.evaluate(() =>
-            Math.max(window.innerHeight, document.documentElement.scrollHeight),
-          ),
-        });
-      await page.getByLabel(t.filterStatus, { exact: true }).click();
+      const group = page.getByRole('radiogroup', {
+        name: t.filterStatus,
+        exact: true,
+      });
       await expect(
-        page.getByRole('option', { name: t.status.OPEN, exact: true }),
-      ).toBeFocused();
-      await expect(page.getByRole('option')).toHaveCount(
-        Object.keys(t.status).length + 1,
+        group.getByRole('radio', { name: t.filterStatuses.OPEN, exact: true }),
+      ).toBeChecked();
+      await expect(group.getByRole('radio')).toHaveCount(
+        Object.keys(t.filterStatuses).length + 1,
       );
+      await checkAccessibility(page, testInfo);
       await captureScreen(
         page,
         testInfo,
-        `32-admin-vacancies-status-select-open-${viewport}-${theme}.png`,
+        `32-admin-vacancies-status-chips-${viewportOf(testInfo)}-${theme}.png`,
         'phase-2',
       );
-      await page.keyboard.press('Escape');
-      await expect(page.getByRole('listbox')).toHaveCount(0);
-      await page.setViewportSize(original);
     });
   });
 
@@ -382,10 +373,7 @@ test.describe('admin@demo states', () => {
           page.getByText(t.refreshing, { exact: true }),
         ).toBeVisible();
         await expect(
-          page
-            .getByRole('region', { name: t.resultsLabel, exact: true })
-            .locator('[data-slot="card"]')
-            .first(),
+          page.getByRole('region', { name: t.resultsLabel, exact: true }),
         ).toHaveCSS('opacity', '0.6');
         await captureScreen(
           page,

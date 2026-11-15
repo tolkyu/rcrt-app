@@ -95,6 +95,18 @@ describe('FilterChips [F6a, VAC-02, UX accessibility]', () => {
     ).toBe('Усі, 1\u00a0284');
   });
 
+  it('requests every step while a URL-driven value has not re-rendered yet', async () => {
+    const user = userEvent.setup();
+    render(createElement(FilterChips, props));
+    await user.click(screen.getByRole('radio', { name: 'Чернетки, 1' }));
+    await user.click(screen.getByRole('radio', { checked: true }));
+    expect(props.onValueChange.mock.calls).toEqual([['DRAFT'], ['']]);
+    props.onValueChange.mockClear();
+    screen.getByRole('radio', { checked: true }).focus();
+    await user.keyboard('{ArrowRight}{ArrowLeft}');
+    expect(props.onValueChange.mock.calls).toEqual([['DRAFT'], ['']]);
+  });
+
   it('renders nothing for empty options', () => {
     const { container } = render(
       createElement(FilterChips, { ...props, options: [] }),

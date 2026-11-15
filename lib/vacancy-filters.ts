@@ -12,6 +12,14 @@ export const VACANCY_STATUSES = [
   'FILLED',
   'CANCELLED',
 ] as const;
+/** Chip order on «Вакансії» (G9): the working set first, closed states last. */
+export const VACANCY_FILTER_ORDER = [
+  'OPEN',
+  'DRAFT',
+  'ON_HOLD',
+  'FILLED',
+  'CANCELLED',
+] as const satisfies readonly (typeof VACANCY_STATUSES)[number][];
 export const VACANCY_PRIORITIES = ['NORMAL', 'URGENT'] as const;
 export const VACANCY_PAGE_SIZES = [25, 50, 100] as const;
 export const VACANCY_SEARCH_MAX = 120;

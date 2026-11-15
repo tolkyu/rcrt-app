@@ -17,6 +17,7 @@ import {
   withVacancyFilters,
 } from '@/lib/vacancy-filters';
 import { hasAnyGrant } from '@/server/authz/can';
+import { authorsAnywhere } from '@/server/authz/vacancy-author';
 import { NotFoundError } from '@/server/http/errors';
 import { describeError, logger } from '@/server/observability/logger';
 import { getQueryClient } from '@/server/query/query-client';
@@ -103,6 +104,7 @@ async function VacanciesContent({ params }: { params: SearchParams }) {
     >
       <VacanciesView
         canManagePositions={hasAnyGrant(ctx.auth, 'position.manage')}
+        canAuthorDrafts={authorsAnywhere(ctx.auth)}
       />
     </HydrationBoundary>
   );

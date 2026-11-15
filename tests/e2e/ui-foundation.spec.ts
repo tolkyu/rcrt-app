@@ -322,27 +322,26 @@ test.describe('vacancy chips and the lazy tooltip [UI-F2]', () => {
 test.describe('Select in the vacancies filter [UI-F3]', () => {
   test.use({ storageState: sessionFile('admin@demo') });
 
-  const status = (page: Page) =>
-    page.getByLabel(t.vacancies.filterStatus, { exact: true });
   const vertical = (page: Page) =>
     page.getByLabel(t.vacancies.filterVertical, { exact: true });
-  const statusParam = (page: Page) =>
-    expect.poll(() => new URL(page.url()).searchParams.get('status'));
+  const verticalParam = (page: Page) =>
+    expect.poll(() => new URL(page.url()).searchParams.get('vertical'));
+  const UUID = /^[0-9a-f-]{36}$/;
   const popup = (page: Page) => page.locator('[data-slot="select-content"]');
 
-  test('a pointer choice writes the status to the URL, «Усі» clears it and the field does not move', async ({
+  test('a pointer choice writes the vertical to the URL, «Усі» writes the explicit all and the field does not move', async ({
     page,
   }) => {
     await openHydrated(page, '/vacancies');
-    const field = status(page);
+    const field = vertical(page);
     const before = await field.boundingBox();
-    await chooseOption(page, field, t.vacancies.status.ON_HOLD);
-    await statusParam(page).toBe('ON_HOLD');
-    await expect(field).toHaveText(t.vacancies.status.ON_HOLD);
+    await chooseOption(page, field, 'Крипто');
+    await verticalParam(page).toMatch(UUID);
+    await expect(field).toHaveText('Крипто');
     expect(await field.boundingBox()).toEqual(before);
 
     await chooseOption(page, field, t.vacancies.all);
-    await statusParam(page).toBeNull();
+    await verticalParam(page).toBe('all');
     await expect(field).toHaveText(t.vacancies.all);
     expect(await field.boundingBox()).toEqual(before);
   });
@@ -351,14 +350,14 @@ test.describe('Select in the vacancies filter [UI-F3]', () => {
     page,
   }) => {
     await openHydrated(page, '/vacancies');
-    const field = status(page);
+    const field = vertical(page);
     await field.click();
     await expect(listboxOf(page)).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(listboxOf(page)).toHaveCount(0);
     await expect(field).toBeFocused();
     await expect(field).toHaveText(t.vacancies.all);
-    await statusParam(page).toBeNull();
+    await verticalParam(page).toBeNull();
   });
 
   test('keyboard: Tab reaches the field, ArrowDown opens it, arrows and Enter choose, type-ahead picks on the closed field', async ({
@@ -371,10 +370,7 @@ test.describe('Select in the vacancies filter [UI-F3]', () => {
       .getByRole('searchbox', { name: t.vacancies.searchLabel, exact: true })
       .focus();
     await page.keyboard.press('Tab');
-    await expect(vertical(page)).toHaveAttribute('data-state', 'closed');
-    await expect(vertical(page)).toBeFocused();
-    await page.keyboard.press('Tab');
-    const field = status(page);
+    const field = vertical(page);
     await expect(field).toHaveAttribute('data-state', 'closed');
     await expect(field).toBeFocused();
 
@@ -385,27 +381,23 @@ test.describe('Select in the vacancies filter [UI-F3]', () => {
     await page.keyboard.press('ArrowDown');
     await expect(optionsOf(page).nth(1)).toBeFocused();
     await page.keyboard.press('ArrowDown');
-    await expect(
-      optionsOf(page).filter({ hasText: t.vacancies.status.OPEN }),
-    ).toBeFocused();
+    await expect(optionsOf(page).nth(2)).toBeFocused();
+    await expect(optionsOf(page).nth(2)).toHaveText('Крипто');
     await page.keyboard.press('Enter');
     await expect(listboxOf(page)).toHaveCount(0);
     await expect(field).toBeFocused();
-    await statusParam(page).toBe('OPEN');
-    await expect(field).toHaveText(t.vacancies.status.OPEN);
+    await verticalParam(page).toMatch(UUID);
+    await expect(field).toHaveText('Крипто');
 
     // Playwright cannot press Cyrillic keys, so the key events Radix type-ahead listens to are dispatched.
-    await page.evaluate(
-      (typed) => {
-        for (const key of typed)
-          document.activeElement?.dispatchEvent(
-            new KeyboardEvent('keydown', { key, bubbles: true }),
-          );
-      },
-      t.vacancies.status.ON_HOLD.slice(0, 2),
-    );
-    await statusParam(page).toBe('ON_HOLD');
-    await expect(field).toHaveText(t.vacancies.status.ON_HOLD);
+    await page.evaluate((typed) => {
+      for (const key of typed)
+        document.activeElement?.dispatchEvent(
+          new KeyboardEvent('keydown', { key, bubbles: true }),
+        );
+    }, 'Гем');
+    await expect(field).toHaveText('Гемблінг');
+    await verticalParam(page).toMatch(UUID);
   });
 
   test('touch: a tap opens the list, the field text is 16 px, options and the list fit a phone', async ({
@@ -414,7 +406,7 @@ test.describe('Select in the vacancies filter [UI-F3]', () => {
   }) => {
     test.skip(!isMobile, 'touch targets are a phone contract');
     await openHydrated(page, '/vacancies');
-    const field = status(page);
+    const field = vertical(page);
     const metrics = await field.evaluate((node) => ({
       height: node.getBoundingClientRect().height,
       font: getComputedStyle(node).fontSize,
@@ -423,9 +415,11 @@ test.describe('Select in the vacancies filter [UI-F3]', () => {
     expect(metrics.height).toBeGreaterThanOrEqual(44);
 
     await field.tap();
-    await expect(optionsOf(page)).toHaveCount(
-      Object.keys(t.vacancies.status).length + 1,
-    );
+    await expect(optionsOf(page)).toHaveText([
+      t.vacancies.all,
+      'Гемблінг',
+      'Крипто',
+    ]);
     await popup(page).evaluate((node) =>
       Promise.all(node.getAnimations().map((animation) => animation.finished)),
     );
@@ -438,12 +432,10 @@ test.describe('Select in the vacancies filter [UI-F3]', () => {
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(viewport.width);
 
-    await page
-      .getByRole('option', { name: t.vacancies.status.ON_HOLD, exact: true })
-      .tap();
+    await page.getByRole('option', { name: 'Крипто', exact: true }).tap();
     await expect(listboxOf(page)).toHaveCount(0);
-    await statusParam(page).toBe('ON_HOLD');
-    await expect(field).toHaveText(t.vacancies.status.ON_HOLD);
+    await verticalParam(page).toMatch(UUID);
+    await expect(field).toHaveText('Крипто');
   });
 
   test('the Radix Select chunk is not requested on page load and arrives on the first hover', async ({
@@ -464,7 +456,7 @@ test.describe('Select in the vacancies filter [UI-F3]', () => {
     expect(onLoad).toBeGreaterThan(0);
     expect(await Promise.all(scripts.map(hasSelectCode))).not.toContain(true);
 
-    await status(page).hover();
+    await vertical(page).hover();
     await expect
       .poll(async () =>
         (await Promise.all(scripts.slice(onLoad).map(hasSelectCode))).some(

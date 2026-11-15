@@ -27,6 +27,8 @@ import { EmptyState } from '@/components/states/empty-state';
 import { SectionError } from '@/components/states/section-error';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { FilterBar, FilterBarResults } from '@/components/ui/filter-bar';
+import { FilterChips } from '@/components/ui/filter-chips';
 import { FilterSelectField } from '@/components/ui/filter-select-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -38,6 +40,7 @@ import {
   hasVacancyFilters,
   parseVacancyPageState,
   VACANCY_SEARCH_MAX,
+  VACANCY_FILTER_ORDER,
   VACANCY_STATUSES,
   withVacancyFilters,
   withVacancyPage,
@@ -66,8 +69,10 @@ function ListSkeleton() {
 /** «Вакансії»: filters, cursor and preview selection live in the URL (VAC-04); one page of at most 100 rows is retained. */
 export function VacanciesView({
   canManagePositions,
+  canAuthorDrafts,
 }: {
   canManagePositions: boolean;
+  canAuthorDrafts: boolean;
 }) {
   const t = useTranslations('vacancies');
   const params = useSearchParams();
@@ -111,6 +116,16 @@ export function VacanciesView({
     if (orphanCursor)
       navigate((current) => withVacancyFilters(current, {}), 'replaceState');
   }, [orphanCursor]);
+
+  /** Only draft authors have the «Чернетки» chip; a shared `?status=DRAFT` link falls back to «Усі» for everyone else. */
+  const hiddenDraft = filters.status === 'DRAFT' && !canAuthorDrafts;
+  useEffect(() => {
+    if (hiddenDraft)
+      navigate(
+        (current) => withVacancyFilters(current, { status: undefined }),
+        'replaceState',
+      );
+  }, [hiddenDraft]);
 
   const changeText = (value: string) => {
     setText(value);
@@ -176,13 +191,18 @@ export function VacanciesView({
       ? [{ value: filters.vertical, label: t('unknownVertical') }]
       : []),
   ];
-  const statusOptions = [
-    { value: '', label: t('all') },
-    ...VACANCY_STATUSES.map((status) => ({
-      value: status,
-      label: t(`status.${status}`),
-    })),
-  ];
+  const statusOptions = useMemo(
+    () => [
+      { value: '', label: t('all') },
+      ...VACANCY_FILTER_ORDER.filter(
+        (status) => canAuthorDrafts || status !== 'DRAFT',
+      ).map((status) => ({
+        value: status,
+        label: t(`filterStatuses.${status}`),
+      })),
+    ],
+    [t, canAuthorDrafts],
+  );
 
   let body: ReactNode;
   if (!query.data) {
@@ -233,11 +253,23 @@ export function VacanciesView({
         subtitle={t('subtitle')}
         actions={canManagePositions ? <PositionsEntryLink /> : undefined}
       />
-      <section
-        aria-label={t('filtersLabel')}
-        className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)]"
+      <FilterBar
+        label={t('filtersLabel')}
+        reset={
+          filtered &&
+          !emptyResult && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="min-h-11"
+              onClick={reset}
+            >
+              {t('resetFilters')}
+            </Button>
+          )
+        }
       >
-        <div className="col-span-2 flex min-w-0 flex-col gap-1 md:col-span-1">
+        <div className="flex min-w-0 flex-col gap-1">
           <Label htmlFor="vacancies-search" className="text-xs">
             {t('searchLabel')}
           </Label>
@@ -276,11 +308,11 @@ export function VacanciesView({
           }
           options={verticalOptions}
         />
-        <FilterSelectField
-          id="vacancies-filter-status"
+        <FilterChips
+          className="md:col-span-2"
           label={t('filterStatus')}
-          value={filters.status ?? ''}
-          onChange={(value) =>
+          value={hiddenDraft ? '' : (filters.status ?? '')}
+          onValueChange={(value) =>
             navigate(
               (current) =>
                 withVacancyFilters(current, {
@@ -291,38 +323,17 @@ export function VacanciesView({
           }
           options={statusOptions}
         />
-      </section>
-      {filtered && !emptyResult && (
-        <div className="mb-4">
-          <Button
-            variant="outline"
-            size="sm"
-            className="min-h-11"
-            onClick={reset}
-          >
-            {t('resetFilters')}
-          </Button>
-        </div>
-      )}
+      </FilterBar>
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
         <div className="min-w-0">
-          <section
+          <FilterBarResults
             ref={results}
             tabIndex={-1}
             aria-label={t('resultsLabel')}
-            aria-busy={query.isPlaceholderData}
-            className="outline-none"
+            busy={query.isPlaceholderData}
           >
-            <Card
-              className={
-                query.isPlaceholderData
-                  ? 'overflow-hidden p-0 opacity-60 transition-opacity'
-                  : 'overflow-hidden p-0'
-              }
-            >
-              {body}
-            </Card>
-          </section>
+            <Card className="overflow-hidden p-0">{body}</Card>
+          </FilterBarResults>
           {query.isError && query.data && (
             <SectionError
               onRetry={() => void query.refetch()}

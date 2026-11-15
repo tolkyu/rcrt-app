@@ -3,6 +3,12 @@
 > Read order: `CLAUDE.md` → this file → `docs/PROGRESS.md` → `docs/PRD.md` §14 (owner decisions D1–D70).
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
+## Checkpoint — 2026-11-15 evening (Claude 5-hour limit hit, resets 23:50 Kyiv)
+
+- **F6b (FilterBar + status chips) committed on `phase-2`, NOT pushed — waiting for code-reviewer re-review** (Sonnet agents rate-limited until 23:50 Kyiv; the orchestrator fixed the whole review list itself). Re-review scope: `git show HEAD -- components/ui tests lib components/vacancies` vs the first review (stale-value guard in `FilterChips.select`, `VACANCY_FILTER_ORDER`, non-author `?status=DRAFT` fallback, 16 px reveal assertion, filter-bar unit tests, disabled chip row wraps instead of scrolling, axe `color-contrast` skipped only for the dimmed busy results). Verified: unit 344, build, `/vacancies` 171.86 kB, E2E vacancies/screens/ui-foundation 174/0 fail, dev-ui filter/badges/toast 66/66. On APPROVED: push. Owner/UX to confirm: busy-dim contrast exemption, no visible «Статус» label.
+- **D111 + D112(1)(3) backend = commit `f768795` on branch `d111-d112-backend` in worktree `D:\recruiting-app-wt`** (closed seniority/employment lists `VACANCY_SENIORITIES` / `VACANCY_EMPLOYMENT_TYPES`, `""` refused — form sends `null`; author may delete own CANCELLED never-opened draft, `opened_at IS NULL`; no migration). Unit 2,730 + integration (draft-lifecycle, draft-routes, create) 121 green. **Pending:** code-reviewer + security-engineer (both stopped by the limit before reporting), then merge into `phase-2` (`git merge d111-d112-backend`), full gates, push, `git worktree remove D:/recruiting-app-wt`. D112(2) purge of reasons stays for the purge slice.
+- After both: F9, F10, then S3 UI.
+
 ## UI foundation checkpoint — 2026-11-13 (F1–F5, F6a, F7, F8, F8.1 + hydration fix committed)
 
 - **F6a (`FilterChips`) done and committed** (Codex build → Claude review/fixes → APPROVED; details + gaps in `docs/PROGRESS.md`). **Next: F6b**, then F9, F10, then S3 UI. F6b extra notes: selection follows focus → `router.replace`, stable options array, review the start-aligned reveal.

@@ -39,6 +39,7 @@ export function FilterChips({
   const scroller = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const buttons = useRef(new Map<string, HTMLButtonElement>());
+  const requested = useRef(value);
   const [edges, setEdges] = useState({ start: false, end: false });
   const enabled = options.filter((option) => !option.disabled && !disabled);
   const tabValue =
@@ -78,6 +79,17 @@ export function FilterChips({
   );
 
   useEffect(() => {
+    requested.current = value;
+  }, [value]);
+
+  /** `value` lags behind a URL-driven parent until it re-renders, so compare with the last requested value too. */
+  function select(next: string) {
+    if (next === value && next === requested.current) return;
+    requested.current = next;
+    onValueChange(next);
+  }
+
+  useEffect(() => {
     const update = () => reveal(buttons.current.get(value));
     update();
     const observer = new ResizeObserver(update);
@@ -115,7 +127,7 @@ export function FilterChips({
     const button = buttons.current.get(option.value);
     button?.focus({ preventScroll: true });
     reveal(button);
-    if (option.value !== value) onValueChange(option.value);
+    select(option.value);
   }
 
   if (!options.length) return null;
@@ -133,7 +145,10 @@ export function FilterChips({
       data-overflow-end={edges.end}
       onScroll={measure}
       className={cn(
-        'max-w-full min-w-0 snap-x snap-proximity scroll-px-5 [scrollbar-width:none] overflow-x-auto overscroll-x-contain scroll-auto p-1 [&::-webkit-scrollbar]:hidden',
+        'max-w-full min-w-0 p-1',
+        // A fully disabled row wraps instead: a scroll region with nothing focusable hides chips from keyboard users.
+        enabled.length > 0 &&
+          'snap-x snap-proximity scroll-px-5 [scrollbar-width:none] overflow-x-auto overscroll-x-contain scroll-auto [&::-webkit-scrollbar]:hidden',
         className,
       )}
       style={{
@@ -143,7 +158,10 @@ export function FilterChips({
             : undefined,
       }}
     >
-      <div ref={content} className="flex w-max gap-2">
+      <div
+        ref={content}
+        className={cn('flex gap-2', enabled.length ? 'w-max' : 'flex-wrap')}
+      >
         {options.map((option) => {
           const selected = option.value === value;
           const count =
@@ -171,9 +189,7 @@ export function FilterChips({
                 if (event.currentTarget.matches(':focus-visible'))
                   reveal(event.currentTarget);
               }}
-              onClick={() => {
-                if (!selected) onValueChange(option.value);
-              }}
+              onClick={() => select(option.value)}
               className={cn(
                 'border-border text-muted-foreground hover:bg-surface-muted motion-safe:not-disabled:not-focus-visible:duration-press inline-flex min-h-9 shrink-0 snap-start items-center gap-2 rounded-full border px-3 text-sm whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50 motion-safe:not-disabled:not-focus-visible:transition-[scale] motion-safe:not-disabled:not-focus-visible:ease-out motion-safe:not-disabled:not-focus-visible:active:scale-[0.97] forced-colors:focus-visible:outline-[CanvasText] pointer-coarse:min-h-11',
                 selected &&

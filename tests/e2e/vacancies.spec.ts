@@ -51,7 +51,9 @@ async function listedNumbers(page: Page, isMobile: boolean) {
 const search = (page: Page) =>
   page.getByRole('searchbox', { name: t.searchLabel, exact: true });
 const statusFilter = (page: Page) =>
-  page.getByLabel(t.filterStatus, { exact: true });
+  page.getByRole('radiogroup', { name: t.filterStatus, exact: true });
+const statusChip = (page: Page, label: string) =>
+  statusFilter(page).getByRole('radio', { name: label, exact: true });
 const verticalFilter = (page: Page) =>
   page.getByLabel(t.filterVertical, { exact: true });
 const notFound = (page: Page) =>
@@ -96,7 +98,20 @@ for (const user of USERS) {
       await expect(
         page.getByRole('heading', { level: 1, name: t.title, exact: true }),
       ).toBeVisible();
+      const canAuthorDrafts = /^(admin|head\.recruiter|recruiter)/.test(user);
+      await expect(statusFilter(page).getByRole('radio')).toHaveCount(
+        canAuthorDrafts ? 6 : 5,
+      );
+      await expect(statusChip(page, t.filterStatuses.DRAFT)).toHaveCount(
+        canAuthorDrafts ? 1 : 0,
+      );
+      await expect(statusFilter(page).locator('.tabular-nums')).toHaveCount(0);
       expect(await listedNumbers(page, isMobile)).toEqual(newestFirst(visible));
+      const drafts = await page.request.get('/api/v1/vacancies?status=DRAFT');
+      expect(drafts.status()).toBe(200);
+      expect(
+        ((await drafts.json()) as VacancyPage).items.map((item) => item.number),
+      ).toEqual(user === 'admin@demo' ? [vacancyNumber(DRAFT_VACANCY)] : []);
       await expect(
         page.getByText(tr('shown', { count: visible.length }), {
           exact: true,
@@ -279,9 +294,13 @@ test.describe('head.recruiter.gambling@demo', () => {
   }) => {
     await openHydrated(page, '/vacancies');
     await expectOptions(page, verticalFilter(page), [t.all, 'Гемблінг']);
-    await expectOptions(page, statusFilter(page), [
+    await expect(statusFilter(page).getByRole('radio')).toHaveText([
       t.all,
-      ...Object.values(t.status),
+      t.filterStatuses.OPEN,
+      t.filterStatuses.DRAFT,
+      t.filterStatuses.ON_HOLD,
+      t.filterStatuses.FILLED,
+      t.filterStatuses.CANCELLED,
     ]);
     await openHydrated(page, `/vacancies?vertical=${DEMO_VERTICALS.crypto}`);
     await expect(
@@ -471,13 +490,13 @@ test.describe('head.recruiter.gambling@demo', () => {
     await expect(page).toHaveURL(/\/vacancies$/);
     await expectNumbers(page, isMobile, visible);
 
-    await chooseOption(page, statusFilter(page), t.status.FILLED);
+    await statusChip(page, t.filterStatuses.FILLED).click();
     await expect(page).toHaveURL(/[?&]status=FILLED(&|$)/);
     await expect(
       results.getByText(t.filteredEmpty.title, { exact: true }),
     ).toBeVisible();
     await page.getByRole('button', { name: t.resetFilters }).first().click();
-    await expect(statusFilter(page)).toHaveText(t.all);
+    await expect(statusChip(page, t.all)).toBeChecked();
     await expectNumbers(page, isMobile, visible);
   });
 
@@ -493,12 +512,12 @@ test.describe('head.recruiter.gambling@demo', () => {
     await page.route(failing, (route) =>
       route.fulfill({ status: 503, json: { code: 'INTERNAL_ERROR' } }),
     );
-    await chooseOption(page, statusFilter(page), t.status.ON_HOLD);
+    await statusChip(page, t.filterStatuses.ON_HOLD).click();
     await expect(
       page.getByText(messages.states.errorTitle, { exact: true }),
     ).toBeVisible({ timeout: 20_000 });
     await expect(page).toHaveURL(/[?&]status=ON_HOLD(&|$)/);
-    await expect(statusFilter(page)).toHaveText(t.status.ON_HOLD);
+    await expect(statusChip(page, t.filterStatuses.ON_HOLD)).toBeChecked();
     await page.getByRole('button', { name: messages.shell.userMenu }).click();
     await expect(page.getByRole('menu')).toBeVisible();
     await page.keyboard.press('Escape');
@@ -515,6 +534,72 @@ test.describe('head.recruiter.gambling@demo', () => {
 
 test.describe('admin@demo', () => {
   test.use({ storageState: sessionFile('admin@demo') });
+
+  test('status keyboard selection replaces history, retains focus and reveals both ends of the row [UI-F6b, VAC-04]', async ({
+    page,
+    isMobile,
+  }) => {
+    await openHydrated(page, '/vacancies');
+    const historyLength = await page.evaluate(() => window.history.length);
+    const group = statusFilter(page);
+    await statusChip(page, t.all).focus();
+    /** Inner chips must clear the 16 px edge fade; the end chips only need to be inside the row. */
+    for (const [key, label, status, inset] of [
+      ['ArrowRight', t.filterStatuses.OPEN, 'OPEN', 16],
+      ['End', t.filterStatuses.CANCELLED, 'CANCELLED', 0],
+      ['ArrowLeft', t.filterStatuses.FILLED, 'FILLED', 16],
+      ['Home', t.all, null, 0],
+    ] as const) {
+      await page.keyboard.press(key);
+      const chip = statusChip(page, label);
+      await expect(chip).toBeFocused();
+      await expect(chip).toBeChecked();
+      await expect
+        .poll(() => new URL(page.url()).searchParams.get('status'))
+        .toBe(status);
+      await expect(group.locator('[tabindex="0"]')).toHaveCount(1);
+      await expect
+        .poll(() => page.evaluate(() => window.history.length))
+        .toBe(historyLength);
+      await expect
+        .poll(async () => {
+          const row = await group.boundingBox();
+          const selected = await chip.boundingBox();
+          return Boolean(
+            row &&
+            selected &&
+            selected.x - inset >= row.x - 1 &&
+            selected.x + selected.width + inset <= row.x + row.width + 1,
+          );
+        })
+        .toBe(true);
+    }
+    await expectNumbers(page, isMobile, ALL_VISIBLE);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+    await statusChip(page, t.filterStatuses.CANCELLED).click();
+    await expectNumbers(page, isMobile, [6]);
+    await rowsOf(page, isMobile).first().getByRole('link').first().click();
+    await expect(page).toHaveURL(
+      new RegExp(`/vacancies/${demoVacancy(6).id}$`),
+    );
+    await page.goBack();
+    await expect(statusChip(page, t.filterStatuses.CANCELLED)).toBeChecked();
+    await page.goForward();
+    await expect(page).toHaveURL(
+      new RegExp(`/vacancies/${demoVacancy(6).id}$`),
+    );
+    await page.goBack();
+    await page.getByRole('button', { name: t.resetFilters }).click();
+    await expect(statusChip(page, t.all)).toBeChecked();
+    await page.reload();
+    await waitForHydration(page);
+    await expect(statusChip(page, t.all)).toBeChecked();
+    await expectNumbers(page, isMobile, ALL_VISIBLE);
+  });
 
   test('the Admin’s own draft shows no opening date or position, and only its author can open it [D92, VAC-04, STORY-VAC-04-2]', async ({
     page,
@@ -544,11 +629,11 @@ test.describe('admin@demo', () => {
       'Крипто',
     ]);
 
-    await chooseOption(page, statusFilter(page), t.status.ON_HOLD);
+    await statusChip(page, t.filterStatuses.ON_HOLD).click();
     await expectNumbers(page, isMobile, [2]);
     await expect(page).toHaveURL(/[?&]status=ON_HOLD(&|$)/);
 
-    await chooseOption(page, statusFilter(page), t.status.OPEN);
+    await statusChip(page, t.filterStatuses.OPEN).click();
     await chooseOption(page, verticalFilter(page), 'Крипто');
     await expectNumbers(page, isMobile, [12, 7, 3]);
     await expect(page).toHaveURL(/[?&]vertical=[0-9a-f-]{36}(&|$)/);
@@ -557,23 +642,23 @@ test.describe('admin@demo', () => {
     await page.reload();
     await waitForHydration(page);
     await expect(verticalFilter(page)).toHaveText('Крипто');
-    await expect(statusFilter(page)).toHaveText(t.status.OPEN);
+    await expect(statusChip(page, t.filterStatuses.OPEN)).toBeChecked();
     await expectNumbers(page, isMobile, [12, 7, 3]);
 
-    await chooseOption(page, statusFilter(page), t.status.DRAFT);
+    await statusChip(page, t.filterStatuses.DRAFT).click();
     await expect(
       page.getByText(t.filteredEmpty.title, { exact: true }),
     ).toBeVisible();
     await chooseOption(page, verticalFilter(page), 'Гемблінг');
     await expectNumbers(page, isMobile, [8]);
-    await chooseOption(page, statusFilter(page), t.status.CANCELLED);
+    await statusChip(page, t.filterStatuses.CANCELLED).click();
     await expectNumbers(page, isMobile, [6]);
 
     await rowsOf(page, isMobile).first().getByRole('link').first().click();
     await expect(page).toHaveURL(/\/vacancies\/[0-9a-f-]{36}$/);
     await page.goBack();
     await expect(verticalFilter(page)).toHaveText('Гемблінг');
-    await expect(statusFilter(page)).toHaveText(t.status.CANCELLED);
+    await expect(statusChip(page, t.filterStatuses.CANCELLED)).toBeChecked();
     await expectNumbers(page, isMobile, [6]);
 
     await page.getByRole('button', { name: t.resetFilters }).click();
@@ -749,7 +834,7 @@ test.describe('admin@demo', () => {
         });
       },
     );
-    await chooseOption(page, statusFilter(page), t.status.OPEN);
+    await statusChip(page, t.filterStatuses.OPEN).click();
     const older = page.getByRole('button', { name: t.older });
     const newer = page.getByRole('button', { name: t.newer });
     await expect(older).toBeEnabled();
@@ -850,7 +935,7 @@ test.describe('admin@demo', () => {
     await expect(
       preview.getByText(demoVacancy(2).number, { exact: true }),
     ).toBeVisible();
-    await chooseOption(page, statusFilter(page), t.status.OPEN);
+    await statusChip(page, t.filterStatuses.OPEN).click();
     await expect(page).not.toHaveURL(/vacancy=/);
     await expect(
       preview.getByText(demoVacancy(12).number, { exact: true }),
@@ -900,7 +985,7 @@ test.describe('admin@demo', () => {
     await page.keyboard.press('Tab');
     await expect(verticalFilter(page)).toBeFocused();
     await page.keyboard.press('Tab');
-    await expect(statusFilter(page)).toBeFocused();
+    await expect(statusChip(page, t.all)).toBeFocused();
     await page.keyboard.press('Tab');
     const first = demoVacancy(NEWEST_VISIBLE);
     const link = rowsOf(page, isMobile)
