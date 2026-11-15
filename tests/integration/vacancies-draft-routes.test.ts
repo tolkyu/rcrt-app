@@ -262,6 +262,15 @@ describe('Draft lifecycle over HTTP [STORY-VAC-01-3, D92, D98]', () => {
         expectedVersion: draft.version + 1,
       });
       expect(empty.status).toBe(400);
+      const freeText = await mine.patch(draft.id, {
+        expectedVersion: draft.version + 1,
+        seniority: 'Senior',
+      });
+      expect(freeText.status).toBe(400);
+      expect(await problemOf(freeText)).toMatchObject({
+        code: 'VALIDATION_FAILED',
+        errors: [{ path: 'body.seniority', code: 'invalid_value' }],
+      });
       const stale = await mine.patch(draft.id, {
         expectedVersion: draft.version,
         title: 'Застаріла вкладка',
@@ -334,7 +343,7 @@ describe('Draft lifecycle over HTTP [STORY-VAC-01-3, D92, D98]', () => {
     });
   });
 
-  it('cancels with a reason and keeps the cancelled draft private; deletes and then answers 404', async () => {
+  it('cancels with a reason and keeps the cancelled draft private; deletes a draft and a cancelled draft, then answers 404', async () => {
     await fixture.run(async (args) => {
       await setup(args);
       const mine = routes(args, args.identity);
@@ -350,7 +359,10 @@ describe('Draft lifecycle over HTTP [STORY-VAC-01-3, D92, D98]', () => {
         status: 'CANCELLED',
         openedAt: null,
       });
-      expect((await mine.remove(toCancel.id)).status).toBe(409);
+      const removed = await mine.remove(toCancel.id);
+      expect(removed.status).toBe(200);
+      expect(await removed.json()).toEqual({ id: toCancel.id });
+      expect((await mine.remove(toCancel.id)).status).toBe(404);
 
       const toDelete = await mine.createDraft({
         verticalId: args.user.verticalId,

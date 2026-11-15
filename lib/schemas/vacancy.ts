@@ -124,6 +124,18 @@ export const VACANCY_HEADCOUNT_MAX = 100;
 export const VACANCY_PROBATION_MIN = 30;
 export const VACANCY_PROBATION_MAX = 90;
 export const VACANCY_PROBATION_DEFAULT = 90;
+/** Closed lists (D111); the stored value is the label itself, so existing rows need no migration. */
+export const VACANCY_SENIORITIES = [
+  'Джуніор',
+  'Мідл',
+  'Сеніор',
+  'Лід',
+] as const;
+export const VACANCY_EMPLOYMENT_TYPES = [
+  'Повна зайнятість',
+  'Часткова зайнятість',
+  'Проєктна зайнятість',
+] as const;
 
 /** Same normal form as catalog names: NFC, collapsed whitespace; control, zero-width and bidi characters are rejected before storing. */
 const line = (min: number, max: number) =>
@@ -139,9 +151,9 @@ const title = line(VACANCY_TITLE_MIN, VACANCY_TITLE_MAX);
 const editableFields = {
   teamLeadId: uuid.nullish(),
   headcount: z.number().int().min(1).max(VACANCY_HEADCOUNT_MAX).optional(),
-  seniority: line(1, 100).nullish(),
+  seniority: z.enum(VACANCY_SENIORITIES).nullish(),
   workFormat: z.enum(['REMOTE', 'OFFICE', 'HYBRID']).nullish(),
-  employmentType: line(1, 100).nullish(),
+  employmentType: z.enum(VACANCY_EMPLOYMENT_TYPES).nullish(),
   location: line(1, 200).nullish(),
   salaryMinMinor: minorUnits.nullish(),
   salaryMaxMinor: minorUnits.nullish(),

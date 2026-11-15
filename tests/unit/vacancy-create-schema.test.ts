@@ -3,7 +3,9 @@ import { IDEMPOTENCY_TTL_MS, idempotencyKeySchema } from '@/lib/idempotency';
 import { richTextDocSchema } from '@/lib/schemas/rich-text';
 import {
   createVacancySchema,
+  VACANCY_EMPLOYMENT_TYPES,
   VACANCY_HEADCOUNT_MAX,
+  VACANCY_SENIORITIES,
   VACANCY_TITLE_MAX,
 } from '@/lib/schemas/vacancy';
 import { requestHash } from '@/server/security/idempotency';
@@ -149,6 +151,48 @@ describe('create vacancy contract [VAC-01, D89]', () => {
         expect(
           valid(salary({ salaryMinMinor: '1', salaryCurrency: currency })),
         ).toBe(false);
+      },
+    );
+  });
+
+  describe('seniority and employment type are closed lists [D111]', () => {
+    it.each(VACANCY_SENIORITIES)('accepts the seniority %s', (seniority) => {
+      expect(valid({ ...publish, seniority })).toBe(true);
+      expect(valid({ ...draft, seniority })).toBe(true);
+    });
+
+    it.each(VACANCY_EMPLOYMENT_TYPES)(
+      'accepts the employment type %s',
+      (employmentType) => {
+        expect(valid({ ...publish, employmentType })).toBe(true);
+        expect(valid({ ...draft, employmentType })).toBe(true);
+      },
+    );
+
+    it('may stay empty', () => {
+      expect(valid({ ...publish, seniority: null, employmentType: null })).toBe(
+        true,
+      );
+      expect(valid(publish)).toBe(true);
+    });
+
+    it.each(['Senior', 'сеніор', 'Сеніор ', '', 'Повна зайнятість'])(
+      'refuses the seniority %j',
+      (seniority) => {
+        expect(issues({ ...publish, seniority })).toEqual([
+          'seniority:invalid_value',
+        ]);
+        expect(valid({ ...draft, seniority })).toBe(false);
+      },
+    );
+
+    it.each(['Full time', 'повна зайнятість', 'Повна', '', 'Сеніор'])(
+      'refuses the employment type %j',
+      (employmentType) => {
+        expect(issues({ ...publish, employmentType })).toEqual([
+          'employmentType:invalid_value',
+        ]);
+        expect(valid({ ...draft, employmentType })).toBe(false);
       },
     );
   });

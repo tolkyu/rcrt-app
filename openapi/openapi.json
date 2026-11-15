@@ -1130,8 +1130,7 @@
           "headcount": { "type": "integer", "minimum": 1, "maximum": 100 },
           "seniority": {
             "type": ["string", "null"],
-            "minLength": 1,
-            "maxLength": 100
+            "enum": ["Джуніор", "Мідл", "Сеніор", "Лід", null]
           },
           "workFormat": {
             "type": ["string", "null"],
@@ -1139,8 +1138,12 @@
           },
           "employmentType": {
             "type": ["string", "null"],
-            "minLength": 1,
-            "maxLength": 100
+            "enum": [
+              "Повна зайнятість",
+              "Часткова зайнятість",
+              "Проєктна зайнятість",
+              null
+            ]
           },
           "location": {
             "type": ["string", "null"],
@@ -1742,8 +1745,7 @@
               "headcount": { "type": "integer", "minimum": 1, "maximum": 100 },
               "seniority": {
                 "type": ["string", "null"],
-                "minLength": 1,
-                "maxLength": 100
+                "enum": ["Джуніор", "Мідл", "Сеніор", "Лід", null]
               },
               "workFormat": {
                 "type": ["string", "null"],
@@ -1751,8 +1753,12 @@
               },
               "employmentType": {
                 "type": ["string", "null"],
-                "minLength": 1,
-                "maxLength": 100
+                "enum": [
+                  "Повна зайнятість",
+                  "Часткова зайнятість",
+                  "Проєктна зайнятість",
+                  null
+                ]
               },
               "location": {
                 "type": ["string", "null"],
@@ -1795,8 +1801,7 @@
               "headcount": { "type": "integer", "minimum": 1, "maximum": 100 },
               "seniority": {
                 "type": ["string", "null"],
-                "minLength": 1,
-                "maxLength": 100
+                "enum": ["Джуніор", "Мідл", "Сеніор", "Лід", null]
               },
               "workFormat": {
                 "type": ["string", "null"],
@@ -1804,8 +1809,12 @@
               },
               "employmentType": {
                 "type": ["string", "null"],
-                "minLength": 1,
-                "maxLength": 100
+                "enum": [
+                  "Повна зайнятість",
+                  "Часткова зайнятість",
+                  "Проєктна зайнятість",
+                  null
+                ]
               },
               "location": {
                 "type": ["string", "null"],
@@ -5408,7 +5417,7 @@
       },
       "delete": {
         "operationId": "deleteVacancyDraft",
-        "summary": "Soft-delete the author’s own DRAFT; afterwards it is 404 for everyone and its number is never reused. Another user’s draft, or any caller without an authoring role, gets 404; a vacancy that is not a draft is 409 `VACANCY_NOT_DRAFT`; no audit row (D92)",
+        "summary": "Soft-delete the author’s own DRAFT, or own CANCELLED draft that was never OPEN; afterwards it is 404 for everyone and its number is never reused. Another user’s draft, or any caller without an authoring role, gets 404; any other vacancy (also a cancelled one that was once OPEN) is 409 `VACANCY_NOT_DRAFT`; no audit row (D92)",
         "tags": ["Vacancies"],
         "parameters": [
           {

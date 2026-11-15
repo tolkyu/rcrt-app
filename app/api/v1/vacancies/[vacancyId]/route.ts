@@ -56,7 +56,7 @@ export const DELETE = defineRoute(
     requireGrant: 'vacancy.create',
     hideUnless: authorsAnywhere,
     summary:
-      'Soft-delete the author’s own DRAFT; afterwards it is 404 for everyone and its number is never reused. Another user’s draft, or any caller without an authoring role, gets 404; a vacancy that is not a draft is 409 `VACANCY_NOT_DRAFT`; no audit row (D92)',
+      'Soft-delete the author’s own DRAFT, or own CANCELLED draft that was never OPEN; afterwards it is 404 for everyone and its number is never reused. Another user’s draft, or any caller without an authoring role, gets 404; any other vacancy (also a cancelled one that was once OPEN) is 409 `VACANCY_NOT_DRAFT`; no audit row (D92)',
     tags: ['Vacancies'],
     params: vacancyIdParamsSchema,
     response: vacancyDeletedSchema,

@@ -98,6 +98,20 @@ describe('partial draft update contract [STORY-VAC-01-3 AC2, D92]', () => {
       ).toBe(false);
   });
 
+  it('takes seniority and employment type from the closed lists only [D111]', () => {
+    const patch = (fields: Record<string, unknown>) =>
+      patchVacancySchema.safeParse({ expectedVersion: 1, ...fields }).success;
+    expect(
+      patch({ seniority: 'Лід', employmentType: 'Проєктна зайнятість' }),
+    ).toBe(true);
+    expect(patch({ seniority: null, employmentType: null })).toBe(true);
+    expect(
+      issues(patchVacancySchema, { expectedVersion: 1, seniority: 'Senior' }),
+    ).toEqual(['seniority:invalid_value']);
+    expect(patch({ employmentType: 'Full time' })).toBe(false);
+    expect(patch({ employmentType: '' })).toBe(false);
+  });
+
   it('keeps the limits of creation for the shared fields', () => {
     for (const bad of [
       { headcount: 0 },

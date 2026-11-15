@@ -5,6 +5,7 @@ import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { positionNameKey } from '../../lib/position-name';
 import {
+  VACANCY_DRAFT_LIMIT,
   VACANCY_WRITE_RATE_LIMIT,
   type CreateVacancyInput,
   type PatchVacancyInput,
@@ -129,9 +130,11 @@ const keysOf = (executor: DbExecutor, userId: string) =>
     .from(schema.idempotencyKey)
     .where(eq(schema.idempotencyKey.userId, userId));
 
+type Scene = Parameters<Parameters<typeof scenario>[0]>[0];
+
 /** The author's draft, saved by a Recruiter unless `who` says otherwise. */
 async function saveDraft(
-  s: Parameters<Parameters<typeof scenario>[0]>[0],
+  s: Scene,
   overrides: Record<string, unknown> = {},
   who: Who = 'recruiter',
 ) {
@@ -838,7 +841,7 @@ describe('Cancel my draft [STORY-VAC-01-3 AC5, D82]', () => {
     });
   });
 
-  it('is final: no second cancel, edit, publish or delete', async () => {
+  it('is final: no second cancel, edit or publish', async () => {
     await scenario(async (s) => {
       const created = await saveDraft(s, { positionId: world.positions.p1 });
       const ctx = await s.as(roles().recruiter);
@@ -854,7 +857,6 @@ describe('Cancel my draft [STORY-VAC-01-3 AC5, D82]', () => {
             edit(cancelled.version, { title: 'Нова' }),
           ),
         () => publish(ctx, created.id, key()),
-        () => deleteVacancyDraft(ctx, created.id),
       ])
         expect(await problem(attempt())).toMatchObject({
           status: 409,
@@ -929,6 +931,139 @@ describe('Delete my draft [STORY-VAC-01-3 AC5, §12, D98]', () => {
       expect(await countLiveDrafts(s.tx, s.actorId)).toBe(2);
       await deleteVacancyDraft(await s.as(roles().recruiter), created.id);
       expect(await countLiveDrafts(s.tx, s.actorId)).toBe(1);
+    });
+  });
+});
+
+describe('Delete my cancelled draft [STORY-VAC-01-3, D112(1), D98]', () => {
+  const cancelDraft = async (s: Scene) => {
+    const created = await saveDraft(s, { positionId: world.positions.p1 });
+    const ctx = await s.as(roles().recruiter);
+    await cancelVacancyDraft(ctx, created.id, { reason: 'Дубль' });
+    return created;
+  };
+
+  it('soft-deletes a cancelled, never opened draft of its author like a DRAFT, with the same event and no audit row', async () => {
+    await scenario(async (s) => {
+      const created = await cancelDraft(s);
+      const ctx = await s.as(roles().recruiter, { now: LATER });
+      expect(await deleteVacancyDraft(ctx, created.id)).toEqual({
+        id: created.id,
+      });
+      expect(await row(s.tx, created.id)).toMatchObject({
+        status: 'CANCELLED',
+        openedAt: null,
+        deletedAt: LATER,
+        deletedBy: s.actorId,
+        deleteReason: 'draft_deleted_by_author',
+      });
+      expect((await eventsOf(s.tx, created.id)).at(-1)).toMatchObject({
+        type: 'vacancy.deleted',
+        verticalId: null,
+        actorId: s.actorId,
+      });
+      expect(await auditsOf(s.tx, created.id)).toEqual([]);
+      for (const attempt of [
+        () => getVacancyDetail(ctx, created.id),
+        () => deleteVacancyDraft(ctx, created.id),
+        () => cancelVacancyDraft(ctx, created.id, { reason: 'Ще раз' }),
+      ])
+        expect(await problem(attempt())).toMatchObject({ status: 404 });
+    });
+  });
+
+  it('refuses a cancelled vacancy that was once OPEN with 409 VACANCY_NOT_DRAFT and changes nothing', async () => {
+    await scenario(async (s) => {
+      const ctx = await s.as(roles().recruiter);
+      const created = await saveDraft(s, { positionId: world.positions.p1 });
+      await publish(ctx, created.id);
+      await s.tx
+        .update(schema.vacancy)
+        .set({ status: 'CANCELLED', closedAt: LATER, cancelledAt: LATER })
+        .where(eq(schema.vacancy.id, created.id));
+      const before = await row(s.tx, created.id);
+      expect(before.openedAt).not.toBeNull();
+      expect(await problem(deleteVacancyDraft(ctx, created.id))).toMatchObject({
+        status: 409,
+        code: 'VACANCY_NOT_DRAFT',
+      });
+      expect(await row(s.tx, created.id)).toEqual(before);
+    });
+  });
+
+  it.each([
+    ['another Recruiter of the vertical', 'recruiter'],
+    ['a Head Recruiter of the vertical', 'head'],
+    ['an Admin', 'admin'],
+    ['a Team Lead', 'teamLead'],
+    ['HR', 'hr'],
+  ] as const)(
+    '%s gets 404 for the cancelled draft of another author and changes nothing',
+    async (_name, who) => {
+      await scenario(async (s) => {
+        const created = await cancelDraft(s);
+        const before = await row(s.tx, created.id);
+        const ctx = await s.as(roles()[who], { userId: await addUser(s.tx) });
+        expect(
+          await problem(deleteVacancyDraft(ctx, created.id)),
+        ).toMatchObject({ status: 404 });
+        expect(await row(s.tx, created.id)).toEqual(before);
+      });
+    },
+  );
+
+  it('counts only live DRAFT rows against the cap: a cancelled draft frees its slot and a deleted one stays out', async () => {
+    await scenario(async (s) => {
+      const first = await saveDraft(s);
+      const second = await saveDraft(s);
+      await saveDraft(s);
+      expect(await countLiveDrafts(s.tx, s.actorId)).toBe(3);
+      const ctx = await s.as(roles().recruiter);
+      await cancelVacancyDraft(ctx, first.id, { reason: 'Дубль' });
+      expect(await countLiveDrafts(s.tx, s.actorId)).toBe(2);
+      await deleteVacancyDraft(ctx, first.id);
+      await deleteVacancyDraft(ctx, second.id);
+      expect(await countLiveDrafts(s.tx, s.actorId)).toBe(1);
+    });
+  });
+
+  it(`accepts a new draft at the cap of ${VACANCY_DRAFT_LIMIT} once one of them is cancelled`, async () => {
+    await scenario(async (s) => {
+      // One minute apart, so the per-minute throttle never decides the outcome.
+      const at = (n: number) => new Date(NOW.getTime() + n * 60_000);
+      const drafts = [];
+      for (let n = 0; n < VACANCY_DRAFT_LIMIT; n += 1)
+        drafts.push(
+          await createVacancy(
+            await s.as(roles().recruiter, { now: at(n) }),
+            draft({ title: `Чернетка ${n}` }),
+            key(),
+          ),
+        );
+      const later = (n: number) => at(VACANCY_DRAFT_LIMIT + n);
+      expect(
+        await problem(
+          createVacancy(
+            await s.as(roles().recruiter, { now: later(0) }),
+            draft(),
+            key(),
+          ),
+        ),
+      ).toMatchObject({ status: 409, code: 'DRAFT_LIMIT_REACHED' });
+      await cancelVacancyDraft(
+        await s.as(roles().recruiter, { now: later(1) }),
+        drafts[0]!.id,
+        { reason: 'Дубль' },
+      );
+      expect(
+        (
+          await createVacancy(
+            await s.as(roles().recruiter, { now: later(2) }),
+            draft({ title: 'Нова' }),
+            key(),
+          )
+        ).status,
+      ).toBe('DRAFT');
     });
   });
 });

@@ -63,14 +63,24 @@ function draftId(rawId: string): string {
   return id;
 }
 
+/** DRAFT, or with `cancelledToo` a CANCELLED one that was never OPEN (D112(1)); a cancelled ex-OPEN vacancy is no draft. */
+const isDraft = (
+  state: { readonly status: string },
+  openedAt: unknown,
+  cancelledToo: boolean,
+) =>
+  state.status === 'DRAFT' ||
+  (cancelledToo && state.status === 'CANCELLED' && openedAt === null);
+
 /** Unlocked read through the one read predicate; a visible vacancy that is no draft is 403 without an authoring role in its vertical, else 409 (VAC-08 edits opened ones). */
 async function readDraft(
   ctx: RequestContext,
   tx: DbExecutor,
   id: string,
+  cancelledToo = false,
 ): Promise<VacancyView> {
   const current = await readVacancy(ctx, tx, id);
-  if (current.status === 'DRAFT') return current;
+  if (isDraft(current, current.openedAt, cancelledToo)) return current;
   if (!vacancyAuthorKind(ctx.auth, current.vertical.id))
     throw new ForbiddenError();
   throw new ConflictError('VACANCY_NOT_DRAFT');
@@ -83,11 +93,14 @@ function assertOwnDraft(
     readonly status: string;
     readonly deletedAt: Date | null;
     readonly createdBy: string;
+    readonly openedAt?: Date | null;
   },
+  cancelledToo = false,
 ) {
   if (state.deletedAt || state.createdBy !== ctx.auth.userId)
     throw new NotFoundError();
-  if (state.status !== 'DRAFT') throw new ConflictError('VACANCY_NOT_DRAFT');
+  if (!isDraft(state, state.openedAt, cancelledToo))
+    throw new ConflictError('VACANCY_NOT_DRAFT');
 }
 
 /** Row lock that makes a lifecycle write exact: state is judged on the locked row, so the second of two racing writers sees the first one's result. */
@@ -95,11 +108,11 @@ async function lockDraft(
   ctx: RequestContext,
   tx: DbExecutor,
   id: string,
-  options: { readonly docs?: boolean } = {},
+  options: { readonly docs?: boolean; readonly cancelledToo?: boolean } = {},
 ): Promise<VacancyLock> {
   const row = await lockVacancy(tx, id, options);
   if (!row) throw new NotFoundError();
-  assertOwnDraft(ctx, row);
+  assertOwnDraft(ctx, row, options.cancelledToo);
   return row;
 }
 
@@ -195,14 +208,14 @@ async function saveDraftChanges(
   ctx: RequestContext,
   tx: DbExecutor,
   id: string,
-  version: number,
+  row: Pick<VacancyLock, 'status' | 'version'>,
   changes: VacancyChanges,
   now: Date,
 ) {
   const applied = await updateVacancy(
     tx,
     id,
-    { status: 'DRAFT', version, authorId: ctx.auth.userId },
+    { status: row.status, version: row.version, authorId: ctx.auth.userId },
     changes,
     now,
   );
@@ -272,7 +285,7 @@ export async function patchVacancyDraft(
       );
     if (fields.length === 0) return current;
 
-    await saveDraftChanges(ctx, tx, id, row.version, changes, ctx.clock.now());
+    await saveDraftChanges(ctx, tx, id, row, changes, ctx.clock.now());
     await appendEvent(tx, ctx, {
       type: 'vacancy.updated',
       subjectType: 'vacancy',
@@ -390,16 +403,17 @@ async function closeDraft<T>(
   changes: (now: Date) => VacancyChanges,
   event: (id: string) => EventDraft,
   result: (tx: DbExecutor, id: string) => Promise<T>,
+  cancelledToo = false,
 ): Promise<T> {
   admit(ctx);
   await consumeVacancyWriteLimit(ctx);
   const id = draftId(rawId);
   return ctx.db.transaction(async (tx) => {
-    const current = await readDraft(ctx, tx, id);
+    const current = await readDraft(ctx, tx, id, cancelledToo);
     await authorOf(ctx, tx, current.vertical.id);
-    const row = await lockDraft(ctx, tx, id);
+    const row = await lockDraft(ctx, tx, id, { cancelledToo });
     const now = ctx.clock.now();
-    await saveDraftChanges(ctx, tx, id, row.version, changes(now), now);
+    await saveDraftChanges(ctx, tx, id, row, changes(now), now);
     await appendEvent(tx, ctx, event(id));
     return result(tx, id);
   });
@@ -434,7 +448,7 @@ export async function cancelVacancyDraft(
   );
 }
 
-/** Soft delete of the author's own draft (§12); a deleted draft is 404 for everyone, its author included, and its number is never reused. */
+/** Soft delete of the author's own draft, cancelled or not, never one that was OPEN (§12, D112(1)); a deleted draft is 404 for everyone, its author included, and its number is never reused. */
 export async function deleteVacancyDraft(
   ctx: RequestContext,
   rawId: string,
@@ -449,5 +463,6 @@ export async function deleteVacancyDraft(
     }),
     (id) => ({ ...draftEvent(id), type: 'vacancy.deleted', payload: {} }),
     async (_tx, id) => ({ id }),
+    true,
   );
 }
