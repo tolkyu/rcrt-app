@@ -46,5 +46,24 @@ for (const theme of ['light', 'dark'] as const) {
     await save('row-menu', (path) =>
       page.screenshot({ path, animations: 'disabled', scale: 'css' }),
     );
+    await page.keyboard.press('Escape');
+
+    const field = page.getByRole('textbox', { name: t.formField, exact: true });
+    await field.scrollIntoViewIfNeeded();
+    await field.fill('Медіабаєр — Facebook');
+    await page.mouse.move(0, 0);
+    await save('form', (path) =>
+      page
+        .locator('[data-slot="form-page-demo"]')
+        .screenshot({ path, animations: 'disabled', scale: 'css' }),
+    );
+    await page
+      .locator('[data-slot="form-page-demo"]')
+      .getByRole('link', { name: t.formCancel })
+      .click();
+    await expect(page.getByRole('alertdialog')).toBeVisible();
+    await save('leave-dialog', (path) =>
+      page.screenshot({ path, animations: 'disabled', scale: 'css' }),
+    );
   });
 }
