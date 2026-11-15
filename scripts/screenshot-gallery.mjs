@@ -946,6 +946,28 @@ groups2.push({
   ],
 });
 
+groups2.push({
+  screen: 'Каркас інтерфейсу — сторінка',
+  role: 'Адміністратор (галерея розробника)',
+  roles: ['Адміністратор'],
+  states: [
+    {
+      file: '37-admin-ui-page-frame-header',
+      label: 'шапка з дією',
+      dir: VAC,
+      heading:
+        'Шапка сторінки — дії в порядку [другорядна, основна]; на телефоні основна дія в нижній панелі',
+    },
+    {
+      file: '37-admin-ui-page-frame-row-menu',
+      label: 'меню рядка',
+      dir: VAC,
+      heading:
+        'Меню дій рядка — безпечні дії, недоступна з причиною, руйнівні після роздільника',
+    },
+  ],
+});
+
 mkdirSync('screenshots/latest', { recursive: true });
 const listed = {
   'phase-1': new Set(),

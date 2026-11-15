@@ -200,7 +200,9 @@ export function AppShell({
           tabIndex={-1}
           className={cn(
             'mx-auto w-full max-w-[1440px] flex-1 px-4 py-6 outline-none md:px-6 md:py-8',
-            mobile && 'pb-28 md:pb-8',
+            mobile
+              ? 'pb-[calc(7rem+var(--sticky-bar-bottom))] md:pb-8'
+              : 'pb-[calc(1.5rem+var(--sticky-bar-bottom))] md:pb-8',
           )}
         >
           {mfaAt && (

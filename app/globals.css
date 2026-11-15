@@ -74,11 +74,15 @@
   --z-toast: 50;
   /* Space the bottom chrome occupies; `:has` reads the server-rendered BottomNav, so sticky bars do not jump after hydration. */
   --chrome-bottom: env(safe-area-inset-bottom);
+  --sticky-bar-bottom: 0px;
 }
 
 @media (width < 48rem) {
   :root:has([data-bottom-nav]) {
     --chrome-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+  :root:has([data-sticky-action-bar]) {
+    --sticky-bar-bottom: 3.5rem;
   }
 }
 

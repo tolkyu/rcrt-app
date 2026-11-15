@@ -8,6 +8,7 @@ import { DialogSection } from '@/components/dev-ui/dialog-section';
 import { FormSection } from '@/components/dev-ui/form-section';
 import { FilterChipsSection } from '@/components/dev-ui/filter-chips-section';
 import { MotionSection } from '@/components/dev-ui/motion-section';
+import { PageFrameSection } from '@/components/dev-ui/page-frame-section';
 import { SelectSection } from '@/components/dev-ui/select-section';
 import { ToastSection } from '@/components/dev-ui/toast-section';
 import { TooltipSection } from '@/components/dev-ui/tooltip-section';
@@ -41,6 +42,7 @@ export default async function DevUiPage() {
       <TooltipSection />
       <ToastSection />
       <DialogSection />
+      <PageFrameSection />
       <MotionSection />
     </main>
   );

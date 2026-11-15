@@ -42,6 +42,7 @@ export default defineConfig({
         '**/filter-chips.spec.ts',
         '**/filter-chips-screens.spec.ts',
         '**/filter-bar*.spec.ts',
+        '**/page-frame*.spec.ts',
       ],
       use: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 } },
     },
