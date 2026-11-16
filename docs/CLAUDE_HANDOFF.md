@@ -6,7 +6,8 @@
 ## Checkpoint — 2026-11-17 (S3.2b + S3.2c pushed)
 
 - Pushed: S3.2b `5ef93bd` (D122 one TL predicate, test-only create limit), S3.2c `f8fc4f3` («Умови», readiness rail, draft-limit reason, BUG-S3-1/2 fixed). QA green (integration 309, E2E create 159, Newman 463/2691), code review APPROVED, security PASS.
-- In progress: review follow-ups (salary rule dedupe via `salaryIssues`, split `vacancy-form-submit.ts` + E2E spec, tooltip guard only on DisabledReason path, draft-count initialData staleTime, salary grouping, ICU plural). Then S3.3 (edit + publish + stale version) → S3.4 → S3.5 → S3.6 (regenerate gallery; `screenshots/*38-admin-ui-page-frame-*` modified in tree, uncommitted on purpose).
+- Review follow-ups pushed `5dd7515` (re-review APPROVED). BUG-S3-4 (focus-then-hover tooltip, Minor) open — fix in S3.6 polish.
+- In progress: S3.3 build (senior-fullstack-engineer). Then QA → code-reviewer → commit. Then S3.3 (edit + publish + stale version) → S3.4 → S3.5 → S3.6 (regenerate gallery; `screenshots/*38-admin-ui-page-frame-*` modified in tree, uncommitted on purpose).
 - Accepted: probation field visible only with the GLOBAL grant (D115) while the API accepts a vertical grant (D78) — intentional, not a predicate bug.
 - `pnpm` is not on PATH for agents: use `corepack pnpm`.
 
