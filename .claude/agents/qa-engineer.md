@@ -27,3 +27,4 @@ You are a Senior QA Automation Engineer.
 - Test code follows CLAUDE.md §4: no filler comments, no skipped/empty tests.
 - Tests are deterministic: fixed clock, seeded data, no sleeps — use Playwright auto-waits.
 - Report coverage for `server/domain/**` (target 100% branches) and `server/authz/**` (100%).
+- **Before handing over, run `docs/engineering-self-check.md` and add the filled list to your report.** Aim for zero blocking review findings: think through failure paths (double submit, chunk load failure, network loss, unmount) before review finds them.
