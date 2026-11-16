@@ -67,6 +67,10 @@ export function vacancyAuthorKind(
   return covers(selfAssigner, verticalId) ? 'SELF_ASSIGNER' : null;
 }
 
+/** A draft its author cancelled never got an opening date; a vacancy cancelled after being OPEN keeps its own and is no private draft (D92, D112). */
+export const isNeverOpenedCancelled = (status: string, neverOpened: boolean) =>
+  status === 'CANCELLED' && neverOpened;
+
 /** Object-independent gate of the draft routes: the caller authors in at least one vertical (a Team Lead only requests, D87). */
 export function authorsAnywhere(ctx: AuthContext): boolean {
   const { any } = vacancyAuthorVerticals(ctx);

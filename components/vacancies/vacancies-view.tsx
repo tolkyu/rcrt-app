@@ -38,10 +38,12 @@ import { verticalsQuery } from '@/lib/queries/verticals';
 import { useWideScreen } from '@/lib/use-wide-screen';
 import {
   hasVacancyFilters,
+  isHiddenDraftFilter,
   parseVacancyPageState,
   VACANCY_SEARCH_MAX,
   VACANCY_FILTER_ORDER,
   VACANCY_STATUSES,
+  withoutHiddenDraftFilter,
   withVacancyFilters,
   withVacancyPage,
   withVacancySelection,
@@ -77,9 +79,14 @@ export function VacanciesView({
   const t = useTranslations('vacancies');
   const params = useSearchParams();
   const searchKey = params.toString();
-  const state = useMemo(
+  const urlState = useMemo(
     () => parseVacancyPageState(new URLSearchParams(searchKey)),
     [searchKey],
+  );
+  const hiddenDraft = isHiddenDraftFilter(urlState, canAuthorDrafts);
+  const state = useMemo(
+    () => withoutHiddenDraftFilter(urlState, canAuthorDrafts),
+    [urlState, canAuthorDrafts],
   );
   const { filters } = state;
   const wide = useWideScreen();
@@ -117,8 +124,7 @@ export function VacanciesView({
       navigate((current) => withVacancyFilters(current, {}), 'replaceState');
   }, [orphanCursor]);
 
-  /** Only draft authors have the «Чернетки» chip; a shared `?status=DRAFT` link falls back to «Усі» for everyone else. */
-  const hiddenDraft = filters.status === 'DRAFT' && !canAuthorDrafts;
+  /** A shared `?status=DRAFT` link falls back to «Усі» for everyone who cannot author drafts. */
   useEffect(() => {
     if (hiddenDraft)
       navigate(
@@ -311,7 +317,7 @@ export function VacanciesView({
         <FilterChips
           className="md:col-span-2"
           label={t('filterStatus')}
-          value={hiddenDraft ? '' : (filters.status ?? '')}
+          value={filters.status ?? ''}
           onValueChange={(value) =>
             navigate(
               (current) =>

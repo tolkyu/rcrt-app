@@ -18,7 +18,11 @@ import {
 import { writeAudit } from '../audit';
 import { requirePermission } from '../authz/can';
 import type { VerticalId } from '../authz/types';
-import { authorsAnywhere, vacancyAuthorKind } from '../authz/vacancy-author';
+import {
+  authorsAnywhere,
+  isNeverOpenedCancelled,
+  vacancyAuthorKind,
+} from '../authz/vacancy-author';
 import type { RequestContext } from '../context/request-context';
 import type { DbExecutor } from '../db';
 import { appendEvent, VACANCY_EDIT_FIELDS, type EventDraft } from '../events';
@@ -65,22 +69,26 @@ function draftId(rawId: string): string {
 
 /** DRAFT, or with `cancelledToo` a CANCELLED one that was never OPEN (D112(1)); a cancelled ex-OPEN vacancy is no draft. */
 const isDraft = (
-  state: { readonly status: string },
-  openedAt: unknown,
+  state: { readonly status: string; readonly openedAt: Date | string | null },
   cancelledToo: boolean,
 ) =>
   state.status === 'DRAFT' ||
-  (cancelledToo && state.status === 'CANCELLED' && openedAt === null);
+  (cancelledToo &&
+    isNeverOpenedCancelled(state.status, state.openedAt === null));
+
+interface DraftOptions {
+  readonly cancelledToo?: boolean;
+}
 
 /** Unlocked read through the one read predicate; a visible vacancy that is no draft is 403 without an authoring role in its vertical, else 409 (VAC-08 edits opened ones). */
 async function readDraft(
   ctx: RequestContext,
   tx: DbExecutor,
   id: string,
-  cancelledToo = false,
+  { cancelledToo = false }: DraftOptions = {},
 ): Promise<VacancyView> {
   const current = await readVacancy(ctx, tx, id);
-  if (isDraft(current, current.openedAt, cancelledToo)) return current;
+  if (isDraft(current, cancelledToo)) return current;
   if (!vacancyAuthorKind(ctx.auth, current.vertical.id))
     throw new ForbiddenError();
   throw new ConflictError('VACANCY_NOT_DRAFT');
@@ -93,13 +101,13 @@ function assertOwnDraft(
     readonly status: string;
     readonly deletedAt: Date | null;
     readonly createdBy: string;
-    readonly openedAt?: Date | null;
+    readonly openedAt: Date | null;
   },
-  cancelledToo = false,
+  { cancelledToo = false }: DraftOptions = {},
 ) {
   if (state.deletedAt || state.createdBy !== ctx.auth.userId)
     throw new NotFoundError();
-  if (!isDraft(state, state.openedAt, cancelledToo))
+  if (!isDraft(state, cancelledToo))
     throw new ConflictError('VACANCY_NOT_DRAFT');
 }
 
@@ -108,11 +116,11 @@ async function lockDraft(
   ctx: RequestContext,
   tx: DbExecutor,
   id: string,
-  options: { readonly docs?: boolean; readonly cancelledToo?: boolean } = {},
+  options: DraftOptions & { readonly docs?: boolean } = {},
 ): Promise<VacancyLock> {
   const row = await lockVacancy(tx, id, options);
   if (!row) throw new NotFoundError();
-  assertOwnDraft(ctx, row, options.cancelledToo);
+  assertOwnDraft(ctx, row, options);
   return row;
 }
 
@@ -403,15 +411,15 @@ async function closeDraft<T>(
   changes: (now: Date) => VacancyChanges,
   event: (id: string) => EventDraft,
   result: (tx: DbExecutor, id: string) => Promise<T>,
-  cancelledToo = false,
+  options: DraftOptions = {},
 ): Promise<T> {
   admit(ctx);
   await consumeVacancyWriteLimit(ctx);
   const id = draftId(rawId);
   return ctx.db.transaction(async (tx) => {
-    const current = await readDraft(ctx, tx, id, cancelledToo);
+    const current = await readDraft(ctx, tx, id, options);
     await authorOf(ctx, tx, current.vertical.id);
-    const row = await lockDraft(ctx, tx, id, { cancelledToo });
+    const row = await lockDraft(ctx, tx, id, options);
     const now = ctx.clock.now();
     await saveDraftChanges(ctx, tx, id, row, changes(now), now);
     await appendEvent(tx, ctx, event(id));
@@ -463,6 +471,6 @@ export async function deleteVacancyDraft(
     }),
     (id) => ({ ...draftEvent(id), type: 'vacancy.deleted', payload: {} }),
     async (_tx, id) => ({ id }),
-    true,
+    { cancelledToo: true },
   );
 }

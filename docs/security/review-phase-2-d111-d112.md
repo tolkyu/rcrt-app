@@ -1,0 +1,28 @@
+# Security review: commit 341eeb3 (D111 closed lists, D112(1)(3) delete cancelled draft)
+
+Verdict: **APPROVED** (no Critical/High/Medium findings). Reviewed 2026-11-16.
+
+## Verified
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Delete only by author | Pass. Unlocked read goes through `vacancyReadWhere` (a foreign draft or cancelled draft is invisible to everyone, Admin and Head Recruiter included), then the locked row is re-checked in `assertOwnDraft` (`createdBy` + `deletedAt` -> 404). | server/authz/vacancy-scope.ts:61-80, server/services/vacancy-draft.ts:90-104 |
+| Only never-opened | Pass. `isDraft` needs `status = CANCELLED AND openedAt === null`; evaluated on the unlocked view and again on the locked row (`scalarColumns` includes `openedAt`). If the field were ever missing it is `undefined`, so the check fails closed (409). Once set, `opened_at` is immutable (trigger), CANCELLED is final. | vacancy-draft.ts:66-73, server/repositories/vacancy.ts:216,226-242, migration 0015 |
+| Existence leak | None. Non-author (any role), role-less, Finance, deleted, unknown id are all 404. The 409 `VACANCY_NOT_DRAFT` reaches only a caller who can already read the vacancy (cancelled ex-OPEN is in role scope, never-opened cancelled is not). | route.ts:50-66, `admit` at vacancy-draft.ts:55 |
+| Race safety | Pass. `FOR NO KEY UPDATE` lock, state judged on the locked row, CAS `updateVacancy` on `status = row.status`, `version`, `createdBy`, `deleted_at IS NULL`. Publish racing a delete: its CAS matches 0 rows, then 404 via `findVacancyState` + `assertOwnDraft` (cancelledToo is false there). Delete vs cancel: the loser sees the winner's committed state. | vacancy-draft.ts:107-117, 207-223, 353-365 |
+| Soft delete, event, PII | Pass. Sets `deleted_at/by/reason` only (fixed code reason), event `vacancy.deleted` with `payload: {}`, no audit row (D92). Cancel reason stays in the PII side row, not in the event. | vacancy-draft.ts:456-467 |
+| cancelledToo leak | None. Default `false`; only `deleteVacancyDraft` passes `true`. PATCH, publish, cancel use default `readDraft`/`lockDraft`, so a cancelled draft gives 409 (test "is final: no second cancel, edit or publish"). `saveDraftChanges` now takes the locked `row.status`, which is only ever DRAFT or CANCELLED for the delete path. | vacancy-draft.ts:237,252,330,412-414 |
+| Zod closed lists | Pass. `z.enum` (strict equality, no normalisation) on the shared `editableFields`, used by create (both modes) and PATCH, both `.strict()`. `""`, `Senior`, case variants, trailing space, a value from the other list, decomposed-Unicode forms, overlong strings -> 400 `invalid_value`. `null` is allowed (clears). No other endpoint writes `seniority` / `employment_type` (only `services/vacancy.ts:288-290` and `vacancy-draft.ts` diff/update, both fed by parsed bodies). |
+| Tests | Unit 116/116 and integration (draft-lifecycle + draft-routes) 71/71 green. Allowed: author deletes cancelled draft; once-OPEN -> 409 and row unchanged; non-author recruiter, head, admin, TL, HR -> 404 and row unchanged; HTTP 200 then 404; closed-list accept/refuse in create and PATCH (unit + HTTP 400 with `body.seniority`). |
+
+A first integration run failed with "relation does not exist" because another process was using the shared test DB at the same time. The rerun was clean. This is an environment race, not a defect in the commit.
+
+## Non-blocking hardening
+
+| # | Sev | Note | Fix |
+| --- | --- | --- | --- |
+| 1 | Low | Denied matrix for "delete cancelled draft" covers 5 roles. Missing: Finance, role-less user, Recruiter/Head of another vertical, Admin without TOTP (401), an author who lost the role or vertical (must be 404 per `authoredIn`). Code path is shared with the DRAFT matrix (lifecycle test ~1091-1170), so risk is low. | Add a cancelled-draft variant to the `outcomes` table at tests/integration/vacancies-draft-lifecycle.test.ts ~1085. |
+| 2 | Low | No concurrency test for the new rule (two deletes, delete vs cancel on a cancelled draft). Logic is sound by construction. | Add to the "Concurrent lifecycle on committed rows" suite: second delete -> 404. |
+| 3 | Low | The closed lists exist only in Zod. Legacy rows may hold free text (response schema stays `z.string()`, correct). A future VAC-08 edit of OPEN vacancies, or an import, must reuse `editableFields`. No DB CHECK. | Reuse the shared schema; consider a `NOT VALID` CHECK later. |
+| 4 | Low | D112(2): the cancel reason in the PII side row survives the soft delete. This is correct until purge. Admin purge of the author must erase the reasons of their drafts. Purge is not built yet. | Track in the purge task (SEC-V2S2-05) and add a test there. |
+| 5 | Low | D112(3): cancelled drafts are uncapped, so one author can create and cancel drafts up to the 30 writes per minute limit, which fills the table and the `public_no` sequence. Accepted by the owner. | Keep the write rate limit. Optionally alert on cancelled-draft volume per user. |

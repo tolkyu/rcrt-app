@@ -996,7 +996,13 @@ describe('Delete my cancelled draft [STORY-VAC-01-3, D112(1), D98]', () => {
     ['a Head Recruiter of the vertical', 'head'],
     ['an Admin', 'admin'],
     ['a Team Lead', 'teamLead'],
+    ['a Team Lead who is also a Recruiter', 'teamLeadAndRecruiter'],
+    ['a Head Recruiter of another vertical', 'headOther'],
+    ['a Recruiter of another vertical', 'recruiterOther'],
     ['HR', 'hr'],
+    ['Head HR', 'headHr'],
+    ['Finance', 'finance'],
+    ['a user without roles', 'none'],
   ] as const)(
     '%s gets 404 for the cancelled draft of another author and changes nothing',
     async (_name, who) => {
@@ -1011,6 +1017,44 @@ describe('Delete my cancelled draft [STORY-VAC-01-3, D112(1), D98]', () => {
       });
     },
   );
+
+  it('answers 401 MFA_REQUIRED to an Admin author who has not passed the second factor and changes nothing', async () => {
+    await scenario(async (s) => {
+      const created = await createVacancy(
+        await s.as(roles().admin),
+        draft(),
+        key(),
+      );
+      await cancelVacancyDraft(await s.as(roles().admin), created.id, {
+        reason: 'Дубль',
+      });
+      const before = await row(s.tx, created.id);
+      const ctx = await s.as(roles().admin, { aal: 'aal1' });
+      expect(await problem(deleteVacancyDraft(ctx, created.id))).toMatchObject({
+        status: 401,
+        code: 'MFA_REQUIRED',
+      });
+      expect(await row(s.tx, created.id)).toEqual(before);
+    });
+  });
+
+  it('shows an author who lost the role or the vertical 404 while the cancelled draft stays theirs, and deletes it with the role back [D98]', async () => {
+    await scenario(async (s) => {
+      const created = await cancelDraft(s);
+      const before = await row(s.tx, created.id);
+      for (const lost of ['none', 'recruiterOther', 'teamLead'] as const) {
+        const ctx = await s.as(roles()[lost]);
+        expect(
+          await problem(deleteVacancyDraft(ctx, created.id)),
+          lost,
+        ).toMatchObject({ status: 404 });
+      }
+      expect(await row(s.tx, created.id)).toEqual(before);
+      expect(
+        await deleteVacancyDraft(await s.as(roles().recruiter), created.id),
+      ).toEqual({ id: created.id });
+    });
+  });
 
   it('counts only live DRAFT rows against the cap: a cancelled draft frees its slot and a deleted one stays out', async () => {
     await scenario(async (s) => {
@@ -1505,6 +1549,41 @@ describe('Concurrent lifecycle on committed rows [STORY-VAC-01-3 AC4, AC8, SEC-V
     expect(await countOf(created.id, 'vacancy.status_changed')).toBe(
       published.status === 'fulfilled' ? 1 : 0,
     );
+  });
+
+  it('two deletes of the same cancelled draft: exactly one succeeds, the other is 404, one soft delete and one event [D112(1)]', async () => {
+    // Own author: the shared one is close to the per-minute write throttle after the publish races above.
+    const authorId = randomUUID();
+    await admin`insert into app.app_user (id, email, full_name) values (${authorId}, ${`${authorId}@fixture.test`}, 'Автор паралельних видалень')`;
+    await admin`insert into app.user_role (user_id, role, vertical_id) values (${authorId}, 'HEAD_RECRUITER', ${fixture.verticalId})`;
+    const created = await createVacancy(
+      ctx(authorId),
+      {
+        mode: 'DRAFT',
+        verticalId: fixture.verticalId,
+        positionId: fixture.positionId,
+        title: 'Паралельне видалення',
+      },
+      key(),
+    );
+    await cancelVacancyDraft(ctx(authorId), created.id, { reason: 'Дубль' });
+    const settled = await Promise.allSettled([
+      deleteVacancyDraft(ctx(authorId), created.id),
+      deleteVacancyDraft(ctx(authorId), created.id),
+    ]);
+    expect(settled.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    const failure = settled.find((r) => r.status === 'rejected');
+    expect(await problem(Promise.reject(failure!.reason))).toMatchObject({
+      status: 404,
+    });
+    const [state] =
+      await admin`select status, deleted_at, deleted_by from app.vacancy where id = ${created.id}`;
+    expect(state).toMatchObject({
+      status: 'CANCELLED',
+      deleted_by: authorId,
+    });
+    expect(state!.deleted_at).not.toBeNull();
+    expect(await countOf(created.id, 'vacancy.deleted')).toBe(1);
   });
 
   it('a publish queued behind an in-flight deactivation of its Team Lead is refused and the draft stays a draft', async () => {

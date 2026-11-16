@@ -219,6 +219,7 @@ const stateColumns = {
   status: vacancy.status,
   deletedAt: vacancy.deletedAt,
   createdBy: vacancy.createdBy,
+  openedAt: vacancy.openedAt,
   version: vacancy.version,
 };
 

@@ -14,6 +14,7 @@ import {
   vacancyPageUrlSearch,
   vacancyPresetSearch,
   vacancyVerticalPreset,
+  withoutHiddenDraftFilter,
   withVacancyFilters,
 } from '@/lib/vacancy-filters';
 import { hasAnyGrant } from '@/server/authz/can';
@@ -47,7 +48,11 @@ async function VacanciesFallback() {
 
 async function VacanciesContent({ params }: { params: SearchParams }) {
   const ctx = await requireSession();
-  const state = parseVacancyPageState(params);
+  const canAuthorDrafts = authorsAnywhere(ctx.auth);
+  const state = withoutHiddenDraftFilter(
+    parseVacancyPageState(params),
+    canAuthorDrafts,
+  );
   const queryClient = getQueryClient();
   const prefetchDetail = (id: string) =>
     getVacancyDetail(ctx, id).then(
@@ -104,7 +109,7 @@ async function VacanciesContent({ params }: { params: SearchParams }) {
     >
       <VacanciesView
         canManagePositions={hasAnyGrant(ctx.auth, 'position.manage')}
-        canAuthorDrafts={authorsAnywhere(ctx.auth)}
+        canAuthorDrafts={canAuthorDrafts}
       />
     </HydrationBoundary>
   );

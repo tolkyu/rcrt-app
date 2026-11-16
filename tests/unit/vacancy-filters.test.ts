@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
   hasVacancyFilters,
+  isHiddenDraftFilter,
   isVacancyCursor,
   parseVacancyPageFilters,
   parseVacancyPageState,
+  VACANCY_FILTER_ORDER,
+  VACANCY_STATUSES,
   vacancyApiFilters,
   vacancyPageSearch,
   vacancyPageUrlSearch,
   vacancyPresetSearch,
   vacancyVerticalPreset,
+  withoutHiddenDraftFilter,
   withVacancyFilters,
   withVacancyPage,
   withVacancySelection,
@@ -24,6 +28,33 @@ const VERTICALS = [
 ];
 const parse = (query: string) =>
   parseVacancyPageState(new URLSearchParams(query));
+
+describe('status chips [STORY-VAC-04-1, G9]', () => {
+  it('order every status exactly once', () => {
+    expect([...VACANCY_FILTER_ORDER].sort()).toEqual(
+      [...VACANCY_STATUSES].sort(),
+    );
+  });
+});
+
+describe('a draft filter only draft authors have [D98]', () => {
+  const link = `vertical=${VERTICAL}&status=DRAFT&cursor=7&vacancy=${VACANCY}`;
+
+  it('is dropped for everyone else, with the cursor and the selection it belonged to', () => {
+    expect(isHiddenDraftFilter(parse(link), false)).toBe(true);
+    const state = withoutHiddenDraftFilter(parse(link), false);
+    expect(state.filters).toEqual({ vertical: VERTICAL, limit: 25 });
+    expect(state.selected).toBeUndefined();
+  });
+
+  it('stays for a draft author and for any other status', () => {
+    expect(isHiddenDraftFilter(parse(link), true)).toBe(false);
+    expect(withoutHiddenDraftFilter(parse(link), true)).toEqual(parse(link));
+    const open = parse('status=OPEN');
+    expect(isHiddenDraftFilter(open, false)).toBe(false);
+    expect(withoutHiddenDraftFilter(open, false)).toBe(open);
+  });
+});
 
 describe('isVacancyCursor [STORY-VAC-04-1]', () => {
   it.each(['1', '42', '9223372036854775807'])('accepts %s', (value) =>

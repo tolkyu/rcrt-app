@@ -133,6 +133,12 @@ export function parseVacancyPageState(source: SearchSource): VacancyPageState {
   };
 }
 
+/** Only draft authors have the «Чернетки» filter (D98); for anyone else a shared `status=DRAFT` is dropped before it reaches a query, so no request or empty-state flash precedes the URL cleanup. */
+export const isHiddenDraftFilter = (
+  { filters }: VacancyPageState,
+  canAuthorDrafts: boolean,
+): boolean => filters.status === 'DRAFT' && !canAuthorDrafts;
+
 export function vacancyPageUrlSearch(state: VacancyPageState): string {
   const params = vacancyPageSearch(state.filters);
   if (state.allVerticals && !state.filters.vertical)
@@ -169,6 +175,15 @@ export function withVacancyFilters(
     ...(vertical === ALL_VERTICALS ? { allVerticals: true as const } : {}),
   };
 }
+
+/** The state the page queries with: what the cleaned-up URL will say once a hidden draft filter is dropped. */
+export const withoutHiddenDraftFilter = (
+  state: VacancyPageState,
+  canAuthorDrafts: boolean,
+): VacancyPageState =>
+  isHiddenDraftFilter(state, canAuthorDrafts)
+    ? withVacancyFilters(state, { status: undefined })
+    : state;
 
 /** Only a bare URL falls back to the header vertical (D83): any `vertical`, even `all`, wins, and a deep-linked vacancy is already specific. */
 const mayPresetVacancyVertical = (

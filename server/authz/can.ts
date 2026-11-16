@@ -21,7 +21,7 @@ import {
   type UserId,
   type VerticalId,
 } from './types';
-import { vacancyAuthorKind } from './vacancy-author';
+import { isNeverOpenedCancelled, vacancyAuthorKind } from './vacancy-author';
 
 type AppFacts = Omit<ApplicationRef, 'type'>;
 
@@ -157,7 +157,7 @@ function evaluate(
   if (
     resource.type === 'vacancy' &&
     (resource.status === 'DRAFT' ||
-      (resource.status === 'CANCELLED' && resource.neverOpened)) &&
+      isNeverOpenedCancelled(resource.status, resource.neverOpened)) &&
     (resource.createdBy !== ctx.userId ||
       vacancyAuthorKind(ctx, resource.verticalId) === null)
   )

@@ -39,7 +39,7 @@ const vacancyScope = {
     )!,
 } satisfies ScopeAdapter<'vacancy'>;
 
-/** A draft closed by its author (`DRAFT → CANCELLED`) never got an opening date; a vacancy cancelled later keeps its own. */
+/** SQL twin of `isNeverOpenedCancelled`. */
 const cancelledDraft = and(
   eq(vacancy.status, 'CANCELLED'),
   isNull(vacancy.openedAt),
