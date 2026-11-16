@@ -275,7 +275,8 @@ test('an unbreakable title and HTML-like text never widen the card or the page [
     ),
   ).toBe(true);
   const markup = card(page, 'markup').getByRole('heading', { level: 2 });
-  await expect(markup).toHaveText(titles.markup);
+  // The catalog quotes `<` so the ICU formatter keeps the tag text literal.
+  await expect(markup).toHaveText(titles.markup.replaceAll("'<'", '<'));
   await expect(markup.locator('b')).toHaveCount(0);
 });
 

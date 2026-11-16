@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 import messages from '../../messages/uk.json' with { type: 'json' };
+import { waitForHydration } from '../support/hydration';
+import { blockValidationChunks } from '../support/lazy-chunks';
 
 for (const email of ['active@fixture.test', 'unknown@fixture.test']) {
   test(`magic-link request shows the same neutral completion for ${email}`, async ({
@@ -195,4 +197,59 @@ test('delivery failure shows the owner-approved safe error instead of a sent con
   await expect(
     page.getByRole('heading', { name: 'Перевірте пошту', exact: true }),
   ).toHaveCount(0);
+});
+
+test('login validates on the client once the validation chunk is loaded', async ({
+  page,
+}) => {
+  let calls = 0;
+  await page.route('**/api/v1/auth/magic-link', (route) => {
+    calls += 1;
+    return route.fulfill({ json: { accepted: true } });
+  });
+  await page.goto('/login');
+  await waitForHydration(page);
+  await page.getByLabel(messages.auth.login.emailLabel).fill('not-an-email');
+  await page
+    .getByRole('button', { name: messages.auth.login.submit, exact: true })
+    .click();
+  await expect(
+    page.getByText(messages.auth.login.emailInvalid, { exact: true }),
+  ).toBeVisible();
+  expect(calls).toBe(0);
+});
+
+test('login with the validation chunk blocked still validates the field, then shows a Ukrainian error without calling the server or hanging', async ({
+  page,
+}) => {
+  let calls = 0;
+  await page.route('**/api/v1/auth/magic-link', (route) => {
+    calls += 1;
+    return route.fulfill({ json: { accepted: true } });
+  });
+  const blocked = await blockValidationChunks(page);
+  await page.goto('/login');
+  await waitForHydration(page);
+  const email = page.getByLabel(messages.auth.login.emailLabel);
+  const submit = page.getByRole('button', {
+    name: messages.auth.login.submit,
+    exact: true,
+  });
+  await email.fill('not-an-email');
+  await submit.click();
+  await expect(
+    page.getByText(messages.auth.login.emailInvalid, { exact: true }),
+  ).toBeVisible();
+  await email.fill('active@fixture.test');
+  await submit.click();
+  await expect(
+    page.getByRole('alert').filter({ hasText: messages.auth.genericError }),
+  ).toBeVisible();
+  await expect(submit).toBeEnabled();
+  await expect(submit).toHaveText(messages.auth.login.submit);
+  await expect(
+    page.getByRole('heading', { name: messages.auth.login.sentTitle }),
+  ).toHaveCount(0);
+  expect(blocked.length).toBeGreaterThan(0);
+  expect(calls).toBe(0);
 });

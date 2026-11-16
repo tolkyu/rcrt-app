@@ -1,6 +1,5 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import {
   useEffect,
@@ -10,15 +9,22 @@ import {
   type ReactNode,
 } from 'react';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiError, apiRequest } from '@/lib/api-client';
-import { redirectResponseSchema } from '@/lib/schemas/auth';
 import { FormMessage } from './auth-card';
+import { totpFallback } from './fallback-validation';
+import { lazyValidation, useWarmOnIdle } from './lazy-resolver';
+import type { TotpValues } from './totp-validation';
 
-const codeSchema = z.object({ code: z.string().regex(/^\d{6}$/) });
+const loadValidation = () => import('./totp-validation');
+const { resolver, warm } = lazyValidation<TotpValues>(
+  async () => (await loadValidation()).totpResolver,
+  totpFallback,
+);
+const redirectSchema = async () =>
+  (await loadValidation()).redirectResponseSchema;
 
 /** Shared 6-digit code step for enrolment and sign-in challenges; failures are counted server-side. */
 export function TotpCodeForm({
@@ -34,8 +40,9 @@ export function TotpCodeForm({
   const [failure, setFailure] = useState<string | null>(null);
   const request = useRef<AbortController | null>(null);
   useEffect(() => () => request.current?.abort(), []);
-  const form = useForm<{ code: string }>({
-    resolver: zodResolver(codeSchema),
+  useWarmOnIdle(warm);
+  const form = useForm<TotpValues>({
+    resolver,
     defaultValues: { code: '' },
   });
   const invalid = Boolean(form.formState.errors.code);
@@ -49,7 +56,7 @@ export function TotpCodeForm({
         const { redirectTo } = await apiRequest('/auth/mfa/verify', {
           method: 'POST',
           body: { factorId, code, ...(next ? { next } : {}) },
-          schema: redirectResponseSchema,
+          schema: redirectSchema,
           signal: controller.signal,
         });
         if (controller.signal.aborted) return;
@@ -81,6 +88,7 @@ export function TotpCodeForm({
           className="tracking-[0.3em] tabular-nums"
           aria-invalid={invalid ? true : undefined}
           aria-describedby="totp-code-hint"
+          onFocus={warm}
           {...form.register('code')}
         />
         <p

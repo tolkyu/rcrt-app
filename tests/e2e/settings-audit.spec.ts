@@ -1,7 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { AUDIT_ACTION_COUNT } from '../../lib/audit-actions';
 import { AUDIT_ACTION_GROUPS } from '../../lib/audit-constants';
-import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import type {
   AuditActorPage,
   AuditPage,
@@ -20,7 +19,12 @@ import {
   MUTATION_HEADERS,
   sessionFile,
 } from '../support/e2e-session';
-import { captureScreen, forEachTheme, viewportOf } from './screens';
+import {
+  captureScreen,
+  forEachTheme,
+  installFixedClock,
+  viewportOf,
+} from './screens';
 
 const t = messages.settings.audit;
 const actionLabel = (code: string) => {
@@ -681,7 +685,7 @@ test('«Показати новіші» is busy without double requests, keeps r
       } satisfies AuditRecord,
     });
   });
-  await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+  await installFixedClock(page);
   await page.goto('/settings/audit');
   const result = page.getByLabel(t.filters.result, { exact: true });
   await result.selectOption('DENIED');
@@ -1315,7 +1319,7 @@ test('audit list and detail render without overflow in both themes [SHOT-01..03,
         } satisfies AuditActorPage,
       }),
   );
-  await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+  await installFixedClock(page);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const shownRows = page.locator('[data-audit-row]:visible');
   await forEachTheme(page, async (theme) => {
@@ -1470,7 +1474,7 @@ test('a moved audit window shows «Показати новіші» above the lis
 }, testInfo) => {
   const rows = SHOT_ROWS;
   await routeAuditWindow(page, rows, { pageSize: 5 });
-  await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+  await installFixedClock(page);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const { shownRows, shownIds, idsOf, loadMore, loadNewer } = auditWindow(
     page,

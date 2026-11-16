@@ -13,6 +13,7 @@ import {
   type ReactNode,
   type Ref,
 } from 'react';
+import { useStickyFooter } from '@/lib/use-sticky-bar';
 import { FormPageFooter, FormPageHeading } from './form-page-frame';
 import { LoadBoundary } from './load-boundary';
 import { useLeaveGuard, type LeaveGuardHandle } from './use-leave-guard';
@@ -71,6 +72,7 @@ export function FormPageLayout({
   const t = useTranslations('common');
   const titleId = useId();
   const guard = useLeaveGuard(dirty);
+  const footerRef = useStickyFooter();
   const { release } = guard;
   useImperativeHandle(guardRef, () => ({ release }), [release]);
   return (
@@ -90,7 +92,7 @@ export function FormPageLayout({
         className="flex flex-col gap-6"
       >
         {children}
-        <FormPageFooter>{footer}</FormPageFooter>
+        <FormPageFooter stickyRef={footerRef}>{footer}</FormPageFooter>
       </form>
       {guard.asking && (
         <LoadBoundary

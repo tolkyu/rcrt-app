@@ -564,6 +564,24 @@ test.describe('create form, Recruiter [STORY-VAC-01-1, STORY-VAC-01-3]', () => {
       );
       await expect(page).toHaveURL(/\/vacancies\/new$/);
       expect(sent).toHaveLength(1);
+      const toast = page.locator('[data-slot="toast"]');
+      let previous = '';
+      await expect
+        .poll(async () => {
+          const current = JSON.stringify(await toast.boundingBox());
+          const settled = current === previous;
+          previous = current;
+          return settled;
+        })
+        .toBe(true);
+      const [toastBox, footerBox] = await Promise.all([
+        toast.boundingBox(),
+        page.locator('[data-slot="form-page-footer"]').boundingBox(),
+      ]);
+      expect(
+        toastBox!.y + toastBox!.height <= footerBox!.y + 0.5 ||
+          toastBox!.y >= footerBox!.y + footerBox!.height - 0.5,
+      ).toBe(true);
     });
   }
 

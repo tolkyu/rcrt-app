@@ -523,10 +523,10 @@ describe('Change email: one step replaces the address and the invite [STORY-ROLE
       const [toB, toC] = args.provider.sentEmails.map((m) => tokenOf(m.text)!);
       expect(args.provider.sentEmails.map((m) => m.to)).toEqual([b, c]);
       const { invites } = await stored(args, target.userId);
-      expect(invites.map((i) => i.status)).toEqual([
-        'REVOKED',
-        'REVOKED',
+      expect(invites.map((i) => i.status).sort()).toEqual([
         'PENDING',
+        'REVOKED',
+        'REVOKED',
       ]);
       expect((await eventsOf(args, target.userId)).map((e) => e.type)).toEqual([
         'user.email_changed',

@@ -5,6 +5,8 @@ import messages from '../../messages/uk.json' with { type: 'json' };
 import { mfaPendingSessionFile, sessionFile } from '../support/e2e-session';
 import { problemFulfill } from '../support/problem';
 import { checkAccessibility } from '../support/accessibility';
+import { waitForHydration } from '../support/hydration';
+import { blockValidationChunks } from '../support/lazy-chunks';
 import { captureScreen, forEachTheme, viewportOf } from './screens';
 
 const t = messages.auth.mfa;
@@ -131,5 +133,57 @@ test.describe('admin@demo before the TOTP step', () => {
       await captureScreen(page, testInfo, name('wrong-code', theme));
     });
     expect(checks.count).toBe(2);
+  });
+});
+
+test.describe('admin@demo before the TOTP step, validation chunk blocked', () => {
+  test.use({ storageState: mfaPendingSessionFile });
+
+  test('a malformed code is refused in the field, a well-formed one shows a Ukrainian error without reaching the server [SEC-AUTH-R02]', async ({
+    page,
+  }) => {
+    const checks = await answerCodeChecks(page);
+    const blocked = await blockValidationChunks(page);
+    await page.goto('/mfa/verify');
+    await waitForHydration(page);
+    const code = page.getByLabel(t.codeLabel);
+    const submit = page.getByRole('button', { name: t.submit });
+    await code.fill('12');
+    await submit.click();
+    await expect(
+      page.getByText(t.codeInvalidFormat, { exact: true }),
+    ).toBeVisible();
+    await code.fill('480215');
+    await submit.click();
+    await expect(
+      page.getByRole('alert').filter({ hasText: messages.auth.genericError }),
+    ).toBeVisible();
+    await expect(submit).toBeEnabled();
+    await expect(code).toHaveValue('');
+    await expect(code).toBeFocused();
+    expect(blocked.length).toBeGreaterThan(0);
+    expect(checks.count).toBe(0);
+  });
+});
+
+test.describe('vasyl.tl@demo setting up 2FA, validation chunk blocked', () => {
+  test.use({ storageState: sessionFile('vasyl.tl@demo') });
+
+  test('enrolment stops before the server creates a factor and offers a retry [SEC-AUTH-3]', async ({
+    page,
+  }) => {
+    let enrolments = 0;
+    await page.route('**/api/v1/auth/mfa/enroll', (route) => {
+      enrolments += 1;
+      return route.abort();
+    });
+    const blocked = await blockValidationChunks(page);
+    await page.goto('/mfa/setup');
+    await expect(page.getByText(t.enrollFailed, { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: messages.auth.retry }),
+    ).toBeEnabled();
+    expect(blocked.length).toBeGreaterThan(0);
+    expect(enrolments).toBe(0);
   });
 });

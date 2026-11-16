@@ -5,7 +5,7 @@ import { GalleryGroup, GallerySection } from './gallery-section';
 
 export async function BadgesSection() {
   const t = await getTranslations('devUi.badges');
-  const tags = t.raw('tags') as string[];
+  const tags = t('tags').split('|');
   const flags = (
     <>
       <Badge size="sm" icon={Flame} tone="danger">

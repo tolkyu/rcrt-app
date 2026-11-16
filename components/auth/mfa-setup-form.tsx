@@ -5,12 +5,13 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/api-client';
-import {
-  mfaEnrollResponseSchema,
-  type MfaEnrollment,
-} from '@/lib/schemas/auth';
+import type { MfaEnrollment } from '@/lib/schemas/auth';
 import { AuthCard, FormMessage, Spinner } from './auth-card';
 import { TotpCodeForm } from './totp-code-form';
+
+/** The response schemas live in a lazy chunk (zod, PERF-04). */
+const enrollSchema = async () =>
+  (await import('@/lib/schemas/auth')).mfaEnrollResponseSchema;
 
 type Mode = 'required' | 'backup' | 'optional';
 const TITLES = {
@@ -48,7 +49,7 @@ export function MfaSetupForm({
       setEnrollment(
         await apiRequest('/auth/mfa/enroll', {
           method: 'POST',
-          schema: mfaEnrollResponseSchema,
+          schema: enrollSchema,
         }),
       );
     } catch {

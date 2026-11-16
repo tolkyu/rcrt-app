@@ -30,11 +30,11 @@ export default function ToastRuntime(props: ToasterProps) {
       offset={{
         right: 24,
         bottom:
-          'calc(var(--chrome-bottom) + var(--sticky-bar-bottom, 0px) + 24px)',
+          'calc(var(--chrome-bottom) + var(--sticky-bar-bottom, 0px) + var(--sticky-footer-bottom, 0px) + 24px)',
       }}
       mobileOffset={{
         bottom:
-          'calc(var(--chrome-bottom) + var(--sticky-bar-bottom, 0px) + 12px)',
+          'calc(var(--chrome-bottom) + var(--sticky-bar-bottom, 0px) + var(--sticky-footer-bottom, 0px) + 12px)',
       }}
       style={{ zIndex: 'var(--z-toast)' }}
       {...props}

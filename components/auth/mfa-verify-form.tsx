@@ -6,9 +6,12 @@ import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { apiRequest } from '@/lib/api-client';
-import { redirectResponseSchema } from '@/lib/schemas/auth';
 import { AuthCard, FormMessage } from './auth-card';
 import { TotpCodeForm } from './totp-code-form';
+
+/** The response schema lives in a lazy chunk (zod, PERF-04). */
+const redirectSchema = async () =>
+  (await import('@/lib/schemas/auth')).redirectResponseSchema;
 
 export function MfaVerifyForm({
   factors,
@@ -67,7 +70,7 @@ export function MfaVerifyForm({
             const { redirectTo } = await apiRequest('/auth/logout', {
               method: 'POST',
               body: {},
-              schema: redirectResponseSchema,
+              schema: redirectSchema,
             });
             window.location.assign(redirectTo);
           } catch {

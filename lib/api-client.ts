@@ -48,6 +48,8 @@ export async function apiRequest<S extends z.ZodType>(
     headers,
   }: RequestOptions<S>,
 ): Promise<z.output<S>> {
+  // A schema chunk that cannot load must stop the call before the server acts (magic link, aal2, enrolment, logout).
+  const validator = typeof schema === 'function' ? await schema() : schema;
   const mutation = method !== 'GET';
   const response = await fetch(`/api/v1${path}`, {
     method,
@@ -74,6 +76,5 @@ export async function apiRequest<S extends z.ZodType>(
         )
       : new ApiError(response.status, 'INTERNAL');
   }
-  const validator = typeof schema === 'function' ? await schema() : schema;
   return validator.parse(payload);
 }

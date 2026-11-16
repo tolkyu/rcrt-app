@@ -18,11 +18,19 @@ vi.mock('@/components/ui/confirm-dialog', () => {
 const PAGE = '/vacancies/new';
 
 beforeEach(() => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
   window.history.replaceState(null, '', PAGE);
   vi.spyOn(window.history, 'back').mockImplementation(() => undefined);
 });
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
   replace.mockReset();
   push.mockReset();

@@ -1,12 +1,11 @@
 import { devices, expect, test, type Page } from '@playwright/test';
-import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import {
   E2E_ORIGIN,
   MUTATION_HEADERS,
   sessionFile,
 } from '../support/e2e-session';
-import { captureScreen } from './screens';
+import { captureScreen, installFixedClock } from './screens';
 
 const t = messages.settings.priorities;
 const nav = messages.settings.nav;
@@ -451,7 +450,7 @@ test('captures the seeded priorities, a tie, «Без пріоритету», co
           { name: 'theme', value: theme, url: E2E_ORIGIN },
         ]);
         const page = await context.newPage();
-        await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+        await installFixedClock(page);
         // Saves are refused so the shared seed never changes; reads are the live seed.
         await page.route(
           `**/api/v1/verticals/${gambling!.id}/team-lead-priorities`,

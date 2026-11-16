@@ -1,5 +1,4 @@
 import { devices, expect, test, type Page } from '@playwright/test';
-import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import {
   E2E_ORIGIN,
@@ -7,7 +6,7 @@ import {
   sessionFile,
 } from '../support/e2e-session';
 import { problemFulfill } from '../support/problem';
-import { captureScreen, forEachTheme } from './screens';
+import { captureScreen, forEachTheme, installFixedClock } from './screens';
 
 const t = messages.settings;
 const dialogErrors = t.verticals.dialog.errors;
@@ -265,7 +264,7 @@ test('captures the verticals screenshots; saves are refused in the browser, vert
     });
     try {
       const page = await context.newPage();
-      await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+      await installFixedClock(page);
       await page.route('**/api/v1/verticals', (route) => {
         if (route.request().method() !== 'POST') return route.fallback();
         saves.create += 1;

@@ -1,10 +1,14 @@
 import { expect, test, type Route } from '@playwright/test';
-import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import { SHOT_RENAME, SHOT_ROWS } from '../support/audit-shot-fixture';
 import { checkAccessibility } from '../support/accessibility';
 import { sessionFile } from '../support/e2e-session';
-import { captureScreen, forEachTheme, viewportOf } from './screens';
+import {
+  captureScreen,
+  forEachTheme,
+  installFixedClock,
+  viewportOf,
+} from './screens';
 
 test.use({ storageState: sessionFile('admin@demo') });
 test.afterEach(({ page }) => page.unrouteAll({ behavior: 'ignoreErrors' }));
@@ -14,7 +18,7 @@ test('audit loading, error, empty and date-validation states are captured [UI-06
   page,
 }, testInfo) => {
   test.setTimeout(120_000);
-  await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+  await installFixedClock(page);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await forEachTheme(page, async (theme) => {
     await page.goto('/settings/audit?period=365d');
@@ -87,7 +91,7 @@ test('audit JSON and missing record stay inside the accessible detail sheet [UI-
   page,
 }, testInfo) => {
   test.setTimeout(90_000);
-  await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+  await installFixedClock(page);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.route(
     (url) => url.pathname === '/api/v1/audit',

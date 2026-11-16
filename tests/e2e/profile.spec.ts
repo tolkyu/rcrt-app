@@ -1,12 +1,16 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
-import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import { sessionFile, type E2EUser } from '../support/e2e-session';
 import {
   PROFILE_SHOTS,
   type ProfileShotUser,
 } from '../support/profile-shot-fixture';
-import { captureScreen, forEachTheme, viewportOf } from './screens';
+import {
+  captureScreen,
+  forEachTheme,
+  installFixedClock,
+  viewportOf,
+} from './screens';
 
 const t = {
   shell: messages.shell,
@@ -126,7 +130,7 @@ async function captureProfiles(
   await page.route('**/api/v1/auth/login-history?*', (route) =>
     route.fulfill({ json: { items: shot.history, nextCursor: null } }),
   );
-  await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+  await installFixedClock(page);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   const viewport = viewportOf(testInfo);
   await forEachTheme(page, async (theme) => {
@@ -207,7 +211,7 @@ test.describe('head.recruiter.gambling@demo', () => {
   test('captures the in-shell 404 a Head Recruiter gets for «Налаштування» [SHOT-01..03, VIS-02]', async ({
     page,
   }, testInfo) => {
-    await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+    await installFixedClock(page);
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await forEachTheme(page, async (theme) => {
       await page.goto('/settings/users');

@@ -1,10 +1,43 @@
 import { copyFileSync, mkdirSync } from 'node:fs';
 import { expect, type Page, type TestInfo } from '@playwright/test';
+import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import { E2E_ORIGIN } from '../support/origins';
 
 /** Phone projects end in `mobile` (`e2e-mobile`, `e2e-admin-mobile`); the file name's viewport token follows it. */
 export const viewportOf = (testInfo: TestInfo) =>
   testInfo.project.name.endsWith('mobile') ? 'mobile' : 'desktop';
+
+/**
+ * Prefetched queries stay fresh for 30 s by the browser clock, and the fixed clock is earlier than the server's real
+ * time once the suite runs after it, so the mocked API would never be asked and the live rows would be shown. Marking
+ * the hydrated queries invalidated makes the browser refetch them on mount whatever day the suite runs.
+ */
+export async function installFixedClock(page: Page) {
+  await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
+  await page.route(
+    (url) => !url.pathname.startsWith('/api/'),
+    async (route) => {
+      const request = route.request();
+      const flight = (await request.headerValue('rsc')) !== null;
+      if (request.resourceType() !== 'document' && !flight) {
+        await route.fallback();
+        return;
+      }
+      try {
+        const response = await route.fetch();
+        const body = (await response.text()).replace(
+          /(isInvalidated\\?":)false/g,
+          '$1true',
+        );
+        await route.fulfill({ response, body });
+      } catch (error) {
+        // A reload, a navigation or the end of the test that supersedes the request cancels it mid-flight.
+        if (!/disposed|already handled|closed|Test ended/i.test(String(error)))
+          throw error;
+      }
+    },
+  );
+}
 
 /** Runs `step` once per theme with the server-rendered theme cookie set (SHOT-01..03). */
 export async function forEachTheme(

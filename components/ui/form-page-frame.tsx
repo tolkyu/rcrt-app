@@ -1,6 +1,6 @@
 import { ChevronLeft } from 'lucide-react';
 import Link from 'next/link';
-import type { ReactNode } from 'react';
+import type { ReactNode, RefCallback } from 'react';
 
 /** Back link, title and subtitle; shared by `FormPageLayout` and `FormSkeleton` so the loading page has the same box. */
 export function FormPageHeading({
@@ -40,10 +40,17 @@ export function FormPageHeading({
   );
 }
 
-/** Sticks above the BottomNav on a phone; on a phone the children share the row and the last one wraps to full width. */
-export function FormPageFooter({ children }: { children: ReactNode }) {
+/** Sticks above the BottomNav on a phone; on a phone the children share the row and the last one wraps to full width. `stickyRef` publishes its height so toasts stack above it. */
+export function FormPageFooter({
+  children,
+  stickyRef,
+}: {
+  children: ReactNode;
+  stickyRef?: RefCallback<HTMLElement>;
+}) {
   return (
     <div
+      ref={stickyRef}
       data-slot="form-page-footer"
       className="border-border bg-surface after:bg-surface sticky bottom-(--chrome-bottom) z-10 -mx-4 flex flex-wrap justify-end gap-2 border-t px-4 py-3 after:absolute after:inset-x-0 after:top-full after:h-[env(safe-area-inset-bottom)] md:bottom-0 md:mx-0 md:rounded-b-xl md:px-0 md:after:hidden [&>*]:flex-1 md:[&>*]:flex-none"
     >

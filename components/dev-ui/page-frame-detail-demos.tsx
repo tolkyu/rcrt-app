@@ -52,8 +52,7 @@ export function PreviewHeaderDemos() {
     {
       id: 'markup',
       label: t('previewMarkup'),
-      // `<b>` would be parsed as a rich-text tag by the formatter; the title must reach the DOM as typed.
-      title: String(t.raw('previewTitles.markup')),
+      title: t('previewTitles.markup'),
       actions: true,
     },
     {
