@@ -304,6 +304,49 @@
       "NORMAL": "Звичайна",
       "URGENT": "Термінова"
     },
+    "conditions": "Умови",
+    "seniority": {
+      "label": "Рівень"
+    },
+    "workFormat": {
+      "label": "Формат роботи"
+    },
+    "employmentType": {
+      "label": "Зайнятість"
+    },
+    "location": {
+      "label": "Локація",
+      "placeholder": "Наприклад, Київ"
+    },
+    "salary": {
+      "legend": "Зарплатна вилка",
+      "from": "Від",
+      "to": "До",
+      "currency": "Валюта",
+      "hint": "Необовʼязково. Якщо вказуєте суму, оберіть валюту.",
+      "currencies": {
+        "USD": "$ USD",
+        "EUR": "€ EUR",
+        "UAH": "₴ UAH"
+      }
+    },
+    "probation": {
+      "label": "Випробувальний термін, днів",
+      "hint": "Від {min} до {max} днів. За замовчуванням — {standard}.",
+      "readOnly": "Випробувальний термін — {days} днів. Змінити його може адміністратор або керівник HR."
+    },
+    "rail": {
+      "label": "Готовність до публікації",
+      "vertical": "Вертикаль",
+      "title": "Назва",
+      "position": "Посада",
+      "done": "заповнено",
+      "todo": "не заповнено",
+      "draftNote": "Чернетку можна зберегти, коли є вертикаль і назва. Бачите її лише ви.",
+      "afterCreate": "Після створення",
+      "afterCreateSelf": "Вас буде призначено рекрутером на цю вакансію.",
+      "afterCreateAssigner": "Рекрутерів призначте на картці вакансії після створення."
+    },
     "actions": {
       "saveDraft": "Зберегти чернетку",
       "create": "Створити вакансію"
@@ -315,7 +358,16 @@
       "titleShort": "Щонайменше {min} символи.",
       "titleLong": "Не більше {max} символів.",
       "titleChars": "Назва містить недопустимі символи.",
-      "headcountRange": "Вкажіть кількість місць від {min} до {max}."
+      "headcountRange": "Вкажіть кількість місць від {min} до {max}.",
+      "optionInvalid": "Оберіть значення зі списку.",
+      "locationLong": "Не більше {max} символів.",
+      "locationChars": "Локація містить недопустимі символи.",
+      "salaryNumber": "Введіть суму числом, наприклад 2 500.",
+      "salaryTooLarge": "Занадто велика сума.",
+      "salaryMaxBelowMin": "Максимум не може бути меншим за мінімум.",
+      "salaryCurrencyRequired": "Оберіть валюту для зарплатної вилки.",
+      "salaryCurrencyNoAmount": "Вкажіть суму або приберіть валюту.",
+      "probationRange": "Вкажіть від {min} до {max} днів."
     },
     "alerts": {
       "verticalUnavailable": "Вертикаль недоступна: можливо, доступ змінився. Оберіть іншу вертикаль.",
@@ -1375,6 +1427,10 @@
       "teamLeadLoadedLabel": "Поле «Тімлід» — завантажено",
       "teamLeadFieldLabel": "Тімлід",
       "teamLeadHint": "Без тімліда вакансія стане «Вакансією від рекрутера» і не потрапить до розподілу, доки тімліда не призначено.",
+      "conditionsAdminSkeletonLabel": "Група «Умови», Адмін — скелет",
+      "conditionsAdminLoadedLabel": "Група «Умови», Адмін — завантажено",
+      "conditionsRecruiterSkeletonLabel": "Група «Умови», рекрутер — скелет",
+      "conditionsRecruiterLoadedLabel": "Група «Умови», рекрутер — завантажено",
       "sampleTitle": "Редагування вакансії",
       "sampleSubtitle": "Зміни застосуються після збереження",
       "sampleFieldPosition": "Посада",

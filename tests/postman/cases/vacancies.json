@@ -527,6 +527,113 @@
   },
   {
     "operation": "createVacancy",
+    "as": "head_recruiter_gambling",
+    "name": "a seniority outside the closed list",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0018"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "seniority": "Стажер"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.seniority",
+        "code": "invalid_value"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "as": "head_recruiter_gambling",
+    "name": "an employment type outside the closed list on a draft",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0019"
+    },
+    "body": {
+      "mode": "DRAFT",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "title": "Тест API — чернетка не створюється",
+      "employmentType": "Сезонна зайнятість"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.employmentType",
+        "code": "invalid_value"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "as": "head_recruiter_gambling",
+    "name": "a location over 200 characters",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0020"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "location": "ККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККК"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.location",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "as": "head_recruiter_gambling",
+    "name": "a salary currency in lower case",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0021"
+    },
+    "body": {
+      "mode": "DRAFT",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "title": "Тест API — чернетка не створюється",
+      "salaryMinMinor": "100",
+      "salaryCurrency": "usd"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.salaryCurrency",
+        "code": "invalid_format"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "as": "head_recruiter_gambling",
+    "name": "a Head Recruiter may not set the probation length on a draft either",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0022"
+    },
+    "body": {
+      "mode": "DRAFT",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "title": "Тест API — чернетка не створюється",
+      "probationDays": 60
+    },
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "createVacancy",
     "name": "a position of another vertical is a field error",
     "as": "head_recruiter_gambling",
     "headers": {

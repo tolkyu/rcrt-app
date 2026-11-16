@@ -6,10 +6,8 @@ import { PageFrameDemos } from './page-frame-demos';
 import { SkeletonDemos } from './page-frame-skeleton-demos';
 
 export async function PageFrameSection() {
-  const [t, { common, devUi, form, states, vacancies }] = await Promise.all([
-    getTranslations('devUi.pageFrame'),
-    getMessages(),
-  ]);
+  const [t, { common, devUi, form, states, vacancies, vacancyForm }] =
+    await Promise.all([getTranslations('devUi.pageFrame'), getMessages()]);
   return (
     <GallerySection id="page-frame" title={t('title')} hint={t('hint')}>
       <NextIntlClientProvider
@@ -19,6 +17,7 @@ export async function PageFrameSection() {
           form,
           states,
           vacancies,
+          vacancyForm,
           devUi: { pageFrame: devUi.pageFrame },
         }}
       >

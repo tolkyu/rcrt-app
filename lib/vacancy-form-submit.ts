@@ -32,10 +32,17 @@ import {
   type VacancyFormMode,
   type VacancyFormValues,
 } from '@/lib/vacancy-form';
-import { parseVacancyForm, titleCode } from '@/lib/vacancy-form-parse';
+import {
+  locationCode,
+  parseVacancyForm,
+  salaryFieldCode,
+  titleCode,
+} from '@/lib/vacancy-form-parse';
+import { normalizeSalaryText } from '@/lib/vacancy-salary';
 
 export { parseVacancyForm };
 export { serverTextLength } from '@/lib/text-length';
+export { normalizeSalaryText };
 
 /** List the user lands on after saving a draft: «Чернетки» of the draft's own vertical with the new draft selected (D83 would otherwise hide it). */
 export const vacancyDraftLandingHref = (
@@ -63,15 +70,45 @@ const FIELD_OF_PATH: Readonly<Record<string, VacancyFormField>> = {
   'body.title': 'title',
   'body.headcount': 'headcount',
   'body.teamLeadId': 'teamLeadId',
+  'body.seniority': 'seniority',
+  'body.workFormat': 'workFormat',
+  'body.employmentType': 'employmentType',
+  'body.location': 'location',
+  'body.salaryMinMinor': 'salaryMin',
+  'body.salaryMaxMinor': 'salaryMax',
+  'body.salaryCurrency': 'salaryCurrency',
+  'body.probationDays': 'probationDays',
 };
+
+/** What a failed attempt carried that the answer's codes do not say: a currency error reads differently with and without an amount. */
+export interface FailureContext {
+  readonly hasSalaryAmount: boolean;
+}
+
+const NO_CONTEXT: FailureContext = { hasSalaryAmount: false };
 
 function fieldCode(
   field: VacancyFormField,
   code: string,
+  { hasSalaryAmount }: FailureContext,
 ): VacancyFormErrorCode {
   if (field === 'verticalId') return 'verticalRequired';
   if (field === 'headcount') return 'headcountRange';
   if (field === 'teamLeadId') return 'teamLeadInvalid';
+  if (
+    field === 'seniority' ||
+    field === 'workFormat' ||
+    field === 'employmentType'
+  )
+    return 'optionInvalid';
+  if (field === 'location') return locationCode([code]);
+  if (
+    field === 'salaryMin' ||
+    field === 'salaryMax' ||
+    field === 'salaryCurrency'
+  )
+    return salaryFieldCode(field, code, hasSalaryAmount);
+  if (field === 'probationDays') return 'probationRange';
   if (field === 'positionId')
     return code === 'invalid_position'
       ? 'positionInvalid'
@@ -82,7 +119,10 @@ function fieldCode(
 }
 
 /** Server answer → what the form shows; the code set is the one of `POST /vacancies` (S1 contract). */
-export function classifyCreateFailure(error: unknown): CreateFailure {
+export function classifyCreateFailure(
+  error: unknown,
+  context: FailureContext = NO_CONTEXT,
+): CreateFailure {
   if (!(error instanceof ApiError)) return { kind: 'network' };
   if (error.status === 429) return { kind: 'rateLimited' };
   if (error.status === 403) return { kind: 'forbidden' };
@@ -95,7 +135,8 @@ export function classifyCreateFailure(error: unknown): CreateFailure {
     const errors: VacancyFormErrors = {};
     for (const { path, code } of error.fieldErrors) {
       const field = FIELD_OF_PATH[path];
-      if (field && !errors[field]) errors[field] = fieldCode(field, code);
+      if (field && !errors[field])
+        errors[field] = fieldCode(field, code, context);
     }
     if (Object.keys(errors).length > 0) return { kind: 'fields', errors };
   }
@@ -126,8 +167,12 @@ const GENERIC_FAILURE: FailureEffect = {
 };
 
 /** What the form does with a failed create; a reused idempotency key gets one silent retry under a fresh key, then the generic error. */
-export function planFailure(error: unknown, retried: boolean): FailureEffect {
-  const failure = classifyCreateFailure(error);
+export function planFailure(
+  error: unknown,
+  retried: boolean,
+  context: FailureContext = NO_CONTEXT,
+): FailureEffect {
+  const failure = classifyCreateFailure(error, context);
   switch (failure.kind) {
     case 'fields':
       return { type: 'fields', errors: failure.errors };
@@ -209,7 +254,10 @@ export async function submitCreate(
       applyCreatedVacancy(queryClient, created);
       return { status: 'created', created };
     } catch (error) {
-      const effect = planFailure(error, retried);
+      const effect = planFailure(error, retried, {
+        hasSalaryAmount:
+          body.salaryMinMinor != null || body.salaryMaxMinor != null,
+      });
       if (effect.type !== 'retry') return { status: 'failed', effect };
       attempts.reset();
     }
@@ -245,6 +293,14 @@ export function fetchActivePositions(
   )
     queryClient.setQueryData(queryKey, seed.list, { updatedAt: seed.loadedAt });
   return queryClient.fetchQuery(activePositionsQuery(verticalId));
+}
+
+/** The server's 409 proves the author holds the maximum, so the cached count follows and the draft button explains itself; a refetch corrects it once drafts are removed. */
+export async function applyDraftLimitHit(queryClient: QueryClient) {
+  const queryKey = queryKeys.vacancyDraftCount();
+  // A count request still in flight would land after the write and undo it.
+  await queryClient.cancelQueries({ queryKey });
+  queryClient.setQueryData(queryKey, { count: VACANCY_DRAFT_LIMIT });
 }
 
 /** After the server refused a Team Lead the cached list is stale: the person may have been deactivated or moved. */

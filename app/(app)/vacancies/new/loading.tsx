@@ -1,10 +1,8 @@
 import { getTranslations } from 'next-intl/server';
+import { FormRailFrame } from '@/components/ui/form-rail';
 import { FormSkeleton } from '@/components/ui/form-skeleton';
-import {
-  vacancyFormSkeleton,
-  VACANCY_FORM_WIDTH,
-} from '@/components/vacancies/vacancy-form-skeleton';
-import { teamLeadFieldShown } from '@/lib/vacancy-form';
+import { vacancyFormSkeleton } from '@/components/vacancies/vacancy-form-skeleton';
+import { probationFieldShown, teamLeadFieldShown } from '@/lib/vacancy-form';
 import { getCreateFormVerticals } from '../../_lib/create-form-verticals';
 
 export default async function NewVacancyLoading() {
@@ -14,13 +12,17 @@ export default async function NewVacancyLoading() {
     getCreateFormVerticals(),
   ]);
   return (
-    <div className={VACANCY_FORM_WIDTH}>
+    <FormRailFrame>
       <FormSkeleton
         title={t('title')}
         subtitle={t('subtitle')}
         back={{ href: '/vacancies', label: t('back') }}
-        fields={vacancyFormSkeleton(teamLeadFieldShown(verticals, verticalId))}
+        fields={vacancyFormSkeleton(
+          teamLeadFieldShown(verticals, verticalId),
+          probationFieldShown(verticals, verticalId),
+        )}
+        rail
       />
-    </div>
+    </FormRailFrame>
   );
 }

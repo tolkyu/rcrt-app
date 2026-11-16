@@ -273,3 +273,211 @@ describe('POST /api/v1/vacancies over HTTP [STORY-VAC-01-1, STORY-VAC-01-3 AC5]'
     });
   });
 });
+
+describe('POST /api/v1/vacancies, group «Умови» contract over HTTP [STORY-VAC-01-1, VAC-01, D114..D117]', () => {
+  type FieldErrors = { path: string; code: string }[];
+  const refusedBodies: [string, Record<string, unknown>, FieldErrors][] = [
+    [
+      'a seniority outside the closed list',
+      { seniority: 'Стажер' },
+      [{ path: 'body.seniority', code: 'invalid_value' }],
+    ],
+    [
+      'an employment type outside the closed list',
+      { employmentType: 'Сезонна зайнятість' },
+      [{ path: 'body.employmentType', code: 'invalid_value' }],
+    ],
+    [
+      'a work format outside the closed list',
+      { workFormat: 'MOON' },
+      [{ path: 'body.workFormat', code: 'invalid_value' }],
+    ],
+    [
+      'a location over 200 characters',
+      { location: 'К'.repeat(201) },
+      [{ path: 'body.location', code: 'too_big' }],
+    ],
+    [
+      'a location with a zero-width character',
+      { location: 'Ки​їв' },
+      [{ path: 'body.location', code: 'custom' }],
+    ],
+    [
+      'an amount without a currency',
+      { salaryMinMinor: '100' },
+      [{ path: 'body.salaryCurrency', code: 'custom' }],
+    ],
+    [
+      'a currency without an amount',
+      { salaryCurrency: 'USD' },
+      [{ path: 'body.salaryCurrency', code: 'custom' }],
+    ],
+    [
+      'a maximum below the minimum',
+      { salaryMinMinor: '500', salaryMaxMinor: '100', salaryCurrency: 'USD' },
+      [{ path: 'body.salaryMaxMinor', code: 'custom' }],
+    ],
+    [
+      'an amount with a leading zero',
+      { salaryMinMinor: '0100', salaryCurrency: 'USD' },
+      [{ path: 'body.salaryMinMinor', code: 'invalid_format' }],
+    ],
+    [
+      'an amount of 16 digits',
+      { salaryMinMinor: '1000000000000000', salaryCurrency: 'USD' },
+      [{ path: 'body.salaryMinMinor', code: 'invalid_format' }],
+    ],
+    [
+      'an amount with a decimal comma',
+      { salaryMinMinor: '2500,50', salaryCurrency: 'USD' },
+      [{ path: 'body.salaryMinMinor', code: 'invalid_format' }],
+    ],
+    [
+      'a lower-case currency',
+      { salaryMinMinor: '100', salaryCurrency: 'usd' },
+      [{ path: 'body.salaryCurrency', code: 'invalid_format' }],
+    ],
+    [
+      'a currency of four letters',
+      { salaryMinMinor: '100', salaryCurrency: 'USDT' },
+      [{ path: 'body.salaryCurrency', code: 'invalid_format' }],
+    ],
+    [
+      'a probation of 29 days',
+      { probationDays: 29 },
+      [{ path: 'body.probationDays', code: 'too_small' }],
+    ],
+    [
+      'a probation of 91 days',
+      { probationDays: 91 },
+      [{ path: 'body.probationDays', code: 'too_big' }],
+    ],
+    [
+      'a fractional probation',
+      { probationDays: 45.5 },
+      [{ path: 'body.probationDays', code: 'invalid_type' }],
+    ],
+  ];
+
+  it.each(refusedBodies)(
+    'refuses %s with a field error before anything is written, in both modes',
+    async (_name, extra, errors) => {
+      await fixture.run(async (args) => {
+        const { positionId } = await setup(args);
+        const mine = routes(args, args.identity);
+        const rows = async () =>
+          (
+            await args.ctx.db
+              .select({ id: schema.vacancy.id })
+              .from(schema.vacancy)
+              .where(eq(schema.vacancy.createdBy, args.user.id))
+          ).length;
+        const before = await rows();
+        const bodies = [
+          {
+            mode: 'PUBLISH',
+            verticalId: args.user.verticalId,
+            positionId,
+            title: 'Медіабаєр — Facebook',
+          },
+          {
+            mode: 'DRAFT',
+            verticalId: args.user.verticalId,
+            title: 'Чернетка — TikTok',
+          },
+        ];
+        for (const body of bodies) {
+          const refused = await mine.create(
+            { ...body, ...extra },
+            { 'idempotency-key': randomUUID() },
+          );
+          expect(refused.status, body.mode).toBe(400);
+          expect(await refused.json(), body.mode).toMatchObject({
+            code: 'VALIDATION_FAILED',
+            errors,
+          });
+        }
+        expect(await rows()).toBe(before);
+      });
+    },
+  );
+
+  it('accepts the edges of every bound and stores the values as sent', async () => {
+    await fixture.run(async (args) => {
+      const { positionId } = await setup(args);
+      const mine = routes(args, args.identity);
+      const edge = await mine.create(
+        {
+          mode: 'PUBLISH',
+          verticalId: args.user.verticalId,
+          positionId,
+          title: 'Граничні значення',
+          location: 'К'.repeat(200),
+          salaryMinMinor: '0',
+          salaryMaxMinor: '999999999999999',
+          salaryCurrency: 'EUR',
+          seniority: 'Лід',
+          employmentType: 'Проєктна зайнятість',
+          workFormat: 'OFFICE',
+        },
+        { 'idempotency-key': randomUUID() },
+      );
+      expect(edge.status).toBe(201);
+      expect(await edge.json()).toMatchObject({
+        location: 'К'.repeat(200),
+        salaryMinMinor: '0',
+        salaryMaxMinor: '999999999999999',
+        salaryCurrency: 'EUR',
+        seniority: 'Лід',
+        employmentType: 'Проєктна зайнятість',
+        workFormat: 'OFFICE',
+      });
+      const equal = await mine.create(
+        {
+          mode: 'DRAFT',
+          verticalId: args.user.verticalId,
+          title: 'Рівна вилка',
+          salaryMinMinor: '250000',
+          salaryMaxMinor: '250000',
+          salaryCurrency: 'UAH',
+        },
+        { 'idempotency-key': randomUUID() },
+      );
+      expect(equal.status).toBe(201);
+    });
+  });
+
+  it('refuses the probation field to a Recruiter with 403 in both modes and keeps the default when it is absent', async () => {
+    await fixture.run(async (args) => {
+      const { positionId } = await setup(args);
+      const mine = routes(args, args.identity);
+      for (const body of [
+        {
+          mode: 'PUBLISH',
+          verticalId: args.user.verticalId,
+          positionId,
+          title: 'Термін від рекрутера',
+        },
+        {
+          mode: 'DRAFT',
+          verticalId: args.user.verticalId,
+          title: 'Термін від рекрутера',
+        },
+      ]) {
+        const refused = await mine.create(
+          { ...body, probationDays: 60 },
+          { 'idempotency-key': randomUUID() },
+        );
+        expect(refused.status, body.mode).toBe(403);
+        expect(await refused.json(), body.mode).toMatchObject({
+          code: 'FORBIDDEN',
+        });
+        const created = await mine.create(body, {
+          'idempotency-key': randomUUID(),
+        });
+        expect(created.status).toBe(201);
+        expect(await created.json()).toMatchObject({ probationDays: 90 });
+      }
+    });
+  });
+});

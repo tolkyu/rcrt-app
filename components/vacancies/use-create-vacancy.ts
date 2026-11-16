@@ -119,6 +119,8 @@ export function useCreateVacancy({
         void lib.refreshAssignableTeamLeads(queryClient);
       invalidFields(Object.keys(effect.errors));
     } else if (effect.type === 'alert') {
+      if (effect.alert === 'draftLimit')
+        lib.applyDraftLimitHit(queryClient).catch(() => undefined);
       if (feedback) setAlert(effect.alert);
       else lib.showAlertToast(t, tVacancies, effect.alert);
       if (effect.alert === 'verticalUnavailable') router.refresh();

@@ -95,10 +95,10 @@ for (const theme of ['light', 'dark'] as const) {
       content:
         '[data-slot="form-page-footer"] { position: static !important; }',
     });
-    await expect(page.locator('[data-slot="form-skeleton"]')).toHaveCSS(
-      'opacity',
-      '1',
-    );
+    for (const skeleton of await page
+      .locator('[data-slot="form-skeleton"]')
+      .all())
+      await expect(skeleton).toHaveCSS('opacity', '1');
     const shoot = (title: string) => async (path: string) => {
       await page.mouse.move(0, 0);
       await groupOf(page, title).screenshot({

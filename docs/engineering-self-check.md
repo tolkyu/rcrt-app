@@ -29,9 +29,14 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] Copy with numbers uses ICU arguments from the shared constants, not hard-coded values.
 - [ ] A skeleton row matches the wrapped height of the real row, including long hint or helper text. Check at 390 px.
 - [ ] A server eligibility rule (who may be assigned, who may hold a priority) has exactly one predicate. Picker, save and create use the same one.
+- [ ] Role-specific field visibility is checked for allowed role combinations; a grant used elsewhere may not permit showing this field.
 - [ ] Query keys come from the shared key factory. Do not hard-code arrays.
 - [ ] A test-only switch (for example `APP_ENV=test`) is refused at boot on Vercel. Pin it in the vitest project env, so that CI's job-level env cannot change what a test asserts.
 - [ ] "Refused" tests assert the exact error code, not just any rejection.
+- [ ] Cross-field validation with a resolver: when field A changes, re-trigger the dependent field B if B currently shows an error.
+- [ ] A client mirror of a server length rule (counter, readiness) uses `serverTextLength`, never `.length`.
+- [ ] Skeleton hint text and footer button widths are measured at 320, 360 and 390 px (real natural widths, not round Tailwind steps).
+- [ ] A list copied into a Zod-free module has one source: the schema imports it.
 
 ## Rules check
 - [ ] lint, typecheck, unit and the touched integration and E2E files all pass. Report the commands and pass counts.

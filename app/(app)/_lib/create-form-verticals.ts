@@ -5,6 +5,7 @@ import { PREFERENCE_COOKIES } from '@/lib/preference-cookie';
 import { ALL_VERTICALS, resolveVerticalFilter } from '@/lib/vertical-filter';
 import type { VerticalId } from '@/server/authz/types';
 import {
+  canSetCreateProbation,
   grantCovers,
   vacancyAuthorVerticals,
 } from '@/server/authz/vacancy-author';
@@ -32,6 +33,7 @@ export const getCreateFormVerticals = cache(async () => {
         'vacancy.team_lead.set',
         vertical.id as VerticalId,
       ),
+      canSetProbation: canSetCreateProbation(ctx.auth),
     }));
   const [only] = verticals;
   // One option is preset (and shown disabled); with several, the header vertical (D83) presets, «Усі» leaves the choice open.

@@ -106,6 +106,23 @@ describe('FormSkeleton [UI foundation F9, G20]', () => {
     ).toHaveLength(3);
     expect(container.querySelector('input, textarea, button')).toBeNull();
   });
+  it('sizes the footer boxes to the natural button widths so a 320 px phone wraps like the real footer [BUG-S3-1]', () => {
+    const { container } = render(
+      provider(
+        createElement(FormSkeleton, {
+          title: 'Нова вакансія',
+          back: { href: '/vacancies', label: 'До вакансій' },
+          fields: ['input'],
+        }),
+      ),
+    );
+    const widths = [
+      ...container.querySelectorAll(
+        '[data-slot="form-page-footer"] [data-slot="skeleton"]',
+      ),
+    ].map((box) => /min-w-\[([\d.]+)rem\]/.exec(box.className)?.[1]);
+    expect(widths).toEqual(['6.16', '9.85', '9.86']);
+  });
   it('draws group bars, grid rows and reserved hints for the vacancy form [S3.1]', () => {
     const { container } = render(
       provider(

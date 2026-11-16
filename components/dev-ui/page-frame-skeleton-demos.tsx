@@ -4,19 +4,18 @@ import { useTranslations } from 'next-intl';
 import { useMemo, type ReactNode } from 'react';
 import { RowSkeleton } from '@/components/vacancies/row-skeleton';
 import { VacanciesList } from '@/components/vacancies/vacancies-list';
-import {
-  TEAM_LEAD_HINT_LINES,
-  VACANCY_FORM_WIDTH,
-} from '@/components/vacancies/vacancy-form-skeleton';
+import { TEAM_LEAD_HINT } from '@/components/vacancies/vacancy-form-skeleton';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { FormField } from '@/components/ui/form-field';
+import { FORM_COLUMN_WIDTH } from '@/components/ui/form-rail';
 import { FormPageLayout } from '@/components/ui/form-page-layout';
 import { FormSkeleton } from '@/components/ui/form-skeleton';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import type { VacancySummary } from '@/lib/schemas/vacancy';
 import { GalleryGroup } from './gallery-section';
+import { ConditionsSkeletonDemos } from './vacancy-conditions-demos';
 
 const ignore = () => undefined;
 
@@ -144,17 +143,17 @@ export function SkeletonDemos() {
         label={t('teamLeadSkeletonLabel')}
         slot="team-lead-skeleton-sample"
       >
-        <div className={VACANCY_FORM_WIDTH}>
+        <div className={FORM_COLUMN_WIDTH}>
           <FormSkeleton
             title={t('sampleTitle')}
             subtitle={t('sampleSubtitle')}
             back={back}
-            fields={[{ kind: 'input', hint: TEAM_LEAD_HINT_LINES }]}
+            fields={[{ kind: 'input', hint: TEAM_LEAD_HINT }]}
           />
         </div>
       </Sample>
       <Sample label={t('teamLeadLoadedLabel')} slot="team-lead-loaded-sample">
-        <div className={VACANCY_FORM_WIDTH}>
+        <div className={FORM_COLUMN_WIDTH}>
           <FormPageLayout
             title={t('sampleTitle')}
             subtitle={t('sampleSubtitle')}
@@ -185,6 +184,7 @@ export function SkeletonDemos() {
           </FormPageLayout>
         </div>
       </Sample>
+      <ConditionsSkeletonDemos />
     </GalleryGroup>
   );
 }

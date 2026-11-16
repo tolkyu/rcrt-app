@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import {
+  act,
   cleanup,
   fireEvent,
   render,
@@ -13,7 +14,10 @@ import { Button } from '@/components/ui/button';
 import { DisabledReason } from '@/components/ui/disabled-reason';
 import { Tooltip } from '@/components/ui/tooltip';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
 
 const REASON = 'Заповніть посаду, щоб опублікувати.';
 
@@ -90,6 +94,25 @@ describe('DisabledReason [UI foundation F2, ui-foundation section 6]', () => {
     await userEvent.hover(button);
     const tooltip = await screen.findByRole('tooltip', {}, { timeout: 3000 });
     expect(tooltip.textContent).toBe(REASON);
+  });
+
+  it('keeps only the helper description on touch keyboard focus [BUG-S3-2]', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(hover: none)',
+    }));
+    const button = mount(vi.fn());
+    await userEvent.tab();
+    await act(async () => {
+      await import('@/components/ui/tooltip-content');
+    });
+    expect(document.activeElement).toBe(button);
+    expect(screen.queryByRole('tooltip', { hidden: true })).toBeNull();
+    expect(
+      screen.getByRole('button', {
+        name: 'Опублікувати',
+        description: REASON,
+      }),
+    ).toBe(button);
   });
 
   it('keeps the touch reason line as an invisible, unannounced spacer only while enabled and asked to', () => {

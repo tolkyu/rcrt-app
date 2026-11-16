@@ -20712,6 +20712,370 @@
           ]
         },
         {
+          "name": "createVacancy — a seniority outside the closed list",
+          "request": {
+            "name": "createVacancy — a seniority outside the closed list",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "newman-create-vacancy-0018"
+              },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"mode\":\"PUBLISH\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\",\"positionId\":\"{{vacancy_gambling_position_id}}\",\"title\":\"Тест API — вакансія не створюється\",\"seniority\":\"Стажер\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_gambling_vertical_id\",\"vacancy_gambling_position_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));",
+                  "pm.test('field errors', () => pm.expect(pm.response.json().errors).to.deep.equal([{\"path\":\"body.seniority\",\"code\":\"invalid_value\"}]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "createVacancy — an employment type outside the closed list on a draft",
+          "request": {
+            "name": "createVacancy — an employment type outside the closed list on a draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "newman-create-vacancy-0019"
+              },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"mode\":\"DRAFT\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\",\"title\":\"Тест API — чернетка не створюється\",\"employmentType\":\"Сезонна зайнятість\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_gambling_vertical_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));",
+                  "pm.test('field errors', () => pm.expect(pm.response.json().errors).to.deep.equal([{\"path\":\"body.employmentType\",\"code\":\"invalid_value\"}]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "createVacancy — a location over 200 characters",
+          "request": {
+            "name": "createVacancy — a location over 200 characters",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "newman-create-vacancy-0020"
+              },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"mode\":\"PUBLISH\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\",\"positionId\":\"{{vacancy_gambling_position_id}}\",\"title\":\"Тест API — вакансія не створюється\",\"location\":\"ККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККК\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_gambling_vertical_id\",\"vacancy_gambling_position_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));",
+                  "pm.test('field errors', () => pm.expect(pm.response.json().errors).to.deep.equal([{\"path\":\"body.location\",\"code\":\"too_big\"}]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "createVacancy — a salary currency in lower case",
+          "request": {
+            "name": "createVacancy — a salary currency in lower case",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "newman-create-vacancy-0021"
+              },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"mode\":\"DRAFT\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\",\"title\":\"Тест API — чернетка не створюється\",\"salaryMinMinor\":\"100\",\"salaryCurrency\":\"usd\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_gambling_vertical_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));",
+                  "pm.test('field errors', () => pm.expect(pm.response.json().errors).to.deep.equal([{\"path\":\"body.salaryCurrency\",\"code\":\"invalid_format\"}]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "createVacancy — a Head Recruiter may not set the probation length on a draft either",
+          "request": {
+            "name": "createVacancy — a Head Recruiter may not set the probation length on a draft either",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "newman-create-vacancy-0022"
+              },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"mode\":\"DRAFT\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\",\"title\":\"Тест API — чернетка не створюється\",\"probationDays\":60}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_gambling_vertical_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem FORBIDDEN\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:forbidden\",\"status\":403,\"code\":\"FORBIDDEN\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "createVacancy — a position of another vertical is a field error",
           "request": {
             "name": "createVacancy — a position of another vertical is a field error",

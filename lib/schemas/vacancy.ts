@@ -7,6 +7,15 @@ import {
   VACANCY_SEARCH_MIN,
   VACANCY_STATUSES,
 } from '../vacancy-filters';
+import {
+  VACANCY_EMPLOYMENT_TYPES,
+  VACANCY_LOCATION_MAX,
+  VACANCY_PROBATION_DEFAULT,
+  VACANCY_PROBATION_MAX,
+  VACANCY_PROBATION_MIN,
+  VACANCY_SENIORITIES,
+  VACANCY_WORK_FORMATS,
+} from '../vacancy-options';
 import { hasOnlyVisibleChars, normalizePositionName } from '../position-name';
 import {
   VACANCY_DRAFT_LIMIT,
@@ -79,7 +88,7 @@ export const vacancyDetailSchema = vacancySummarySchema
   .extend({
     headcount: z.number().int().positive(),
     seniority: z.string().nullable(),
-    workFormat: z.enum(['REMOTE', 'OFFICE', 'HYBRID']).nullable(),
+    workFormat: z.enum(VACANCY_WORK_FORMATS).nullable(),
     employmentType: z.string().nullable(),
     location: z.string().nullable(),
     salaryMinMinor: z
@@ -139,21 +148,15 @@ export {
   VACANCY_TITLE_MAX,
   VACANCY_TITLE_MIN,
 };
-export const VACANCY_PROBATION_MIN = 30;
-export const VACANCY_PROBATION_MAX = 90;
-export const VACANCY_PROBATION_DEFAULT = 90;
-/** Closed lists (D111); the stored value is the label itself, so existing rows need no migration. */
-export const VACANCY_SENIORITIES = [
-  'Джуніор',
-  'Мідл',
-  'Сеніор',
-  'Лід',
-] as const;
-export const VACANCY_EMPLOYMENT_TYPES = [
-  'Повна зайнятість',
-  'Часткова зайнятість',
-  'Проєктна зайнятість',
-] as const;
+export {
+  VACANCY_EMPLOYMENT_TYPES,
+  VACANCY_LOCATION_MAX,
+  VACANCY_PROBATION_DEFAULT,
+  VACANCY_PROBATION_MAX,
+  VACANCY_PROBATION_MIN,
+  VACANCY_SENIORITIES,
+  VACANCY_WORK_FORMATS,
+};
 
 /** Same normal form as catalog names: NFC, collapsed whitespace; control, zero-width and bidi characters are rejected before storing. */
 const line = (min: number, max: number) =>
@@ -170,9 +173,9 @@ const editableFields = {
   teamLeadId: uuid.nullish(),
   headcount: z.number().int().min(1).max(VACANCY_HEADCOUNT_MAX).optional(),
   seniority: z.enum(VACANCY_SENIORITIES).nullish(),
-  workFormat: z.enum(['REMOTE', 'OFFICE', 'HYBRID']).nullish(),
+  workFormat: z.enum(VACANCY_WORK_FORMATS).nullish(),
   employmentType: z.enum(VACANCY_EMPLOYMENT_TYPES).nullish(),
-  location: line(1, 200).nullish(),
+  location: line(1, VACANCY_LOCATION_MAX).nullish(),
   salaryMinMinor: minorUnits.nullish(),
   salaryMaxMinor: minorUnits.nullish(),
   salaryCurrency: z

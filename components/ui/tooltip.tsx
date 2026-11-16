@@ -96,6 +96,8 @@ export function Tooltip({
 
   const request = (element: HTMLElement) => {
     if (disabled || failed) return;
+    // A CSS-hidden tooltip still contributes to aria-describedby on touch-keyboard focus.
+    if (window.matchMedia?.('(hover: none)').matches) return;
     pressed.current = false;
     loadContent().then(
       () => {

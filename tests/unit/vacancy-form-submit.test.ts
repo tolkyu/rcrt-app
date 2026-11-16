@@ -7,7 +7,9 @@ import { queryKeys } from '@/lib/query-keys';
 import type { PositionList } from '@/lib/schemas/position';
 import type { CreateVacancyBody } from '@/lib/schemas/vacancy';
 import { emptyVacancyForm } from '@/lib/vacancy-form';
+import { VACANCY_DRAFT_LIMIT } from '@/lib/vacancy-limits';
 import {
+  applyDraftLimitHit,
   createAttemptKeys,
   applyPosition,
   fetchActivePositions,
@@ -148,7 +150,7 @@ describe('planFailure: what the form does with every failed create [ux §4.2]', 
     [
       'unknown 400 field',
       new ApiError(400, 'VALIDATION_FAILED', [
-        { path: 'body.probationDays', code: 'too_big' },
+        { path: 'body.descriptionDoc', code: 'too_big' },
       ]),
       false,
       generic,
@@ -411,6 +413,65 @@ describe('submitCreate: one attempt, one key [STORY-VAC-01-1]', () => {
       effect: { title: 'noConnection' },
     });
     expect(keys[0]).toBe(keys[1]);
+  });
+
+  it('tells a currency refusal with an amount from one without, using the body it sent', async () => {
+    const refusal = (status: number) =>
+      json(status, {
+        code: 'VALIDATION_FAILED',
+        errors: [{ path: 'body.salaryCurrency', code: 'custom' }],
+      });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => refusal(400)),
+    );
+    const withAmount = await submitCreate(
+      new QueryClient(),
+      createAttemptKeys(),
+      {
+        ...body,
+        salaryMinMinor: '100000',
+      },
+    );
+    const without = await submitCreate(new QueryClient(), createAttemptKeys(), {
+      ...body,
+      salaryCurrency: 'USD',
+    });
+    expect(withAmount).toMatchObject({
+      status: 'failed',
+      effect: { errors: { salaryCurrency: 'salaryCurrencyRequired' } },
+    });
+    expect(without).toMatchObject({
+      status: 'failed',
+      effect: { errors: { salaryCurrency: 'salaryCurrencyNoAmount' } },
+    });
+  });
+});
+
+describe('applyDraftLimitHit: a 409 makes the cached count follow [STORY-VAC-01-1, ux §4.2]', () => {
+  it('stores the limit as the count, so the draft button explains itself without a request', async () => {
+    const client = new QueryClient();
+    client.setQueryData(queryKeys.vacancyDraftCount(), { count: 3 });
+    await applyDraftLimitHit(client);
+    expect(client.getQueryData(queryKeys.vacancyDraftCount())).toEqual({
+      count: VACANCY_DRAFT_LIMIT,
+    });
+  });
+
+  it('wins over a count request that is still in flight', async () => {
+    const client = new QueryClient();
+    let release: (value: { count: number }) => void = () => undefined;
+    const pending = client.fetchQuery({
+      queryKey: queryKeys.vacancyDraftCount(),
+      queryFn: () =>
+        new Promise<{ count: number }>((resolve) => (release = resolve)),
+    });
+    await applyDraftLimitHit(client);
+    release({ count: 3 });
+    await pending.catch(() => undefined);
+    expect(client.getQueryData(queryKeys.vacancyDraftCount())).toEqual({
+      count: VACANCY_DRAFT_LIMIT,
+    });
   });
 });
 

@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl';
 import { Controller, type Control } from 'react-hook-form';
 import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { FormField } from '@/components/ui/form-field';
-import { VACANCY_FIELD_CLEARANCE } from '@/components/vacancies/vacancy-form-skeleton';
+import { VACANCY_FIELD_CLEARANCE } from '@/components/vacancies/vacancy-form-classes';
 import { VACANCY_FIELD_IDS, type VacancyFormValues } from '@/lib/vacancy-form';
 
 /** «Тімлід» (`vacancy.team_lead.set`: Admin, Head Recruiter); optional, so it can be cleared back to «Без тімліда». */

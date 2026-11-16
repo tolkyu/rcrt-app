@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { can, permissionsFor } from '@/server/authz/can';
 import {
   authorsAnywhere,
+  canSetCreateProbation,
   grantCovers,
   vacancyAuthorKind,
   vacancyAuthorVerticals,
@@ -32,6 +33,35 @@ const render = (
 ) => dialect.sqlToQuery(vacancyReadWhere(ctx, status));
 
 describe('full-form vacancy authors [VAC-03, D77, D87, D89]', () => {
+  it('shows create probation only for the global grant, after MFA [D115]', () => {
+    expect(canSetCreateProbation(roleContext('ADMIN'))).toBe(true);
+    expect(canSetCreateProbation(roleContext('ADMIN', 'aal1'))).toBe(false);
+    for (const role of [
+      'HEAD_RECRUITER',
+      'RECRUITER',
+      'HEAD_HR',
+      'HR',
+      'TEAM_LEAD',
+      'FINANCE',
+    ] as const)
+      expect(canSetCreateProbation(roleContext(role)), role).toBe(false);
+  });
+
+  it.each(['RECRUITER', 'HEAD_RECRUITER'] as const)(
+    'keeps the create field hidden from HEAD_HR + %s while retaining card authority [ROLE-01, D115]',
+    (role) => {
+      const ctx = contextFor([
+        { role: 'HEAD_HR', verticalId: GAMBLING },
+        { role, verticalId: GAMBLING },
+      ]);
+      expect(vacancyAuthorKind(ctx, GAMBLING)).not.toBeNull();
+      expect(grantCovers(ctx, 'vacancy.probation_length.set', GAMBLING)).toBe(
+        true,
+      );
+      expect(canSetCreateProbation(ctx)).toBe(false);
+    },
+  );
+
   it.each<[BuiltinRole, 'ASSIGNER' | 'SELF_ASSIGNER' | null]>([
     ['ADMIN', 'ASSIGNER'],
     ['HEAD_RECRUITER', 'ASSIGNER'],

@@ -1,17 +1,62 @@
 import type {
-  FormSkeletonHint,
+  FormSkeletonNote,
   FormSkeletonRow,
+  FormSkeletonTextHint,
 } from '@/components/ui/form-skeleton';
+import {
+  VACANCY_PROBATION_DEFAULT,
+  VACANCY_PROBATION_MAX,
+  VACANCY_PROBATION_MIN,
+} from '@/lib/vacancy-options';
 
-/** Keeps a focused field clear of the sticky footer. */
-export const VACANCY_FIELD_CLEARANCE = 'scroll-mb-28';
+export const TEAM_LEAD_HINT: FormSkeletonTextHint = {
+  message: 'vacancyForm.teamLead.hint',
+};
+const SALARY_HINT: FormSkeletonTextHint = {
+  message: 'vacancyForm.salary.hint',
+};
+export const PROBATION_READ_ONLY_HINT: FormSkeletonTextHint = {
+  message: 'vacancyForm.probation.readOnly',
+  values: { days: VACANCY_PROBATION_DEFAULT },
+};
+export const PROBATION_HINT: FormSkeletonTextHint = {
+  message: 'vacancyForm.probation.hint',
+  values: {
+    min: VACANCY_PROBATION_MIN,
+    max: VACANCY_PROBATION_MAX,
+    standard: VACANCY_PROBATION_DEFAULT,
+  },
+};
 
-/** Wrapped lines of the Team Lead hint (a phone / `md` and up); `tests/dev-ui/page-frame-skeleton.spec.ts` compares them with the real field, so change both together. */
-export const TEAM_LEAD_HINT_LINES: FormSkeletonHint = { base: 2, md: 1 };
+/** The line the rail replaces below the rail breakpoint uses the same role-specific copy. */
+export const vacancyAfterCreateSkeleton = (
+  assigner: boolean,
+): FormSkeletonNote => ({
+  note: {
+    message: assigner
+      ? 'vacancyForm.rail.afterCreateAssigner'
+      : 'vacancyForm.rail.afterCreateSelf',
+  },
+  railHidden: true,
+});
 
-/** Row-for-row twin of the create form's fields (G20); keep it in step with `vacancy-create-form.tsx`. The Team Lead row exists only for those who may set one. */
+/** Group «Умови»: the probation field for Admin, otherwise the read-only line. */
+export const vacancyConditionsSkeleton = (
+  withProbation: boolean,
+): readonly FormSkeletonRow[] => [
+  'group',
+  ['input', 'input'],
+  ['input', 'input'],
+  { trio: ['input', 'input', 'input'], hint: SALARY_HINT },
+  withProbation
+    ? [{ kind: 'input', hint: PROBATION_HINT }]
+    : { note: PROBATION_READ_ONLY_HINT },
+];
+
+/** Row-for-row twin of the create form's fields (G20); keep it in step with `vacancy-create-form.tsx`. The Team Lead row exists only for those who may set one (the same people get the «Рекрутерів призначте…» note). */
 export const vacancyFormSkeleton = (
   withTeamLead: boolean,
+  withProbation: boolean,
 ): readonly FormSkeletonRow[] => [
   'group',
   ['input', { kind: 'input', hint: true }],
@@ -20,10 +65,7 @@ export const vacancyFormSkeleton = (
     { kind: 'input', hint: true },
     { kind: 'segmented', hint: true },
   ],
-  ...(withTeamLead
-    ? [{ kind: 'input' as const, hint: TEAM_LEAD_HINT_LINES }]
-    : []),
+  ...(withTeamLead ? [{ kind: 'input' as const, hint: TEAM_LEAD_HINT }] : []),
+  ...vacancyConditionsSkeleton(withProbation),
+  vacancyAfterCreateSkeleton(withTeamLead),
 ];
-
-/** Form column width (the readiness rail of S3.2 sits beside it). */
-export const VACANCY_FORM_WIDTH = 'max-w-[45rem]';

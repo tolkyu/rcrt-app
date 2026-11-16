@@ -1,77 +1,54 @@
 'use client';
 
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, type KeyboardEvent } from 'react';
-import {
-  Controller,
-  useForm,
-  useWatch,
-  type FieldError,
-  type Resolver,
-} from 'react-hook-form';
-import { Button } from '@/components/ui/button';
-import { Combobox } from '@/components/ui/combobox';
+import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { FormError } from '@/components/ui/form-error';
-import { FormField } from '@/components/ui/form-field';
 import { FormPageLayout } from '@/components/ui/form-page-layout';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
+import { FormRailLayout } from '@/components/ui/form-rail';
 import type { LeaveGuardHandle } from '@/components/ui/use-leave-guard';
-import { TeamLeadField } from '@/components/vacancies/team-lead-field';
-import { UrgencyControl } from '@/components/vacancies/urgency-control';
+import { CreateFormActions } from '@/components/vacancies/create-form-actions';
+import {
+  AfterCreateNote,
+  ReadinessRail,
+} from '@/components/vacancies/readiness-rail';
 import { useCreateVacancy } from '@/components/vacancies/use-create-vacancy';
+import { useVacancyErrorText } from '@/components/vacancies/use-vacancy-error-text';
+import { VacancyBasicsGroup } from '@/components/vacancies/vacancy-basics-group';
 import { useVacancyPickers } from '@/components/vacancies/use-vacancy-pickers';
-import { VACANCY_FIELD_CLEARANCE } from '@/components/vacancies/vacancy-form-skeleton';
+import { VacancyConditionsGroup } from '@/components/vacancies/vacancy-conditions-group';
 import {
   emptyVacancyForm,
+  isTitleLengthReady,
+  probationFieldShown,
   teamLeadFieldShown,
-  VACANCY_FIELD_IDS,
-  type VacancyFormErrorCode,
   type VacancyFormMode,
   type VacancyFormValues,
-  type VacancyUrgency,
 } from '@/lib/vacancy-form';
 import { loadSubmit } from '@/lib/vacancy-form-load';
 import type { PositionsSeed } from '@/lib/vacancy-form-submit';
-import {
-  VACANCY_HEADCOUNT_MAX,
-  VACANCY_TITLE_MAX,
-  VACANCY_TITLE_MIN,
-} from '@/lib/vacancy-limits';
 
-const CLEARANCE = VACANCY_FIELD_CLEARANCE;
-const URGENCIES: readonly VacancyUrgency[] = ['NORMAL', 'URGENT'];
-const RESET_NOTES = {
-  position: 'vertical.resetPosition',
-  teamLead: 'vertical.resetTeamLead',
-  both: 'vertical.resetBoth',
-} as const;
-const TITLE_BOUNDS = { min: VACANCY_TITLE_MIN, max: VACANCY_TITLE_MAX };
-const HEADCOUNT_BOUNDS = { min: 1, max: VACANCY_HEADCOUNT_MAX };
-
-const codeOf = (error: FieldError | undefined) =>
-  error?.message as VacancyFormErrorCode | undefined;
-
-/** «Нова вакансія», group «Основне» (VAC-01, STORY-VAC-01-1): one create call for both actions, checked by the shared Zod schema. */
+/** «Нова вакансія», groups «Основне» and «Умови» (VAC-01, STORY-VAC-01-1): one create call for both actions, checked by the shared Zod schema. */
 export function VacancyCreateForm({
   verticals,
   initialVerticalId,
   initialPositions,
+  initialDraftCount,
   canManagePositions,
 }: {
   verticals: readonly {
     id: string;
     name: string;
     canSetTeamLead: boolean;
+    canSetProbation: boolean;
   }[];
   initialVerticalId: string;
   initialPositions?: PositionsSeed;
+  initialDraftCount?: number;
   canManagePositions: boolean;
 }) {
   const t = useTranslations('vacancyForm');
-  const tVacancies = useTranslations('vacancies');
-  const tCommon = useTranslations('common');
+  const fieldError = useVacancyErrorText();
   const guard = useRef<LeaveGuardHandle>(null);
   const mode = useRef<VacancyFormMode>('DRAFT');
   // Blur validation follows the last pressed action, so a publish-only error does not show while a draft is being filled in.
@@ -87,17 +64,23 @@ export function VacancyCreateForm({
     resolver,
     mode: 'onTouched',
     shouldFocusError: false,
-    defaultValues: emptyVacancyForm(initialVerticalId),
+    defaultValues: emptyVacancyForm(
+      initialVerticalId,
+      probationFieldShown(verticals, initialVerticalId),
+    ),
   });
   const {
     control,
     register,
     getValues,
     setValue,
+    trigger,
+    getFieldState,
     formState: { errors, isDirty },
   } = form;
   const verticalId = useWatch({ control, name: 'verticalId' });
   const title = useWatch({ control, name: 'title' });
+  const positionId = useWatch({ control, name: 'positionId' });
   const {
     submit,
     pendingMode,
@@ -113,6 +96,7 @@ export function VacancyCreateForm({
     (vertical) => vertical.id === verticalId,
   );
   const showTeamLead = teamLeadFieldShown(verticals, verticalId);
+  const showProbation = probationFieldShown(verticals, verticalId);
   const picker = useVacancyPickers({
     form: { getValues, setValue, errors },
     verticalId,
@@ -128,6 +112,10 @@ export function VacancyCreateForm({
     if (!showTeamLead && getValues('teamLeadId') !== '')
       setValue('teamLeadId', '', { shouldDirty: true });
   }, [showTeamLead, getValues, setValue]);
+  useEffect(() => {
+    if (!showProbation && getValues('probationDays') !== '')
+      setValue('probationDays', '', { shouldDirty: true });
+  }, [showProbation, getValues, setValue]);
 
   // Until the lazy module loads the back link is the plain list and the title counter counts UTF-16 units.
   const listHref = lib ? lib.rememberedListHref() : '/vacancies';
@@ -143,30 +131,8 @@ export function VacancyCreateForm({
     if (event.target instanceof HTMLInputElement) event.preventDefault();
   };
 
-  const errorText = (code: VacancyFormErrorCode | undefined) => {
-    if (!code) return undefined;
-    if (
-      code === 'positionRequired' ||
-      code === 'positionInactive' ||
-      code === 'teamLeadInvalid'
-    )
-      return tVacancies(`draftErrors.${code}`);
-    return t(
-      `errors.${code}`,
-      code === 'headcountRange' ? HEADCOUNT_BOUNDS : TITLE_BOUNDS,
-    );
-  };
-
-  const autoFilled = picker.autoTitle !== '' && title === picker.autoTitle;
-  const positionHint = picker.catalogEmpty ? (
-    canManagePositions && feedback ? (
-      <feedback.AddPositionLink />
-    ) : (
-      t('position.askHead')
-    )
-  ) : (
-    t('position.hint')
-  );
+  // The counter and the readiness tick share one length; until the lazy module loads it counts UTF-16 units.
+  const titleLength = lib ? lib.serverTextLength(title) : title.length;
 
   return (
     <FormPageLayout
@@ -178,214 +144,60 @@ export function VacancyCreateForm({
       onSubmit={(event) => event.preventDefault()}
       onKeyDown={onKeyDown}
       footer={
-        <>
-          <Button asChild variant="outline" className="h-11 md:h-10">
-            <Link href={listHref}>{tCommon('cancel')}</Link>
-          </Button>
-          <Button
-            variant="outline"
-            aria-busy={pendingMode === 'DRAFT' || undefined}
-            aria-disabled={(pending && pendingMode !== 'DRAFT') || undefined}
-            className="relative h-11 md:h-10"
-            onClick={() => submit('DRAFT')}
-          >
-            {feedback && pendingMode === 'DRAFT' && <feedback.Busy />}
-            {t('actions.saveDraft')}
-          </Button>
-          <Button
-            aria-busy={pendingMode === 'PUBLISH' || undefined}
-            aria-disabled={(pending && pendingMode !== 'PUBLISH') || undefined}
-            className="relative h-11 md:h-10"
-            onClick={() => submit('PUBLISH')}
-          >
-            {feedback && pendingMode === 'PUBLISH' && <feedback.Busy />}
-            {t('actions.create')}
-          </Button>
-        </>
+        <CreateFormActions
+          listHref={listHref}
+          pendingMode={pendingMode}
+          feedback={feedback}
+          draftCount={initialDraftCount}
+          onSubmit={submit}
+        />
       }
     >
-      <FormError count={summary.count} attempt={summary.attempt} />
-      <section
-        aria-labelledby="vacancy-form-basics"
-        className="flex flex-col gap-6"
+      <FormRailLayout
+        rail={
+          <ReadinessRail
+            ready={{
+              vertical: verticalId !== '',
+              title: isTitleLengthReady(titleLength),
+              position: positionId !== '',
+            }}
+            assigner={showTeamLead}
+          />
+        }
       >
-        <h2
-          id="vacancy-form-basics"
-          className="text-foreground border-border border-b pb-2 text-base font-semibold"
-        >
-          {t('basics')}
-        </h2>
-        <div className="grid items-start gap-6 md:grid-cols-2">
-          <div className="min-w-0">
-            <Controller
-              control={control}
-              name="verticalId"
-              render={({ field, fieldState }) => (
-                <FormField
-                  id={VACANCY_FIELD_IDS.verticalId}
-                  label={t('vertical.label')}
-                  required
-                  error={errorText(codeOf(fieldState.error))}
-                  announce={announce}
-                >
-                  {(props) => (
-                    <Select
-                      {...props}
-                      className={CLEARANCE}
-                      options={verticals.map((vertical) => ({
-                        value: vertical.id,
-                        label: vertical.name,
-                      }))}
-                      value={field.value}
-                      placeholder={t('vertical.placeholder')}
-                      disabled={verticals.length === 1}
-                      onValueChange={picker.chooseVertical}
-                      onBlur={field.onBlur}
-                    />
-                  )}
-                </FormField>
-              )}
-            />
-            <p
-              role="status"
-              className={
-                picker.verticalNote
-                  ? 'text-muted-foreground mt-1.5 text-xs'
-                  : 'text-muted-foreground text-xs'
-              }
-            >
-              {picker.verticalNote ? t(RESET_NOTES[picker.verticalNote]) : null}
-            </p>
-          </div>
-          <Controller
-            control={control}
-            name="positionId"
-            render={({ field, fieldState }) => (
-              <FormField
-                id={VACANCY_FIELD_IDS.positionId}
-                label={t('position.label')}
-                required
-                hint={positionHint}
-                error={errorText(codeOf(fieldState.error))}
-                announce={announce}
-                className="min-w-0"
-              >
-                {(props) => (
-                  <Combobox
-                    {...props}
-                    // A new vertical is a new list: remount so no result of the old one is shown.
-                    key={verticalId}
-                    className={CLEARANCE}
-                    value={field.value}
-                    disabled={!verticalId}
-                    readOnly={pending}
-                    placeholder={t(
-                      verticalId
-                        ? 'position.placeholder'
-                        : 'position.needVertical',
-                    )}
-                    emptyText={
-                      picker.catalogEmpty ? t('position.empty') : undefined
-                    }
-                    onSearch={picker.searchPositions}
-                    onValueChange={picker.choosePosition}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              </FormField>
-            )}
-          />
-        </div>
-        <FormField
-          id={VACANCY_FIELD_IDS.title}
-          label={t('titleField.label')}
-          required
-          hint={autoFilled ? t('titleField.autoHint') : t('titleField.hint')}
-          error={errorText(codeOf(errors.title))}
+        <FormError count={summary.count} attempt={summary.attempt} />
+        <VacancyBasicsGroup
+          control={control}
+          register={register}
+          errors={errors}
+          fieldError={fieldError}
           announce={announce}
-          counter={{
-            count: lib ? lib.serverTextLength(title) : title.length,
-            max: VACANCY_TITLE_MAX,
-          }}
-        >
-          {(props) => (
-            <Input
-              {...props}
-              {...register('title')}
-              className={CLEARANCE}
-              autoComplete="off"
-              enterKeyHint="next"
-              readOnly={pending}
-            />
-          )}
-        </FormField>
-        <div className="grid items-start gap-6 md:grid-cols-2">
-          <FormField
-            id={VACANCY_FIELD_IDS.headcount}
-            label={t('headcount.label')}
-            required
-            hint={t('headcount.hint')}
-            error={errorText(codeOf(errors.headcount))}
-            announce={announce}
-            className="min-w-0"
-          >
-            {(props) => (
-              <Input
-                {...props}
-                {...register('headcount')}
-                className={CLEARANCE}
-                inputMode="numeric"
-                autoComplete="off"
-                enterKeyHint="next"
-                readOnly={pending}
-              />
-            )}
-          </FormField>
-          <Controller
-            control={control}
-            name="priority"
-            render={({ field }) => (
-              <FormField
-                id="vacancy-form-priority"
-                layout="group"
-                label={t('priority.label')}
-                hint={t('priority.hint')}
-                className="min-w-0"
-              >
-                {(props) => (
-                  <UrgencyControl
-                    {...props}
-                    options={URGENCIES.map((value) => ({
-                      value,
-                      label: t(`priority.${value}`),
-                    }))}
-                    value={field.value}
-                    disabled={pending}
-                    onValueChange={(value) => {
-                      const urgency = URGENCIES.find((item) => item === value);
-                      if (urgency) field.onChange(urgency);
-                    }}
-                    onBlur={field.onBlur}
-                  />
-                )}
-              </FormField>
-            )}
-          />
-        </div>
-        {showTeamLead && (
-          <TeamLeadField
-            control={control}
-            verticalId={verticalId}
-            error={errorText(codeOf(errors.teamLeadId))}
-            announce={announce}
-            empty={picker.teamLeadsEmpty}
-            readOnly={pending}
-            onSearch={picker.searchTeamLeads}
-            onValueChange={picker.chooseTeamLead}
-          />
-        )}
-      </section>
-      {alert && feedback && <feedback.FormAlerts kind={alert} />}
+          pending={pending}
+          verticals={verticals}
+          verticalId={verticalId}
+          title={title}
+          titleLength={titleLength}
+          picker={picker}
+          showTeamLead={showTeamLead}
+          canManagePositions={canManagePositions}
+          feedback={feedback}
+        />
+        <VacancyConditionsGroup
+          control={control}
+          register={register}
+          setValue={setValue}
+          trigger={trigger}
+          getFieldState={getFieldState}
+          errors={errors}
+          fieldError={fieldError}
+          announce={announce}
+          pending={pending}
+          showProbation={showProbation}
+          normalizeSalary={lib?.normalizeSalaryText}
+        />
+        <AfterCreateNote assigner={showTeamLead} />
+        {alert && feedback && <feedback.FormAlerts kind={alert} />}
+      </FormRailLayout>
     </FormPageLayout>
   );
 }

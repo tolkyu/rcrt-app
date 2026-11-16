@@ -189,6 +189,88 @@ test('the Team Lead row reserves the wrapped height of its long hint, on a phone
   expectSameBoxes(skeleton, loaded);
 });
 
+/** Include intermediate wrapping thresholds, not only the standard screenshot widths. */
+const PHONE_WIDTHS = [320, 360, 375, 380, 390, 600, 700] as const;
+
+for (const variant of ['admin', 'recruiter'] as const) {
+  for (const width of PHONE_WIDTHS) {
+    test(`group «Умови» skeleton has the boxes of the real group and note (${variant}) at ${width} px [S3.2c, G20]`, async ({
+      page,
+      isMobile,
+    }) => {
+      test.skip(
+        !isMobile,
+        'phone widths only; the desktop project is measured below',
+      );
+      await page.setViewportSize({ width, height: 844 });
+      await expectConditionsTwins(page, variant);
+    });
+  }
+  test(`group «Умови» skeleton has the boxes of the real group and note (${variant}) at the project width [S3.2c, G20]`, async ({
+    page,
+  }) => {
+    await expectConditionsTwins(page, variant);
+  });
+}
+
+for (const width of PHONE_WIDTHS) {
+  test(`the Team Lead hint reserves its wrapped height at ${width} px [S3.2a, G20]`, async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, 'phone widths only');
+    await page.setViewportSize({ width, height: 844 });
+    await openGallery(page);
+    await waitForSkeletons(page);
+    await alignToTop(page, '[data-slot="team-lead-skeleton-sample"]');
+    const skeleton = await relativeBoxes(
+      page,
+      '[data-slot="team-lead-skeleton-sample"]',
+      '[data-slot="form-field-skeleton"], [data-slot="form-page-footer"]',
+    );
+    await alignToTop(page, '[data-slot="team-lead-loaded-sample"]');
+    const loaded = await relativeBoxes(
+      page,
+      '[data-slot="team-lead-loaded-sample"]',
+      '[data-slot="form-field"], [data-slot="form-page-footer"]',
+    );
+    expectSameBoxes(skeleton, loaded);
+  });
+}
+
+async function expectConditionsTwins(
+  page: Page,
+  variant: 'admin' | 'recruiter',
+) {
+  await openGallery(page);
+  await waitForSkeletons(page);
+  const skeletonRoot = `[data-slot="conditions-skeleton-${variant}"]`;
+  const loadedRoot = `[data-slot="conditions-loaded-${variant}"]`;
+  await alignToTop(page, skeletonRoot);
+  const skeleton = await relativeBoxes(
+    page,
+    skeletonRoot,
+    'h1, [data-slot="form-group-skeleton"], [data-slot="form-field-skeleton"], [data-slot="form-trio-skeleton"], [data-slot="form-note-skeleton"], [data-slot="form-page-footer"]',
+  );
+  await alignToTop(page, loadedRoot);
+  const loaded = await relativeBoxes(
+    page,
+    loadedRoot,
+    'h1, h2, [data-slot="form-field"], fieldset, [data-slot="form-note"], [data-slot="form-page-footer"]',
+  );
+  // heading, group bar, 4 fields, the salary fieldset with its 3 fields, probation field or read-only line, after-create note, footer
+  expect(skeleton).toHaveLength(13);
+  expectSameBoxes(skeleton, loaded);
+  const hints = page.locator(
+    `${skeletonRoot} [data-slot="form-hint-skeleton"]`,
+  );
+  await expect(hints).toHaveCount(3);
+  for (const hint of await hints.all()) {
+    await expect(hint).toHaveAttribute('aria-hidden', 'true');
+    await expect(hint.locator('span')).toHaveCSS('visibility', 'hidden');
+  }
+}
+
 test('skeletons show after 150 ms, never shimmer and never move content [UI-F9, G20]', async ({
   page,
 }) => {
@@ -343,6 +425,7 @@ for (const theme of ['light', 'dark'] as const) {
       .include('[data-slot="row-loaded-sample"]')
       .include('[data-slot="form-skeleton-sample"]')
       .include('[data-slot="form-loaded-sample"]')
+      .include('[data-slot^="conditions-"]')
       .include('[data-slot="preview-header-demo"]')
       .include('[data-slot="empty-with-cta"]')
       .include('[data-slot="empty-without-cta"]')

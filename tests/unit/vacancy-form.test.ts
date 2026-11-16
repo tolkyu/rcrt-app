@@ -220,7 +220,7 @@ describe('server answer → form [STORY-VAC-01-1, ux §4.1–4.2]', () => {
     expect(
       classifyCreateFailure(
         problem(400, 'VALIDATION_FAILED', [
-          { path: 'body.probationDays', code: 'too_big' },
+          { path: 'body.descriptionDoc', code: 'too_big' },
         ]),
       ),
     ).toEqual({ kind: 'failed' });

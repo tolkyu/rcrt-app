@@ -27,6 +27,12 @@ export const grantCovers = (
   verticalId: VerticalId,
 ) => covers(grantedVerticals(ctx, permission), verticalId);
 
+/** D115 reserves the create-form field for the global grant; Head HR keeps its vertical grant for the vacancy card. */
+export const canSetCreateProbation = (ctx: AuthContext): boolean =>
+  (ctx.grants.get('vacancy.probation_length.set') ?? []).some(
+    (grant) => grant.scope.kind === 'GLOBAL',
+  );
+
 function intersect(a: VerticalSet, b: VerticalSet): VerticalSet {
   if (a === 'ALL') return b;
   if (b === 'ALL') return a;
