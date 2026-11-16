@@ -14,12 +14,11 @@ import {
   applyPosition,
   fetchActivePositions,
   fetchAssignableTeamLeads,
-  planFailure,
   refreshAssignableTeamLeads,
   resolveVacancyForm,
   submitCreate,
-  type FailureEffect,
 } from '@/lib/vacancy-form-submit';
+import { planFailure, type FailureEffect } from '@/lib/vacancy-form-failure';
 
 const VERTICAL = '8b1f5a0e-0c2d-4f6e-9d7a-2b3c4d5e6f70';
 const OTHER_VERTICAL = '9c2a6b1f-1d3e-4a7f-8e8b-3c4d5e6f7081';

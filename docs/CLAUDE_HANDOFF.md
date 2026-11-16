@@ -3,6 +3,13 @@
 > Read order: `CLAUDE.md` → this file → `docs/PROGRESS.md` → `docs/PRD.md` §14 (owner decisions D1–D70).
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
+## Checkpoint — 2026-11-17 (S3.2b + S3.2c pushed)
+
+- Pushed: S3.2b `5ef93bd` (D122 one TL predicate, test-only create limit), S3.2c `f8fc4f3` («Умови», readiness rail, draft-limit reason, BUG-S3-1/2 fixed). QA green (integration 309, E2E create 159, Newman 463/2691), code review APPROVED, security PASS.
+- In progress: review follow-ups (salary rule dedupe via `salaryIssues`, split `vacancy-form-submit.ts` + E2E spec, tooltip guard only on DisabledReason path, draft-count initialData staleTime, salary grouping, ICU plural). Then S3.3 (edit + publish + stale version) → S3.4 → S3.5 → S3.6 (regenerate gallery; `screenshots/*38-admin-ui-page-frame-*` modified in tree, uncommitted on purpose).
+- Accepted: probation field visible only with the GLOBAL grant (D115) while the API accepts a vertical grant (D78) — intentional, not a predicate bug.
+- `pnpm` is not on PATH for agents: use `corepack pnpm`.
+
 ## Checkpoint — 2026-11-16 evening (perf slice, S3.2a pushed)
 
 - Pushed: perf slice `c961c67` (ADR-014 precompiled messages, owner OK), flake fix `2909c3f`, S3.2a Team Lead picker + «Чернетки» count/empty/row `5bb0cb0`. Owner decision D122 (Q-187): TL must have accepted invite, one predicate everywhere.

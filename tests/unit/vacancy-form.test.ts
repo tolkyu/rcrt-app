@@ -5,11 +5,10 @@ import {
   verticalResetNote,
   type VacancyFormValues,
 } from '@/lib/vacancy-form';
+import { classifyCreateFailure, planFailure } from '@/lib/vacancy-form-failure';
 import {
-  classifyCreateFailure,
   createAttemptKeys,
   parseVacancyForm,
-  planFailure,
   vacancyDraftLandingHref,
 } from '@/lib/vacancy-form-submit';
 import { parseVacancyPageState } from '@/lib/vacancy-filters';

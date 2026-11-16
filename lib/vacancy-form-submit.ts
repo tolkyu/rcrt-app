@@ -6,7 +6,7 @@ import type {
   ResolverResult,
   UseFormReturn,
 } from 'react-hook-form';
-import { apiRequest, ApiError } from '@/lib/api-client';
+import { apiRequest } from '@/lib/api-client';
 import { activePositionsQuery } from '@/lib/queries/positions';
 import {
   assignableTeamLeadsQuery,
@@ -26,18 +26,12 @@ import {
 } from '@/lib/vacancy-list-memory';
 import { VACANCY_DRAFT_LIMIT } from '@/lib/vacancy-limits';
 import {
-  type VacancyFormErrorCode,
   type VacancyFormErrors,
-  type VacancyFormField,
   type VacancyFormMode,
   type VacancyFormValues,
 } from '@/lib/vacancy-form';
-import {
-  locationCode,
-  parseVacancyForm,
-  salaryFieldCode,
-  titleCode,
-} from '@/lib/vacancy-form-parse';
+import { planFailure, type FailureEffect } from '@/lib/vacancy-form-failure';
+import { parseVacancyForm } from '@/lib/vacancy-form-parse';
 import { normalizeSalaryText } from '@/lib/vacancy-salary';
 
 export { parseVacancyForm };
@@ -53,160 +47,6 @@ export const vacancyDraftLandingHref = (
     filters: { status: 'DRAFT', vertical: verticalId },
     selected: vacancyId,
   })}`;
-
-export type CreateFailure =
-  | { readonly kind: 'fields'; readonly errors: VacancyFormErrors }
-  | { readonly kind: 'draftLimit' }
-  | { readonly kind: 'verticalUnavailable' }
-  | { readonly kind: 'rateLimited' }
-  | { readonly kind: 'forbidden' }
-  | { readonly kind: 'keyReused' }
-  | { readonly kind: 'network' }
-  | { readonly kind: 'failed' };
-
-const FIELD_OF_PATH: Readonly<Record<string, VacancyFormField>> = {
-  'body.verticalId': 'verticalId',
-  'body.positionId': 'positionId',
-  'body.title': 'title',
-  'body.headcount': 'headcount',
-  'body.teamLeadId': 'teamLeadId',
-  'body.seniority': 'seniority',
-  'body.workFormat': 'workFormat',
-  'body.employmentType': 'employmentType',
-  'body.location': 'location',
-  'body.salaryMinMinor': 'salaryMin',
-  'body.salaryMaxMinor': 'salaryMax',
-  'body.salaryCurrency': 'salaryCurrency',
-  'body.probationDays': 'probationDays',
-};
-
-/** What a failed attempt carried that the answer's codes do not say: a currency error reads differently with and without an amount. */
-export interface FailureContext {
-  readonly hasSalaryAmount: boolean;
-}
-
-const NO_CONTEXT: FailureContext = { hasSalaryAmount: false };
-
-function fieldCode(
-  field: VacancyFormField,
-  code: string,
-  { hasSalaryAmount }: FailureContext,
-): VacancyFormErrorCode {
-  if (field === 'verticalId') return 'verticalRequired';
-  if (field === 'headcount') return 'headcountRange';
-  if (field === 'teamLeadId') return 'teamLeadInvalid';
-  if (
-    field === 'seniority' ||
-    field === 'workFormat' ||
-    field === 'employmentType'
-  )
-    return 'optionInvalid';
-  if (field === 'location') return locationCode([code]);
-  if (
-    field === 'salaryMin' ||
-    field === 'salaryMax' ||
-    field === 'salaryCurrency'
-  )
-    return salaryFieldCode(field, code, hasSalaryAmount);
-  if (field === 'probationDays') return 'probationRange';
-  if (field === 'positionId')
-    return code === 'invalid_position'
-      ? 'positionInvalid'
-      : code === 'position_inactive'
-        ? 'positionInactive'
-        : 'positionRequired';
-  return titleCode(false, [code]);
-}
-
-/** Server answer → what the form shows; the code set is the one of `POST /vacancies` (S1 contract). */
-export function classifyCreateFailure(
-  error: unknown,
-  context: FailureContext = NO_CONTEXT,
-): CreateFailure {
-  if (!(error instanceof ApiError)) return { kind: 'network' };
-  if (error.status === 429) return { kind: 'rateLimited' };
-  if (error.status === 403) return { kind: 'forbidden' };
-  if (error.status === 404) return { kind: 'verticalUnavailable' };
-  if (error.code === 'DRAFT_LIMIT_REACHED') return { kind: 'draftLimit' };
-  if (error.code === 'IDEMPOTENCY_KEY_REUSED') return { kind: 'keyReused' };
-  if (error.code === 'POSITION_INACTIVE')
-    return { kind: 'fields', errors: { positionId: 'positionInactive' } };
-  if (error.status === 400 || error.status === 409) {
-    const errors: VacancyFormErrors = {};
-    for (const { path, code } of error.fieldErrors) {
-      const field = FIELD_OF_PATH[path];
-      if (field && !errors[field])
-        errors[field] = fieldCode(field, code, context);
-    }
-    if (Object.keys(errors).length > 0) return { kind: 'fields', errors };
-  }
-  return { kind: 'failed' };
-}
-
-export type FailureEffect =
-  | { readonly type: 'fields'; readonly errors: VacancyFormErrors }
-  | {
-      readonly type: 'alert';
-      readonly alert: 'draftLimit' | 'verticalUnavailable';
-    }
-  | { readonly type: 'retry' }
-  | {
-      readonly type: 'toast';
-      readonly tone: 'warning' | 'error';
-      readonly title: 'rateLimited' | 'forbidden' | 'noConnection' | 'failed';
-      readonly description?: 'noConnectionDescription' | 'failedDescription';
-      readonly retry: boolean;
-    };
-
-const GENERIC_FAILURE: FailureEffect = {
-  type: 'toast',
-  tone: 'error',
-  title: 'failed',
-  description: 'failedDescription',
-  retry: true,
-};
-
-/** What the form does with a failed create; a reused idempotency key gets one silent retry under a fresh key, then the generic error. */
-export function planFailure(
-  error: unknown,
-  retried: boolean,
-  context: FailureContext = NO_CONTEXT,
-): FailureEffect {
-  const failure = classifyCreateFailure(error, context);
-  switch (failure.kind) {
-    case 'fields':
-      return { type: 'fields', errors: failure.errors };
-    case 'draftLimit':
-    case 'verticalUnavailable':
-      return { type: 'alert', alert: failure.kind };
-    case 'rateLimited':
-      return {
-        type: 'toast',
-        tone: 'warning',
-        title: failure.kind,
-        retry: false,
-      };
-    case 'forbidden':
-      return {
-        type: 'toast',
-        tone: 'error',
-        title: failure.kind,
-        retry: false,
-      };
-    case 'keyReused':
-      return retried ? GENERIC_FAILURE : { type: 'retry' };
-    case 'network':
-      return {
-        type: 'toast',
-        tone: 'error',
-        title: 'noConnection',
-        description: 'noConnectionDescription',
-        retry: true,
-      };
-    case 'failed':
-      return GENERIC_FAILURE;
-  }
-}
 
 /** One key per attempt: a retry of the same body reuses it (the server replays the first result), any change gets a new one. */
 export function createAttemptKeys(

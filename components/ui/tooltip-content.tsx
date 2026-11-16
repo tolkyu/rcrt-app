@@ -11,6 +11,7 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
+import { cn } from '@/lib/utils';
 import { useRestoreFocus } from './use-restore-focus';
 
 export type TooltipSide = 'top' | 'right' | 'bottom' | 'left';
@@ -131,7 +132,10 @@ export default function TooltipContent({
               sideOffset={6}
               collisionPadding={8}
               data-instant={instant ? '' : undefined}
-              className="motion-tooltip border-border bg-tooltip text-tooltip-foreground z-popover max-w-xs rounded-md border px-2.5 py-1.5 text-xs break-words shadow-md [@media(hover:none)]:hidden"
+              className={cn(
+                'motion-tooltip border-border bg-tooltip text-tooltip-foreground z-popover max-w-xs rounded-md border px-2.5 py-1.5 text-xs break-words shadow-md',
+                decorative && '[@media(hover:none)]:hidden',
+              )}
             >
               {decorative ? <span aria-hidden="true">{content}</span> : content}
             </TooltipPrimitive.Content>

@@ -7,11 +7,8 @@ import {
   type VacancyFormErrors,
   type VacancyFormValues,
 } from '@/lib/vacancy-form';
-import {
-  classifyCreateFailure,
-  parseVacancyForm,
-  planFailure,
-} from '@/lib/vacancy-form-submit';
+import { classifyCreateFailure, planFailure } from '@/lib/vacancy-form-failure';
+import { parseVacancyForm } from '@/lib/vacancy-form-submit';
 import {
   VACANCY_EMPLOYMENT_TYPES,
   VACANCY_LOCATION_MAX,
@@ -22,6 +19,7 @@ import {
 } from '@/lib/vacancy-options';
 import { salaryFieldCode } from '@/lib/vacancy-form-parse';
 import { serverTextLength } from '@/lib/text-length';
+import { createTranslator } from 'next-intl';
 import messages from '@/messages/uk.json';
 
 const VERTICAL = '8b1f5a0e-0c2d-4f6e-9d7a-2b3c4d5e6f70';
@@ -215,6 +213,25 @@ describe('«Умови» validation [ux §4.1]', () => {
       'a currency without an amount',
       { salaryCurrency: 'EUR' },
       { salaryCurrency: 'salaryCurrencyNoAmount' },
+    ],
+    [
+      'a malformed currency next to an amount (only the contract refuses it)',
+      { salaryMin: '100', salaryCurrency: 'US' },
+      { salaryCurrency: 'salaryCurrencyRequired' },
+    ],
+    [
+      'a good minimum, text in the maximum and a currency',
+      { salaryMin: '100', salaryMax: 'abc', salaryCurrency: 'USD' },
+      { salaryMax: 'salaryNumber' },
+    ],
+    [
+      'text in both bounds and no currency: the text still counts as an amount',
+      { salaryMin: 'abc', salaryMax: 'abc' },
+      {
+        salaryMin: 'salaryNumber',
+        salaryMax: 'salaryNumber',
+        salaryCurrency: 'salaryCurrencyRequired',
+      },
     ],
     [
       'a maximum below the minimum',
@@ -470,5 +487,22 @@ describe('readiness «Назва» uses the length the server counts [VAC-01]', 
     ['к'.repeat(201), false],
   ])('%j → %s', (title, ready) => {
     expect(isTitleLengthReady(serverTextLength(title))).toBe(ready);
+  });
+});
+
+describe('the read-only probation line agrees the noun with the number [uk plural]', () => {
+  const line = (days: number) =>
+    createTranslator({ locale: 'uk', messages, namespace: 'vacancyForm' })(
+      'probation.readOnly',
+      { days },
+    );
+  it.each([
+    [30, '30 днів'],
+    [31, '31 день'],
+    [32, '32 дні'],
+    [35, '35 днів'],
+    [90, '90 днів'],
+  ])('%s → %s', (days, phrase) => {
+    expect(line(days)).toContain(`— ${phrase}.`);
   });
 });

@@ -215,6 +215,17 @@ describe('Tooltip [UI foundation F2]', () => {
     expect(screen.queryByRole('tooltip')).toBeNull();
   });
 
+  it('still opens on keyboard focus where hover does not exist: only a DisabledReason defers to its helper line', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(hover: none)',
+    }));
+    render(tooltip());
+    await userEvent.tab();
+    const bubble = await screen.findByRole('tooltip', {}, { timeout: 3000 });
+    expect(bubble.textContent).toBe('Підказка');
+    expect(document.activeElement).toBe(screen.getByRole('button'));
+  });
+
   it('opens on keyboard focus without the hover delay, keeps focus and closes on Escape', async () => {
     render(tooltip());
     await userEvent.tab();

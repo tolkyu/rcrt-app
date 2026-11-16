@@ -5,19 +5,21 @@ export type SalaryAmount =
   | { readonly ok: true; readonly minor: string }
   | { readonly ok: false; readonly error: SalaryTextError };
 
-const AMOUNT = /^(\d+)(?:[.,](\d{1,2}))?$/;
+/** Whole part: plain digits, or groups of three after a leading one to three (a space or no-break space between groups). */
+const AMOUNT = /^(\d+|\d{1,3}(?:\s\d{3})+)(?:[.,](\d{1,2}))?$/;
 /** The create contract stores `^(0|[1-9]\d{0,14})$` minor units. */
 const MINOR_MAX_DIGITS = 15;
 const GROUP_SEPARATOR = '\u00a0';
 
-/** «2 500,50» / «2500.5» → minor units as a digit string; spaces (also the no-break ones `uk-UA` prints) are ignored, a second separator is an error. */
+/** «2 500,50» / «2500.5» → minor units as a digit string; a space only groups thousands (the no-break ones `uk-UA` prints included), a second separator is an error. */
 export function parseSalaryAmount(text: string): SalaryAmount {
-  const match = AMOUNT.exec(text.replace(/\s/g, ''));
+  const match = AMOUNT.exec(text.trim());
   if (!match) return { ok: false, error: 'salaryNumber' };
-  const minor = `${match[1]}${(match[2] ?? '').padEnd(2, '0')}`.replace(
-    /^0+(?=\d)/,
-    '',
-  );
+  const minor =
+    `${match[1]!.replace(/\s/g, '')}${(match[2] ?? '').padEnd(2, '0')}`.replace(
+      /^0+(?=\d)/,
+      '',
+    );
   return minor.length > MINOR_MAX_DIGITS
     ? { ok: false, error: 'salaryTooLarge' }
     : { ok: true, minor };

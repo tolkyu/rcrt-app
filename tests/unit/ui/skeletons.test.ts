@@ -169,8 +169,8 @@ describe('FormSkeleton [UI foundation F9, G20]', () => {
     ).toHaveLength(1);
   });
 
-  it('reserves as many hint lines as the real helper text wraps to, per width', () => {
-    const lines = (hint: boolean | number | { base: number; md: number }) => {
+  it('reserves one box per counted hint line, none for an absent hint', () => {
+    const lines = (hint: boolean | number) => {
       const { container } = render(
         provider(
           createElement(FormSkeleton, {
@@ -186,19 +186,10 @@ describe('FormSkeleton [UI foundation F9, G20]', () => {
       cleanup();
       return found;
     };
-    expect(lines(true)).toEqual(['h-4 items-center flex md:flex']);
+    expect(lines(true)).toEqual(['flex h-4 items-center']);
     expect(lines(false)).toEqual([]);
     expect(lines(0)).toEqual([]);
     expect(lines(2)).toHaveLength(2);
-    expect(lines({ base: 3, md: 1 })).toEqual([
-      'h-4 items-center flex md:flex',
-      'h-4 items-center flex md:hidden',
-      'h-4 items-center flex md:hidden',
-    ]);
-    expect(lines({ base: 1, md: 2 })).toEqual([
-      'h-4 items-center flex md:flex',
-      'h-4 items-center hidden md:flex',
-    ]);
   });
 
   it('keeps the flat field list of earlier callers as one full-width column', () => {

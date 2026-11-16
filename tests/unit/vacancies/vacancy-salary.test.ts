@@ -22,6 +22,9 @@ describe('parseSalaryAmount: text → minor units [VAC-01, D116]', () => {
     ['0,05', '5'],
     ['007', '700'],
     ['  1 000 000  ', '100000000'],
+    ['12 345', '1234500'],
+    [`12${NBSP}345,5`, '1234550'],
+    [`1${NNBSP}234${NNBSP}567`, '123456700'],
     ['9999999999999,99', '999999999999999'],
   ])('%j → %s', (text, minor) => {
     expect(parseSalaryAmount(text)).toEqual({ ok: true, minor });
@@ -29,6 +32,13 @@ describe('parseSalaryAmount: text → minor units [VAC-01, D116]', () => {
 
   it.each([
     ['abc'],
+    ['1 2 3'],
+    ['12 34'],
+    ['1 2345'],
+    ['1234 567'],
+    ['2 500 ,50'],
+    ['2500, 5'],
+    ['1  234'],
     ['12abc'],
     ['-5'],
     ['1e3'],

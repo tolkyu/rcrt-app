@@ -2,6 +2,7 @@
 import { normalizePositionName } from '@/lib/position-name';
 import {
   createVacancySchema,
+  salaryIssues,
   type CreateVacancyBody,
 } from '@/lib/schemas/vacancy';
 import {
@@ -30,13 +31,6 @@ export const locationCode = (codes: readonly string[]): VacancyFormErrorCode =>
 
 export type SalaryFormField = 'salaryMin' | 'salaryMax' | 'salaryCurrency';
 
-/** Contract path of each salary input. */
-const SALARY_FIELD_OF_KEY: Readonly<Record<string, SalaryFormField>> = {
-  salaryMinMinor: 'salaryMin',
-  salaryMaxMinor: 'salaryMax',
-  salaryCurrency: 'salaryCurrency',
-};
-
 /** One reading of a salary refusal for the client rules and the server answer; the currency text depends on whether an amount is present. */
 export function salaryFieldCode(
   field: SalaryFormField,
@@ -49,18 +43,28 @@ export function salaryFieldCode(
   return hasAmount ? 'salaryCurrencyRequired' : 'salaryCurrencyNoAmount';
 }
 
+const SALARY_FIELD_OF_KEY: Readonly<Record<string, SalaryFormField>> = {
+  salaryMinMinor: 'salaryMin',
+  salaryMaxMinor: 'salaryMax',
+  salaryCurrency: 'salaryCurrency',
+};
+
+const hasSalaryText = (values: VacancyFormValues) =>
+  values.salaryMin.trim() !== '' || values.salaryMax.trim() !== '';
+
 const DIGITS = /^\d{1,5}$/;
 
 interface SalaryOutcome {
   readonly minor: { salaryMinMinor?: string; salaryMaxMinor?: string };
   readonly errors: VacancyFormErrors;
-  readonly hasAmount: boolean;
 }
 
-/** Salary rules of the form (ux §2, §4.1): each amount must parse, a currency goes with an amount and only with one, and the maximum never undercuts the minimum. */
+/** Text parsing is the form's own; the currency and min ≤ max rules are the contract's `salaryIssues`, so client and server cannot drift. */
 function readSalary(values: VacancyFormValues): SalaryOutcome {
   const errors: VacancyFormErrors = {};
   const minor: { salaryMinMinor?: string; salaryMaxMinor?: string } = {};
+  // An amount that failed to parse still counts as a bound: '0' is a stand-in that can never undercut a minimum.
+  const bounds: { salaryMinMinor?: string; salaryMaxMinor?: string } = {};
   for (const [field, key] of [
     ['salaryMin', 'salaryMinMinor'],
     ['salaryMax', 'salaryMaxMinor'],
@@ -68,22 +72,23 @@ function readSalary(values: VacancyFormValues): SalaryOutcome {
     const text = values[field].trim();
     if (!text) continue;
     const amount = parseSalaryAmount(text);
-    if (amount.ok) minor[key] = amount.minor;
-    else errors[field] = amount.error;
+    if (amount.ok) {
+      minor[key] = amount.minor;
+      bounds[key] = amount.minor;
+    } else {
+      errors[field] = amount.error;
+      bounds[key] = '0';
+    }
   }
-  const hasAmount =
-    values.salaryMin.trim() !== '' || values.salaryMax.trim() !== '';
-  if (hasAmount && !values.salaryCurrency)
-    errors.salaryCurrency = 'salaryCurrencyRequired';
-  if (!hasAmount && values.salaryCurrency)
-    errors.salaryCurrency = 'salaryCurrencyNoAmount';
-  if (
-    minor.salaryMinMinor !== undefined &&
-    minor.salaryMaxMinor !== undefined &&
-    BigInt(minor.salaryMinMinor) > BigInt(minor.salaryMaxMinor)
-  )
-    errors.salaryMax = 'salaryMaxBelowMin';
-  return { minor, errors, hasAmount };
+  const hasAmount = hasSalaryText(values);
+  salaryIssues(
+    { ...bounds, salaryCurrency: values.salaryCurrency || null },
+    (path) => {
+      const field = path === 'salaryCurrency' ? path : 'salaryMax';
+      errors[field] ??= salaryFieldCode(field, 'custom', hasAmount);
+    },
+  );
+  return { minor, errors };
 }
 
 /** Only what the user filled in is sent: an empty position, headcount, Team Lead, option or probation is left out, so the server default or its own error applies. */
@@ -127,14 +132,12 @@ export function parseVacancyForm(
   const salary = readSalary(values);
   const result = createVacancySchema.safeParse(toInput(values, mode, salary));
   const errors: VacancyFormErrors = { ...salary.errors };
-  const textRefused = Boolean(
-    salary.errors.salaryMin || salary.errors.salaryMax,
-  );
   if (mode === 'PUBLISH' && !values.headcount.trim())
     errors.headcount = 'headcountRange';
   if (!result.success) {
     const titleCodes: string[] = [];
     const locationCodes: string[] = [];
+    const salaryRefusals: { field: SalaryFormField; code: string }[] = [];
     for (const issue of result.error.issues) {
       const field = issue.path[0];
       if (field === 'verticalId') errors.verticalId = 'verticalRequired';
@@ -151,17 +154,16 @@ export function parseVacancyForm(
         errors[field] = 'optionInvalid';
       else if (field === 'probationDays')
         errors.probationDays = 'probationRange';
-      else {
-        // The salary rules ran above; the schema speaks only if the two ever drift apart.
-        const salaryField = SALARY_FIELD_OF_KEY[String(field)];
-        if (salaryField && !errors[salaryField] && !textRefused)
-          errors[salaryField] = salaryFieldCode(
-            salaryField,
-            issue.code,
-            salary.hasAmount,
-          );
-      }
+      else if (typeof field === 'string' && field in SALARY_FIELD_OF_KEY)
+        salaryRefusals.push({
+          field: SALARY_FIELD_OF_KEY[field]!,
+          code: issue.code,
+        });
     }
+    // The text rules and the contract agree on salary except for a value only the contract refuses (a malformed currency); a failure must never read as «no errors».
+    if (Object.keys(errors).length === 0)
+      for (const { field, code } of salaryRefusals)
+        errors[field] ??= salaryFieldCode(field, code, hasSalaryText(values));
     if (titleCodes.length > 0)
       errors.title = titleCode(
         normalizePositionName(values.title) === '',

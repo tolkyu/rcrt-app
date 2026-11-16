@@ -63,8 +63,8 @@ function focusIntentOf(element: HTMLElement): FocusIntent {
 /**
  * The trigger renders at once; the Radix chunk loads on hover or keyboard focus (PERF-04) and then
  * replaces it. A pressed pointer, a touch pointer and a failed chunk all keep the plain trigger.
- * Touch devices get no bubble: an icon-only trigger must carry its label in `aria-label`, and any
- * other explanation belongs in visible text (see DisabledReason).
+ * A DisabledReason gets no bubble where hover does not exist: its reason is visible helper text there.
+ * An icon-only trigger must carry its label in `aria-label`.
  */
 export function Tooltip({
   content,
@@ -96,8 +96,8 @@ export function Tooltip({
 
   const request = (element: HTMLElement) => {
     if (disabled || failed) return;
-    // A CSS-hidden tooltip still contributes to aria-describedby on touch-keyboard focus.
-    if (window.matchMedia?.('(hover: none)').matches) return;
+    // Where hover does not exist the visible helper line carries a DisabledReason, and a bubble would be described a second time.
+    if (decorative && window.matchMedia?.('(hover: none)').matches) return;
     pressed.current = false;
     loadContent().then(
       () => {

@@ -18,8 +18,7 @@ export interface FormSkeletonTextHint {
   message: MessageKey;
   values?: Record<string, number>;
 }
-export type FormSkeletonHint =
-  boolean | number | { base: number; md: number } | FormSkeletonTextHint;
+export type FormSkeletonHint = boolean | number | FormSkeletonTextHint;
 /** `hint` reserves the helper text under the control as the real field wraps it; `true` is one line. */
 export type FormSkeletonField =
   FieldKind | { kind: FieldKind; hint?: FormSkeletonHint };
@@ -66,11 +65,7 @@ const isTrio = (row: FormSkeletonRow): row is FormSkeletonTrio =>
 
 const hintLines = (
   hint: Exclude<FormSkeletonHint, FormSkeletonTextHint> | undefined,
-) => {
-  if (typeof hint === 'object') return hint;
-  const lines = typeof hint === 'number' ? hint : hint ? 1 : 0;
-  return { base: lines, md: lines };
-};
+) => (typeof hint === 'number' ? hint : hint ? 1 : 0);
 
 /** Helper text lines as the real field wraps them; `margin` is the gap to the control above. */
 function LinesSkeleton({
@@ -100,21 +95,17 @@ function LinesSkeleton({
     );
   }
   const lines = hintLines(hint);
-  if (lines.base === 0 && lines.md === 0) return null;
+  if (lines === 0) return null;
   return (
     <div
       data-slot="form-hint-skeleton"
       className={cn('flex flex-col', className)}
     >
-      {Array.from({ length: Math.max(lines.base, lines.md) }, (_, line) => (
+      {Array.from({ length: lines }, (_, line) => (
         <div
           key={line}
           data-slot="form-hint-line-skeleton"
-          className={cn(
-            'h-4 items-center',
-            line < lines.base ? 'flex' : 'hidden',
-            line < lines.md ? 'md:flex' : 'md:hidden',
-          )}
+          className="flex h-4 items-center"
         >
           <Skeleton className="h-3 w-48 max-w-full" />
         </div>
