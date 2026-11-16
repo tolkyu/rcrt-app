@@ -39,6 +39,10 @@ async function warmUpVerticals(page: Page) {
   await expect(renameDialog(page)).toHaveCount(0);
 }
 
+/** Radix attaches its outside-press listener in a `setTimeout(0)` after the layer mounts; a queued timer turn guarantees it has run before the press. */
+const outsidePressListening = (page: Page) =>
+  page.evaluate(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));
+
 async function openLeaveDialog(page: Page) {
   await page.goto('/settings/priorities');
   await priorityField(page).fill('9');
@@ -80,8 +84,8 @@ for (const [label, viewport] of [
 
       await create.click();
       await expect(dialog).toBeVisible();
-      // Radix listens for outside presses only once its layer has mounted and taken focus.
       await expect(dialog.locator(':focus')).toHaveCount(1);
+      await outsidePressListening(page);
       await page.mouse.click(2, 2);
       await expect(dialog).toHaveCount(0);
       await expect(create).toBeFocused();
