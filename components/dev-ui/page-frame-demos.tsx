@@ -2,11 +2,13 @@
 
 import { Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useMemo, useRef, useState } from 'react';
 import { PageHeader } from '@/components/shell/page-header';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { FormPageLayout } from '@/components/ui/form-page-layout';
+import type { LeaveGuardHandle } from '@/components/ui/use-leave-guard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -89,6 +91,8 @@ export function PageFrameDemos() {
 
 function FormDemo() {
   const t = useTranslations('devUi.pageFrame');
+  const router = useRouter();
+  const guard = useRef<LeaveGuardHandle>(null);
   const [value, setValue] = useState('');
   const [saved, setSaved] = useState('');
   const [note, setNote] = useState<string>();
@@ -104,9 +108,12 @@ function FormDemo() {
         subtitle={t('formSubtitle')}
         back={{ href: '/dev/ui?left=form', label: t('formBack') }}
         dirty={dirty}
+        guardRef={guard}
         onSubmit={(event) => {
           event.preventDefault();
           save();
+          guard.current?.release();
+          router.replace('/dev/ui?created=1');
         }}
         footer={
           <>

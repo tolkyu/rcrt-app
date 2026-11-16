@@ -6,11 +6,16 @@ import { useTranslations } from 'next-intl';
 import {
   lazy,
   Suspense,
+  useEffect,
   useId,
+  useImperativeHandle,
+  useRef,
   type FormEventHandler,
   type ReactNode,
+  type Ref,
 } from 'react';
-import { useLeaveGuard } from './use-leave-guard';
+import { LoadBoundary } from './load-boundary';
+import { useLeaveGuard, type LeaveGuardHandle } from './use-leave-guard';
 
 const ConfirmDialog = lazy(() =>
   import('./confirm-dialog').then((module) => ({
@@ -18,16 +23,35 @@ const ConfirmDialog = lazy(() =>
   })),
 );
 
+/** Fallback when the dialog chunk is gone (a tab older than the last deploy): the browser's own question keeps the input safe. */
+function NativeLeaveQuestion({
+  question,
+  onAnswer,
+}: {
+  question: string;
+  onAnswer: (leave: boolean) => void;
+}) {
+  const answered = useRef(false);
+  useEffect(() => {
+    if (answered.current) return;
+    answered.current = true;
+    onAnswer(window.confirm(question));
+  }, [question, onAnswer]);
+  return null;
+}
+
 /**
  * Create/edit page (F9): back link, title, the form body and a footer that sticks above the BottomNav.
  * Footer actions go primary last (thumb zone); on a phone they share the row and the primary wraps to full width.
  * While `dirty`, leaving by a link, Back or tab close asks first; the dialog chunk loads only then.
+ * `guardRef.release()` after a successful save, then `router.replace(target)`, leaves without the question.
  */
 export function FormPageLayout({
   title,
   subtitle,
   back,
   dirty,
+  guardRef,
   onSubmit,
   footer,
   children,
@@ -36,6 +60,7 @@ export function FormPageLayout({
   subtitle?: string;
   back: { href: string; label: string };
   dirty: boolean;
+  guardRef?: Ref<LeaveGuardHandle>;
   onSubmit: FormEventHandler<HTMLFormElement>;
   footer: ReactNode;
   children: ReactNode;
@@ -43,6 +68,8 @@ export function FormPageLayout({
   const t = useTranslations('common');
   const titleId = useId();
   const guard = useLeaveGuard(dirty);
+  const { release } = guard;
+  useImperativeHandle(guardRef, () => ({ release }), [release]);
   return (
     <>
       <Link
@@ -74,26 +101,35 @@ export function FormPageLayout({
         {children}
         <div
           data-slot="form-page-footer"
-          className="border-border bg-surface sticky bottom-(--chrome-bottom) z-10 -mx-4 flex flex-wrap justify-end gap-2 border-t px-4 py-3 md:bottom-0 md:mx-0 md:rounded-b-xl md:px-0 [&>*]:flex-1 md:[&>*]:flex-none"
+          className="border-border bg-surface after:bg-surface sticky bottom-(--chrome-bottom) z-10 -mx-4 flex flex-wrap justify-end gap-2 border-t px-4 py-3 after:absolute after:inset-x-0 after:top-full after:h-[env(safe-area-inset-bottom)] md:bottom-0 md:mx-0 md:rounded-b-xl md:px-0 md:after:hidden [&>*]:flex-1 md:[&>*]:flex-none"
         >
           {footer}
         </div>
       </form>
       {guard.asking && (
-        <Suspense fallback={null}>
-          <ConfirmDialog
-            open
-            onOpenChange={(open) => {
-              if (!open) guard.stay();
-            }}
-            tone="destructive"
-            title={t('leaveTitle')}
-            description={t('leaveDescription')}
-            confirmLabel={t('leaveConfirm')}
-            cancelLabel={t('leaveStay')}
-            onConfirm={guard.confirm}
-          />
-        </Suspense>
+        <LoadBoundary
+          fallback={
+            <NativeLeaveQuestion
+              question={t('leaveTitle')}
+              onAnswer={(leave) => (leave ? guard.confirm() : guard.stay())}
+            />
+          }
+        >
+          <Suspense fallback={null}>
+            <ConfirmDialog
+              open
+              onOpenChange={(open) => {
+                if (!open) guard.stay();
+              }}
+              tone="destructive"
+              title={t('leaveTitle')}
+              description={t('leaveDescription')}
+              confirmLabel={t('leaveConfirm')}
+              cancelLabel={t('leaveStay')}
+              onConfirm={guard.confirm}
+            />
+          </Suspense>
+        </LoadBoundary>
       )}
     </>
   );

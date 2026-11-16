@@ -97,3 +97,112 @@ describe('RowActionsMenu [UI foundation F9, G11]', () => {
     expect(container.firstChild).toBeNull();
   });
 });
+
+describe('RowActionsMenu keyboard, disabled and grouping [UI foundation F9, G11]', () => {
+  const roles = (menu: HTMLElement) =>
+    [...menu.children].map((node) =>
+      node.getAttribute('role') === 'separator' ? '---' : node.textContent,
+    );
+
+  it('opens from the keyboard, runs a destructive action and returns focus to the trigger', async () => {
+    const user = userEvent.setup();
+    const remove = vi.fn();
+    render(
+      createElement(RowActionsMenu, {
+        label: 'Дії',
+        actions: [
+          { id: 'edit', label: 'Редагувати', onSelect: vi.fn() },
+          {
+            id: 'delete',
+            label: 'Видалити',
+            destructive: true,
+            onSelect: remove,
+          },
+        ],
+      }),
+    );
+    screen.getByRole('button', { name: 'Дії' }).focus();
+    await user.keyboard('{Enter}');
+    const menu = await screen.findByRole('menu');
+    expect(document.activeElement).toBe(
+      within(menu).getByRole('menuitem', { name: 'Редагувати' }),
+    );
+    await user.keyboard('{ArrowDown}{Enter}');
+    expect(remove).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Дії' }),
+    );
+  });
+
+  it('Escape closes the menu without running anything and returns focus', async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    render(
+      createElement(RowActionsMenu, {
+        label: 'Дії',
+        actions: [{ id: 'edit', label: 'Редагувати', onSelect }],
+      }),
+    );
+    screen.getByRole('button', { name: 'Дії' }).focus();
+    await user.keyboard('{Enter}');
+    await screen.findByRole('menu');
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Дії' }),
+    );
+  });
+
+  it('never runs a disabled action and keeps the menu open', async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    render(
+      createElement(RowActionsMenu, {
+        label: 'Дії',
+        actions: [
+          {
+            id: 'publish',
+            label: 'Опублікувати',
+            disabledReason: 'Спочатку оберіть посаду',
+            onSelect,
+          },
+        ],
+      }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Дії' }));
+    const menu = await screen.findByRole('menu');
+    expect(within(menu).getByText('Спочатку оберіть посаду')).toBeTruthy();
+    await user.click(within(menu).getByRole('menuitem'));
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.getByRole('menu')).toBeTruthy();
+  });
+
+  it('draws a separator only between safe and destructive groups', async () => {
+    const user = userEvent.setup();
+    const item = (id: string, destructive?: boolean) => ({
+      id,
+      label: id,
+      destructive,
+      onSelect: vi.fn(),
+    });
+    const open = async (label: string, actions: ReturnType<typeof item>[]) => {
+      render(createElement(RowActionsMenu, { label, actions }));
+      await user.click(screen.getByRole('button', { name: label }));
+      return screen.findByRole('menu');
+    };
+    expect(roles(await open('safe', [item('a'), item('b')]))).toEqual([
+      'a',
+      'b',
+    ]);
+    cleanup();
+    expect(
+      roles(await open('danger', [item('x', true), item('y', true)])),
+    ).toEqual(['x', 'y']);
+    cleanup();
+    expect(
+      roles(await open('mixed', [item('x', true), item('a'), item('y', true)])),
+    ).toEqual(['a', '---', 'x', 'y']);
+  });
+});
