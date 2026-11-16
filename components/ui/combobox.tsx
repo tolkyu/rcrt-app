@@ -51,6 +51,7 @@ export function Combobox(props: ComboboxProps) {
     id,
     name,
     disabled,
+    readOnly,
     clearable,
     className,
     onBlur,
@@ -74,7 +75,8 @@ export function Combobox(props: ComboboxProps) {
   const [query, setQuery] = useState<string | null>(null);
   const [active, setActive] = useState<string | null>(null);
   const [chosen, setChosen] = useState<ComboboxOption | undefined>();
-  if (disabled && (view.open || query !== null)) {
+  const locked = Boolean(disabled || readOnly);
+  if (locked && (view.open || query !== null)) {
     setView({ ...view, open: false });
     setQuery(null);
     setActive(null);
@@ -107,7 +109,7 @@ export function Combobox(props: ComboboxProps) {
       : selectedIndex >= 0
         ? selectedIndex
         : nextEnabled(list, -1, 1);
-  const showClear = Boolean(clearable && value !== '' && !disabled);
+  const showClear = Boolean(clearable && value !== '' && !locked);
 
   const setOpen = (open: boolean, by: ComboboxDismissal) => {
     setView({
@@ -144,6 +146,7 @@ export function Combobox(props: ComboboxProps) {
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     // keyCode 229 is how Safari reports the key that ends an IME composition.
     if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+    if (readOnly) return;
     const { open } = view;
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
@@ -165,7 +168,7 @@ export function Combobox(props: ComboboxProps) {
     if (!view.open) setOpen(true, 'keyboard');
   };
   const onClick = (event: MouseEvent<HTMLInputElement>) => {
-    if (view.open) return;
+    if (view.open || readOnly) return;
     setOpen(true, 'pointer');
     // A selected label is replaced by the first keystroke instead of being appended to.
     event.currentTarget.select();
@@ -226,6 +229,7 @@ export function Combobox(props: ComboboxProps) {
           placeholder={stale ? t('unavailable') : placeholder}
           title={selected?.label}
           disabled={disabled}
+          readOnly={readOnly}
           value={query ?? selected?.label ?? ''}
           className={cn('truncate', showClear ? 'pr-[4.5rem]' : 'pr-9')}
           onChange={onChange}

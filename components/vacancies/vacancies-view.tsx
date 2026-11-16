@@ -8,6 +8,7 @@ import {
 import {
   ChevronLeft,
   ChevronRight,
+  FileText,
   Search,
   BriefcaseBusiness,
 } from 'lucide-react';
@@ -40,7 +41,6 @@ import {
   isHiddenDraftFilter,
   parseVacancyPageState,
   VACANCY_SEARCH_MAX,
-  VACANCY_FILTER_ORDER,
   VACANCY_STATUSES,
   withoutHiddenDraftFilter,
   withVacancyFilters,
@@ -52,6 +52,7 @@ import { navigateVacancies as navigate } from '@/lib/vacancy-navigation';
 import { ALL_VERTICALS } from '@/lib/vertical-filter';
 import { CreateVacancyLink } from './create-vacancy-link';
 import { RowSkeleton } from './row-skeleton';
+import { useStatusChips } from './use-status-chips';
 import { VacanciesList } from './vacancies-list';
 import { VacancyPreview } from './vacancy-preview';
 
@@ -186,17 +187,9 @@ export function VacanciesView({
       ? [{ value: filters.vertical, label: t('unknownVertical') }]
       : []),
   ];
-  const statusOptions = useMemo(
-    () => [
-      { value: '', label: t('all') },
-      ...VACANCY_FILTER_ORDER.filter(
-        (status) => canAuthorDrafts || status !== 'DRAFT',
-      ).map((status) => ({
-        value: status,
-        label: t(`filterStatuses.${status}`),
-      })),
-    ],
-    [t, canAuthorDrafts],
+  const { statusOptions, draftsEmpty } = useStatusChips(
+    canAuthorDrafts,
+    filters,
   );
 
   let body: ReactNode;
@@ -208,6 +201,15 @@ export function VacanciesView({
       />
     ) : (
       <RowSkeleton />
+    );
+  } else if (items.length === 0 && draftsEmpty) {
+    body = (
+      <EmptyState
+        icon={FileText}
+        title={t('draft.empty.title')}
+        description={t('draft.empty.description')}
+        action={<CreateVacancyLink className="h-11" />}
+      />
     );
   } else if (items.length === 0) {
     body = (

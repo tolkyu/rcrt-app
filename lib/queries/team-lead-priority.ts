@@ -1,5 +1,6 @@
-import { queryOptions } from '@tanstack/react-query';
+import { queryOptions, type QueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api-client';
+import { teamLeadKeys } from '@/lib/queries/team-leads';
 import type { UpdateTeamLeadPrioritiesInput } from '@/lib/schemas/team-lead-priority';
 
 /** Route-local keys: `lib/query-keys.ts` ships with every route, these only with «Пріоритети тімлідів» (PERF-04). */
@@ -32,6 +33,17 @@ export const teamLeadPrioritiesQuery = (verticalId: string) =>
         schema: async () => (await schemas()).verticalTeamLeadPrioritiesSchema,
       }),
   });
+
+/** What a saved priority change makes stale. Literal users/audit prefixes instead of their key factories, which would pull their modules into this route (PERF-04); the vacancy form's Team Lead picker lists by this priority. */
+export function invalidateAfterPrioritySave(queryClient: QueryClient) {
+  for (const queryKey of [
+    ['settings', 'user'],
+    ['settings', 'users'],
+    ['settings', 'audit'],
+    teamLeadKeys.all,
+  ])
+    void queryClient.invalidateQueries({ queryKey });
+}
 
 export const saveTeamLeadPriorities = (
   verticalId: string,

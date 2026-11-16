@@ -31,8 +31,18 @@ function TeamLead({ vacancy }: { vacancy: VacancySummary }) {
   );
 }
 
-function OpenedAt({ at }: { at: string | null }) {
+/** A draft without a position cannot be published yet, so its row says so next to the number (spec §6.1). */
+function MissingPosition({ vacancy }: { vacancy: VacancySummary }) {
+  const t = useTranslations('vacancies.draft');
+  if (vacancy.status !== 'DRAFT' || vacancy.position) return null;
+  return (
+    <span className="before:mx-1 before:content-['·']">{t('noPosition')}</span>
+  );
+}
+
+function OpenedAt({ at, draft }: { at: string | null; draft: boolean }) {
   const t = useTranslations('vacancies');
+  if (!at && draft) return <>{t('notOpenedYet')}</>;
   if (!at)
     return (
       <>
@@ -100,6 +110,7 @@ export const VacanciesList = memo(function VacanciesList({
                     </div>
                     <span className="text-muted-foreground text-xs tabular-nums">
                       {vacancy.number}
+                      <MissingPosition vacancy={vacancy} />
                     </span>
                   </th>
                   <td className="px-4 py-3 break-words">
@@ -112,7 +123,10 @@ export const VacanciesList = memo(function VacanciesList({
                     <VacancyStatus status={vacancy.status} />
                   </td>
                   <td className="text-muted-foreground px-4 py-3 whitespace-nowrap tabular-nums xl:max-2xl:hidden">
-                    <OpenedAt at={vacancy.openedAt} />
+                    <OpenedAt
+                      at={vacancy.openedAt}
+                      draft={vacancy.status === 'DRAFT'}
+                    />
                   </td>
                   <td className="hidden px-2 py-3 xl:table-cell">
                     <Button
@@ -158,6 +172,7 @@ export const VacanciesList = memo(function VacanciesList({
                 number: vacancy.number,
                 vertical: vacancy.vertical.name,
               })}
+              <MissingPosition vacancy={vacancy} />
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <VacancyStatus status={vacancy.status} />
@@ -169,10 +184,16 @@ export const VacanciesList = memo(function VacanciesList({
               </span>
               <TeamLead vacancy={vacancy} />
             </p>
-            {vacancy.openedAt && (
+            {vacancy.openedAt ? (
               <p className="text-muted-foreground text-xs">
                 {t('openedOn', { at: new Date(vacancy.openedAt) })}
               </p>
+            ) : (
+              vacancy.status === 'DRAFT' && (
+                <p className="text-muted-foreground text-xs">
+                  {t('notOpenedYet')}
+                </p>
+              )
             )}
           </li>
         ))}

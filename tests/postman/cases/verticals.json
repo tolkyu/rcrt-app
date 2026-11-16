@@ -3,7 +3,9 @@
     "operation": "renameVertical",
     "name": "Recruiter cannot probe path or body validation",
     "as": "recruiter_crypto",
-    "params": { "verticalId": "not-a-uuid" },
+    "params": {
+      "verticalId": "not-a-uuid"
+    },
     "body": {},
     "status": 404,
     "code": "NOT_FOUND"
@@ -342,6 +344,116 @@
     "as": null,
     "body": {
       "name": "{{vertical_name}}"
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "listAssignableTeamLeads",
+    "name": "Admin gets the Гемблінг Team Leads by priority",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{head_recruiter_vertical_id}}"
+    },
+    "status": 200,
+    "script": "team-leads-gambling"
+  },
+  {
+    "operation": "listAssignableTeamLeads",
+    "name": "Admin gets the Крипто Team Leads, none of Гемблінг",
+    "as": "admin",
+    "params": {
+      "verticalId": "{{crypto_vertical_id}}"
+    },
+    "status": 200,
+    "script": "team-leads-crypto"
+  },
+  {
+    "operation": "listAssignableTeamLeads",
+    "name": "Head Recruiter gets the Team Leads of their own vertical",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "verticalId": "{{head_recruiter_vertical_id}}"
+    },
+    "status": 200,
+    "script": "team-leads-gambling"
+  },
+  {
+    "operation": "listAssignableTeamLeads",
+    "name": "Head Recruiter of Гемблінг cannot read Крипто",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "verticalId": "{{crypto_vertical_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listAssignableTeamLeads",
+    "name": "Recruiter in their own vertical has no grant",
+    "as": "recruiter_crypto",
+    "params": {
+      "verticalId": "{{crypto_vertical_id}}"
+    },
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "listAssignableTeamLeads",
+    "name": "HR in their own vertical has no grant",
+    "as": "hr",
+    "params": {
+      "verticalId": "{{head_recruiter_vertical_id}}"
+    },
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "listAssignableTeamLeads",
+    "name": "Finance is out of scope",
+    "as": "finance",
+    "params": {
+      "verticalId": "{{head_recruiter_vertical_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listAssignableTeamLeads",
+    "name": "unknown vertical",
+    "as": "admin",
+    "params": {
+      "verticalId": "00000000-0000-4000-8000-000000000000"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listAssignableTeamLeads",
+    "name": "malformed id answers like an unknown one",
+    "as": "admin",
+    "params": {
+      "verticalId": "abc"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listAssignableTeamLeads",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "verticalId": "{{head_recruiter_vertical_id}}"
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "listAssignableTeamLeads",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "verticalId": "{{head_recruiter_vertical_id}}"
     },
     "status": 401,
     "code": "UNAUTHENTICATED"

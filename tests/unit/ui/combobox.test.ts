@@ -76,6 +76,7 @@ interface ControlledProps {
   emptyText?: string;
   clearable?: boolean;
   disabled?: boolean;
+  readOnly?: boolean;
   placeholder?: string;
   onBlur?: () => void;
   'aria-invalid'?: boolean;
@@ -427,6 +428,39 @@ describe('Combobox keyboard [UI foundation F4]', () => {
     rerender(provider(createElement(Controlled, { disabled: true })));
     await closed();
     expect(field().getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('read-only keeps focus and the value, closes an open list and refuses to open, type or clear', async () => {
+    const onValueChange = vi.fn();
+    const { rerender } = renderCombobox({
+      initial: 'o',
+      clearable: true,
+      onValueChange,
+    });
+    await userEvent.click(field());
+    await screen.findByRole('listbox');
+    rerender(
+      provider(
+        createElement(Controlled, {
+          initial: 'o',
+          clearable: true,
+          onValueChange,
+          readOnly: true,
+        }),
+      ),
+    );
+    await closed();
+    expect(field().readOnly).toBe(true);
+    expect(field().disabled).toBe(false);
+    expect(field().value).toBe('Олена Дем’янчук');
+    field().focus();
+    await userEvent.click(field());
+    await userEvent.keyboard('{ArrowDown}Зоя{Enter}');
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Очистити' })).toBeNull();
+    expect(field().value).toBe('Олена Дем’янчук');
+    expect(document.activeElement).toBe(field());
+    expect(onValueChange).not.toHaveBeenCalled();
   });
 
   it('scrolls the active option into view for keyboard moves but not for hovering', async () => {

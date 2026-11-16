@@ -61,10 +61,8 @@ function expectSameBoxes(skeleton: Box[], loaded: Box[]) {
 
 async function waitForSkeletons(page: Page) {
   for (const slot of ['row-skeleton', 'form-skeleton'])
-    await expect(page.locator(`[data-slot="${slot}"]`)).toHaveCSS(
-      'opacity',
-      '1',
-    );
+    for (const skeleton of await page.locator(`[data-slot="${slot}"]`).all())
+      await expect(skeleton).toHaveCSS('opacity', '1');
 }
 
 test('row skeleton has the boxes of the loaded rows: head, rows and the phone card [UI-F9, G20]', async ({
@@ -168,6 +166,27 @@ test('form skeleton has the boxes of the loaded form: heading, fields, textarea 
       '[data-slot="form-skeleton-sample"] [data-slot="form-page-footer"]',
     ),
   ).toHaveCSS('position', 'sticky');
+});
+
+test('the Team Lead row reserves the wrapped height of its long hint, on a phone and at the form width [S3.2a, G20]', async ({
+  page,
+}) => {
+  await openGallery(page);
+  await waitForSkeletons(page);
+  await alignToTop(page, '[data-slot="team-lead-skeleton-sample"]');
+  const skeleton = await relativeBoxes(
+    page,
+    '[data-slot="team-lead-skeleton-sample"]',
+    '[data-slot="form-field-skeleton"], [data-slot="form-page-footer"]',
+  );
+  await alignToTop(page, '[data-slot="team-lead-loaded-sample"]');
+  const loaded = await relativeBoxes(
+    page,
+    '[data-slot="team-lead-loaded-sample"]',
+    '[data-slot="form-field"], [data-slot="form-page-footer"]',
+  );
+  expect(skeleton).toHaveLength(2);
+  expectSameBoxes(skeleton, loaded);
 });
 
 test('skeletons show after 150 ms, never shimmer and never move content [UI-F9, G20]', async ({

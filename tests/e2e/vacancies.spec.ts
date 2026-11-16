@@ -53,8 +53,11 @@ const search = (page: Page) =>
   page.getByRole('searchbox', { name: t.searchLabel, exact: true });
 const statusFilter = (page: Page) =>
   page.getByRole('radiogroup', { name: t.filterStatus, exact: true });
+/** A chip with a count is announced «Чернетки, 4», so the name may carry a trailing count. */
 const statusChip = (page: Page, label: string) =>
-  statusFilter(page).getByRole('radio', { name: label, exact: true });
+  statusFilter(page).getByRole('radio', {
+    name: new RegExp(`^${label}(, \\d+)?$`),
+  });
 const verticalFilter = (page: Page) =>
   page.getByLabel(t.filterVertical, { exact: true });
 const notFound = (page: Page) =>
@@ -106,7 +109,25 @@ for (const user of USERS) {
       await expect(statusChip(page, t.filterStatuses.DRAFT)).toHaveCount(
         canAuthorDrafts ? 1 : 0,
       );
-      await expect(statusFilter(page).locator('.tabular-nums')).toHaveCount(0);
+      // Only «Чернетки» carries a count, and it equals the own-drafts API (STORY-VAC-01-3 AC1).
+      await expect(statusFilter(page).locator('.tabular-nums')).toHaveCount(
+        canAuthorDrafts ? 1 : 0,
+      );
+      if (canAuthorDrafts)
+        await expect
+          .poll(async () => {
+            const count = await page.request.get(
+              '/api/v1/vacancies/drafts/count',
+            );
+            const shown = await statusChip(page, t.filterStatuses.DRAFT)
+              .locator('.tabular-nums')
+              .innerText();
+            return (
+              shown ===
+              String(((await count.json()) as { count: number }).count)
+            );
+          })
+          .toBe(true);
       expect(await listedNumbers(page, isMobile)).toEqual(newestFirst(visible));
       const drafts = await page.request.get('/api/v1/vacancies?status=DRAFT');
       expect(drafts.status()).toBe(200);
@@ -228,6 +249,66 @@ test.describe('recruiter.crypto@demo', () => {
       ).toHaveCount(0);
     }
   });
+
+  test('an author with no drafts sees «Чернетки 0» and the own-drafts empty state with the create link [STORY-VAC-01-3, D110]', async ({
+    page,
+  }) => {
+    await page.goto('/vacancies?status=DRAFT');
+    await waitForHydration(page);
+    await expect(
+      statusChip(page, t.filterStatuses.DRAFT).locator('.tabular-nums'),
+    ).toHaveText('0');
+    await expect(
+      page.getByText(t.draft.empty.title, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(t.draft.empty.description, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('main').getByRole('link', { name: t.draft.create }),
+    ).not.toHaveCount(0);
+    await expect(page.getByText(t.filteredEmpty.title)).toHaveCount(0);
+  });
+});
+
+test.describe('admin@demo drafts', () => {
+  test.use({ storageState: sessionFile('admin@demo') });
+
+  test('a draft row shows the dashed «Чернетка» badge, a missing position and that it never opened [STORY-VAC-01-3, D110]', async ({
+    page,
+    isMobile,
+  }) => {
+    await openHydrated(page, '/vacancies?status=DRAFT');
+    const row = rowsOf(page, isMobile).filter({
+      hasText: demoVacancy(DRAFT_VACANCY).number,
+    });
+    await expect(row).toHaveCount(1);
+    const badge = row.getByText(t.status.DRAFT, { exact: true });
+    await expect(badge).toBeVisible();
+    await expect(badge).toHaveCSS('border-top-style', 'dashed');
+    await expect(row).toContainText(t.draft.noPosition);
+    await expect(row).toContainText(t.notOpenedYet);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    ).toBe(true);
+  });
+
+  for (const [name, query] of [
+    ['a search', 'q=zzzz-ніякої-чернетки'],
+    ['another vertical', `vertical=${DEMO_VERTICALS.crypto}`],
+  ] as const)
+    test(`drafts hidden by ${name} are a filtered miss, not «У вас немає чернеток»; the chip count stays [STORY-VAC-01-3, spec §6.1]`, async ({
+      page,
+    }) => {
+      await openHydrated(page, `/vacancies?status=DRAFT&${query}`);
+      await expect(page.getByText(t.filteredEmpty.title)).toBeVisible();
+      await expect(page.getByText(t.draft.empty.title)).toHaveCount(0);
+      await expect(
+        statusChip(page, t.filterStatuses.DRAFT).locator('.tabular-nums'),
+      ).toHaveText(/^[1-9]\d*$/);
+    });
 });
 
 test.describe('head.recruiter.gambling@demo', () => {
@@ -303,7 +384,7 @@ test.describe('head.recruiter.gambling@demo', () => {
     await expect(statusFilter(page).getByRole('radio')).toHaveText([
       t.all,
       t.filterStatuses.OPEN,
-      t.filterStatuses.DRAFT,
+      new RegExp(`^${t.filterStatuses.DRAFT}\\s*\\d+$`),
       t.filterStatuses.ON_HOLD,
       t.filterStatuses.FILLED,
       t.filterStatuses.CANCELLED,

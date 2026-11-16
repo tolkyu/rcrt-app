@@ -2,6 +2,7 @@ import { QueryClient } from '@tanstack/react-query';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '@/lib/api-client';
 import { activePositionsQuery } from '@/lib/queries/positions';
+import { assignableTeamLeadsQuery } from '@/lib/queries/team-leads';
 import { queryKeys } from '@/lib/query-keys';
 import type { PositionList } from '@/lib/schemas/position';
 import type { CreateVacancyBody } from '@/lib/schemas/vacancy';
@@ -10,7 +11,9 @@ import {
   createAttemptKeys,
   applyPosition,
   fetchActivePositions,
+  fetchAssignableTeamLeads,
   planFailure,
+  refreshAssignableTeamLeads,
   resolveVacancyForm,
   submitCreate,
   type FailureEffect,
@@ -145,10 +148,18 @@ describe('planFailure: what the form does with every failed create [ux §4.2]', 
     [
       'unknown 400 field',
       new ApiError(400, 'VALIDATION_FAILED', [
-        { path: 'body.teamLeadId', code: 'invalid_team_lead' },
+        { path: 'body.probationDays', code: 'too_big' },
       ]),
       false,
       generic,
+    ],
+    [
+      'refused Team Lead',
+      new ApiError(400, 'VALIDATION_FAILED', [
+        { path: 'body.teamLeadId', code: 'invalid_team_lead' },
+      ]),
+      false,
+      { type: 'fields', errors: { teamLeadId: 'teamLeadInvalid' } },
     ],
   ];
 
@@ -254,6 +265,79 @@ describe('fetchActivePositions: the server-loaded list seeds the cache [PERF-04]
       },
     );
     expect(list.items[0]?.name).toBe('Свіжий');
+  });
+});
+
+describe('fetchAssignableTeamLeads: the Team Lead picker list [STORY-VAC-01-1]', () => {
+  const LEAD = '5d2c7e90-1f3a-4b8c-9a6d-7e8f90a1b2c3';
+  const leads = {
+    items: [{ id: LEAD, fullName: 'Василь Мороз', priority: 0 }],
+  };
+
+  it('asks the vertical’s endpoint once and serves a fresh list from the cache', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(json(200, leads));
+    vi.stubGlobal('fetch', fetchSpy);
+    const client = new QueryClient();
+    expect(await fetchAssignableTeamLeads(client, VERTICAL)).toEqual(leads);
+    expect(await fetchAssignableTeamLeads(client, VERTICAL)).toEqual(leads);
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(fetchSpy.mock.calls[0]?.[0]).toBe(
+      `/api/v1/verticals/${VERTICAL}/team-leads`,
+    );
+  });
+
+  it('keeps one list per vertical, whatever the case of the id', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(200, leads)));
+    const client = new QueryClient();
+    await fetchAssignableTeamLeads(client, VERTICAL);
+    expect(
+      client.getQueryData(
+        assignableTeamLeadsQuery(VERTICAL.toUpperCase()).queryKey,
+      ),
+    ).toEqual(leads);
+    expect(
+      client.getQueryData(assignableTeamLeadsQuery(OTHER_VERTICAL).queryKey),
+    ).toBeUndefined();
+  });
+
+  it.each([
+    [403, 'FORBIDDEN'],
+    [404, 'NOT_FOUND'],
+  ])(
+    'a %i answer is not retried and reaches the picker as an error',
+    async (status, code) => {
+      const fetchSpy = vi.fn().mockResolvedValue(json(status, { code }));
+      vi.stubGlobal('fetch', fetchSpy);
+      await expect(
+        fetchAssignableTeamLeads(new QueryClient(), VERTICAL),
+      ).rejects.toMatchObject({ status, code });
+      expect(fetchSpy).toHaveBeenCalledOnce();
+    },
+  );
+
+  it('rejects an answer that does not match the contract, e-mail included', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        json(200, {
+          items: [{ id: LEAD, fullName: 'Василь', email: 'a@b.c' }],
+        }),
+      ),
+    );
+    await expect(
+      fetchAssignableTeamLeads(new QueryClient(), VERTICAL),
+    ).rejects.toThrow();
+  });
+
+  it('a refused Team Lead makes every cached list stale', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(200, leads)));
+    const client = new QueryClient();
+    await fetchAssignableTeamLeads(client, VERTICAL);
+    await refreshAssignableTeamLeads(client);
+    expect(
+      client.getQueryState(assignableTeamLeadsQuery(VERTICAL).queryKey)
+        ?.isInvalidated,
+    ).toBe(true);
   });
 });
 

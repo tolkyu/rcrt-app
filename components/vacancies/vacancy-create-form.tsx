@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useCallback, useRef, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useRef, type KeyboardEvent } from 'react';
 import {
   Controller,
   useForm,
@@ -18,11 +18,14 @@ import { FormPageLayout } from '@/components/ui/form-page-layout';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import type { LeaveGuardHandle } from '@/components/ui/use-leave-guard';
+import { TeamLeadField } from '@/components/vacancies/team-lead-field';
 import { UrgencyControl } from '@/components/vacancies/urgency-control';
 import { useCreateVacancy } from '@/components/vacancies/use-create-vacancy';
-import { usePositionPicker } from '@/components/vacancies/use-position-picker';
+import { useVacancyPickers } from '@/components/vacancies/use-vacancy-pickers';
+import { VACANCY_FIELD_CLEARANCE } from '@/components/vacancies/vacancy-form-skeleton';
 import {
   emptyVacancyForm,
+  teamLeadFieldShown,
   VACANCY_FIELD_IDS,
   type VacancyFormErrorCode,
   type VacancyFormMode,
@@ -37,9 +40,13 @@ import {
   VACANCY_TITLE_MIN,
 } from '@/lib/vacancy-limits';
 
-/** Keeps a focused field clear of the sticky footer. */
-const CLEARANCE = 'scroll-mb-28';
+const CLEARANCE = VACANCY_FIELD_CLEARANCE;
 const URGENCIES: readonly VacancyUrgency[] = ['NORMAL', 'URGENT'];
+const RESET_NOTES = {
+  position: 'vertical.resetPosition',
+  teamLead: 'vertical.resetTeamLead',
+  both: 'vertical.resetBoth',
+} as const;
 const TITLE_BOUNDS = { min: VACANCY_TITLE_MIN, max: VACANCY_TITLE_MAX };
 const HEADCOUNT_BOUNDS = { min: 1, max: VACANCY_HEADCOUNT_MAX };
 
@@ -53,7 +60,11 @@ export function VacancyCreateForm({
   initialPositions,
   canManagePositions,
 }: {
-  verticals: readonly { id: string; name: string }[];
+  verticals: readonly {
+    id: string;
+    name: string;
+    canSetTeamLead: boolean;
+  }[];
   initialVerticalId: string;
   initialPositions?: PositionsSeed;
   canManagePositions: boolean;
@@ -98,14 +109,25 @@ export function VacancyCreateForm({
     summary,
     announce,
   } = useCreateVacancy({ form, modeRef: mode, guard });
-  const picker = usePositionPicker({
+  const currentVertical = verticals.find(
+    (vertical) => vertical.id === verticalId,
+  );
+  const showTeamLead = teamLeadFieldShown(verticals, verticalId);
+  const picker = useVacancyPickers({
     form: { getValues, setValue, errors },
     verticalId,
+    verticalName: currentVertical?.name ?? '',
     initialVerticalId,
     initialPositions,
     pending,
     onVerticalChange: clearAlert,
   });
+
+  // A refreshed grant can take the field away; its value must go with it, so the payload never carries a refused key.
+  useEffect(() => {
+    if (!showTeamLead && getValues('teamLeadId') !== '')
+      setValue('teamLeadId', '', { shouldDirty: true });
+  }, [showTeamLead, getValues, setValue]);
 
   // Until the lazy module loads the back link is the plain list and the title counter counts UTF-16 units.
   const listHref = lib ? lib.rememberedListHref() : '/vacancies';
@@ -123,7 +145,11 @@ export function VacancyCreateForm({
 
   const errorText = (code: VacancyFormErrorCode | undefined) => {
     if (!code) return undefined;
-    if (code === 'positionRequired' || code === 'positionInactive')
+    if (
+      code === 'positionRequired' ||
+      code === 'positionInactive' ||
+      code === 'teamLeadInvalid'
+    )
       return tVacancies(`draftErrors.${code}`);
     return t(
       `errors.${code}`,
@@ -228,7 +254,7 @@ export function VacancyCreateForm({
                   : 'text-muted-foreground text-xs'
               }
             >
-              {picker.verticalNote ? t('vertical.reset') : null}
+              {picker.verticalNote ? t(RESET_NOTES[picker.verticalNote]) : null}
             </p>
           </div>
           <Controller
@@ -252,6 +278,7 @@ export function VacancyCreateForm({
                     className={CLEARANCE}
                     value={field.value}
                     disabled={!verticalId}
+                    readOnly={pending}
                     placeholder={t(
                       verticalId
                         ? 'position.placeholder'
@@ -345,6 +372,18 @@ export function VacancyCreateForm({
             )}
           />
         </div>
+        {showTeamLead && (
+          <TeamLeadField
+            control={control}
+            verticalId={verticalId}
+            error={errorText(codeOf(errors.teamLeadId))}
+            announce={announce}
+            empty={picker.teamLeadsEmpty}
+            readOnly={pending}
+            onSearch={picker.searchTeamLeads}
+            onValueChange={picker.chooseTeamLead}
+          />
+        )}
       </section>
       {alert && feedback && <feedback.FormAlerts kind={alert} />}
     </FormPageLayout>

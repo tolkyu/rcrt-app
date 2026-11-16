@@ -23,7 +23,7 @@ export function titleCode(
 
 const DIGITS = /^\d{1,5}$/;
 
-/** Only what the user filled in is sent: an empty position or headcount is left out, so the server default or its own error applies. */
+/** Only what the user filled in is sent: an empty position, headcount or Team Lead is left out, so the server default or its own error applies. */
 function toInput(values: VacancyFormValues, mode: VacancyFormMode): unknown {
   const headcount = values.headcount.trim();
   return {
@@ -35,6 +35,7 @@ function toInput(values: VacancyFormValues, mode: VacancyFormMode): unknown {
       ? { headcount: DIGITS.test(headcount) ? Number(headcount) : NaN }
       : {}),
     priority: values.priority,
+    ...(values.teamLeadId ? { teamLeadId: values.teamLeadId } : {}),
   };
 }
 
@@ -56,6 +57,7 @@ export function parseVacancyForm(
       if (field === 'verticalId') errors.verticalId = 'verticalRequired';
       else if (field === 'positionId') errors.positionId = 'positionRequired';
       else if (field === 'headcount') errors.headcount = 'headcountRange';
+      else if (field === 'teamLeadId') errors.teamLeadId = 'teamLeadInvalid';
       else if (field === 'title') titleCodes.push(issue.code);
     }
     if (titleCodes.length > 0)

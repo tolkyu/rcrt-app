@@ -8,6 +8,10 @@ import type {
 } from 'react-hook-form';
 import { apiRequest, ApiError } from '@/lib/api-client';
 import { activePositionsQuery } from '@/lib/queries/positions';
+import {
+  assignableTeamLeadsQuery,
+  teamLeadKeys,
+} from '@/lib/queries/team-leads';
 import type { PositionList } from '@/lib/schemas/position';
 import { queryKeys } from '@/lib/query-keys';
 import {
@@ -58,6 +62,7 @@ const FIELD_OF_PATH: Readonly<Record<string, VacancyFormField>> = {
   'body.positionId': 'positionId',
   'body.title': 'title',
   'body.headcount': 'headcount',
+  'body.teamLeadId': 'teamLeadId',
 };
 
 function fieldCode(
@@ -66,6 +71,7 @@ function fieldCode(
 ): VacancyFormErrorCode {
   if (field === 'verticalId') return 'verticalRequired';
   if (field === 'headcount') return 'headcountRange';
+  if (field === 'teamLeadId') return 'teamLeadInvalid';
   if (field === 'positionId')
     return code === 'invalid_position'
       ? 'positionInvalid'
@@ -240,6 +246,15 @@ export function fetchActivePositions(
     queryClient.setQueryData(queryKey, seed.list, { updatedAt: seed.loadedAt });
   return queryClient.fetchQuery(activePositionsQuery(verticalId));
 }
+
+/** After the server refused a Team Lead the cached list is stale: the person may have been deactivated or moved. */
+export const refreshAssignableTeamLeads = (queryClient: QueryClient) =>
+  queryClient.invalidateQueries({ queryKey: teamLeadKeys.all });
+
+export const fetchAssignableTeamLeads = (
+  queryClient: QueryClient,
+  verticalId: string,
+) => queryClient.fetchQuery(assignableTeamLeadsQuery(verticalId));
 
 export const cachedPositionName = (
   queryClient: QueryClient,

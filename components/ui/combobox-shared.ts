@@ -35,6 +35,8 @@ interface ComboboxBaseProps extends ComboboxAriaProps {
   id?: string;
   name?: string;
   disabled?: boolean;
+  /** Keeps focus and the shown value but neither opens, types nor clears (a form that is being sent). */
+  readOnly?: boolean;
   /** Shows a clear button while a value is selected; the native fallback has none. */
   clearable?: boolean;
   className?: string;

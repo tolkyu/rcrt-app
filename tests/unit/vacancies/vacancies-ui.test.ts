@@ -203,6 +203,55 @@ describe('VacanciesList [STORY-VAC-04-1, UI-04..07]', () => {
     expect(onPreviewIntent).toHaveBeenLastCalledWith(second.id);
   });
 
+  describe.each([
+    {
+      name: 'a draft without position and opening date',
+      vacancy: { status: 'DRAFT', position: null, openedAt: null },
+      missing: true,
+      notOpened: true,
+    },
+    {
+      name: 'a draft with a position',
+      vacancy: {
+        status: 'DRAFT',
+        position: { id: crypto.randomUUID(), name: 'Медіабаєр — Facebook' },
+        openedAt: null,
+      },
+      missing: false,
+      notOpened: true,
+    },
+    {
+      name: 'an open vacancy without a position',
+      vacancy: { status: 'OPEN', position: null },
+      missing: false,
+      notOpened: false,
+    },
+  ] satisfies {
+    name: string;
+    vacancy: Partial<VacancySummary>;
+    missing: boolean;
+    notOpened: boolean;
+  }[])(
+    'draft details for $name [STORY-VAC-01-3, spec §6.1]',
+    ({ vacancy, missing, notOpened }) => {
+      const item = summary(vacancy);
+
+      it.each([
+        ['table row', () => screen.getByRole('table')],
+        ['mobile card', () => screen.getByRole('list')],
+      ] as const)('%s', (_, container) => {
+        mount(list({ items: [item] }));
+        const scope = within(container());
+        expect(!!scope.queryByText(messages.vacancies.draft.noPosition)).toBe(
+          missing,
+        );
+        expect(!!scope.queryByText(messages.vacancies.notOpenedYet)).toBe(
+          notOpened,
+        );
+      });
+    },
+  );
+
   it('does not select by row click below the wide breakpoint', async () => {
     const onSelect = vi.fn();
     mount(list({ items: [first], selectedId: first.id, onSelect }));

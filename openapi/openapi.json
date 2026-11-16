@@ -1930,6 +1930,29 @@
         "required": ["changes"],
         "additionalProperties": false
       },
+      "AssignableTeamLeads": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "fullName": { "type": "string" },
+                "priority": {
+                  "type": ["integer", "null"],
+                  "minimum": 0,
+                  "maximum": 99,
+                  "description": "Routing priority in this vertical (0 = highest); null = not set."
+                }
+              },
+              "required": ["id", "fullName", "priority"]
+            }
+          }
+        },
+        "required": ["items"]
+      },
       "VerticalList": {
         "type": "object",
         "properties": {
@@ -6009,6 +6032,71 @@
           },
           "413": {
             "description": "Request body exceeds 1 MiB",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/verticals/{verticalId}/team-leads": {
+      "get": {
+        "operationId": "listAssignableTeamLeads",
+        "summary": "Team Leads that may be set on a vacancy of the vertical (Admin, Head Recruiter of the vertical): active, invite accepted, by priority. 403 without the grant, 404 for a vertical outside the caller’s reach",
+        "tags": ["Verticals"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "format": "uuid" },
+            "required": true,
+            "name": "verticalId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AssignableTeamLeads" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
                 "schema": { "$ref": "#/components/schemas/Problem" }

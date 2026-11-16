@@ -27,6 +27,9 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] Components stay under ~400 lines. Extract hooks (`useXxx`) and small components early.
 - [ ] No second definition of the same rule (authz predicate, class string, schema). Share one helper.
 - [ ] Copy with numbers uses ICU arguments from the shared constants, not hard-coded values.
+- [ ] A skeleton row matches the wrapped height of the real row, including long hint or helper text. Check at 390 px.
+- [ ] A server eligibility rule (who may be assigned, who may hold a priority) has exactly one predicate. Picker, save and create use the same one.
+- [ ] Query keys come from the shared key factory. Do not hard-code arrays.
 
 ## Rules check
 - [ ] lint, typecheck, unit and the touched integration and E2E files all pass. Report the commands and pass counts.

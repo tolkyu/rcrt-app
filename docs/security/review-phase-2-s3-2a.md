@@ -1,0 +1,44 @@
+# Security review — Phase 2 S3.2a: `GET /api/v1/verticals/{verticalId}/team-leads`
+
+Base 2909c3f, uncommitted. Reviewed: `app/api/v1/verticals/[verticalId]/team-leads/route.ts`, `server/services/vacancy-team-lead.ts`, `findAssignableTeamLeads` (`server/repositories/team-lead-priority.ts:69-87`), `lib/schemas/team-lead-priority.ts:71-84`, plus `authorizeAuthoring` (`server/services/vacancy.ts:174`) and the `POST /vacancies` eligibility check (`vacancy.ts:211`, `vacancy-draft.ts`).
+
+## Verdict
+
+**Pass. No Critical or High findings.** One Low (eligibility inconsistency with `POST /vacancies`, defence-in-depth) and two Info items. Merge-able as is; the Low should be scheduled.
+
+## Verification matrix
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Head Recruiter of A asks for B | 404, same as an unknown id (`can(vertical.read)` fails before any DB read) | `vacancy.ts:179`; test "Head Recruiter of another vertical" |
+| Recruiter, TL, HR, Head HR | 403 for every id (route `requireGrant`, before params are parsed); no vertical information used | `define-route.ts:210`; new test "a refusal never tells..." |
+| Finance, no role | 404 (no `vertical.read`) | `can.ts:263-271`; existing tests |
+| Mixed roles (Head Recruiter A + Recruiter B) | A served; B 403 (visible vertical, no grant there); unrelated C 404 | `vacancy.ts:183-189`; new test |
+| Role lost mid-session | Roles are reloaded from the DB on every request, so the next call is 404/403. A single read has no TOCTOU window worth a lock | `request-context.ts:101-150` |
+| Admin without TOTP | 401 `MFA_REQUIRED` (GLOBAL grants withheld at aal1; `permission: 'vertical.read'` is checked first); other roles unaffected, same as `POST /vacancies` | `context.ts:46-82`, `can.ts:268`; new test |
+| 403 vs 404 leak | No leak. 403 is decided by the caller's own grants only, not by the id, so it is identical for existing, foreign and random ids. 404 holds for every vertical outside reach and for unknown or malformed ids | new test (403,403,403,403 / 404,404,404) |
+| PII | Response is `{id, fullName, priority}`; the Zod response schema strips everything else (`define-route.ts:243`), e-mail is never selected. Head Recruiter and Admin already hold `user.directory.read` for these users. The priority is the one of the asked vertical, so another vertical's membership or priority is not exposed | `team-lead-priority.ts:76`, test "nothing but id, name and priority" |
+| Exclusions | Deactivated (`is_active`), invitee (`activated_at is not null`), non-TEAM_LEAD roles (`role = 'TEAM_LEAD'`, so `custom:*` is out), other-vertical roles (`r.vertical_id = v.id`) | `team-lead-priority.ts:49-52`, test "leaves out..." |
+| SQL | `verticalId` is a bound parameter cast `::uuid` after `uuidOf` validation; `sql.raw` is only the fixed `eligibleTeamLead('r','u')` literal with constant aliases; no input reaches it | `team-lead-priority.ts:49, 84` |
+| Soft-deleted or archived verticals | `vertical` has no `deleted_at` or archive column (`schema.ts:46`), so the case does not exist. Revisit if verticals become archivable | schema |
+| Caching | `Cache-Control: private, no-store` is set by `defineRoute` | `define-route.ts:248` |
+| CSRF / transport | GET, so no state change; `isTrustedMutation` still applies in the route and middleware | `define-route.ts:204` |
+| Data written | None. No audit row needed (not a salary, bonus or role action) | — |
+
+## Findings
+
+| # | Severity | Finding | Evidence | Fix |
+| --- | --- | --- | --- | --- |
+| S1 | Low | **Eligibility differs between the picker and the write.** The picker and the priorities page require an accepted invite (`activated_at is not null`). `POST /vacancies` and the draft create and update accept any active user holding TEAM_LEAD in the vertical. An authorised Admin or Head Recruiter can therefore assign a vacancy to a not-yet-onboarded user with a crafted request. Impact is limited and not an escalation: the actor already holds `vacancy.team_lead.set` in that vertical, the target already holds the TEAM_LEAD role there, and the invitee cannot sign in until the single-use invite is accepted. Residual risks: (a) a mistyped invite e-mail lets the wrong person, once onboarded, inherit the OWN-scoped vacancy (salary range, requirements); (b) routing and priority logic already treat invitees as ineligible, so the vacancy would stall. This is mostly a consistency and UX issue, not a vulnerability. | `vacancy.ts:211-219`, `repositories/user.ts:360-370` (`lockUsersShared` selects only `id`, `isActive`), `vacancy-draft.ts:275,358` | Select `activatedAt` in `lockUsersShared` and require `activatedAt !== null` in `isEligibleTeamLead` (one place covers create, draft create and draft update). Add an integration test per path (invitee gives `invalid_team_lead`). Schedule with S3.2b; do not block S3.2a. |
+| S2 | Info | **No rate limit on this GET.** Consistent with the other cheap lookups: only searches use `consumeSearchRateLimit`, writes use `consumeVacancyWriteLimit`. The result is bounded by the Team Lead count of one vertical, the query is index-served (`user_role_team_lead_idx`), and the endpoint is authenticated and scoped. | `vacancy.ts:91,152` | None needed. Revisit if a global per-user API throttle is added. |
+| S3 | Info | **`invalid_team_lead` mapping is correct.** One generic code on `body.teamLeadId` for unknown user, other vertical, deactivated or wrong role, so the 400 is not a user-existence oracle. The role check runs on fresh rows after a `FOR SHARE` lock (SEC-VC-03). A malformed uuid takes the Zod 400 path, which does not touch the DB. | `vacancy.ts:281-284`, `vacancy-draft.ts:140` | None. |
+
+## Tests added
+
+`tests/integration/vacancies-team-leads.test.ts` (9 tests, all pass, run alone with the integration project):
+
+- 403/404 answers do not depend on whether the vertical exists (no existence oracle).
+- Mixed-role caller (Head Recruiter A + Recruiter B): A served, B 403, third vertical 404.
+- Admin at aal1: 401 `MFA_REQUIRED`.
+
+No S1 test was added: it would currently pass only by cementing the inconsistency.

@@ -115,6 +115,8 @@ export function useCreateVacancy({
         setError(field as VacancyFormField, { type: 'server', message: code });
       if (effect.errors.positionId === 'positionInactive')
         void queryClient.invalidateQueries({ queryKey: ['positions'] });
+      if (effect.errors.teamLeadId)
+        void lib.refreshAssignableTeamLeads(queryClient);
       invalidFields(Object.keys(effect.errors));
     } else if (effect.type === 'alert') {
       if (feedback) setAlert(effect.alert);
@@ -122,6 +124,8 @@ export function useCreateVacancy({
       if (effect.alert === 'verticalUnavailable') router.refresh();
     } else {
       lib.showFailureToast(t, effect, retryAction(action).onAction);
+      // The role was lost mid-session: the page re-reads the grants and the refused field goes away (ux §4.2).
+      if (effect.title === 'forbidden') router.refresh();
     }
   };
 

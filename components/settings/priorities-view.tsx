@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api-client';
 import {
+  invalidateAfterPrioritySave,
   priorityKeys,
   priorityVerticalsQuery,
   saveTeamLeadPriorities,
@@ -393,13 +394,7 @@ function PriorityEditor({
       focusHeading.current = true;
       reset(saved);
       toast.success(t('toastSaved', { vertical: saved.vertical.name }));
-      // Literal prefixes instead of the users/audit key factories, which would pull their modules into this route (PERF-04).
-      for (const queryKey of [
-        ['settings', 'user'],
-        ['settings', 'users'],
-        ['settings', 'audit'],
-      ])
-        void queryClient.invalidateQueries({ queryKey });
+      invalidateAfterPrioritySave(queryClient);
     },
     onError: (error) =>
       setFailure(

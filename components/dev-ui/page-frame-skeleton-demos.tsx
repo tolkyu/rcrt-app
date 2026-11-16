@@ -4,6 +4,10 @@ import { useTranslations } from 'next-intl';
 import { useMemo, type ReactNode } from 'react';
 import { RowSkeleton } from '@/components/vacancies/row-skeleton';
 import { VacanciesList } from '@/components/vacancies/vacancies-list';
+import {
+  TEAM_LEAD_HINT_LINES,
+  VACANCY_FORM_WIDTH,
+} from '@/components/vacancies/vacancy-form-skeleton';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { FormField } from '@/components/ui/form-field';
@@ -135,6 +139,51 @@ export function SkeletonDemos() {
             {(control) => <Textarea {...control} />}
           </FormField>
         </FormPageLayout>
+      </Sample>
+      <Sample
+        label={t('teamLeadSkeletonLabel')}
+        slot="team-lead-skeleton-sample"
+      >
+        <div className={VACANCY_FORM_WIDTH}>
+          <FormSkeleton
+            title={t('sampleTitle')}
+            subtitle={t('sampleSubtitle')}
+            back={back}
+            fields={[{ kind: 'input', hint: TEAM_LEAD_HINT_LINES }]}
+          />
+        </div>
+      </Sample>
+      <Sample label={t('teamLeadLoadedLabel')} slot="team-lead-loaded-sample">
+        <div className={VACANCY_FORM_WIDTH}>
+          <FormPageLayout
+            title={t('sampleTitle')}
+            subtitle={t('sampleSubtitle')}
+            back={back}
+            dirty={false}
+            onSubmit={(event) => event.preventDefault()}
+            footer={
+              <>
+                <Button variant="ghost" className="h-11 md:h-10">
+                  {t('formCancel')}
+                </Button>
+                <Button variant="outline" className="h-11 md:h-10">
+                  {t('formSave')}
+                </Button>
+                <Button type="submit" className="h-11 md:h-10">
+                  {t('formCreate')}
+                </Button>
+              </>
+            }
+          >
+            <FormField
+              id="sample-team-lead"
+              label={t('teamLeadFieldLabel')}
+              hint={t('teamLeadHint')}
+            >
+              {(control) => <Input {...control} />}
+            </FormField>
+          </FormPageLayout>
+        </div>
       </Sample>
     </GalleryGroup>
   );

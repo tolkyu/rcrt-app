@@ -68,6 +68,21 @@ export type VerticalTeamLeadPriorities = z.infer<
   typeof verticalTeamLeadPrioritiesSchema
 >;
 
+export const assignableTeamLeadSchema = z.object({
+  id: z.uuid(),
+  fullName: z.string(),
+  priority: teamLeadPriorityValueSchema.nullable().meta({
+    description:
+      'Routing priority in this vertical (0 = highest); null = not set.',
+  }),
+});
+
+/** Picker of the vacancy form: only what is shown (no e-mail), ordered by priority (unset last), then by name. */
+export const assignableTeamLeadsSchema = z
+  .object({ items: z.array(assignableTeamLeadSchema) })
+  .meta({ id: 'AssignableTeamLeads' });
+export type AssignableTeamLeads = z.infer<typeof assignableTeamLeadsSchema>;
+
 /** Malformed ids answer 404 like unknown ones (VIS-02), so the path takes any short string. */
 export const teamLeadPriorityParamsSchema = z.object({
   verticalId: z.string().max(64).meta({ description: 'Vertical id (uuid).' }),

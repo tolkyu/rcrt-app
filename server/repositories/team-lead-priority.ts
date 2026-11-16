@@ -56,6 +56,36 @@ const isEligible = (userId: SQL, verticalId: SQL) => sql`exists (
   where er.user_id = ${userId} and er.vertical_id = ${verticalId} and ${eligibleTeamLead('er', 'eu')}
 )`;
 
+const assignableRowSchema = z.object({
+  items: z.array(
+    z.object({
+      id: z.uuid(),
+      fullName: z.string(),
+      priority: z.number().int().nullable(),
+    }),
+  ),
+});
+
+/** One query for the vacancy form's picker: null = unknown vertical; served by `user_role_team_lead_idx` and the priority primary key. */
+export async function findAssignableTeamLeads(
+  db: DbExecutor,
+  verticalId: string,
+) {
+  const [row] = await db.execute(sql`
+    select coalesce((
+      select json_agg(json_build_object('id', u.id, 'fullName', u.full_name, 'priority', p.priority)
+          order by p.priority nulls last, u.full_name collate "uk-UA-x-icu", u.id)
+      from ${userRole} r
+      join ${appUser} u on u.id = r.user_id
+      left join ${teamLeadPriority} p on p.vertical_id = r.vertical_id and p.user_id = r.user_id
+      where r.vertical_id = v.id and ${eligibleTeamLead('r', 'u')}
+    ), '[]'::json) as items
+    from ${vertical} v
+    where v.id = ${verticalId}::uuid
+  `);
+  return row ? assignableRowSchema.parse(row).items : null;
+}
+
 /** One query per vertical tab: the vertical, its eligible Team Leads with their priority row, and live invitees. */
 export async function findVerticalTeamLeads(
   db: DbExecutor,

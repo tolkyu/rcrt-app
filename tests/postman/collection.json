@@ -12860,13 +12860,14 @@
                   "pm.test('status 200', () => pm.response.to.have.status(200));",
                   "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
                   "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]}}},\"required\":[\"items\"]}));",
+                  "const { items } = pm.response.json();",
                   "pm.test('only Крипто, not the Гемблінг vertical (VIS-01)', () => {",
-                  "  const { items } = pm.response.json();",
                   "  const gambling = pm.collectionVariables.get('head_recruiter_vertical_id');",
                   "  pm.expect(gambling).to.be.a('string');",
                   "  pm.expect(items.map((v) => v.name)).to.deep.equal(['Крипто']);",
                   "  pm.expect(items[0].id).to.not.equal(gambling);",
-                  "});"
+                  "});",
+                  "pm.collectionVariables.set('crypto_vertical_id', items[0].id);"
                 ]
               }
             }
@@ -14315,6 +14316,704 @@
                 "type": "text/javascript",
                 "exec": [
                   "if ([\"vertical_name\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem UNAUTHENTICATED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:unauthenticated\",\"status\":401,\"code\":\"UNAUTHENTICATED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listAssignableTeamLeads — Admin gets the Гемблінг Team Leads by priority",
+          "request": {
+            "name": "listAssignableTeamLeads — Admin gets the Гемблінг Team Leads by priority",
+            "description": {},
+            "url": {
+              "path": ["verticals", ":verticalId", "team-leads"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{head_recruiter_vertical_id}}",
+                  "key": "verticalId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"head_recruiter_vertical_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"priority\":{\"type\":[\"integer\",\"null\"],\"minimum\":0,\"maximum\":99}},\"required\":[\"id\",\"fullName\",\"priority\"]}}},\"required\":[\"items\"]}));",
+                  "const { items } = pm.response.json();",
+                  "pm.test('Гемблінг Team Leads by priority: Василь 0, Тарас 1', () => {",
+                  "  pm.expect(",
+                  "    items.slice(0, 2).map((i) => [i.fullName, i.priority]),",
+                  "  ).to.deep.equal([",
+                  "    ['Василь Мороз', 0],",
+                  "    ['Тарас Лисенко', 1],",
+                  "  ]);",
+                  "  pm.expect(items.map((i) => i.fullName)).to.not.include('Дмитро Савченко');",
+                  "});",
+                  "pm.test('only what the picker shows: id, name, priority', () => {",
+                  "  items.forEach((i) =>",
+                  "    pm",
+                  "      .expect(Object.keys(i).sort())",
+                  "      .to.deep.equal(['fullName', 'id', 'priority']),",
+                  "  );",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listAssignableTeamLeads — Admin gets the Крипто Team Leads, none of Гемблінг",
+          "request": {
+            "name": "listAssignableTeamLeads — Admin gets the Крипто Team Leads, none of Гемблінг",
+            "description": {},
+            "url": {
+              "path": ["verticals", ":verticalId", "team-leads"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{crypto_vertical_id}}",
+                  "key": "verticalId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"crypto_vertical_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"priority\":{\"type\":[\"integer\",\"null\"],\"minimum\":0,\"maximum\":99}},\"required\":[\"id\",\"fullName\",\"priority\"]}}},\"required\":[\"items\"]}));",
+                  "const names = pm.response.json().items.map((i) => i.fullName);",
+                  "pm.test('Крипто Team Leads only', () => {",
+                  "  pm.expect(names).to.include('Дмитро Савченко');",
+                  "  pm.expect(names).to.not.include.members(['Василь Мороз', 'Тарас Лисенко']);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listAssignableTeamLeads — Head Recruiter gets the Team Leads of their own vertical",
+          "request": {
+            "name": "listAssignableTeamLeads — Head Recruiter gets the Team Leads of their own vertical",
+            "description": {},
+            "url": {
+              "path": ["verticals", ":verticalId", "team-leads"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{head_recruiter_vertical_id}}",
+                  "key": "verticalId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"head_recruiter_vertical_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"items\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"priority\":{\"type\":[\"integer\",\"null\"],\"minimum\":0,\"maximum\":99}},\"required\":[\"id\",\"fullName\",\"priority\"]}}},\"required\":[\"items\"]}));",
+                  "const { items } = pm.response.json();",
+                  "pm.test('Гемблінг Team Leads by priority: Василь 0, Тарас 1', () => {",
+                  "  pm.expect(",
+                  "    items.slice(0, 2).map((i) => [i.fullName, i.priority]),",
+                  "  ).to.deep.equal([",
+                  "    ['Василь Мороз', 0],",
+                  "    ['Тарас Лисенко', 1],",
+                  "  ]);",
+                  "  pm.expect(items.map((i) => i.fullName)).to.not.include('Дмитро Савченко');",
+                  "});",
+                  "pm.test('only what the picker shows: id, name, priority', () => {",
+                  "  items.forEach((i) =>",
+                  "    pm",
+                  "      .expect(Object.keys(i).sort())",
+                  "      .to.deep.equal(['fullName', 'id', 'priority']),",
+                  "  );",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listAssignableTeamLeads — Head Recruiter of Гемблінг cannot read Крипто",
+          "request": {
+            "name": "listAssignableTeamLeads — Head Recruiter of Гемблінг cannot read Крипто",
+            "description": {},
+            "url": {
+              "path": ["verticals", ":verticalId", "team-leads"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{crypto_vertical_id}}",
+                  "key": "verticalId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"crypto_vertical_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listAssignableTeamLeads — Recruiter in their own vertical has no grant",
+          "request": {
+            "name": "listAssignableTeamLeads — Recruiter in their own vertical has no grant",
+            "description": {},
+            "url": {
+              "path": ["verticals", ":verticalId", "team-leads"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{crypto_vertical_id}}",
+                  "key": "verticalId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_recruiter_crypto}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"crypto_vertical_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem FORBIDDEN\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:forbidden\",\"status\":403,\"code\":\"FORBIDDEN\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listAssignableTeamLeads — HR in their own vertical has no grant",
+          "request": {
+            "name": "listAssignableTeamLeads — HR in their own vertical has no grant",
+            "description": {},
+            "url": {
+              "path": ["verticals", ":verticalId", "team-leads"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{head_recruiter_vertical_id}}",
+                  "key": "verticalId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_hr}}", "type": "string" }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"head_recruiter_vertical_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem FORBIDDEN\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:forbidden\",\"status\":403,\"code\":\"FORBIDDEN\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listAssignableTeamLeads — Finance is out of scope",
+          "request": {
+            "name": "listAssignableTeamLeads — Finance is out of scope",
+            "description": {},
+            "url": {
+              "path": ["verticals", ":verticalId", "team-leads"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{head_recruiter_vertical_id}}",
+                  "key": "verticalId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_finance}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"head_recruiter_vertical_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listAssignableTeamLeads — unknown vertical",
+          "request": {
+            "name": "listAssignableTeamLeads — unknown vertical",
+            "description": {},
+            "url": {
+              "path": ["verticals", ":verticalId", "team-leads"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "00000000-0000-4000-8000-000000000000",
+                  "key": "verticalId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listAssignableTeamLeads — malformed id answers like an unknown one",
+          "request": {
+            "name": "listAssignableTeamLeads — malformed id answers like an unknown one",
+            "description": {},
+            "url": {
+              "path": ["verticals", ":verticalId", "team-leads"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "abc",
+                  "key": "verticalId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listAssignableTeamLeads — Admin without TOTP",
+          "request": {
+            "name": "listAssignableTeamLeads — Admin without TOTP",
+            "description": {},
+            "url": {
+              "path": ["verticals", ":verticalId", "team-leads"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{head_recruiter_vertical_id}}",
+                  "key": "verticalId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_admin_aal1}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"head_recruiter_vertical_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem MFA_REQUIRED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:mfa-required\",\"status\":401,\"code\":\"MFA_REQUIRED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "listAssignableTeamLeads — no token",
+          "request": {
+            "name": "listAssignableTeamLeads — no token",
+            "description": {},
+            "url": {
+              "path": ["verticals", ":verticalId", "team-leads"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{head_recruiter_vertical_id}}",
+                  "key": "verticalId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": { "type": "noauth" }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"head_recruiter_vertical_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
                 ]
               }
             },

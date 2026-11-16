@@ -7,8 +7,11 @@ import { Skeleton } from './skeleton';
 const BUTTON_WIDTHS = ['min-w-24', 'min-w-36', 'min-w-40'] as const;
 
 type FieldKind = 'input' | 'textarea' | 'segmented';
-/** `hint` reserves the one-line helper text under the control, as the real field has it. */
-export type FormSkeletonField = FieldKind | { kind: FieldKind; hint?: boolean };
+/** Lines of helper text under a control: one number for every width, or one for a phone (below `md`) and one for `md` and up. */
+export type FormSkeletonHint = boolean | number | { base: number; md: number };
+/** `hint` reserves the helper text under the control as the real field wraps it; `true` is one line. */
+export type FormSkeletonField =
+  FieldKind | { kind: FieldKind; hint?: FormSkeletonHint };
 /** `'group'` draws a group heading bar; an array is one grid row (side by side from md, stacked below). */
 export type FormSkeletonRow =
   'group' | FormSkeletonField | readonly FormSkeletonField[];
@@ -29,9 +32,16 @@ const COLUMNS: Readonly<Record<number, string | undefined>> = {
 const isGridRow = (row: FormSkeletonRow): row is readonly FormSkeletonField[] =>
   Array.isArray(row);
 
+const hintLines = (hint: FormSkeletonHint | undefined) => {
+  if (typeof hint === 'object') return hint;
+  const lines = typeof hint === 'number' ? hint : hint ? 1 : 0;
+  return { base: lines, md: lines };
+};
+
 function FieldSkeleton({ field }: { field: FormSkeletonField }) {
   const { kind, hint } =
     typeof field === 'string' ? { kind: field, hint: false } : field;
+  const lines = hintLines(hint);
   return (
     <div
       data-slot="form-field-skeleton"
@@ -42,12 +52,21 @@ function FieldSkeleton({ field }: { field: FormSkeletonField }) {
         <Skeleton className="h-3.5 w-32" />
       </div>
       <Skeleton data-slot="control-skeleton" className={CONTROL_CLASS[kind]} />
-      {hint && (
-        <div
-          data-slot="form-hint-skeleton"
-          className="mt-1.5 flex h-4 items-center"
-        >
-          <Skeleton className="h-3 w-48 max-w-full" />
+      {(lines.base > 0 || lines.md > 0) && (
+        <div data-slot="form-hint-skeleton" className="mt-1.5 flex flex-col">
+          {Array.from({ length: Math.max(lines.base, lines.md) }, (_, line) => (
+            <div
+              key={line}
+              data-slot="form-hint-line-skeleton"
+              className={cn(
+                'h-4 items-center',
+                line < lines.base ? 'flex' : 'hidden',
+                line < lines.md ? 'md:flex' : 'md:hidden',
+              )}
+            >
+              <Skeleton className="h-3 w-48 max-w-full" />
+            </div>
+          ))}
         </div>
       )}
     </div>

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '@/lib/api-client';
-import { emptyVacancyForm, type VacancyFormValues } from '@/lib/vacancy-form';
+import {
+  emptyVacancyForm,
+  verticalResetNote,
+  type VacancyFormValues,
+} from '@/lib/vacancy-form';
 import {
   classifyCreateFailure,
   createAttemptKeys,
@@ -12,6 +16,7 @@ import { parseVacancyPageState } from '@/lib/vacancy-filters';
 
 const VERTICAL = '8b1f5a0e-0c2d-4f6e-9d7a-2b3c4d5e6f70';
 const POSITION = '3f1e2d3c-4b5a-4968-8776-655443322110';
+const TEAM_LEAD = '5d2c7e90-1f3a-4b8c-9a6d-7e8f90a1b2c3';
 const VACANCY = '0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d';
 
 const values = (patch: Partial<VacancyFormValues> = {}): VacancyFormValues => ({
@@ -36,7 +41,7 @@ describe('create form → shared create schema [STORY-VAC-01-1, D89]', () => {
     expect(errorsOf(values({ positionId: POSITION }), 'PUBLISH')).toEqual({});
   });
 
-  it('sends only what the S3.1 form owns: no team lead, probation, bonus or salary keys', () => {
+  it('sends no probation, bonus or salary keys, and no team lead while none is chosen', () => {
     const result = parseVacancyForm(
       values({ positionId: POSITION, priority: 'URGENT', headcount: ' 3 ' }),
       'PUBLISH',
@@ -48,6 +53,23 @@ describe('create form → shared create schema [STORY-VAC-01-1, D89]', () => {
       title: 'Медіабаєр — Facebook',
       headcount: 3,
       priority: 'URGENT',
+    });
+  });
+
+  it.each(['DRAFT', 'PUBLISH'] as const)(
+    'sends the chosen Team Lead on %s',
+    (mode) => {
+      const result = parseVacancyForm(
+        values({ positionId: POSITION, teamLeadId: TEAM_LEAD }),
+        mode,
+      );
+      expect(result.ok && result.body).toMatchObject({ teamLeadId: TEAM_LEAD });
+    },
+  );
+
+  it('flags a Team Lead that is not an id instead of dropping it silently', () => {
+    expect(errorsOf(values({ teamLeadId: 'ліда' }), 'DRAFT')).toEqual({
+      teamLeadId: 'teamLeadInvalid',
     });
   });
 
@@ -180,11 +202,25 @@ describe('server answer → form [STORY-VAC-01-1, ux §4.1–4.2]', () => {
     });
   });
 
+  it('flags the Team Lead the server no longer accepts', () => {
+    const refused = problem(400, 'VALIDATION_FAILED', [
+      { path: 'body.teamLeadId', code: 'invalid_team_lead' },
+    ]);
+    expect(classifyCreateFailure(refused)).toEqual({
+      kind: 'fields',
+      errors: { teamLeadId: 'teamLeadInvalid' },
+    });
+    expect(planFailure(refused, false)).toEqual({
+      type: 'fields',
+      errors: { teamLeadId: 'teamLeadInvalid' },
+    });
+  });
+
   it('falls back to the generic failure for a field this form does not own', () => {
     expect(
       classifyCreateFailure(
         problem(400, 'VALIDATION_FAILED', [
-          { path: 'body.teamLeadId', code: 'invalid_team_lead' },
+          { path: 'body.probationDays', code: 'too_big' },
         ]),
       ),
     ).toEqual({ kind: 'failed' });
@@ -254,6 +290,20 @@ describe('what the form does with a failed create [STORY-VAC-01-1, ux §4.2]', (
       ),
     ).toEqual({ type: 'fields', errors: { title: 'titleLong' } });
   });
+});
+
+describe('what a vertical change tells the user [ux §2.1]', () => {
+  it.each([
+    [false, false, null],
+    [true, false, 'position'],
+    [false, true, 'teamLead'],
+    [true, true, 'both'],
+  ] as const)(
+    'cleared position %s, cleared Team Lead %s → %s',
+    (position, teamLead, note) => {
+      expect(verticalResetNote(position, teamLead)).toBe(note);
+    },
+  );
 });
 
 describe('idempotency key per attempt [STORY-VAC-01-1]', () => {

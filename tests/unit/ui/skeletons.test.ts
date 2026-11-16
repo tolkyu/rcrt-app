@@ -152,6 +152,38 @@ describe('FormSkeleton [UI foundation F9, G20]', () => {
     ).toHaveLength(1);
   });
 
+  it('reserves as many hint lines as the real helper text wraps to, per width', () => {
+    const lines = (hint: boolean | number | { base: number; md: number }) => {
+      const { container } = render(
+        provider(
+          createElement(FormSkeleton, {
+            title: 'Форма',
+            back: { href: '/', label: 'Назад' },
+            fields: [{ kind: 'input', hint }],
+          }),
+        ),
+      );
+      const found = [
+        ...container.querySelectorAll('[data-slot="form-hint-line-skeleton"]'),
+      ].map((line) => line.className);
+      cleanup();
+      return found;
+    };
+    expect(lines(true)).toEqual(['h-4 items-center flex md:flex']);
+    expect(lines(false)).toEqual([]);
+    expect(lines(0)).toEqual([]);
+    expect(lines(2)).toHaveLength(2);
+    expect(lines({ base: 3, md: 1 })).toEqual([
+      'h-4 items-center flex md:flex',
+      'h-4 items-center flex md:hidden',
+      'h-4 items-center flex md:hidden',
+    ]);
+    expect(lines({ base: 1, md: 2 })).toEqual([
+      'h-4 items-center flex md:flex',
+      'h-4 items-center hidden md:flex',
+    ]);
+  });
+
   it('keeps the flat field list of earlier callers as one full-width column', () => {
     const { container } = render(
       provider(
