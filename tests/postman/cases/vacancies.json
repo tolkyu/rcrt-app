@@ -1035,6 +1035,34 @@
     ]
   },
   {
+    "operation": "countOwnVacancyDrafts",
+    "name": "no token",
+    "as": null,
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "countOwnVacancyDrafts",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "countOwnVacancyDrafts",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "countOwnVacancyDrafts",
+    "name": "HR authors nowhere and gets 0, not an error",
+    "as": "hr",
+    "status": 200,
+    "script": "vacancy-draft-count-zero"
+  },
+  {
     "operation": "createVacancy",
     "name": "Admin saves a throwaway draft with only vertical and title",
     "as": "admin",
@@ -1075,6 +1103,13 @@
     },
     "status": 200,
     "script": "vacancy-draft-read"
+  },
+  {
+    "operation": "countOwnVacancyDrafts",
+    "name": "Admin counts the own draft",
+    "as": "admin",
+    "status": 200,
+    "script": "vacancy-draft-count-author"
   },
   {
     "operation": "updateVacancyDraft",
@@ -1206,6 +1241,13 @@
     "body": "{}",
     "status": 200,
     "script": "vacancy-draft-deleted"
+  },
+  {
+    "operation": "countOwnVacancyDrafts",
+    "name": "the deleted draft leaves the count",
+    "as": "admin",
+    "status": 200,
+    "script": "vacancy-draft-count-deleted"
   },
   {
     "operation": "getVacancy",

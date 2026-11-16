@@ -34,3 +34,16 @@ export const vacancyDetailQuery = (id: string) =>
         background: true,
       }),
   });
+
+export const vacancyDraftCountQuery = () =>
+  queryOptions({
+    queryKey: queryKeys.vacancyDraftCount(),
+    retry,
+    queryFn: ({ signal }) =>
+      apiRequest('/vacancies/drafts/count', {
+        schema: async () =>
+          (await import('@/lib/schemas/vacancy')).vacancyDraftCountSchema,
+        signal,
+        background: true,
+      }),
+  });

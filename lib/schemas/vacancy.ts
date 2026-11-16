@@ -104,6 +104,11 @@ export const vacancyPageSchema = z
   .meta({ id: 'VacancyPage' });
 export type VacancyPage = z.infer<typeof vacancyPageSchema>;
 
+export const vacancyDraftCountSchema = z
+  .object({ count: z.number().int().min(0) })
+  .meta({ id: 'VacancyDraftCount' });
+export type VacancyDraftCount = z.infer<typeof vacancyDraftCountSchema>;
+
 export const formatVacancyNumber = (value: bigint): string =>
   `V-${value.toString().padStart(4, '0')}`;
 

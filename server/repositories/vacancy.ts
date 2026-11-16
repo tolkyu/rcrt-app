@@ -176,7 +176,7 @@ export async function insertVacancyRecruiter(
   await db.insert(vacancyRecruiter).values(row);
 }
 
-/** Live DRAFT rows of one author, served by `vacancy_draft_author_idx`. */
+/** Live DRAFT rows of one author across all verticals (the D112(3) cap, deliberately not vertical-scoped), served by `vacancy_draft_author_idx`. */
 export async function countLiveDrafts(
   db: DbExecutor,
   authorId: string,
@@ -191,6 +191,18 @@ export async function countLiveDrafts(
         isNull(vacancy.deletedAt),
       ),
     );
+  return row!.count;
+}
+
+/** Live rows matching `scope`; callers pass the DRAFT read predicate, which pins the author and `vacancy_draft_author_idx`. */
+export async function countVacancies(
+  db: DbExecutor,
+  scope: SQL,
+): Promise<number> {
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(vacancy)
+    .where(and(isNull(vacancy.deletedAt), scope));
   return row!.count;
 }
 

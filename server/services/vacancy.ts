@@ -13,6 +13,7 @@ import {
   VACANCY_WRITE_RATE_LIMIT,
   type CreateVacancyInput,
   type VacancyDetail,
+  type VacancyDraftCount,
   type VacancyListQuery,
   type VacancyPage,
 } from '../../lib/schemas/vacancy';
@@ -25,6 +26,7 @@ import {
   type VerticalId,
 } from '../authz/types';
 import {
+  authorsAnywhere,
   grantCovers,
   vacancyAuthorKind,
   type VacancyAuthorKind,
@@ -49,6 +51,7 @@ import { listRoleAssignments, lockUsersShared } from '../repositories/user';
 import { verticalExists } from '../repositories/vertical';
 import {
   countLiveDrafts,
+  countVacancies,
   findVacancy,
   insertVacancy,
   insertVacancyRecruiter,
@@ -96,6 +99,17 @@ export async function listVacancyPage(
     items: result.items.map((row) => present(row)),
     nextCursor: result.hasOlder && last ? last.publicNo : null,
     prevCursor: result.hasNewer && first ? first.publicNo : null,
+  };
+}
+
+/** D110: the caller's own live drafts, counted through the DRAFT arm of the read predicate so they match the «Чернетки» list; one without an authoring role learns nothing and gets 0 without a query. */
+export async function countOwnDrafts(
+  ctx: RequestContext,
+): Promise<VacancyDraftCount> {
+  requirePermission(ctx.auth, 'vacancy.read');
+  if (!authorsAnywhere(ctx.auth)) return { count: 0 };
+  return {
+    count: await countVacancies(ctx.db, vacancyReadWhere(ctx.auth, 'DRAFT')),
   };
 }
 

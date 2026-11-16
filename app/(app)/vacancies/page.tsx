@@ -8,7 +8,11 @@ import { PageHeader } from '@/components/shell/page-header';
 import { VacanciesView } from '@/components/vacancies/vacancies-view';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PREFERENCE_COOKIES } from '@/lib/preference-cookie';
-import { vacanciesQuery, vacancyDetailQuery } from '@/lib/queries/vacancies';
+import {
+  vacanciesQuery,
+  vacancyDetailQuery,
+  vacancyDraftCountQuery,
+} from '@/lib/queries/vacancies';
 import {
   parseVacancyPageState,
   vacancyPageUrlSearch,
@@ -22,7 +26,11 @@ import { authorsAnywhere } from '@/server/authz/vacancy-author';
 import { NotFoundError } from '@/server/http/errors';
 import { describeError, logger } from '@/server/observability/logger';
 import { getQueryClient } from '@/server/query/query-client';
-import { getVacancyDetail, listVacancyPage } from '@/server/services/vacancy';
+import {
+  countOwnDrafts,
+  getVacancyDetail,
+  listVacancyPage,
+} from '@/server/services/vacancy';
 import { requireSession } from '../_lib/session';
 import { getVisibleVerticals } from '../_lib/verticals';
 
@@ -93,6 +101,19 @@ async function VacanciesContent({ params }: { params: SearchParams }) {
       },
     ),
     state.selected && prefetchDetail(state.selected),
+    canAuthorDrafts &&
+      countOwnDrafts(ctx).then(
+        (drafts) => {
+          queryClient.setQueryData(vacancyDraftCountQuery().queryKey, drafts);
+        },
+        (error: unknown) => {
+          // The client query retries; the log carries no ids or PII.
+          logger.error(
+            { err: describeError(error) },
+            'vacancy draft count prefetch failed',
+          );
+        },
+      ),
   ]);
   if (outcome === 'orphanCursor') {
     const search = vacancyPageUrlSearch(withVacancyFilters(state, {}));

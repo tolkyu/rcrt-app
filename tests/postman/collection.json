@@ -22839,6 +22839,189 @@
           ]
         },
         {
+          "name": "countOwnVacancyDrafts — no token",
+          "request": {
+            "name": "countOwnVacancyDrafts — no token",
+            "description": {},
+            "url": {
+              "path": ["vacancies", "drafts", "count"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": { "type": "noauth" }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem UNAUTHENTICATED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:unauthenticated\",\"status\":401,\"code\":\"UNAUTHENTICATED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "countOwnVacancyDrafts — Finance has no vacancy access",
+          "request": {
+            "name": "countOwnVacancyDrafts — Finance has no vacancy access",
+            "description": {},
+            "url": {
+              "path": ["vacancies", "drafts", "count"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_finance}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "countOwnVacancyDrafts — Admin without TOTP",
+          "request": {
+            "name": "countOwnVacancyDrafts — Admin without TOTP",
+            "description": {},
+            "url": {
+              "path": ["vacancies", "drafts", "count"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_admin_aal1}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem MFA_REQUIRED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:mfa-required\",\"status\":401,\"code\":\"MFA_REQUIRED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "countOwnVacancyDrafts — HR authors nowhere and gets 0, not an error",
+          "request": {
+            "name": "countOwnVacancyDrafts — HR authors nowhere and gets 0, not an error",
+            "description": {},
+            "url": {
+              "path": ["vacancies", "drafts", "count"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_hr}}", "type": "string" }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"count\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"count\"]}));",
+                  "pm.test('no authoring role, no drafts counted', () => {",
+                  "  pm.expect(pm.response.json()).to.deep.equal({ count: 0 });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "createVacancy — Admin saves a throwaway draft with only vertical and title",
           "request": {
             "name": "createVacancy — Admin saves a throwaway draft with only vertical and title",
@@ -23112,6 +23295,53 @@
                   "  pm.expect(draft.id).to.equal(pm.collectionVariables.get('vacancy_draft_id'));",
                   "  pm.expect(draft.status).to.equal('DRAFT');",
                   "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "countOwnVacancyDrafts — Admin counts the own draft",
+          "request": {
+            "name": "countOwnVacancyDrafts — Admin counts the own draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies", "drafts", "count"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"count\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"count\"]}));",
+                  "const { count } = pm.response.json();",
+                  "pm.test('the author counts at least the new draft', () => {",
+                  "  pm.expect(count).to.be.at.least(1);",
+                  "});",
+                  "pm.collectionVariables.set('vacancy_draft_count', String(count));"
                 ]
               }
             }
@@ -23861,6 +24091,53 @@
                   "  pm.expect(pm.response.json()).to.deep.equal({",
                   "    id: pm.collectionVariables.get('vacancy_draft_id'),",
                   "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "countOwnVacancyDrafts — the deleted draft leaves the count",
+          "request": {
+            "name": "countOwnVacancyDrafts — the deleted draft leaves the count",
+            "description": {},
+            "url": {
+              "path": ["vacancies", "drafts", "count"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"count\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"count\"]}));",
+                  "pm.test('one draft fewer than before the deletion', () => {",
+                  "  pm.expect(pm.response.json().count).to.equal(",
+                  "    Number(pm.collectionVariables.get('vacancy_draft_count')) - 1,",
+                  "  );",
                   "});"
                 ]
               }

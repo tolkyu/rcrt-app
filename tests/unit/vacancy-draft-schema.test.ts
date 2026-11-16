@@ -3,6 +3,7 @@ import {
   cancelVacancySchema,
   patchVacancySchema,
   publishDraftSchema,
+  vacancyDraftCountSchema,
   VACANCY_REASON_MAX,
   VACANCY_TITLE_MAX,
 } from '@/lib/schemas/vacancy';
@@ -186,5 +187,19 @@ describe('cancel contract [D82]', () => {
       cancelVacancySchema.safeParse({ reason: 'Дубль', status: 'OPEN' })
         .success,
     ).toBe(false);
+  });
+});
+
+describe('own draft count contract [STORY-VAC-01-3 AC1, D110]', () => {
+  it.each([0, 1, 50])('accepts %i', (count) => {
+    expect(vacancyDraftCountSchema.safeParse({ count }).success).toBe(true);
+  });
+
+  it.each([-1, 1.5, '3', null, undefined])('rejects %s', (count) => {
+    expect(vacancyDraftCountSchema.safeParse({ count }).success).toBe(false);
+  });
+
+  it('requires the count', () => {
+    expect(vacancyDraftCountSchema.safeParse({}).success).toBe(false);
   });
 });

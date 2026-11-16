@@ -9,6 +9,8 @@ export const queryKeys = {
     ['positions', filters] as const,
   vacancies: (filters: Readonly<Record<string, unknown>>) =>
     ['vacancies', filters] as const,
+  /** Under `['vacancies']` so every list invalidation (create, publish, cancel, delete) refreshes the chip count too. */
+  vacancyDraftCount: () => ['vacancies', 'draft-count'] as const,
   vacancy: (id: string) => ['vacancy', id.toLowerCase()] as const,
   settingsVerticals: () => ['settings', 'verticals'] as const,
   settingsAudit: (filters: Readonly<Record<string, string | undefined>>) =>

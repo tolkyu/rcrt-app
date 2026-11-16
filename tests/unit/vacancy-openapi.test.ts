@@ -108,3 +108,26 @@ describe('draft lifecycle contract [STORY-VAC-01-3, D92]', () => {
       expect(headers(id)).toEqual(['X-CSRF-Protection']);
   });
 });
+
+describe('own draft count contract [STORY-VAC-01-3 AC1, D110]', () => {
+  const operation = document.paths['/vacancies/drafts/count']?.get;
+
+  it('is a read-only GET that answers 200 and the access refusals', () => {
+    expect(operation?.operationId).toBe('countOwnVacancyDrafts');
+    expect(Object.keys(operation?.responses ?? {}).sort()).toEqual([
+      '200',
+      '401',
+      '404',
+      '500',
+    ]);
+    expect(document.paths['/vacancies/drafts/count']).not.toHaveProperty(
+      'post',
+    );
+  });
+
+  it('returns only the count', () => {
+    expect(document.components.schemas.VacancyDraftCount?.required).toEqual([
+      'count',
+    ]);
+  });
+});

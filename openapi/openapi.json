@@ -1650,6 +1650,11 @@
         "properties": { "id": { "type": "string", "format": "uuid" } },
         "required": ["id"]
       },
+      "VacancyDraftCount": {
+        "type": "object",
+        "properties": { "count": { "type": "integer", "minimum": 0 } },
+        "required": ["count"]
+      },
       "VacancyPage": {
         "type": "object",
         "properties": {
@@ -5492,6 +5497,47 @@
           },
           "429": {
             "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vacancies/drafts/count": {
+      "get": {
+        "operationId": "countOwnVacancyDrafts",
+        "summary": "Count the caller’s own live DRAFT vacancies in the verticals where they still author (the «Чернетки» chip); 0 for a caller who authors nowhere",
+        "tags": ["Vacancies"],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VacancyDraftCount" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
             "content": {
               "application/problem+json": {
                 "schema": { "$ref": "#/components/schemas/Problem" }
