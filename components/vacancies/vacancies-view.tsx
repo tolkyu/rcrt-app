@@ -32,7 +32,6 @@ import { FilterChips } from '@/components/ui/filter-chips';
 import { FilterSelectField } from '@/components/ui/filter-select-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
 import { vacanciesQuery, vacancyDetailQuery } from '@/lib/queries/vacancies';
 import { verticalsQuery } from '@/lib/queries/verticals';
 import { useWideScreen } from '@/lib/use-wide-screen';
@@ -51,22 +50,11 @@ import {
 import { rememberVacancyList } from '@/lib/vacancy-list-memory';
 import { navigateVacancies as navigate } from '@/lib/vacancy-navigation';
 import { ALL_VERTICALS } from '@/lib/vertical-filter';
+import { RowSkeleton } from './row-skeleton';
 import { VacanciesList } from './vacancies-list';
 import { VacancyPreview } from './vacancy-preview';
 
 const SEARCH_DEBOUNCE_MS = 300;
-
-function ListSkeleton() {
-  const t = useTranslations('states');
-  return (
-    <div role="status" className="skeleton-delayed flex flex-col gap-2 p-4">
-      <span className="sr-only">{t('loading')}</span>
-      {Array.from({ length: 8 }, (_, index) => (
-        <Skeleton key={index} className="h-14 w-full" />
-      ))}
-    </div>
-  );
-}
 
 /** «Вакансії»: filters, cursor and preview selection live in the URL (VAC-04); one page of at most 100 rows is retained. */
 export function VacanciesView({
@@ -218,7 +206,7 @@ export function VacanciesView({
         retrying={query.isFetching}
       />
     ) : (
-      <ListSkeleton />
+      <RowSkeleton />
     );
   } else if (items.length === 0) {
     body = (

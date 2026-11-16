@@ -7,6 +7,7 @@ import { memo, type MouseEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import type { VacancySummary } from '@/lib/schemas/vacancy';
 import { cn } from '@/lib/utils';
+import { VacanciesTableHead } from './vacancies-table-head';
 import { urgentEdge, VacancyFlags, VacancyStatus } from './vacancy-badges';
 
 const INTERACTIVE = 'a,button,input,select,textarea,summary';
@@ -71,31 +72,7 @@ export const VacanciesList = memo(function VacanciesList({
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <caption className="sr-only">{t('caption')}</caption>
-          <thead>
-            <tr className="border-border text-muted-foreground border-b text-left text-xs">
-              <th scope="col" className="min-w-56 px-4 py-3 font-medium">
-                {t('columns.title')}
-              </th>
-              <th scope="col" className="min-w-28 px-4 py-3 font-medium">
-                {t('columns.vertical')}
-              </th>
-              <th scope="col" className="min-w-44 px-4 py-3 font-medium">
-                {t('columns.teamLead')}
-              </th>
-              <th scope="col" className="min-w-32 px-4 py-3 font-medium">
-                {t('columns.status')}
-              </th>
-              <th
-                scope="col"
-                className="px-4 py-3 font-medium whitespace-nowrap xl:max-2xl:hidden"
-              >
-                {t('columns.openedAt')}
-              </th>
-              <th scope="col" className="hidden w-14 px-2 py-3 xl:table-cell">
-                <span className="sr-only">{t('columns.preview')}</span>
-              </th>
-            </tr>
-          </thead>
+          <VacanciesTableHead />
           <tbody>
             {items.map((vacancy) => {
               const selected = wide && vacancy.id === selectedId;

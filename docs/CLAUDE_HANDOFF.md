@@ -3,12 +3,12 @@
 > Read order: `CLAUDE.md` → this file → `docs/PROGRESS.md` → `docs/PRD.md` §14 (owner decisions D1–D70).
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
-## Checkpoint — 2026-11-16 (F6b, D111/D112, F9a, F9b reviewed and pushed)
+## Checkpoint — 2026-11-16 (F6b, D111/D112, F9a, F9b, F9c reviewed and pushed)
 
 - **All reviews APPROVED and pushed to `origin/phase-2` (HEAD `1142038`)**: F6b `29620cc` + follow-up `30ca0eb`; D111/D112 `341eeb3` (code + security, `docs/security/review-phase-2-d111-d112.md`) + follow-up `30ca0eb`; F9a `ef0e83a`; F9b `f0a443e` + leave-guard fix `1142038`. Details and gaps in `docs/PROGRESS.md`.
 - **Owner decisions 2026-11-16 («згоден з реками»):** busy-dim contrast exemption accepted; no visible «Статус» label over the chips; the owner checks the sticky bar / form footer on a real phone.
 - **S3 must follow the leave-guard contract:** after a successful save call `guardRef.current.release()` then `router.replace(target)` (a push without `release()` leaves a stale history entry).
-- **Next: F9c** (RowSkeleton/FormSkeleton in final geometry, preview/detail header actions slot + 3-line title clamp) → F10 → S3. **Wait for the owner's go before starting F9c.**
+- **F9c done and pushed (2026-11-16)**: RowSkeleton (in «Вакансії»), FormSkeleton (gallery, for S3), DetailHeader (preview title clamp + actions slot). Owner question open: G11 row 56 px vs real ~68.5 px. **Next: S3** (create form UI + «Чернетки» chip count + draft actions; uses FormPageLayout/FormSkeleton/RowActionsMenu/DetailHeader); F10 rich text trails S3 core (`docs/ux/ui-foundation.md`). Do not start without the owner's go.
 - Run notes: a corrupted `.next` from the dev-ui dev server made `next build` die with `uncaughtException … reading 'length'` — move/delete `.next` and rebuild. Vitest from Git Bash fails ("failed to find the current suite"); run it from PowerShell (`corepack pnpm test` or `node node_modules/vitest/vitest.mjs run --project unit …`). Integration files share one test DB — do not run two integration runs at once (`42P01`).
 
 ## UI foundation checkpoint — 2026-11-13 (F1–F5, F6a, F7, F8, F8.1 + hydration fix committed)

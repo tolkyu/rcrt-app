@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
+import { DetailHeader } from '@/components/ui/detail-header';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
 import { toast } from '@/lib/toast';
 import { formatVacancyMoney } from './money';
@@ -76,40 +77,38 @@ export function VacancyOverview({
   );
   return (
     <div className="flex min-w-0 flex-col gap-5 p-4 md:p-5">
-      <div className="min-w-0">
-        <p className="text-muted-foreground mb-2 text-xs font-medium tabular-nums">
-          {vacancy.number}
-        </p>
-        {preview && (
-          <h2 className="text-heading-lg mb-3 [overflow-wrap:anywhere] break-words">
-            {vacancy.title}
-          </h2>
-        )}
-        <div className="flex flex-wrap items-center gap-2">
-          <VacancyStatus status={vacancy.status} />
-          <VacancyFlags vacancy={vacancy} />
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        {preview && (
-          <Button asChild size="sm" variant="outline" className="h-11">
-            <Link href={path}>
-              <ExternalLink aria-hidden="true" />
-              {t('openCard')}
-            </Link>
-          </Button>
-        )}
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-11"
-          onClick={() => void copy()}
-          disabled={copying}
-        >
-          <Share2 aria-hidden="true" />
-          {t('share')}
-        </Button>
-      </div>
+      <DetailHeader
+        eyebrow={vacancy.number}
+        title={preview ? vacancy.title : undefined}
+        badges={
+          <>
+            <VacancyStatus status={vacancy.status} />
+            <VacancyFlags vacancy={vacancy} />
+          </>
+        }
+        actions={
+          <>
+            {preview && (
+              <Button asChild size="sm" variant="outline" className="h-11">
+                <Link href={path}>
+                  <ExternalLink aria-hidden="true" />
+                  {t('openCard')}
+                </Link>
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-11"
+              onClick={() => void copy()}
+              disabled={copying}
+            >
+              <Share2 aria-hidden="true" />
+              {t('share')}
+            </Button>
+          </>
+        }
+      />
       {copyFailed && (
         <div role="alert" className="bg-surface-muted rounded-lg p-3 text-sm">
           <p>{t('shareFailed')}</p>

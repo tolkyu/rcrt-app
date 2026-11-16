@@ -20,7 +20,7 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-wrap items-start justify-between gap-4 md:mb-8">
       <div className="min-w-0">
-        <h1 className="text-heading-lg text-foreground md:text-display-xl">
+        <h1 className="text-heading-lg text-foreground md:text-display-xl [overflow-wrap:anywhere]">
           {title}
         </h1>
         {subtitle && (

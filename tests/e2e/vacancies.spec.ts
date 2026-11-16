@@ -925,6 +925,24 @@ test.describe('admin@demo', () => {
     ).toBeVisible();
   });
 
+  test('a very long title is clamped to three lines in the preview and keeps its full text in title [UI-F9, G17, VAC-04]', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'the side preview exists on wide screens only');
+    const long = demoVacancy(9);
+    await openHydrated(page, `/vacancies?vacancy=${long.id}`);
+    const heading = page
+      .getByRole('complementary', { name: t.previewLabel })
+      .getByRole('heading', { level: 2, name: long.title });
+    await expect(heading).toHaveAttribute('title', long.title);
+    const box = (await heading.boundingBox())!;
+    expect(Math.abs(box.height - 3 * 28)).toBeLessThanOrEqual(2);
+    expect(
+      await heading.evaluate((node) => node.scrollHeight > node.clientHeight),
+    ).toBe(true);
+  });
+
   test('a changed filter drops the preview selection that belonged to the previous result [VAC-04]', async ({
     page,
     isMobile,

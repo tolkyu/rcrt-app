@@ -1,7 +1,5 @@
 'use client';
 
-import { ChevronLeft } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import {
   lazy,
@@ -14,6 +12,7 @@ import {
   type ReactNode,
   type Ref,
 } from 'react';
+import { FormPageFooter, FormPageHeading } from './form-page-frame';
 import { LoadBoundary } from './load-boundary';
 import { useLeaveGuard, type LeaveGuardHandle } from './use-leave-guard';
 
@@ -72,26 +71,12 @@ export function FormPageLayout({
   useImperativeHandle(guardRef, () => ({ release }), [release]);
   return (
     <>
-      <Link
-        href={back.href}
-        className="text-muted-foreground hover:text-foreground -ml-1 inline-flex min-h-11 items-center gap-1 rounded-md px-1 text-sm md:min-h-9"
-      >
-        <ChevronLeft aria-hidden="true" className="size-4" />
-        {back.label}
-      </Link>
-      <div className="mt-2 mb-6">
-        <h1
-          id={titleId}
-          className="text-heading-lg text-foreground md:text-display-xl"
-        >
-          {title}
-        </h1>
-        {subtitle && (
-          <p className="text-muted-foreground mt-1 text-xs md:text-sm">
-            {subtitle}
-          </p>
-        )}
-      </div>
+      <FormPageHeading
+        titleId={titleId}
+        title={title}
+        subtitle={subtitle}
+        back={back}
+      />
       <form
         noValidate
         aria-labelledby={titleId}
@@ -99,12 +84,7 @@ export function FormPageLayout({
         className="flex flex-col gap-6"
       >
         {children}
-        <div
-          data-slot="form-page-footer"
-          className="border-border bg-surface after:bg-surface sticky bottom-(--chrome-bottom) z-10 -mx-4 flex flex-wrap justify-end gap-2 border-t px-4 py-3 after:absolute after:inset-x-0 after:top-full after:h-[env(safe-area-inset-bottom)] md:bottom-0 md:mx-0 md:rounded-b-xl md:px-0 md:after:hidden [&>*]:flex-1 md:[&>*]:flex-none"
-        >
-          {footer}
-        </div>
+        <FormPageFooter>{footer}</FormPageFooter>
       </form>
       {guard.asking && (
         <LoadBoundary
