@@ -108,7 +108,7 @@
 
 ### S-05 Вакансія — форма [VAC-01, VAC-03]
 
-- **Fields:** all VAC-01 fields grouped: Основне (назва, посада, вертикаль, тімлід, кількість місць, рівень, формат, тип зайнятості) · Умови (зарплатна вилка + валюта, випробувальний термін ≤ 90 дн.) · Опис (rich text, lazy) · Вимоги · Терміновість вакансії · Рекрутери · Схема бонусів (Admin only; others see inherited read-only) · Пріоритет тімліда для цієї вакансії (Admin only).
+- **Fields:** all VAC-01 fields grouped: Основне (назва, посада, вертикаль, тімлід, кількість місць, рівень, формат, тип зайнятості) · Умови (зарплатна вилка + валюта, випробувальний термін ≤ 90 дн.) · Опис (rich text, lazy) · Вимоги · Терміновість вакансії · Рекрутери · Схема бонусів: не в формі вакансії, налаштовується в окремому меню Адміна «Бонуси» (D114) · Пріоритет тімліда для цієї вакансії (Admin only).
 - **Role diff:** TL — vertical/TL prefilled & locked, title «Запит на вакансію», submit «Надіслати запит» (always `OPEN`, D87; fields per D86/D90: position, headcount, urgency, comment); Rec/HRec — TL optional → «Вакансія від рекрутера».
 - **Validation:** probation 1–90; salary min ≤ max; inline errors in Ukrainian.
 
