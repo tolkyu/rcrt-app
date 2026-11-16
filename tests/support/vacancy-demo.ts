@@ -15,14 +15,14 @@ export function demoVacancy(position: number) {
   };
 }
 
+/** Drafts that vacancies-create.spec.ts saves for real (and removes again) while other specs run in parallel; list assertions elsewhere ignore them. */
+export const E2E_DRAFT_PREFIX = 'Тест E2E чернетка';
 export const DELETED_VACANCY = 13;
 export const NEWEST_VISIBLE = 14;
-export const ALL_VISIBLE = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14] as const;
-/** V-0008 is Admin's own draft (D92): every other role is denied it. */
+/** What «Усі» lists (D110): drafts are not in it, so V-0008 is missing even for its author. */
+export const ALL_VISIBLE = [1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 14] as const;
+/** V-0008 is Admin's own draft (D92): its card opens for Admin only and it is listed under «Чернетки» only (D110). */
 export const DRAFT_VACANCY = 8;
-export const WITHOUT_DRAFT = ALL_VISIBLE.filter(
-  (position) => position !== DRAFT_VACANCY,
-);
 
 /** Numbers each browser-tested user may open (STORY-VAC-04-1); Finance has none. `tl.crypto@demo` belongs to Newman's session-count checks and is covered by the integration tests. */
 export const VISIBLE_VACANCIES: Record<
@@ -30,8 +30,8 @@ export const VISIBLE_VACANCIES: Record<
   readonly number[]
 > = {
   'admin@demo': ALL_VISIBLE,
-  'head.hr@demo': WITHOUT_DRAFT,
-  'hr@demo': WITHOUT_DRAFT,
+  'head.hr@demo': ALL_VISIBLE,
+  'hr@demo': ALL_VISIBLE,
   'head.recruiter.gambling@demo': [1, 2, 4, 5, 6, 9, 10, 11],
   'vasyl.tl@demo': [1, 2, 9],
   'taras.tl@demo': [4, 5, 6, 11],

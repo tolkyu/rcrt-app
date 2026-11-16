@@ -226,10 +226,15 @@ describe('POST /api/v1/vacancies over HTTP [STORY-VAC-01-1, STORY-VAC-01-3 AC5]'
       const draftId = ((await draft.json()) as VacancyDetail).id;
 
       expect((await mine.read(draftId)).status).toBe(200);
-      const own = (await (await mine.list('?limit=100')).json()) as {
-        items: { id: string }[];
-      };
-      expect(own.items.map((item) => item.id)).toContain(draftId);
+      const ids = async (query: string) =>
+        (
+          (await (await mine.list(query)).json()) as {
+            items: { id: string }[];
+          }
+        ).items.map((item) => item.id);
+      // D110: the draft is under «Чернетки» only, never in the list without a status.
+      expect(await ids('?limit=100&status=DRAFT')).toContain(draftId);
+      expect(await ids('?limit=100')).not.toContain(draftId);
 
       const theirs = routes(args, other);
       const hidden = await theirs.read(draftId);

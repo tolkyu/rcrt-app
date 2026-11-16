@@ -50,6 +50,7 @@ import {
 import { rememberVacancyList } from '@/lib/vacancy-list-memory';
 import { navigateVacancies as navigate } from '@/lib/vacancy-navigation';
 import { ALL_VERTICALS } from '@/lib/vertical-filter';
+import { CreateVacancyLink } from './create-vacancy-link';
 import { RowSkeleton } from './row-skeleton';
 import { VacanciesList } from './vacancies-list';
 import { VacancyPreview } from './vacancy-preview';
@@ -221,6 +222,8 @@ export function VacanciesView({
             <Button variant="outline" className="h-11" onClick={reset}>
               {t('resetFilters')}
             </Button>
+          ) : canAuthorDrafts ? (
+            <CreateVacancyLink className="h-11" />
           ) : undefined
         }
       />
@@ -246,6 +249,11 @@ export function VacanciesView({
         title={t('title')}
         subtitle={t('subtitle')}
         actions={canManagePositions ? <PositionsEntryLink /> : undefined}
+        primary={
+          canAuthorDrafts ? (
+            <CreateVacancyLink className="h-12 md:h-10" />
+          ) : undefined
+        }
       />
       <FilterBar
         label={t('filtersLabel')}

@@ -26,3 +26,10 @@ export const positionsQuery = (filters: PositionsFilters) =>
   });
 
 export const MANAGER_POSITIONS: PositionsFilters = { status: 'all' };
+
+/** Active positions of one vertical for the vacancy form; fresh for a minute, so reopening the picker or switching verticals back and forth costs no request. */
+export const activePositionsQuery = (verticalId: string) =>
+  queryOptions({
+    ...positionsQuery({ status: 'active', verticalId }),
+    staleTime: 60_000,
+  });

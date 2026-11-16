@@ -52,6 +52,18 @@ function authoredIn(ctx: AuthContext): SQL {
   return any.size === 0 ? sql`false` : inArray(vacancy.verticalId, [...any]);
 }
 
+/** What the caller's roles grant once every private draft is taken out; the one place that rule lives, shared by the read and the list predicate. */
+function roleScopeWithoutPrivateDrafts(
+  ctx: AuthContext,
+  excludeCancelledDrafts: boolean,
+): SQL {
+  return and(
+    ne(vacancy.status, 'DRAFT'),
+    excludeCancelledDrafts ? not(cancelledDraft) : undefined,
+    scopeWhere(ctx, 'vacancy.read', vacancyScope),
+  )!;
+}
+
 /**
  * The only vacancy read predicate (D92, D98). A DRAFT, and a draft its author cancelled, belongs to its author alone,
  * whatever else the caller's roles grant (Admin and Head Recruiter included) and only while the author still holds a
@@ -65,18 +77,26 @@ export function vacancyReadWhere(
   const mine = and(eq(vacancy.createdBy, ctx.userId), authoredIn(ctx))!;
   const draftArm = and(eq(vacancy.status, 'DRAFT'), mine)!;
   const cancelledArm = and(cancelledDraft, mine)!;
-  const scoped = scopeWhere(ctx, 'vacancy.read', vacancyScope);
-  const roleArm = (excludeCancelledDrafts: boolean) =>
-    and(
-      ne(vacancy.status, 'DRAFT'),
-      excludeCancelledDrafts ? not(cancelledDraft) : undefined,
-      scoped,
-    )!;
   // A status filter drops arms so the rest stays indexable (draft arm: `vacancy_draft_author_idx`); an author's cancelled drafts are a handful, found through the role-scope indexes with a row filter.
   if (status === 'DRAFT') return draftArm;
-  if (status === 'CANCELLED') return or(roleArm(true), cancelledArm)!;
-  if (status !== undefined) return roleArm(false);
-  return or(roleArm(true), draftArm, cancelledArm)!;
+  if (status === 'CANCELLED')
+    return or(roleScopeWithoutPrivateDrafts(ctx, true), cancelledArm)!;
+  if (status !== undefined) return roleScopeWithoutPrivateDrafts(ctx, false);
+  return or(roleScopeWithoutPrivateDrafts(ctx, true), draftArm, cancelledArm)!;
+}
+
+/**
+ * Predicate of the vacancy list (D110): without a status filter («Усі») an author's own drafts, cancelled ones too,
+ * stay out and live under «Чернетки» / «Скасовані» only. A status filter and every by-id read keep using `vacancyReadWhere`,
+ * so a draft card still opens for its author.
+ */
+export function vacancyListWhere(
+  ctx: AuthContext,
+  status?: VacancyStatus,
+): SQL {
+  return status === undefined
+    ? roleScopeWithoutPrivateDrafts(ctx, true)
+    : vacancyReadWhere(ctx, status);
 }
 
 /** Explicitly qualified: Drizzle drops qualifiers in single-table selects and `vertical_id` exists on `vacancy` too, so a bare name inside a subquery would bind to the wrong table. */

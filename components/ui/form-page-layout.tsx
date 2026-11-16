@@ -9,6 +9,7 @@ import {
   useImperativeHandle,
   useRef,
   type FormEventHandler,
+  type KeyboardEventHandler,
   type ReactNode,
   type Ref,
 } from 'react';
@@ -52,6 +53,7 @@ export function FormPageLayout({
   dirty,
   guardRef,
   onSubmit,
+  onKeyDown,
   footer,
   children,
 }: {
@@ -61,6 +63,8 @@ export function FormPageLayout({
   dirty: boolean;
   guardRef?: Ref<LeaveGuardHandle>;
   onSubmit: FormEventHandler<HTMLFormElement>;
+  /** Form-wide shortcuts (e.g. Ctrl+Enter); bubbles from every field. */
+  onKeyDown?: KeyboardEventHandler<HTMLFormElement>;
   footer: ReactNode;
   children: ReactNode;
 }) {
@@ -77,10 +81,12 @@ export function FormPageLayout({
         subtitle={subtitle}
         back={back}
       />
+      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- only keys that bubble up from the form's own fields arrive here; the form is not a control */}
       <form
         noValidate
         aria-labelledby={titleId}
         onSubmit={onSubmit}
+        onKeyDown={onKeyDown}
         className="flex flex-col gap-6"
       >
         {children}

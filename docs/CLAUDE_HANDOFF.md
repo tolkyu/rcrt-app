@@ -3,6 +3,13 @@
 > Read order: `CLAUDE.md` → this file → `docs/PROGRESS.md` → `docs/PRD.md` §14 (owner decisions D1–D70).
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
+## Checkpoint — 2026-11-16 (S3.1 create form pushed)
+
+- **S3.1 done and pushed** (QA all green, code review APPROVED after B1/B2/N1 fixes, security PASS `docs/security/review-phase-2-s3-1.md`): entry points, `/vacancies/new`, group «Основне», both submits, D110 list fix (`vacancyListWhere`: «Усі» hides own drafts). Details + gaps in `docs/PROGRESS.md`.
+- **Owner decisions D114–D121 (2026-11-16):** no bonus fields in the vacancy form; separate Admin «Бонуси» menu presets bonus per position; Head Recruiter may change a vacancy's bonus with Admin approval; opened vacancies keep the old bonus. Q-186 answered.
+- **Next (owner said «працюй по максимуму» — continue without asking per slice):** perf slice first — `/vacancies/new` is at exactly 180.00 kB (0 headroom); cut the shared `(app)` layout chunk (`vacancy-filters`, intl parser) and fix the mobile toast covering the form footer (`useStickyBar` in `FormPageFooter`). Then S3.2 → S3.3/S3.4 → S3.5 → S3.6, then F10.
+- **Owner reply style:** ASD-STE100 rules, in Ukrainian.
+
 ## Checkpoint — 2026-11-16 (F6b, D111/D112, F9a, F9b, F9c reviewed and pushed)
 
 - **All reviews APPROVED and pushed to `origin/phase-2` (HEAD `1142038`)**: F6b `29620cc` + follow-up `30ca0eb`; D111/D112 `341eeb3` (code + security, `docs/security/review-phase-2-d111-d112.md`) + follow-up `30ca0eb`; F9a `ef0e83a`; F9b `f0a443e` + leave-guard fix `1142038`. Details and gaps in `docs/PROGRESS.md`.

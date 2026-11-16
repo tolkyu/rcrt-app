@@ -3,6 +3,11 @@
 import { RadioGroup } from 'radix-ui';
 import type { ComponentProps } from 'react';
 import { cn } from '@/lib/utils';
+import {
+  SEGMENTED_CHECKED_RADIX_CLASS,
+  SEGMENTED_GROUP_CLASS,
+  SEGMENTED_ITEM_CLASS,
+} from './segmented-classes';
 
 export interface SegmentedOption {
   value: string;
@@ -42,16 +47,13 @@ export function SegmentedControl({
       data-slot="segmented-control"
       value={value}
       onValueChange={onValueChange}
-      className={cn(
-        'bg-surface-muted aria-invalid:border-error grid auto-cols-fr grid-flow-col gap-1 rounded-xl border border-transparent p-1',
-        className,
-      )}
+      className={cn(SEGMENTED_GROUP_CLASS, className)}
     >
       {options.map((option) => (
         <RadioGroup.Item
           key={option.value}
           value={option.value}
-          className="text-muted-foreground data-[state=checked]:border-border data-[state=checked]:bg-surface data-[state=checked]:text-link dark:data-[state=checked]:bg-primary-subtle h-11 rounded-lg border border-transparent px-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60 data-[state=checked]:shadow-sm md:h-10"
+          className={cn(SEGMENTED_ITEM_CLASS, SEGMENTED_CHECKED_RADIX_CLASS)}
         >
           {option.label}
         </RadioGroup.Item>

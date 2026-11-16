@@ -14,6 +14,7 @@ import {
   ALL_VISIBLE,
   DELETED_VACANCY,
   DRAFT_VACANCY,
+  E2E_DRAFT_PREFIX,
   NEWEST_VISIBLE,
   VISIBLE_VACANCIES,
   demoVacancy,
@@ -110,7 +111,9 @@ for (const user of USERS) {
       const drafts = await page.request.get('/api/v1/vacancies?status=DRAFT');
       expect(drafts.status()).toBe(200);
       expect(
-        ((await drafts.json()) as VacancyPage).items.map((item) => item.number),
+        ((await drafts.json()) as VacancyPage).items
+          .filter((item) => !item.title.startsWith(E2E_DRAFT_PREFIX))
+          .map((item) => item.number),
       ).toEqual(user === 'admin@demo' ? [vacancyNumber(DRAFT_VACANCY)] : []);
       await expect(
         page.getByText(tr('shown', { count: visible.length }), {
@@ -140,7 +143,10 @@ for (const user of USERS) {
       ).toEqual(newestFirst(visible));
       for (let position = 1; position <= TOTAL; position += 1) {
         const vacancy = demoVacancy(position);
-        const allowed = visible.includes(position);
+        const listed = visible.includes(position);
+        // An own draft opens by id for its author but is not in the list without a status (D110).
+        const allowed =
+          listed || (user === 'admin@demo' && position === DRAFT_VACANCY);
         const card = await page.request.get(`/api/v1/vacancies/${vacancy.id}`);
         expect(card.status(), vacancy.number).toBe(allowed ? 200 : 404);
         const route = await page.request.get(`/vacancies/${vacancy.id}`);
@@ -158,7 +164,7 @@ for (const user of USERS) {
             (item) => item.number,
           ),
           vacancy.number,
-        ).toEqual(allowed ? [vacancy.number] : []);
+        ).toEqual(listed ? [vacancy.number] : []);
       }
     });
   });

@@ -8,6 +8,12 @@ import {
   VACANCY_STATUSES,
 } from '../vacancy-filters';
 import { hasOnlyVisibleChars, normalizePositionName } from '../position-name';
+import {
+  VACANCY_DRAFT_LIMIT,
+  VACANCY_HEADCOUNT_MAX,
+  VACANCY_TITLE_MAX,
+  VACANCY_TITLE_MIN,
+} from '../vacancy-limits';
 import { richTextDocSchema } from './rich-text';
 import { uuid } from './uuid';
 
@@ -121,11 +127,12 @@ export const VACANCY_DAILY_CREATE_LIMIT = {
   perUser: 100,
   windowSeconds: 24 * 60 * 60,
 } as const;
-/** Live drafts one author may hold at once; a draft is invisible to everyone else, so nobody else could clean them up (D98). */
-export const VACANCY_DRAFT_LIMIT = 50;
-export const VACANCY_TITLE_MIN = 2;
-export const VACANCY_TITLE_MAX = 200;
-export const VACANCY_HEADCOUNT_MAX = 100;
+export {
+  VACANCY_DRAFT_LIMIT,
+  VACANCY_HEADCOUNT_MAX,
+  VACANCY_TITLE_MAX,
+  VACANCY_TITLE_MIN,
+};
 export const VACANCY_PROBATION_MIN = 30;
 export const VACANCY_PROBATION_MAX = 90;
 export const VACANCY_PROBATION_DEFAULT = 90;

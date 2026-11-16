@@ -143,22 +143,30 @@ describe('A draft is visible to its author only [D92, D98, STORY-VAC-01-3 AC5, A
       });
     });
 
-    it('is visible to its author in detail, in the list, by status, by number and by title', async () => {
+    it('is visible to its author in detail and under status=DRAFT (by number and title too), never in the list without a status [D110]', async () => {
       await scenario(async (s) => {
         const tag = `Моя чернетка ${randomUUID().slice(0, 8)}`;
         const ctx = await s.as(roles()[author]);
         const mine = await createVacancy(ctx, input('DRAFT', tag), key());
         expect((await getVacancyDetail(ctx, mine.id)).status).toBe('DRAFT');
         for (const filters of [
-          { limit: 100 },
           { limit: 100, status: 'DRAFT' },
+          { limit: 100, status: 'DRAFT', q: tag },
+          { limit: 100, status: 'DRAFT', q: mine.number },
+        ] as const)
+          expect(
+            ids(await listVacancyPage(ctx, { ...filters })),
+            JSON.stringify(filters),
+          ).toContain(mine.id);
+        for (const filters of [
+          { limit: 100 },
           { limit: 100, q: tag },
           { limit: 100, q: mine.number },
         ] as const)
           expect(
             ids(await listVacancyPage(ctx, { ...filters })),
             JSON.stringify(filters),
-          ).toContain(mine.id);
+          ).not.toContain(mine.id);
         expect(
           ids(await listVacancyPage(ctx, { limit: 100, status: 'OPEN' })),
         ).not.toContain(mine.id);
@@ -259,6 +267,7 @@ describe('A draft is visible to its author only [D92, D98, STORY-VAC-01-3 AC5, A
             ids(
               await listVacancyPage(await s.as(roles().recruiter), {
                 limit: 100,
+                status: 'DRAFT',
                 q: tag,
               }),
             ),

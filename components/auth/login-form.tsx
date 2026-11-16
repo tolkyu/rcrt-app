@@ -12,7 +12,7 @@ import { ApiError, apiRequest } from '@/lib/api-client';
 import {
   magicLinkResponseSchema,
   oauthStartResponseSchema,
-} from '@/lib/schemas/auth';
+} from '@/lib/schemas/auth-start';
 import { AuthCard, FormMessage } from './auth-card';
 import { GoogleMark } from './google-mark';
 import { rememberNextPath } from './next-path';

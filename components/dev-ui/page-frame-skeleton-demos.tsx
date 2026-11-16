@@ -110,9 +110,15 @@ export function SkeletonDemos() {
           onSubmit={(event) => event.preventDefault()}
           footer={
             <>
-              <Button variant="ghost">{t('formCancel')}</Button>
-              <Button variant="outline">{t('formSave')}</Button>
-              <Button type="submit">{t('formCreate')}</Button>
+              <Button variant="ghost" className="h-11 md:h-10">
+                {t('formCancel')}
+              </Button>
+              <Button variant="outline" className="h-11 md:h-10">
+                {t('formSave')}
+              </Button>
+              <Button type="submit" className="h-11 md:h-10">
+                {t('formCreate')}
+              </Button>
             </>
           }
         >

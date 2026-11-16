@@ -14,18 +14,15 @@ const redirect = z.object({ redirectTo: z.string() }).strict();
 export const magicLinkRequestSchema = z
   .object({ email: emailAddressSchema })
   .strict();
-export const magicLinkResponseSchema = z
-  .object({ accepted: z.literal(true) })
-  .strict();
 export const magicLinkConfirmSchema = z
   .object({ token_hash: tokenHash, next: nextPath })
   .strict();
 export const redirectResponseSchema = redirect.meta({ id: 'AuthRedirect' });
 export const emptyRequestSchema = z.object({}).strict();
-export const oauthStartResponseSchema = z
-  .object({ url: z.url() })
-  .strict()
-  .meta({ id: 'OAuthStart' });
+export {
+  magicLinkResponseSchema,
+  oauthStartResponseSchema,
+} from './auth-start';
 
 export const inviteTokenSchema = z.object({ token: inviteToken }).strict();
 export const inviteInspectResponseSchema = z

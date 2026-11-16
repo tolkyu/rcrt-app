@@ -804,15 +804,20 @@ describe('Cancel my draft [STORY-VAC-01-3 AC5, D82]', () => {
       expect((await getVacancyDetail(ctx, created.id)).status).toBe(
         'CANCELLED',
       );
-      for (const status of [undefined, 'CANCELLED'] as const)
-        expect(
-          (
-            await listVacancyPage(ctx, {
-              limit: 100,
-              ...(status ? { status } : {}),
-            })
-          ).items.map((item) => item.id),
-        ).toContain(created.id);
+      // D110: «Скасовані» lists it, «Усі» does not.
+      for (const [status, listed] of [
+        [undefined, false],
+        ['CANCELLED', true],
+      ] as const) {
+        const items = (
+          await listVacancyPage(ctx, {
+            limit: 100,
+            ...(status ? { status } : {}),
+          })
+        ).items.map((item) => item.id);
+        if (listed) expect(items).toContain(created.id);
+        else expect(items).not.toContain(created.id);
+      }
       const other = await addUser(s.tx);
       for (const who of [
         'recruiter',

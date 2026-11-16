@@ -11,6 +11,7 @@ import {
 } from '@/server/authz/vacancy-author';
 import {
   vacancyEventReadWhere,
+  vacancyListWhere,
   vacancyReadWhere,
 } from '@/server/authz/vacancy-scope';
 import type { BuiltinRole } from '@/server/authz/types';
@@ -187,6 +188,25 @@ describe('DRAFT belongs to its author alone [D92, D98]', () => {
     expect(
       can(roleContext('ADMIN'), 'vacancy.read', vacancy({ createdBy: OTHER })),
     ).toBe(true);
+  });
+});
+
+describe('the list predicate [D110]', () => {
+  it('has no author arm without a status, so no draft of the caller reaches «Усі»', () => {
+    for (const role of ['ADMIN', 'HEAD_RECRUITER', 'RECRUITER'] as const) {
+      const query = dialect.sqlToQuery(vacancyListWhere(roleContext(role)));
+      expect(query.sql).toContain('"status" <> $');
+      expect(query.sql).toContain('"opened_at" is null');
+      expect(query.params).toEqual(expect.arrayContaining(['DRAFT']));
+      expect(query.sql).not.toContain('"created_by"');
+    }
+  });
+
+  it('is the read predicate itself once a status is chosen', () => {
+    for (const status of ['DRAFT', 'CANCELLED', 'OPEN'] as const)
+      expect(
+        dialect.sqlToQuery(vacancyListWhere(roleContext('ADMIN'), status)),
+      ).toEqual(render(roleContext('ADMIN'), status));
   });
 });
 

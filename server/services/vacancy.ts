@@ -33,6 +33,7 @@ import {
 } from '../authz/vacancy-author';
 import {
   findVisibleVacancyOrThrow,
+  vacancyListWhere,
   vacancyReadWhere,
 } from '../authz/vacancy-scope';
 import { rateLimitSecret } from '../config/runtime';
@@ -90,7 +91,7 @@ export async function listVacancyPage(
   if (filters.q) await consumeSearchRateLimit(ctx, rateLimitSecret());
   const result = await listVacancies(
     ctx.db,
-    vacancyReadWhere(ctx.auth, filters.status),
+    vacancyListWhere(ctx.auth, filters.status),
     filters,
   );
   const first = result.items[0];

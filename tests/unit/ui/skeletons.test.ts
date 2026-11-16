@@ -106,4 +106,67 @@ describe('FormSkeleton [UI foundation F9, G20]', () => {
     ).toHaveLength(3);
     expect(container.querySelector('input, textarea, button')).toBeNull();
   });
+  it('draws group bars, grid rows and reserved hints for the vacancy form [S3.1]', () => {
+    const { container } = render(
+      provider(
+        createElement(FormSkeleton, {
+          title: 'Нова вакансія',
+          back: { href: '/vacancies', label: 'До вакансій' },
+          fields: [
+            'group',
+            ['input', { kind: 'input', hint: true }],
+            { kind: 'input', hint: true },
+            [
+              { kind: 'input', hint: true },
+              { kind: 'segmented', hint: true },
+            ],
+            ['input', 'input', 'input'],
+          ],
+        }),
+      ),
+    );
+    expect(
+      container.querySelectorAll('[data-slot="form-group-skeleton"]'),
+    ).toHaveLength(1);
+    expect(
+      container.querySelectorAll('[data-slot="control-skeleton"]'),
+    ).toHaveLength(8);
+    const rows = [
+      ...container.querySelectorAll('[data-slot="form-skeleton"] > .grid'),
+    ];
+    expect(rows.map((row) => row.children.length)).toEqual([2, 2, 3]);
+    expect(rows.map((row) => row.className)).toEqual([
+      expect.stringContaining('md:grid-cols-2'),
+      expect.stringContaining('md:grid-cols-2'),
+      expect.stringContaining('md:grid-cols-3'),
+    ]);
+    const hints = container.querySelectorAll(
+      '[data-slot="form-hint-skeleton"]',
+    );
+    expect(hints).toHaveLength(4);
+    const controls = [
+      ...container.querySelectorAll('[data-slot="control-skeleton"]'),
+    ];
+    expect(
+      controls.filter((control) => control.className.includes('h-[3.375rem]')),
+    ).toHaveLength(1);
+  });
+
+  it('keeps the flat field list of earlier callers as one full-width column', () => {
+    const { container } = render(
+      provider(
+        createElement(FormSkeleton, {
+          title: 'Форма',
+          back: { href: '/', label: 'Назад' },
+          fields: ['input', 'textarea'],
+        }),
+      ),
+    );
+    expect(
+      container.querySelector('[data-slot="form-skeleton"] > .grid'),
+    ).toBeNull();
+    expect(
+      container.querySelector('[data-slot="form-group-skeleton"]'),
+    ).toBeNull();
+  });
 });
