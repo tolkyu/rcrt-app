@@ -362,7 +362,11 @@ export async function lockUsersShared(
   userIds: readonly string[],
 ) {
   return db
-    .select({ id: appUser.id, isActive: appUser.isActive })
+    .select({
+      id: appUser.id,
+      isActive: appUser.isActive,
+      activatedAt: appUser.activatedAt,
+    })
     .from(appUser)
     .where(inArray(appUser.id, [...userIds]))
     .orderBy(asc(appUser.id))

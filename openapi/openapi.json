@@ -5175,7 +5175,7 @@
     "/vacancies/{vacancyId}/publish": {
       "post": {
         "operationId": "publishVacancyDraft",
-        "summary": "Publish the author’s own DRAFT (`DRAFT → OPEN`, opening date = now) at the `expectedVersion` the author last saw, after re-validating every rule of a published creation. Another user’s draft, or any caller without an authoring role, gets 404; 400 `body.positionId required` / `invalid_team_lead`; 409 `VACANCY_NOT_DRAFT` (already published, cancelled), `POSITION_INACTIVE`, `STALE_STATE` or `IDEMPOTENCY_KEY_REUSED`; a replay with the same key and version returns the same vacancy",
+        "summary": "Publish the author’s own DRAFT (`DRAFT → OPEN`, opening date = now) at the `expectedVersion` the author last saw, after re-validating every rule of a published creation. Another user’s draft, or any caller without an authoring role, gets 404; 400 `body.positionId required` / `body.teamLeadId invalid_team_lead` (the Team Lead must still be active, hold the role in the vertical and have accepted the invite, D122); 409 `VACANCY_NOT_DRAFT` (already published, cancelled), `POSITION_INACTIVE`, `STALE_STATE` or `IDEMPOTENCY_KEY_REUSED`; a replay with the same key and version returns the same vacancy",
         "tags": ["Vacancies"],
         "parameters": [
           {
@@ -5344,7 +5344,7 @@
       },
       "patch": {
         "operationId": "updateVacancyDraft",
-        "summary": "Edit the author’s own DRAFT (partial update with `expectedVersion`). Another user’s draft, or any caller without an authoring role, gets 404; a vacancy that is not a draft is 409 `VACANCY_NOT_DRAFT` (403 only for a caller who authors in another vertical); 409 `STALE_STATE` or `POSITION_INACTIVE`; 429 after 30 writes per user per minute",
+        "summary": "Edit the author’s own DRAFT (partial update with `expectedVersion`). Another user’s draft, or any caller without an authoring role, gets 404; 400 `body.teamLeadId invalid_team_lead` unless the Team Lead is active, holds the Team Lead role in the vertical and has accepted the invite (D122; an invitee is refused); a vacancy that is not a draft is 409 `VACANCY_NOT_DRAFT` (403 only for a caller who authors in another vertical); 409 `STALE_STATE` or `POSITION_INACTIVE`; 429 after 30 writes per user per minute",
         "tags": ["Vacancies"],
         "parameters": [
           {
@@ -5683,7 +5683,7 @@
       },
       "post": {
         "operationId": "createVacancy",
-        "summary": "Create an OPEN vacancy (`mode: PUBLISH`) or save the author’s private DRAFT (`mode: DRAFT`); Admin, Head Recruiter and Recruiter of the vertical (a Recruiter is auto-assigned; Team Leads use the request form). 201 also for an idempotent replay; 409 `IDEMPOTENCY_KEY_REUSED` or `POSITION_INACTIVE`; 429 after 30 writes per user per minute",
+        "summary": "Create an OPEN vacancy (`mode: PUBLISH`) or save the author’s private DRAFT (`mode: DRAFT`); Admin, Head Recruiter and Recruiter of the vertical (a Recruiter is auto-assigned; Team Leads use the request form). 201 also for an idempotent replay; 400 `body.teamLeadId invalid_team_lead` unless the Team Lead is active, holds the Team Lead role in the vertical and has accepted the invite (D122; an invitee is refused); 409 `IDEMPOTENCY_KEY_REUSED` or `POSITION_INACTIVE`; 429 after 30 writes per user per minute",
         "tags": ["Vacancies"],
         "parameters": [
           {

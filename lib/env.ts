@@ -50,8 +50,10 @@ const originSchema = z.url().superRefine((value, context) => {
   }
 });
 
+export const appEnvSchema = z.enum(['local', 'test', 'preview', 'production']);
+
 const schema = z.object({
-  APP_ENV: z.enum(['local', 'test', 'preview', 'production']),
+  APP_ENV: appEnvSchema,
   APP_URL: originSchema,
   SUPABASE_URL: originSchema.optional(),
   SUPABASE_PUBLISHABLE_KEY: z.string().min(20).optional(),
@@ -114,6 +116,11 @@ export function parseRuntimeEnv(
   if (perfBuild && (hosted || env.VERCEL_ENV === 'production'))
     throw new Error(
       'Invalid environment variables: PERF_BUILD on a hosted environment',
+    );
+  // APP_ENV=test lifts abuse caps (vacancy daily create limit); it must never boot on Vercel, where VERCEL is always set.
+  if (env.APP_ENV === 'test' && (source.VERCEL || env.VERCEL_ENV))
+    throw new Error(
+      'Invalid environment variables: APP_ENV=test on a hosted environment',
     );
   return {
     ...env,

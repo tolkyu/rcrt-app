@@ -41,6 +41,8 @@ export default defineConfig({
           globalSetup: ['./tests/integration/setup.ts'],
           env: {
             ...databaseTestEnv,
+            // CI exports APP_ENV=test; the daily-create cap test needs the production limit.
+            APP_ENV: 'local',
             AUTH_RATE_LIMIT_SECRET:
               'integration-only-rate-limit-secret-0123456789',
           },

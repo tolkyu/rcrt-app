@@ -85,13 +85,19 @@ export async function problem(run: Promise<unknown>) {
 
 export async function addUser(
   executor: DbExecutor,
-  options: { roles?: Roles; active?: boolean; name?: string } = {},
+  options: {
+    roles?: Roles;
+    active?: boolean;
+    invited?: boolean;
+    name?: string;
+  } = {},
 ) {
   const id = randomUUID();
   await executor.insert(schema.appUser).values({
     id,
     email: `${id}@fixture.test`,
     fullName: options.name ?? 'Користувач сценарію',
+    activatedAt: options.invited ? null : NOW,
     ...(options.active === false
       ? { isActive: false, deactivatedAt: NOW }
       : {}),

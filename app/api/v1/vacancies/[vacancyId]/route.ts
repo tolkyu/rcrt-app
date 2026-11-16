@@ -37,7 +37,7 @@ export const PATCH = defineRoute(
     requireGrant: 'vacancy.create',
     hideUnless: authorsAnywhere,
     summary:
-      'Edit the author’s own DRAFT (partial update with `expectedVersion`). Another user’s draft, or any caller without an authoring role, gets 404; a vacancy that is not a draft is 409 `VACANCY_NOT_DRAFT` (403 only for a caller who authors in another vertical); 409 `STALE_STATE` or `POSITION_INACTIVE`; 429 after 30 writes per user per minute',
+      'Edit the author’s own DRAFT (partial update with `expectedVersion`). Another user’s draft, or any caller without an authoring role, gets 404; 400 `body.teamLeadId invalid_team_lead` unless the Team Lead is active, holds the Team Lead role in the vertical and has accepted the invite (D122; an invitee is refused); a vacancy that is not a draft is 409 `VACANCY_NOT_DRAFT` (403 only for a caller who authors in another vertical); 409 `STALE_STATE` or `POSITION_INACTIVE`; 429 after 30 writes per user per minute',
     tags: ['Vacancies'],
     params: vacancyIdParamsSchema,
     body: patchVacancySchema,

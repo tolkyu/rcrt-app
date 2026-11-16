@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { IDEMPOTENCY_TTL_MS } from '../../lib/idempotency';
 import { positionNameKey } from '../../lib/position-name';
 import {
@@ -884,7 +884,7 @@ describe('Concurrent creation on committed rows [STORY-VAC-01-1 AC6, VAC-07]', (
 
   it('a Team Lead deactivated first is refused, never attached to a new vacancy', async () => {
     const leadId = randomUUID();
-    await admin`insert into app.app_user (id, email, full_name) values (${leadId}, ${`${leadId}@fixture.test`}, 'Тімлід')`;
+    await admin`insert into app.app_user (id, email, full_name, activated_at) values (${leadId}, ${`${leadId}@fixture.test`}, 'Тімлід', now())`;
     await admin`insert into app.user_role (user_id, role, vertical_id) values (${leadId}, 'TEAM_LEAD', ${fixture.verticalId})`;
     await admin`update app.app_user set is_active = false, deactivated_at = now() where id = ${leadId}`;
     expect(
@@ -945,7 +945,7 @@ describe('Concurrent creation on committed rows [STORY-VAC-01-1 AC6, VAC-07]', (
 
   const newLead = async (name: string) => {
     const leadId = randomUUID();
-    await admin`insert into app.app_user (id, email, full_name) values (${leadId}, ${`${leadId}@fixture.test`}, ${name})`;
+    await admin`insert into app.app_user (id, email, full_name, activated_at) values (${leadId}, ${`${leadId}@fixture.test`}, ${name}, now())`;
     await admin`insert into app.user_role (user_id, role, vertical_id) values (${leadId}, 'TEAM_LEAD', ${fixture.verticalId})`;
     return leadId;
   };
@@ -1062,26 +1062,49 @@ describe('Vertical, limits and atomicity', () => {
   });
 
   it(`refuses the ${VACANCY_DAILY_CREATE_LIMIT.perUser + 1}th creation inside 24 hours with 429 even when each minute is quiet [SEC-VC-01]`, async () => {
-    await scenario(async (s) => {
-      const at = (n: number) => new Date(NOW.getTime() + n * 60_000);
-      for (let n = 0; n < VACANCY_DAILY_CREATE_LIMIT.perUser; n += 1)
-        await createVacancy(
-          await s.as(roles().head, { now: at(n) }),
-          publish({ title: `Вакансія ${n}` }),
-          key(),
-        );
-      expect(
-        await problem(
-          createVacancy(
-            await s.as(roles().head, {
-              now: at(VACANCY_DAILY_CREATE_LIMIT.perUser),
-            }),
-            publish({ title: 'Зайва' }),
+    vi.stubEnv('APP_ENV', 'local');
+    try {
+      await scenario(async (s) => {
+        const at = (n: number) => new Date(NOW.getTime() + n * 60_000);
+        for (let n = 0; n < VACANCY_DAILY_CREATE_LIMIT.perUser; n += 1)
+          await createVacancy(
+            await s.as(roles().head, { now: at(n) }),
+            publish({ title: `Вакансія ${n}` }),
             key(),
+          );
+        expect(
+          await problem(
+            createVacancy(
+              await s.as(roles().head, {
+                now: at(VACANCY_DAILY_CREATE_LIMIT.perUser),
+              }),
+              publish({ title: 'Зайва' }),
+              key(),
+            ),
           ),
-        ),
-      ).toMatchObject({ status: 429, code: 'RATE_LIMITED' });
-    });
+        ).toMatchObject({ status: 429, code: 'RATE_LIMITED' });
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('lifts the daily cap only when the service runs with APP_ENV=test [SEC-VC-01]', async () => {
+    vi.stubEnv('APP_ENV', 'test');
+    try {
+      await scenario(async (s) => {
+        const at = (n: number) => new Date(NOW.getTime() + n * 60_000);
+        const total = VACANCY_DAILY_CREATE_LIMIT.perUser + 1;
+        for (let n = 0; n < total; n += 1)
+          await createVacancy(
+            await s.as(roles().head, { now: at(n) }),
+            publish({ title: `Вакансія ${n}` }),
+            key(),
+          );
+      });
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 
   it('rolls back the vacancy, assignment, events, audit and key together when a late statement fails [ADR-012]', async () => {

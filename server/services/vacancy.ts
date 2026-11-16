@@ -7,6 +7,7 @@ import {
   createVacancySchema,
   formatVacancyNumber,
   vacancyListQuerySchema,
+  vacancyDailyCreateLimit,
   VACANCY_DAILY_CREATE_LIMIT,
   VACANCY_DRAFT_LIMIT,
   VACANCY_PROBATION_DEFAULT,
@@ -20,11 +21,7 @@ import {
 import { writeAudit } from '../audit';
 import { buildAuthContext, type AuthContext } from '../authz/context';
 import { can, hasAnyGrant, requirePermission } from '../authz/can';
-import {
-  isTeamLeadAssignment,
-  type UserId,
-  type VerticalId,
-} from '../authz/types';
+import type { UserId, VerticalId } from '../authz/types';
 import {
   authorsAnywhere,
   grantCovers,
@@ -36,7 +33,7 @@ import {
   vacancyListWhere,
   vacancyReadWhere,
 } from '../authz/vacancy-scope';
-import { rateLimitSecret } from '../config/runtime';
+import { appEnv, rateLimitSecret } from '../config/runtime';
 import type { RequestContext } from '../context/request-context';
 import type { DbExecutor } from '../db';
 import { appendEvent } from '../events';
@@ -48,6 +45,7 @@ import {
 } from '../http/errors';
 import { uuidOf } from '../http/params';
 import { claimIdempotencyKey } from '../repositories/idempotency';
+import { isEligibleTeamLeadRow } from '../repositories/team-lead-eligibility';
 import { listRoleAssignments, lockUsersShared } from '../repositories/user';
 import { verticalExists } from '../repositories/vertical';
 import {
@@ -208,14 +206,18 @@ export async function lockAuthors(
       aal: ctx.auth.aal,
       timezone: ctx.auth.timezone,
     }),
-    isEligibleTeamLead: (userId: string, verticalId: VerticalId) =>
-      locked.some((user) => user.id === userId && user.isActive) &&
-      roles.some(
-        (role) =>
-          role.userId === userId &&
-          isTeamLeadAssignment(role) &&
-          role.verticalId === verticalId,
-      ),
+    isEligibleTeamLead: (userId: string, verticalId: VerticalId) => {
+      const user = locked.find((row) => row.id === userId);
+      return (
+        user !== undefined &&
+        roles.some(
+          (role) =>
+            role.userId === userId &&
+            role.verticalId === verticalId &&
+            isEligibleTeamLeadRow(user, role),
+        )
+      );
+    },
   };
 }
 
@@ -241,7 +243,7 @@ export async function createVacancy(
       {
         namespace: 'vacancy:create:day',
         value: ctx.auth.userId,
-        limit: VACANCY_DAILY_CREATE_LIMIT.perUser,
+        limit: vacancyDailyCreateLimit(appEnv()),
       },
     ],
     VACANCY_DAILY_CREATE_LIMIT.windowSeconds,

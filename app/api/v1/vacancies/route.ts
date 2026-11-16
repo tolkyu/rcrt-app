@@ -33,7 +33,7 @@ export const POST = defineRoute(
     requireGrant: 'vacancy.create',
     idempotent: true,
     summary:
-      'Create an OPEN vacancy (`mode: PUBLISH`) or save the author’s private DRAFT (`mode: DRAFT`); Admin, Head Recruiter and Recruiter of the vertical (a Recruiter is auto-assigned; Team Leads use the request form). 201 also for an idempotent replay; 409 `IDEMPOTENCY_KEY_REUSED` or `POSITION_INACTIVE`; 429 after 30 writes per user per minute',
+      'Create an OPEN vacancy (`mode: PUBLISH`) or save the author’s private DRAFT (`mode: DRAFT`); Admin, Head Recruiter and Recruiter of the vertical (a Recruiter is auto-assigned; Team Leads use the request form). 201 also for an idempotent replay; 400 `body.teamLeadId invalid_team_lead` unless the Team Lead is active, holds the Team Lead role in the vertical and has accepted the invite (D122; an invitee is refused); 409 `IDEMPOTENCY_KEY_REUSED` or `POSITION_INACTIVE`; 429 after 30 writes per user per minute',
     tags: ['Vacancies'],
     body: createVacancySchema,
     response: vacancyDetailSchema,

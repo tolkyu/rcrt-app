@@ -1741,7 +1741,7 @@ describe('Concurrent lifecycle on committed rows [STORY-VAC-01-3 AC4, AC8, SEC-V
 
   async function newLead() {
     const leadId = randomUUID();
-    await admin`insert into app.app_user (id, email, full_name) values (${leadId}, ${`${leadId}@fixture.test`}, 'Тімлід гонки')`;
+    await admin`insert into app.app_user (id, email, full_name, activated_at) values (${leadId}, ${`${leadId}@fixture.test`}, 'Тімлід гонки', now())`;
     await admin`insert into app.user_role (user_id, role, vertical_id) values (${leadId}, 'TEAM_LEAD', ${fixture.verticalId})`;
     return leadId;
   }

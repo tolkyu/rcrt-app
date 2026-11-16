@@ -3,6 +3,12 @@
 > Read order: `CLAUDE.md` → this file → `docs/PROGRESS.md` → `docs/PRD.md` §14 (owner decisions D1–D70).
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
+## Checkpoint — 2026-11-16 evening (perf slice, S3.2a pushed)
+
+- Pushed: perf slice `c961c67` (ADR-014 precompiled messages, owner OK), flake fix `2909c3f`, S3.2a Team Lead picker + «Чернетки» count/empty/row `5bb0cb0`. Owner decision D122 (Q-187): TL must have accepted invite, one predicate everywhere.
+- Next: S3.2b-server (D122 eligibility in create/draft/publish + higher create limit only under `APP_ENV=test`, E2E bucket exhaustion B-1) ‖ S3.2c-UI (group «Умови», readiness rail, draft-limit `DisabledReason`). Then S3.3 → S3.4 rest → S3.5 → S3.6, F10.
+- Agents must run `docs/engineering-self-check.md`. Local DB rate-limit rows: never delete (classifier blocks; owner decides).
+
 ## Checkpoint — 2026-11-16 (S3.1 create form pushed)
 
 - **S3.1 done and pushed** (QA all green, code review APPROVED after B1/B2/N1 fixes, security PASS `docs/security/review-phase-2-s3-1.md`): entry points, `/vacancies/new`, group «Основне», both submits, D110 list fix (`vacancyListWhere`: «Усі» hides own drafts). Details + gaps in `docs/PROGRESS.md`.

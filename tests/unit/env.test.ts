@@ -127,6 +127,32 @@ describe('runtime environment', () => {
       ).toThrow('PERF_BUILD');
     },
   );
+  it.each([
+    [{ VERCEL: '1' }],
+    [{ VERCEL_ENV: 'production' }],
+    [{ VERCEL_ENV: 'preview' }],
+    [{ VERCEL_ENV: 'development' }],
+  ])('refuses APP_ENV=test on Vercel %j [SEC-VC-01]', (vercel) => {
+    expect(() =>
+      parseRuntimeEnv({
+        ...local,
+        ...authRuntime,
+        DATABASE_URL: 'postgresql://app_rw:password@127.0.0.1:55322/postgres',
+        APP_ENV: 'test',
+        ...vercel,
+      }),
+    ).toThrow('APP_ENV=test on a hosted environment');
+  });
+  it('boots APP_ENV=test outside Vercel', () => {
+    expect(
+      parseRuntimeEnv({
+        ...local,
+        ...authRuntime,
+        DATABASE_URL: 'postgresql://app_rw:password@127.0.0.1:55322/postgres',
+        APP_ENV: 'test',
+      }).APP_ENV,
+    ).toBe('test');
+  });
   it('allows a perf build locally', () => {
     expect(
       parseRuntimeEnv(

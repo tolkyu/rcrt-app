@@ -127,6 +127,12 @@ export const VACANCY_DAILY_CREATE_LIMIT = {
   perUser: 100,
   windowSeconds: 24 * 60 * 60,
 } as const;
+/** The E2E suite creates hundreds of vacancies a day under one user; only APP_ENV=test lifts the cap, never a request value. */
+export const VACANCY_DAILY_CREATE_LIMIT_TEST = 100_000;
+export const vacancyDailyCreateLimit = (appEnv: string | undefined) =>
+  appEnv === 'test'
+    ? VACANCY_DAILY_CREATE_LIMIT_TEST
+    : VACANCY_DAILY_CREATE_LIMIT.perUser;
 export {
   VACANCY_DRAFT_LIMIT,
   VACANCY_HEADCOUNT_MAX,

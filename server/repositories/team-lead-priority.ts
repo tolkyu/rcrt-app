@@ -8,6 +8,7 @@ import {
   userRole,
   vertical,
 } from '../db/schema';
+import { eligibleTeamLeadSql } from './team-lead-eligibility';
 
 /** Tabs follow Ukrainian alphabetical order, like every other vertical list the Admin sees. */
 export function listVerticalsByName(db: DbExecutor) {
@@ -42,18 +43,9 @@ const listRowSchema = z.object({
   pendingInvites: z.number().int(),
 });
 
-/**
- * Who may hold a priority (wireframe P1.1 #3): role row `r` is TEAM_LEAD and its user `u` is active and
- * invite-accepted. One fragment for the list and the save; the aliases are fixed identifiers, never input.
- */
-const eligibleTeamLead = (r: 'r' | 'er', u: 'u' | 'eu') =>
-  sql.raw(
-    `${r}.role = 'TEAM_LEAD' and ${u}.is_active and ${u}.activated_at is not null`,
-  );
-
 const isEligible = (userId: SQL, verticalId: SQL) => sql`exists (
   select 1 from ${userRole} er join ${appUser} eu on eu.id = er.user_id
-  where er.user_id = ${userId} and er.vertical_id = ${verticalId} and ${eligibleTeamLead('er', 'eu')}
+  where er.user_id = ${userId} and er.vertical_id = ${verticalId} and ${eligibleTeamLeadSql('er', 'eu')}
 )`;
 
 const assignableRowSchema = z.object({
@@ -78,7 +70,7 @@ export async function findAssignableTeamLeads(
       from ${userRole} r
       join ${appUser} u on u.id = r.user_id
       left join ${teamLeadPriority} p on p.vertical_id = r.vertical_id and p.user_id = r.user_id
-      where r.vertical_id = v.id and ${eligibleTeamLead('r', 'u')}
+      where r.vertical_id = v.id and ${eligibleTeamLeadSql('r', 'u')}
     ), '[]'::json) as items
     from ${vertical} v
     where v.id = ${verticalId}::uuid
@@ -101,7 +93,7 @@ export async function findVerticalTeamLeads(
         from ${userRole} r
         join ${appUser} u on u.id = r.user_id
         left join ${teamLeadPriority} p on p.vertical_id = r.vertical_id and p.user_id = r.user_id
-        where r.vertical_id = v.id and ${eligibleTeamLead('r', 'u')}
+        where r.vertical_id = v.id and ${eligibleTeamLeadSql('r', 'u')}
       ), '[]'::json) as items,
       (
         select count(*)::int from ${userRole} r
