@@ -155,6 +155,7 @@ export async function lockPositionShared(db: DbExecutor, positionId: string) {
     .select({
       id: position.id,
       verticalId: position.verticalId,
+      name: position.name,
       isActive: position.isActive,
     })
     .from(position)

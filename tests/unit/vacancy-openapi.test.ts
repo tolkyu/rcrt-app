@@ -19,7 +19,12 @@ interface Operation {
 }
 const document = JSON.parse(readFileSync('openapi/openapi.json', 'utf8')) as {
   paths: Record<string, Record<string, Operation>>;
-  components: { schemas: Record<string, { required?: string[] }> };
+  components: {
+    schemas: Record<
+      string,
+      { required?: string[]; properties?: Record<string, unknown> }
+    >;
+  };
 };
 
 describe('POST /vacancies contract [VAC-01, STORY-VAC-01-1]', () => {
@@ -53,6 +58,37 @@ describe('POST /vacancies contract [VAC-01, STORY-VAC-01-1]', () => {
     expect(document.paths['/vacancies']!.get!.operationId).toBe(
       'listVacancies',
     );
+  });
+});
+
+describe('POST /vacancies/request contract [STORY-VAC-03-3, D87]', () => {
+  const operation = document.paths['/vacancies/request']!.post!;
+
+  it('is idempotent and carries no vertical or Team Lead field', () => {
+    expect(operation.operationId).toBe('requestVacancy');
+    expect(
+      operation.parameters?.filter((p) => p.in === 'header'),
+    ).toMatchObject([
+      { name: 'X-CSRF-Protection', required: true },
+      { name: 'Idempotency-Key', required: true },
+    ]);
+    expect(
+      Object.keys(document.components.schemas.RequestVacancy!.properties ?? {}),
+    ).toEqual(['positionId', 'headcount', 'priority', 'comment']);
+  });
+
+  it('documents creation and every refusal the service can answer', () => {
+    expect(Object.keys(operation.responses).sort()).toEqual([
+      '201',
+      '400',
+      '401',
+      '403',
+      '404',
+      '409',
+      '413',
+      '429',
+      '500',
+    ]);
   });
 });
 

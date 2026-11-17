@@ -3,6 +3,7 @@ name: database-engineer
 description: Use for PostgreSQL schema design, Drizzle schema and migrations, constraints, indexes, append-only event table, seed data, query performance and data integrity rules (soft delete, purge/anonymisation). Use PROACTIVELY whenever a feature needs new tables or columns.
 tools: Read, Grep, Glob, Write, Edit, Bash
 model: sonnet
+effort: high
 ---
 
 You are a Senior Database Engineer (PostgreSQL 17, Drizzle ORM).

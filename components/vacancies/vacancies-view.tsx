@@ -46,6 +46,7 @@ import { rememberVacancyList } from '@/lib/vacancy-list-memory';
 import { navigateVacancies as navigate } from '@/lib/vacancy-navigation';
 import { ALL_VERTICALS } from '@/lib/vertical-filter';
 import { CreateVacancyLink } from './create-vacancy-link';
+import { RequestVacancyLink } from './request-vacancy-link';
 import { DraftLeaveProvider } from './draft-leave';
 import { RowSkeleton } from './row-skeleton';
 import { useDraftLeaveHandlers } from './use-draft-leave';
@@ -60,9 +61,11 @@ const SEARCH_DEBOUNCE_MS = 300;
 export function VacanciesView({
   canManagePositions,
   canAuthorDrafts,
+  canRequestVacancy,
 }: {
   canManagePositions: boolean;
   canAuthorDrafts: boolean;
+  canRequestVacancy: boolean;
 }) {
   const t = useTranslations('vacancies');
   const params = useSearchParams();
@@ -230,6 +233,8 @@ export function VacanciesView({
             </Button>
           ) : canAuthorDrafts ? (
             <CreateVacancyLink className="h-11" />
+          ) : canRequestVacancy ? (
+            <RequestVacancyLink className="h-11" />
           ) : undefined
         }
       />
@@ -255,10 +260,21 @@ export function VacanciesView({
       <PageHeader
         title={t('title')}
         subtitle={t('subtitle')}
-        actions={canManagePositions ? <PositionsEntryLink /> : undefined}
+        actions={
+          canManagePositions || (canAuthorDrafts && canRequestVacancy) ? (
+            <>
+              {canManagePositions && <PositionsEntryLink />}
+              {canAuthorDrafts && canRequestVacancy && (
+                <RequestVacancyLink secondary className="h-12 md:h-10" />
+              )}
+            </>
+          ) : undefined
+        }
         primary={
           canAuthorDrafts ? (
             <CreateVacancyLink className="h-12 md:h-10" />
+          ) : canRequestVacancy ? (
+            <RequestVacancyLink className="h-12 md:h-10" />
           ) : undefined
         }
       />

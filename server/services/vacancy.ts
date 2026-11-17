@@ -174,6 +174,23 @@ export async function consumeVacancyWriteLimit(ctx: RequestContext) {
   );
 }
 
+export async function consumeVacancyCreateLimits(ctx: RequestContext) {
+  await consumeVacancyWriteLimit(ctx);
+  await consumeRateLimit(
+    ctx.db,
+    ctx.clock.now(),
+    rateLimitSecret(),
+    [
+      {
+        namespace: 'vacancy:create:day',
+        value: ctx.auth.userId,
+        limit: vacancyDailyCreateLimit(appEnv()),
+      },
+    ],
+    VACANCY_DAILY_CREATE_LIMIT.windowSeconds,
+  );
+}
+
 /** Fields whose setting needs a permission of its own beyond the right to author (D77, D78). */
 export interface AuthoringGates {
   readonly setsTeamLead: boolean;
@@ -246,20 +263,7 @@ export async function createVacancy(
 ): Promise<VacancyDetail> {
   requirePermission(ctx.auth, 'vacancy.read');
   if (!hasAnyGrant(ctx.auth, 'vacancy.create')) throw new ForbiddenError();
-  await consumeVacancyWriteLimit(ctx);
-  await consumeRateLimit(
-    ctx.db,
-    ctx.clock.now(),
-    rateLimitSecret(),
-    [
-      {
-        namespace: 'vacancy:create:day',
-        value: ctx.auth.userId,
-        limit: vacancyDailyCreateLimit(appEnv()),
-      },
-    ],
-    VACANCY_DAILY_CREATE_LIMIT.windowSeconds,
-  );
+  await consumeVacancyCreateLimits(ctx);
   const key = idempotencyKeySchema.parse(rawKey);
   const body = createVacancySchema.parse(input);
   const verticalId = body.verticalId as VerticalId;

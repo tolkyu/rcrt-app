@@ -1656,6 +1656,26 @@
         "properties": { "count": { "type": "integer", "minimum": 0 } },
         "required": ["count"]
       },
+      "RequestVacancy": {
+        "type": "object",
+        "properties": {
+          "positionId": { "type": "string", "format": "uuid" },
+          "headcount": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 1
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["NORMAL", "URGENT"],
+            "default": "NORMAL"
+          },
+          "comment": { "type": "string", "maxLength": 5000 }
+        },
+        "required": ["positionId"],
+        "additionalProperties": false
+      },
       "VacancyPage": {
         "type": "object",
         "properties": {
@@ -5562,6 +5582,114 @@
           },
           "404": {
             "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vacancies/request": {
+      "post": {
+        "operationId": "requestVacancy",
+        "summary": "Team Lead requests an unassigned OPEN vacancy in their vertical. Requires an accepted invite (D122). 201 on replay; inactive position: 400 body.positionId position_inactive; foreign position or no Team Lead grant: 404; reused key with another body: 409 IDEMPOTENCY_KEY_REUSED.",
+        "tags": ["Vacancies"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "enum": ["1"] },
+            "required": true,
+            "name": "X-CSRF-Protection",
+            "in": "header"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{16,64}$",
+              "description": "Client-generated unique key (16–64 of A–Z a–z 0–9 _ -, a UUID fits). The same key with the same body inside 24 hours returns the original result; the same key with a different body answers 409 IDEMPOTENCY_KEY_REUSED."
+            },
+            "required": true,
+            "description": "Client-generated unique key (16–64 of A–Z a–z 0–9 _ -, a UUID fits). The same key with the same body inside 24 hours returns the original result; the same key with a different body answers 409 IDEMPOTENCY_KEY_REUSED.",
+            "name": "Idempotency-Key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RequestVacancy" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VacancyDetail" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 1 MiB",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
             "content": {
               "application/problem+json": {
                 "schema": { "$ref": "#/components/schemas/Problem" }

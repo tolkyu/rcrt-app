@@ -58,6 +58,7 @@ Image note: the light secondary-text label reads «#6474BB» because the image i
 | `--error-text`                         | `#B91C1C`             | `#F87171`     | Errors, validation, soft destructive button text                                                         |
 | `--destructive`                        | `#DC2626`             | `#DC2626`     | Filled destructive (confirm buttons in AlertDialog)                                                      |
 | `--destructive-subtle`                 | `#FEF2F2`             | `#3A1D24`     | Soft destructive button bg («Видалити» in the library)                                                   |
+| `--destructive-subtle-hover`           | `#FCE8E8`             | `#471E24`     | Hover/`:active` of an urgent vacancy row, card and header (VAC-04-4); contrast in `wireframes/vacancies-list.md` «Терміновість» §3 |
 | `--now-line`                           | `#EF4444`             | `#F87171`     | Calendar current-time line + time pill (white text on pill: use `#DC2626`, 4.83:1)                       |
 
 ### 1.3 Contrast check (WCAG 2.1 relative luminance; text needs ≥ 4.5:1, UI boundaries/icons ≥ 3:1)
@@ -124,7 +125,7 @@ Chip = pill, tinted bg + stage text + lucide icon + label. **Colour is never the
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Vacancy status | Чернетка slate (dashed border) · Відкрита green · Призупинена amber · Заповнена blue · Скасована slate                                                       |
 | Bonus status   | Заплановано slate · Нараховано blue · Затверджено indigo · Виплачено green · Скасовано slate · Призупинено amber · Очікує повернення orange · Повернено pink |
-| Urgency badge  | «Термінова»: red palette, icon `flame` (separate badge, not a status)                                                                                        |
+| Urgency badge  | «Термінова»: `OPEN`/`ON_HOLD`/`DRAFT` = red outline badge (`--destructive-subtle` bg, `--error-text`, `--destructive` border) + row/header tint and 3 px edge; `FILLED`/`CANCELLED` = neutral badge, no tint (D99). Icon `flame`, separate badge, not a status                                                                                        |
 | Bot badge      | «З бота»: blue outline, icon `bot` (separate badge, not a status)                                                                                            |
 | Source label   | LinkedIn / Djinni / Telegram / Рекомендація / Інше: neutral text + small icon (not a coloured badge)                                                         |
 | Event pending  | «Очікує перенесення»: red-soft pill (`#FEF2F2` / `#B91C1C`) as in `06-calendar.webp`                                                                         |

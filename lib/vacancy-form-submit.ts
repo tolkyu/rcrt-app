@@ -33,9 +33,18 @@ import {
 } from '@/lib/vacancy-form';
 import { planFailure, type FailureEffect } from '@/lib/vacancy-form-failure';
 import { parseVacancyForm } from '@/lib/vacancy-form-parse';
+import {
+  applyCreatedVacancy,
+  type createAttemptKeys,
+} from '@/lib/vacancy-create-result';
 import { normalizeSalaryText } from '@/lib/vacancy-salary';
 
 export { parseVacancyForm };
+/** The lazy submit chunk is the surface the create and edit hooks and `vacancy-edit-submit` (`export *`) read. */
+export {
+  applyCreatedVacancy,
+  createAttemptKeys,
+} from '@/lib/vacancy-create-result';
 export { serverTextLength } from '@/lib/text-length';
 export { normalizeSalaryText };
 
@@ -48,24 +57,6 @@ export const vacancyDraftLandingHref = (
     filters: { status: 'DRAFT', vertical: verticalId },
     selected: vacancyId,
   })}`;
-
-/** One key per attempt: a retry of the same body reuses it (the server replays the first result), any change gets a new one. */
-export function createAttemptKeys(
-  newKey: () => string = () => crypto.randomUUID(),
-) {
-  let current: { signature: string; key: string } | null = null;
-  return {
-    keyFor(body: unknown): string {
-      const signature = JSON.stringify(body);
-      if (current?.signature !== signature)
-        current = { signature, key: newKey() };
-      return current.key;
-    },
-    reset() {
-      current = null;
-    },
-  };
-}
 
 export const createVacancy = (body: CreateVacancyBody, key: string) =>
   apiRequest('/vacancies', {
@@ -103,15 +94,6 @@ export async function submitCreate(
       attempts.reset();
     }
   }
-}
-
-/** Seeds the card cache and refreshes every vacancy list, which also refreshes the «Чернетки» count (`queryKeys.vacancyDraftCount()`). */
-export function applyCreatedVacancy(
-  queryClient: QueryClient,
-  created: CreatedVacancy,
-) {
-  queryClient.setQueryData(queryKeys.vacancy(created.id), created);
-  void queryClient.invalidateQueries({ queryKey: queryKeys.vacanciesAll() });
 }
 
 export interface PositionsSeed {

@@ -1868,5 +1868,187 @@
     "body": "{}",
     "status": 200,
     "script": "vacancy-head-deleted"
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "no token",
+    "as": null,
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0001"
+    },
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 1,
+      "priority": "NORMAL"
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "HR is not a Team Lead and the endpoint stays hidden",
+    "as": "hr",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0002"
+    },
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 1,
+      "priority": "NORMAL"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "Head Recruiter uses the full form, not the request",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0003"
+    },
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 1,
+      "priority": "NORMAL"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "Recruiter of another vertical gets 404",
+    "as": "recruiter_crypto",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0004"
+    },
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 1,
+      "priority": "NORMAL"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0005"
+    },
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 1,
+      "priority": "NORMAL"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0006"
+    },
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 1,
+      "priority": "NORMAL"
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "Team Lead of Гемблінг cannot request a position of Крипто",
+    "as": "tl_vasyl",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0007"
+    },
+    "body": {
+      "positionId": "{{vacancy_crypto_position_id}}",
+      "headcount": 1
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "a missing Idempotency-Key is a validation error",
+    "as": "tl_vasyl",
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 1,
+      "priority": "NORMAL"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "header.Idempotency-Key",
+        "code": "invalid_key"
+      }
+    ]
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "an empty body names the missing position",
+    "as": "tl_vasyl",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0008"
+    },
+    "body": {},
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.positionId",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "a client-chosen team lead is refused as an unknown key",
+    "as": "tl_vasyl",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0009"
+    },
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 1,
+      "priority": "NORMAL",
+      "teamLeadId": "{{vacancy_gambling_position_id}}"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "headcount above the limit is a field error",
+    "as": "tl_vasyl",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0010"
+    },
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 101,
+      "priority": "NORMAL"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.headcount",
+        "code": "too_big"
+      }
+    ]
   }
 ]

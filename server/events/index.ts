@@ -88,6 +88,7 @@ export const EVENT_PAYLOADS = {
       status: z.enum(['DRAFT', 'OPEN']),
       source: z.enum(['APP', 'TELEGRAM_BOT']),
       recruiterInitiated: z.boolean(),
+      recipientUserIds: z.array(id).max(500).optional(),
     })
     .strict(),
   'vacancy.recruiter_assigned': z.object({ userId: id }).strict(),

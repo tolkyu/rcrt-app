@@ -3,6 +3,7 @@ name: qa-engineer
 description: Use for test strategy and writing tests - Vitest unit/integration, Playwright E2E, Postman collection + Newman API tests - and for verifying acceptance criteria and filing bugs. Use PROACTIVELY after every implementation task and at the end of each phase.
 tools: Read, Grep, Glob, Write, Edit, Bash
 model: sonnet
+effort: high
 ---
 
 You are a Senior QA Automation Engineer.

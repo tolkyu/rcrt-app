@@ -44,7 +44,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const view = (canAuthorDrafts = true) =>
+const view = (canAuthorDrafts = true, canRequestVacancy = false) =>
   createElement(NextIntlClientProvider, {
     locale: 'uk',
     timeZone: 'Europe/Kyiv',
@@ -52,9 +52,40 @@ const view = (canAuthorDrafts = true) =>
     children: createElement(VacanciesView, {
       canManagePositions: false,
       canAuthorDrafts,
+      canRequestVacancy,
     }),
   });
 const status = (name: string) => screen.getByRole('radio', { name });
+
+describe('Team Lead request entry [STORY-VAC-03-3]', () => {
+  const entries = () =>
+    screen
+      .getAllByRole('link', { name: 'Запросити вакансію' })
+      .map((link) => link.getAttribute('href'));
+
+  it('a Team Lead who cannot author sees only the request link', () => {
+    render(view(false, true));
+    expect(entries()).toEqual(['/vacancies/request', '/vacancies/request']);
+    expect(
+      screen.queryByRole('link', { name: 'Створити вакансію' }),
+    ).toBeNull();
+  });
+
+  it('a Team Lead who also recruits keeps the create link and gains the request link', () => {
+    render(view(true, true));
+    expect(entries()).toEqual(['/vacancies/request']);
+    expect(
+      screen.getAllByRole('link', { name: 'Створити вакансію' }).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('everyone else sees no request link', () => {
+    render(view(true, false));
+    expect(
+      screen.queryByRole('link', { name: 'Запросити вакансію' }),
+    ).toBeNull();
+  });
+});
 
 describe('vacancy filter integration [F6b, VAC-04, D92]', () => {
   it('uses plural statuses without invented counts and hides drafts for non-authors', () => {

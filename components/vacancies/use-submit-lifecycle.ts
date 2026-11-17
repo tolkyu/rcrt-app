@@ -1,8 +1,9 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useState, type RefObject } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
+import { useSubmissionLock } from '@/components/vacancies/use-submission-lock';
 import { useFieldSummary } from '@/components/vacancies/use-field-summary';
 import type { CreateVacancyBody } from '@/lib/schemas/vacancy';
 import type {
@@ -33,9 +34,7 @@ export function useSubmitLifecycle<Lib extends SubmitModule>({
   filled?: readonly FilledField[];
 }) {
   const t = useTranslations('vacancyForm');
-  const mounted = useRef(true);
-  // Set synchronously on the first press (state would only update after the render); released when the attempt fails.
-  const busy = useRef(false);
+  const { mountedRef, busyRef, tryLock } = useSubmissionLock();
   // The inline pieces (spinner, alerts, link) load on mount like the submit module; until they have, an alert reaches the user as a toast.
   const [lib, setLib] = useState<Lib | null>(null);
   const [feedback, setFeedback] = useState<FeedbackModule | null>(null);
@@ -43,40 +42,29 @@ export function useSubmitLifecycle<Lib extends SubmitModule>({
   const fields = useFieldSummary(subscribe);
 
   useEffect(() => {
-    mounted.current = true;
     loadLib().then(
-      (loaded) => mounted.current && setLib(loaded),
+      (loaded) => mountedRef.current && setLib(loaded),
       () => undefined,
     );
     loadFeedback().then(
-      (loaded) => mounted.current && setFeedback(loaded),
+      (loaded) => mountedRef.current && setFeedback(loaded),
       () => undefined,
     );
-    return () => {
-      mounted.current = false;
-    };
-  }, [loadLib]);
-
-  /** Takes the lock for work that is not a press (a reload); `false` = something else is running. */
-  const tryLock = () => {
-    if (busy.current) return false;
-    busy.current = true;
-    return true;
-  };
+  }, [loadLib, mountedRef]);
 
   const unlock = () => {
-    busy.current = false;
+    busyRef.current = false;
     setPendingMode(null);
   };
 
   /** A toast action or other late callback must not touch a form that has gone. */
   const ifMounted = (run: () => void) => () => {
-    if (mounted.current) run();
+    if (mountedRef.current) run();
   };
 
   // `lib/toast` is a chunk of its own (the shell already holds it), so it can speak although the form's module could not load.
   const speakOffline = (retry: () => void) => {
-    if (!mounted.current) return;
+    if (!mountedRef.current) return;
     void import('@/lib/toast').then(
       ({ toast }) =>
         toast.error(t('toast.noConnection'), {
@@ -96,8 +84,8 @@ export function useSubmitLifecycle<Lib extends SubmitModule>({
       body: CreateVacancyBody,
     ) => Promise<void>,
   ) => {
-    if (busy.current) return;
-    busy.current = true;
+    if (busyRef.current) return;
+    busyRef.current = true;
     modeRef.current = action;
     handleSubmit(
       async (values) => {
@@ -105,10 +93,10 @@ export function useSubmitLifecycle<Lib extends SubmitModule>({
         const loaded = await loadLib();
         const parsed = loaded.parseVacancyForm(values, action, filled);
         if (parsed.ok) await run(loaded, values, parsed.body);
-        else busy.current = false;
+        else busyRef.current = false;
       },
       (invalid) => {
-        busy.current = false;
+        busyRef.current = false;
         fields.invalidFields(Object.keys(invalid));
       },
     )().catch(() => {
@@ -120,7 +108,7 @@ export function useSubmitLifecycle<Lib extends SubmitModule>({
 
   return {
     ...fields,
-    mounted,
+    mounted: mountedRef,
     tryLock,
     lib,
     feedback,
