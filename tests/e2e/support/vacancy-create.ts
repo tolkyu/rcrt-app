@@ -66,22 +66,25 @@ export const creates = (page: Page) => {
 
 /** Runs after a failure too; a leftover of an earlier broken run (older than ten minutes) goes as well: «Усі» of this user must stay as seeded for vacancies.spec.ts. */
 export async function sweepDrafts(request: APIRequestContext) {
-  const list = await request.get('/api/v1/vacancies?status=DRAFT');
-  const { items } = (await list.json()) as {
-    items: { id: string; title: string; createdAt: string }[];
-  };
   const stale = Date.now() - STALE_AFTER_MS;
-  for (const item of items.filter(
-    (draft) =>
-      draft.title.startsWith(OWN_DRAFT_PREFIX) ||
-      (draft.title.startsWith(E2E_DRAFT_PREFIX) &&
-        Date.parse(draft.createdAt) < stale),
-  )) {
-    const removed = await request.delete(`/api/v1/vacancies/${item.id}`, {
-      headers: MUTATION_HEADERS,
-      data: {},
-    });
-    expect([200, 404], await removed.text()).toContain(removed.status());
+  // A cancelled draft is the author's too (D112), so a test that cancelled one leaves it under «Скасовані».
+  for (const status of ['DRAFT', 'CANCELLED']) {
+    const list = await request.get(`/api/v1/vacancies?status=${status}`);
+    const { items } = (await list.json()) as {
+      items: { id: string; title: string; createdAt: string }[];
+    };
+    for (const item of items.filter(
+      (draft) =>
+        draft.title.startsWith(OWN_DRAFT_PREFIX) ||
+        (draft.title.startsWith(E2E_DRAFT_PREFIX) &&
+          Date.parse(draft.createdAt) < stale),
+    )) {
+      const removed = await request.delete(`/api/v1/vacancies/${item.id}`, {
+        headers: MUTATION_HEADERS,
+        data: {},
+      });
+      expect([200, 404], await removed.text()).toContain(removed.status());
+    }
   }
 }
 

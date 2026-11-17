@@ -272,24 +272,6 @@ export const publishDraftSchema = z.object({ expectedVersion }).strict().meta({
 });
 export type PublishDraftInput = z.input<typeof publishDraftSchema>;
 
-export const VACANCY_REASON_MAX = 500;
-export const cancelVacancySchema = z
-  .object({
-    reason: z
-      .string()
-      .refine(hasOnlyVisibleChars, 'invalid_chars')
-      .overwrite(normalizePositionName)
-      .min(1)
-      .max(VACANCY_REASON_MAX),
-  })
-  .strict()
-  .meta({
-    id: 'CancelVacancy',
-    description:
-      'Why the author closes the draft (D82). Kept only in the purgeable side row of the event, never in the audit log.',
-  });
-export type CancelVacancyInput = z.input<typeof cancelVacancySchema>;
-
 export const vacancyDeletedSchema = z
   .object({ id: z.uuid() })
   .meta({ id: 'VacancyDeleted' });

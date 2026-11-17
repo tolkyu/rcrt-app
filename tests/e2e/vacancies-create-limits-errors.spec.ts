@@ -82,14 +82,14 @@ test.describe('50-draft limit on «Зберегти чернетку» [D98, ux 
       ]);
       expect(note!.y).toBeGreaterThanOrEqual(button!.y + button!.height);
     } else {
+      await saveDraft(page).focus();
+      await expect(saveDraft(page)).toBeFocused();
       await saveDraft(page).hover();
       await expect(
         page
           .locator('[data-radix-popper-content-wrapper] .motion-tooltip')
           .filter({ hasText: draftLimitReason }),
       ).toBeVisible();
-      // Focus follows the hover: the lazy tooltip swaps its trigger on the first hover, and focusing before that swap raced it.
-      await saveDraft(page).focus();
       await expect(saveDraft(page)).toBeFocused();
     }
     await saveDraft(page).click({ force: true });

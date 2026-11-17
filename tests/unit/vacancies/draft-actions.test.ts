@@ -45,18 +45,35 @@ const draft = (changes: Partial<VacancyDetail> = {}): VacancyDetail => ({
 
 describe('ownDraftActions: who sees the draft actions [D92, D98]', () => {
   const cases: [string, Partial<VacancyDetail>, boolean, unknown][] = [
-    ['an own draft with a position', {}, true, { publishBlocked: null }],
+    [
+      'an own draft with a position',
+      {},
+      true,
+      { stage: 'DRAFT', publishBlocked: null },
+    ],
     [
       'an own draft without a position',
       { position: null },
       true,
-      { publishBlocked: 'positionRequired' },
+      { stage: 'DRAFT', publishBlocked: 'positionRequired' },
     ],
     ['a viewer who authors nowhere', {}, false, null],
     ['an open vacancy', { status: 'OPEN' }, true, null],
     [
-      'a cancelled draft (S3.5 owns its menu)',
-      { status: 'CANCELLED' },
+      'an own cancelled draft that never opened: delete only [D112(1)]',
+      { status: 'CANCELLED', openedAt: null },
+      true,
+      { stage: 'CANCELLED' },
+    ],
+    [
+      'a cancelled draft seen by a viewer who authors nowhere',
+      { status: 'CANCELLED', openedAt: null },
+      false,
+      null,
+    ],
+    [
+      'a vacancy cancelled after it was open',
+      { status: 'CANCELLED', openedAt: '2026-11-10T09:00:00.000Z' },
       true,
       null,
     ],
@@ -144,11 +161,17 @@ describe('isPrivateDraft: nothing about a private draft can be shared [D92, D112
 });
 
 describe('hasRowMenu follows ownDraftActions', () => {
-  it('only an own draft of an author has a menu (and the mobile title room for it)', () => {
+  it('only an own draft, or an own cancelled never-opened one, of an author has a menu (and the mobile title room for it)', () => {
     expect(hasRowMenu(draft(), true)).toBe(true);
     expect(hasRowMenu(draft(), false)).toBe(false);
     expect(hasRowMenu(draft({ status: 'OPEN' }), true)).toBe(false);
-    expect(hasRowMenu(draft({ status: 'CANCELLED' }), true)).toBe(false);
+    expect(hasRowMenu(draft({ status: 'CANCELLED' }), true)).toBe(true);
+    expect(
+      hasRowMenu(
+        draft({ status: 'CANCELLED', openedAt: '2026-11-10T09:00:00.000Z' }),
+        true,
+      ),
+    ).toBe(false);
   });
 });
 

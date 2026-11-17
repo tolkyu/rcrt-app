@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { DetailHeader } from '@/components/ui/detail-header';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
-import { isPrivateDraft } from '@/lib/vacancy-draft-actions';
+import { isPrivateDraft, ownDraftActions } from '@/lib/vacancy-draft-actions';
 import { toast } from '@/lib/toast';
 import { DraftHeaderActions } from './draft-header-actions';
 import { formatVacancyMoney } from './money';
@@ -53,7 +53,8 @@ export function VacancyOverview({
   );
   useEffect(() => {
     const request = focusRequest.current;
-    if (request === 'header' && vacancy.status === 'OPEN')
+    // Publish flips the status to OPEN, cancel to CANCELLED: either way the pressed action is gone.
+    if (request === 'header' && vacancy.status !== 'DRAFT')
       actionsRef.current?.querySelector<HTMLElement>('a, button')?.focus();
     else if (request === 'publish' && vacancy.status === 'DRAFT')
       publishRef.current?.focus();
@@ -61,6 +62,7 @@ export function VacancyOverview({
     focusRequest.current = null;
   }, [vacancy.status]);
   const privateDraft = isPrivateDraft(vacancy);
+  const draftPlan = ownDraftActions(vacancy, canAuthorDrafts);
   const path = `/vacancies/${vacancy.id}`;
   const Heading = preview ? 'h3' : 'h2';
   const copy = async () => {
@@ -119,13 +121,16 @@ export function VacancyOverview({
         actionsRef={actionsRef}
         actions={
           <>
-            <DraftHeaderActions
-              vacancy={vacancy}
-              canAuthorDrafts={canAuthorDrafts}
-              card={card}
-              publishRef={publishRef}
-            />
-            {preview && (
+            {draftPlan && (
+              <DraftHeaderActions
+                vacancy={vacancy}
+                plan={draftPlan}
+                preview={preview}
+                card={card}
+                publishRef={publishRef}
+              />
+            )}
+            {preview && draftPlan?.stage !== 'DRAFT' && (
               <Button asChild size="sm" variant="outline" className="h-11">
                 <Link href={path}>
                   <ExternalLink aria-hidden="true" />

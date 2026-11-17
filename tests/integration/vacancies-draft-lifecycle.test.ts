@@ -895,6 +895,28 @@ describe('Cancel my draft [STORY-VAC-01-3 AC5, D82]', () => {
     });
   });
 
+  it('stores a multi-line reason with its line breaks in the side row, and still refuses other control characters [D113]', async () => {
+    await scenario(async (s) => {
+      const created = await saveDraft(s);
+      const ctx = await s.as(roles().recruiter, { now: LATER });
+      await expect(
+        cancelVacancyDraft(ctx, created.id, { reason: 'Дубль\u0000' }),
+      ).rejects.toThrow();
+      await cancelVacancyDraft(ctx, created.id, {
+        reason: ' Перший  рядок \r\n\r\n\r\n\r\n Другий рядок ',
+      });
+      const last = (await eventsOf(s.tx, created.id)).at(-1)!;
+      expect(JSON.stringify(last.payload)).not.toContain('рядок');
+      const [pii] = await s.tx
+        .select({ data: schema.entityEventPii.data })
+        .from(schema.entityEventPii)
+        .where(eq(schema.entityEventPii.eventId, last.id));
+      expect(pii!.data).toEqual({
+        reason: 'Перший рядок\n\n\n\nДругий рядок',
+      });
+    });
+  });
+
   it('stays visible to its author, as a cancelled vacancy, and to nobody else [D92, Edges]', async () => {
     await scenario(async (s) => {
       const created = await saveDraft(s);

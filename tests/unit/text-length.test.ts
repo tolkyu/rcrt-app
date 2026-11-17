@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { cancelVacancySchema, VACANCY_REASON_MAX } from '@/lib/schemas/vacancy';
+import { cancelVacancySchema } from '@/lib/schemas/vacancy-cancel';
+import { reasonLength, VACANCY_REASON_MAX } from '@/lib/reason-length';
 import { serverTextLength, trimmedTextLength } from '@/lib/text-length';
 
 describe('serverTextLength [UI foundation F5]', () => {
@@ -25,7 +26,9 @@ describe('serverTextLength [UI foundation F5]', () => {
     expect(serverTextLength('  a   b \n c  ')).toBe(5);
     expect(serverTextLength('   ')).toBe(0);
   });
+});
 
+describe('reasonLength agrees with multi-line cancellation [D113]', () => {
   it.each([
     ['at the limit', 'а'.repeat(VACANCY_REASON_MAX)],
     ['one over', 'а'.repeat(VACANCY_REASON_MAX + 1)],
@@ -35,9 +38,14 @@ describe('serverTextLength [UI foundation F5]', () => {
     ['uncomposable marks over', 'x́'.repeat(VACANCY_REASON_MAX / 2 + 1)],
     ['padded by whitespace', ` ${'а'.repeat(VACANCY_REASON_MAX)}   `],
     ['inner whitespace run', `${'а'.repeat(250)}      ${'б'.repeat(249)}`],
+    ['blank lines at the limit', `${'а'.repeat(249)}\n\n\n${'б'.repeat(248)}`],
+    [
+      'blank lines over the limit',
+      `${'а'.repeat(249)}\n\n\n\n${'б'.repeat(248)}`,
+    ],
   ])('agrees with cancelVacancySchema (reason 1..500): %s', (_name, value) => {
     const accepted = cancelVacancySchema.safeParse({ reason: value }).success;
-    expect(serverTextLength(value) <= VACANCY_REASON_MAX).toBe(accepted);
+    expect(reasonLength(value) <= VACANCY_REASON_MAX).toBe(accepted);
   });
 });
 

@@ -5,11 +5,13 @@ import {
 } from '../../lib/idempotency';
 import {
   cancelVacancySchema,
+  type CancelVacancyInput,
+} from '../../lib/schemas/vacancy-cancel';
+import {
   patchVacancySchema,
   publishDraftSchema,
   salaryIssues,
   VACANCY_PROBATION_DEFAULT,
-  type CancelVacancyInput,
   type PatchVacancyBody,
   type PatchVacancyInput,
   type PublishDraftInput,

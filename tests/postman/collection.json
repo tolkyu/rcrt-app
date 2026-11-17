@@ -25632,6 +25632,2494 @@
               }
             }
           ]
+        },
+        {
+          "name": "createVacancy — Admin saves a second throwaway draft for the cancel dialog",
+          "request": {
+            "name": "createVacancy — Admin saves a second throwaway draft for the cancel dialog",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "newman-cancel-{{vacancy_run}}"
+              },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"mode\":\"DRAFT\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\",\"title\":\"Тест API — скасування {{vacancy_run}}\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_run\",\"vacancy_gambling_vertical_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"number\":{\"type\":\"string\",\"pattern\":\"^V-\\\\d{4,19}$\"},\"title\":{\"type\":\"string\"},\"vertical\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"position\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"teamLead\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]},\"recruiters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]}},\"status\":{\"type\":\"string\",\"enum\":[\"DRAFT\",\"OPEN\",\"ON_HOLD\",\"FILLED\",\"CANCELLED\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"NORMAL\",\"URGENT\"]},\"source\":{\"type\":\"string\",\"enum\":[\"APP\",\"TELEGRAM_BOT\"]},\"openedAt\":{\"type\":[\"string\",\"null\"],\"format\":\"date-time\"},\"createdAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"headcount\":{\"type\":\"integer\",\"exclusiveMinimum\":0},\"seniority\":{\"type\":[\"string\",\"null\"]},\"workFormat\":{\"type\":[\"string\",\"null\"],\"enum\":[\"REMOTE\",\"OFFICE\",\"HYBRID\",null]},\"employmentType\":{\"type\":[\"string\",\"null\"]},\"location\":{\"type\":[\"string\",\"null\"]},\"salaryMinMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryMaxMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryCurrency\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^[A-Z]{3}$\"},\"probationDays\":{\"type\":\"integer\",\"minimum\":30,\"maximum\":90},\"recruiterInitiated\":{\"type\":\"boolean\"},\"version\":{\"type\":\"integer\",\"exclusiveMinimum\":0}},\"required\":[\"id\",\"number\",\"title\",\"vertical\",\"position\",\"teamLead\",\"recruiters\",\"status\",\"priority\",\"source\",\"openedAt\",\"createdAt\",\"updatedAt\",\"headcount\",\"seniority\",\"workFormat\",\"employmentType\",\"location\",\"salaryMinMinor\",\"salaryMaxMinor\",\"salaryCurrency\",\"probationDays\",\"recruiterInitiated\",\"version\"]}));",
+                  "const draft = pm.response.json();",
+                  "pm.test('a draft of the Admin, version 1', () => {",
+                  "  pm.expect(draft.status).to.equal('DRAFT');",
+                  "  pm.expect(draft.version).to.equal(1);",
+                  "});",
+                  "pm.collectionVariables.set('vacancy_cancel_id', draft.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "countOwnVacancyDrafts — Admin counts the drafts before the cancel",
+          "request": {
+            "name": "countOwnVacancyDrafts — Admin counts the drafts before the cancel",
+            "description": {},
+            "url": {
+              "path": ["vacancies", "drafts", "count"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"count\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"count\"]}));",
+                  "const { count } = pm.response.json();",
+                  "pm.test('the author counts the new draft', () => {",
+                  "  pm.expect(count).to.be.at.least(1);",
+                  "});",
+                  "pm.collectionVariables.set('vacancy_cancel_count', String(count));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cancelVacancyDraft — a reason with a NUL character is refused",
+          "request": {
+            "name": "cancelVacancyDraft — a reason with a NUL character is refused",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "cancel"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":\"Дубль\\u0000\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));",
+                  "pm.test('field errors', () => pm.expect(pm.response.json().errors).to.deep.equal([{\"path\":\"body.reason\",\"code\":\"custom\"}]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cancelVacancyDraft — a reason with a vertical tab is refused",
+          "request": {
+            "name": "cancelVacancyDraft — a reason with a vertical tab is refused",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "cancel"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":\"Дубль\\u000B\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));",
+                  "pm.test('field errors', () => pm.expect(pm.response.json().errors).to.deep.equal([{\"path\":\"body.reason\",\"code\":\"custom\"}]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cancelVacancyDraft — a reason with a zero-width space is refused",
+          "request": {
+            "name": "cancelVacancyDraft — a reason with a zero-width space is refused",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "cancel"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":\"Дубль\\u200B\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));",
+                  "pm.test('field errors', () => pm.expect(pm.response.json().errors).to.deep.equal([{\"path\":\"body.reason\",\"code\":\"custom\"}]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cancelVacancyDraft — a reason with a bidi override is refused",
+          "request": {
+            "name": "cancelVacancyDraft — a reason with a bidi override is refused",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "cancel"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":\"Дубль\\u202E\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));",
+                  "pm.test('field errors', () => pm.expect(pm.response.json().errors).to.deep.equal([{\"path\":\"body.reason\",\"code\":\"custom\"}]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cancelVacancyDraft — a reason of only blank lines is refused",
+          "request": {
+            "name": "cancelVacancyDraft — a reason of only blank lines is refused",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "cancel"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":\"  \\n \\n\\t\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));",
+                  "pm.test('field errors', () => pm.expect(pm.response.json().errors).to.deep.equal([{\"path\":\"body.reason\",\"code\":\"too_small\"}]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cancelVacancyDraft — 501 characters are refused",
+          "request": {
+            "name": "cancelVacancyDraft — 501 characters are refused",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "cancel"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":\"ааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааа\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));",
+                  "pm.test('field errors', () => pm.expect(pm.response.json().errors).to.deep.equal([{\"path\":\"body.reason\",\"code\":\"too_big\"}]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cancelVacancyDraft — a line break counts as a character: 250 + break + 250 is refused",
+          "request": {
+            "name": "cancelVacancyDraft — a line break counts as a character: 250 + break + 250 is refused",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "cancel"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":\"аааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааа\\nбббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббб\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));",
+                  "pm.test('field errors', () => pm.expect(pm.response.json().errors).to.deep.equal([{\"path\":\"body.reason\",\"code\":\"too_big\"}]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cancelVacancyDraft — a reason that is not text is refused",
+          "request": {
+            "name": "cancelVacancyDraft — a reason that is not text is refused",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "cancel"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":[\"Дубль\"]}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));",
+                  "pm.test('field errors', () => pm.expect(pm.response.json().errors).to.deep.equal([{\"path\":\"body.reason\",\"code\":\"invalid_type\"}]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cancelVacancyDraft — unknown fields next to the reason are refused",
+          "request": {
+            "name": "cancelVacancyDraft — unknown fields next to the reason are refused",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "cancel"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":\"Дубль\",\"status\":\"OPEN\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));",
+                  "pm.test('field errors', () => pm.expect(pm.response.json().errors).to.deep.equal([{\"path\":\"body\",\"code\":\"unrecognized_keys\"}]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "getVacancy — the refused reasons left the draft a draft",
+          "request": {
+            "name": "getVacancy — the refused reasons left the draft a draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"number\":{\"type\":\"string\",\"pattern\":\"^V-\\\\d{4,19}$\"},\"title\":{\"type\":\"string\"},\"vertical\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"position\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"teamLead\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]},\"recruiters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]}},\"status\":{\"type\":\"string\",\"enum\":[\"DRAFT\",\"OPEN\",\"ON_HOLD\",\"FILLED\",\"CANCELLED\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"NORMAL\",\"URGENT\"]},\"source\":{\"type\":\"string\",\"enum\":[\"APP\",\"TELEGRAM_BOT\"]},\"openedAt\":{\"type\":[\"string\",\"null\"],\"format\":\"date-time\"},\"createdAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"headcount\":{\"type\":\"integer\",\"exclusiveMinimum\":0},\"seniority\":{\"type\":[\"string\",\"null\"]},\"workFormat\":{\"type\":[\"string\",\"null\"],\"enum\":[\"REMOTE\",\"OFFICE\",\"HYBRID\",null]},\"employmentType\":{\"type\":[\"string\",\"null\"]},\"location\":{\"type\":[\"string\",\"null\"]},\"salaryMinMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryMaxMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryCurrency\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^[A-Z]{3}$\"},\"probationDays\":{\"type\":\"integer\",\"minimum\":30,\"maximum\":90},\"recruiterInitiated\":{\"type\":\"boolean\"},\"version\":{\"type\":\"integer\",\"exclusiveMinimum\":0}},\"required\":[\"id\",\"number\",\"title\",\"vertical\",\"position\",\"teamLead\",\"recruiters\",\"status\",\"priority\",\"source\",\"openedAt\",\"createdAt\",\"updatedAt\",\"headcount\",\"seniority\",\"workFormat\",\"employmentType\",\"location\",\"salaryMinMinor\",\"salaryMaxMinor\",\"salaryCurrency\",\"probationDays\",\"recruiterInitiated\",\"version\"]}));",
+                  "const draft = pm.response.json();",
+                  "pm.test('every refused reason left a draft at version 1', () => {",
+                  "  pm.expect(draft.id).to.equal(pm.collectionVariables.get('vacancy_cancel_id'));",
+                  "  pm.expect(draft.status).to.equal('DRAFT');",
+                  "  pm.expect(draft.version).to.equal(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cancelVacancyDraft — Admin cancels with a multi-line reason, extra spaces and blank lines",
+          "request": {
+            "name": "cancelVacancyDraft — Admin cancels with a multi-line reason, extra spaces and blank lines",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "cancel"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":\"  Потреба зникла\\r\\n\\r\\n\\r\\n\\r\\n  Дубль   вакансії\\tV-0001\\n\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"number\":{\"type\":\"string\",\"pattern\":\"^V-\\\\d{4,19}$\"},\"title\":{\"type\":\"string\"},\"vertical\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"position\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"teamLead\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]},\"recruiters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]}},\"status\":{\"type\":\"string\",\"enum\":[\"DRAFT\",\"OPEN\",\"ON_HOLD\",\"FILLED\",\"CANCELLED\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"NORMAL\",\"URGENT\"]},\"source\":{\"type\":\"string\",\"enum\":[\"APP\",\"TELEGRAM_BOT\"]},\"openedAt\":{\"type\":[\"string\",\"null\"],\"format\":\"date-time\"},\"createdAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"headcount\":{\"type\":\"integer\",\"exclusiveMinimum\":0},\"seniority\":{\"type\":[\"string\",\"null\"]},\"workFormat\":{\"type\":[\"string\",\"null\"],\"enum\":[\"REMOTE\",\"OFFICE\",\"HYBRID\",null]},\"employmentType\":{\"type\":[\"string\",\"null\"]},\"location\":{\"type\":[\"string\",\"null\"]},\"salaryMinMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryMaxMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryCurrency\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^[A-Z]{3}$\"},\"probationDays\":{\"type\":\"integer\",\"minimum\":30,\"maximum\":90},\"recruiterInitiated\":{\"type\":\"boolean\"},\"version\":{\"type\":\"integer\",\"exclusiveMinimum\":0}},\"required\":[\"id\",\"number\",\"title\",\"vertical\",\"position\",\"teamLead\",\"recruiters\",\"status\",\"priority\",\"source\",\"openedAt\",\"createdAt\",\"updatedAt\",\"headcount\",\"seniority\",\"workFormat\",\"employmentType\",\"location\",\"salaryMinMinor\",\"salaryMaxMinor\",\"salaryCurrency\",\"probationDays\",\"recruiterInitiated\",\"version\"]}));",
+                  "const cancelled = pm.response.json();",
+                  "pm.test(",
+                  "  'closed as cancelled, never opened, version up by one, the reason is not echoed',",
+                  "  () => {",
+                  "    pm.expect(cancelled.id).to.equal(",
+                  "      pm.collectionVariables.get('vacancy_cancel_id'),",
+                  "    );",
+                  "    pm.expect(cancelled.status).to.equal('CANCELLED');",
+                  "    pm.expect(cancelled.openedAt).to.equal(null);",
+                  "    pm.expect(cancelled.version).to.equal(2);",
+                  "    pm.expect(pm.response.text()).to.not.include('Потреба зникла');",
+                  "  },",
+                  ");"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "countOwnVacancyDrafts — the cancelled draft leaves the count",
+          "request": {
+            "name": "countOwnVacancyDrafts — the cancelled draft leaves the count",
+            "description": {},
+            "url": {
+              "path": ["vacancies", "drafts", "count"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"count\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"count\"]}));",
+                  "pm.test('a cancelled draft leaves the draft count', () => {",
+                  "  pm.expect(pm.response.json().count).to.equal(",
+                  "    Number(pm.collectionVariables.get('vacancy_cancel_count')) - 1,",
+                  "  );",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cancelVacancyDraft — a second cancel is not a draft any more",
+          "request": {
+            "name": "cancelVacancyDraft — a second cancel is not a draft any more",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "cancel"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":\"Ще раз\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VACANCY_NOT_DRAFT\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:vacancy-not-draft\",\"status\":409,\"code\":\"VACANCY_NOT_DRAFT\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateVacancyDraft — a cancelled draft cannot be edited",
+          "request": {
+            "name": "updateVacancyDraft — a cancelled draft cannot be edited",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":2,\"title\":\"Назва чернетки\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VACANCY_NOT_DRAFT\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:vacancy-not-draft\",\"status\":409,\"code\":\"VACANCY_NOT_DRAFT\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "publishVacancyDraft — a cancelled draft cannot be published",
+          "request": {
+            "name": "publishVacancyDraft — a cancelled draft cannot be published",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "publish"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "newman-publish-cancelled-0004"
+              },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":2}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VACANCY_NOT_DRAFT\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:vacancy-not-draft\",\"status\":409,\"code\":\"VACANCY_NOT_DRAFT\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "getVacancy — Head Recruiter cannot read the cancelled Admin draft",
+          "request": {
+            "name": "getVacancy — Head Recruiter cannot read the cancelled Admin draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cancelVacancyDraft — Head Recruiter gets 404, not 409, for the cancelled Admin draft",
+          "request": {
+            "name": "cancelVacancyDraft — Head Recruiter gets 404, not 409, for the cancelled Admin draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "cancel"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":\"Тест API\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "deleteVacancyDraft — Head Recruiter gets 404 for the cancelled Admin draft",
+          "request": {
+            "name": "deleteVacancyDraft — Head Recruiter gets 404 for the cancelled Admin draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "deleteVacancyDraft — HR gets 404 for the cancelled Admin draft",
+          "request": {
+            "name": "deleteVacancyDraft — HR gets 404 for the cancelled Admin draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_hr}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "deleteVacancyDraft — a Recruiter of another vertical gets 404 for the cancelled Admin draft",
+          "request": {
+            "name": "deleteVacancyDraft — a Recruiter of another vertical gets 404 for the cancelled Admin draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_recruiter_crypto}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "getVacancy — Admin still reads the own cancelled draft",
+          "request": {
+            "name": "getVacancy — Admin still reads the own cancelled draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"number\":{\"type\":\"string\",\"pattern\":\"^V-\\\\d{4,19}$\"},\"title\":{\"type\":\"string\"},\"vertical\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"position\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"teamLead\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]},\"recruiters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]}},\"status\":{\"type\":\"string\",\"enum\":[\"DRAFT\",\"OPEN\",\"ON_HOLD\",\"FILLED\",\"CANCELLED\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"NORMAL\",\"URGENT\"]},\"source\":{\"type\":\"string\",\"enum\":[\"APP\",\"TELEGRAM_BOT\"]},\"openedAt\":{\"type\":[\"string\",\"null\"],\"format\":\"date-time\"},\"createdAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"headcount\":{\"type\":\"integer\",\"exclusiveMinimum\":0},\"seniority\":{\"type\":[\"string\",\"null\"]},\"workFormat\":{\"type\":[\"string\",\"null\"],\"enum\":[\"REMOTE\",\"OFFICE\",\"HYBRID\",null]},\"employmentType\":{\"type\":[\"string\",\"null\"]},\"location\":{\"type\":[\"string\",\"null\"]},\"salaryMinMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryMaxMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryCurrency\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^[A-Z]{3}$\"},\"probationDays\":{\"type\":\"integer\",\"minimum\":30,\"maximum\":90},\"recruiterInitiated\":{\"type\":\"boolean\"},\"version\":{\"type\":\"integer\",\"exclusiveMinimum\":0}},\"required\":[\"id\",\"number\",\"title\",\"vertical\",\"position\",\"teamLead\",\"recruiters\",\"status\",\"priority\",\"source\",\"openedAt\",\"createdAt\",\"updatedAt\",\"headcount\",\"seniority\",\"workFormat\",\"employmentType\",\"location\",\"salaryMinMinor\",\"salaryMaxMinor\",\"salaryCurrency\",\"probationDays\",\"recruiterInitiated\",\"version\"]}));",
+                  "const cancelled = pm.response.json();",
+                  "pm.test('the author still reads the cancelled draft as cancelled', () => {",
+                  "  pm.expect(cancelled.id).to.equal(",
+                  "    pm.collectionVariables.get('vacancy_cancel_id'),",
+                  "  );",
+                  "  pm.expect(cancelled.status).to.equal('CANCELLED');",
+                  "  pm.expect(cancelled.openedAt).to.equal(null);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "deleteVacancyDraft — Admin deletes the own cancelled, never opened draft",
+          "request": {
+            "name": "deleteVacancyDraft — Admin deletes the own cancelled, never opened draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"}},\"required\":[\"id\"]}));",
+                  "pm.test('the response names the deleted cancelled draft', () => {",
+                  "  pm.expect(pm.response.json()).to.deep.equal({",
+                  "    id: pm.collectionVariables.get('vacancy_cancel_id'),",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "countOwnVacancyDrafts — deleting the cancelled draft changes no count",
+          "request": {
+            "name": "countOwnVacancyDrafts — deleting the cancelled draft changes no count",
+            "description": {},
+            "url": {
+              "path": ["vacancies", "drafts", "count"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"count\":{\"type\":\"integer\",\"minimum\":0}},\"required\":[\"count\"]}));",
+                  "pm.test('a cancelled draft leaves the draft count', () => {",
+                  "  pm.expect(pm.response.json().count).to.equal(",
+                  "    Number(pm.collectionVariables.get('vacancy_cancel_count')) - 1,",
+                  "  );",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "getVacancy — the deleted cancelled draft is gone even for its author",
+          "request": {
+            "name": "getVacancy — the deleted cancelled draft is gone even for its author",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cancelVacancyDraft — a deleted draft cannot be cancelled",
+          "request": {
+            "name": "cancelVacancyDraft — a deleted draft cannot be cancelled",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "cancel"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_cancel_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":\"Пізно\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_cancel_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "createVacancy — Head Recruiter saves a throwaway draft",
+          "request": {
+            "name": "createVacancy — Head Recruiter saves a throwaway draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "newman-head-draft-{{vacancy_run}}"
+              },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"mode\":\"DRAFT\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\",\"title\":\"Тест API — чернетка керівника {{vacancy_run}}\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_run\",\"vacancy_gambling_vertical_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"number\":{\"type\":\"string\",\"pattern\":\"^V-\\\\d{4,19}$\"},\"title\":{\"type\":\"string\"},\"vertical\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"position\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"teamLead\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]},\"recruiters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]}},\"status\":{\"type\":\"string\",\"enum\":[\"DRAFT\",\"OPEN\",\"ON_HOLD\",\"FILLED\",\"CANCELLED\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"NORMAL\",\"URGENT\"]},\"source\":{\"type\":\"string\",\"enum\":[\"APP\",\"TELEGRAM_BOT\"]},\"openedAt\":{\"type\":[\"string\",\"null\"],\"format\":\"date-time\"},\"createdAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"headcount\":{\"type\":\"integer\",\"exclusiveMinimum\":0},\"seniority\":{\"type\":[\"string\",\"null\"]},\"workFormat\":{\"type\":[\"string\",\"null\"],\"enum\":[\"REMOTE\",\"OFFICE\",\"HYBRID\",null]},\"employmentType\":{\"type\":[\"string\",\"null\"]},\"location\":{\"type\":[\"string\",\"null\"]},\"salaryMinMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryMaxMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryCurrency\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^[A-Z]{3}$\"},\"probationDays\":{\"type\":\"integer\",\"minimum\":30,\"maximum\":90},\"recruiterInitiated\":{\"type\":\"boolean\"},\"version\":{\"type\":\"integer\",\"exclusiveMinimum\":0}},\"required\":[\"id\",\"number\",\"title\",\"vertical\",\"position\",\"teamLead\",\"recruiters\",\"status\",\"priority\",\"source\",\"openedAt\",\"createdAt\",\"updatedAt\",\"headcount\",\"seniority\",\"workFormat\",\"employmentType\",\"location\",\"salaryMinMinor\",\"salaryMaxMinor\",\"salaryCurrency\",\"probationDays\",\"recruiterInitiated\",\"version\"]}));",
+                  "const draft = pm.response.json();",
+                  "pm.test('a draft of the Head Recruiter, version 1', () => {",
+                  "  pm.expect(draft.status).to.equal('DRAFT');",
+                  "  pm.expect(draft.version).to.equal(1);",
+                  "});",
+                  "pm.collectionVariables.set('vacancy_head_draft_id', draft.id);",
+                  "pm.collectionVariables.set('vacancy_head_draft_snapshot', JSON.stringify(pm.response.json()));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cancelVacancyDraft — Admin gets 404 for the Head Recruiter draft",
+          "request": {
+            "name": "cancelVacancyDraft — Admin gets 404 for the Head Recruiter draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "cancel"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_head_draft_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":\"Тест API\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_head_draft_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "deleteVacancyDraft — Admin gets 404 for the Head Recruiter draft",
+          "request": {
+            "name": "deleteVacancyDraft — Admin gets 404 for the Head Recruiter draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_head_draft_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_head_draft_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "getVacancy — the Head Recruiter draft is unchanged after the refusals",
+          "request": {
+            "name": "getVacancy — the Head Recruiter draft is unchanged after the refusals",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_head_draft_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_head_draft_id\",\"vacancy_head_draft_snapshot\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"number\":{\"type\":\"string\",\"pattern\":\"^V-\\\\d{4,19}$\"},\"title\":{\"type\":\"string\"},\"vertical\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"position\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"teamLead\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]},\"recruiters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]}},\"status\":{\"type\":\"string\",\"enum\":[\"DRAFT\",\"OPEN\",\"ON_HOLD\",\"FILLED\",\"CANCELLED\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"NORMAL\",\"URGENT\"]},\"source\":{\"type\":\"string\",\"enum\":[\"APP\",\"TELEGRAM_BOT\"]},\"openedAt\":{\"type\":[\"string\",\"null\"],\"format\":\"date-time\"},\"createdAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"headcount\":{\"type\":\"integer\",\"exclusiveMinimum\":0},\"seniority\":{\"type\":[\"string\",\"null\"]},\"workFormat\":{\"type\":[\"string\",\"null\"],\"enum\":[\"REMOTE\",\"OFFICE\",\"HYBRID\",null]},\"employmentType\":{\"type\":[\"string\",\"null\"]},\"location\":{\"type\":[\"string\",\"null\"]},\"salaryMinMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryMaxMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryCurrency\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^[A-Z]{3}$\"},\"probationDays\":{\"type\":\"integer\",\"minimum\":30,\"maximum\":90},\"recruiterInitiated\":{\"type\":\"boolean\"},\"version\":{\"type\":\"integer\",\"exclusiveMinimum\":0}},\"required\":[\"id\",\"number\",\"title\",\"vertical\",\"position\",\"teamLead\",\"recruiters\",\"status\",\"priority\",\"source\",\"openedAt\",\"createdAt\",\"updatedAt\",\"headcount\",\"seniority\",\"workFormat\",\"employmentType\",\"location\",\"salaryMinMinor\",\"salaryMaxMinor\",\"salaryCurrency\",\"probationDays\",\"recruiterInitiated\",\"version\"]}));",
+                  "pm.test(\"body identical to vacancy_head_draft_snapshot\", () => pm.expect(pm.response.json()).to.deep.equal(JSON.parse(pm.collectionVariables.get('vacancy_head_draft_snapshot'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cancelVacancyDraft — Head Recruiter cancels the own draft",
+          "request": {
+            "name": "cancelVacancyDraft — Head Recruiter cancels the own draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "cancel"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_head_draft_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":\"Тест API — дубль\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_head_draft_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"number\":{\"type\":\"string\",\"pattern\":\"^V-\\\\d{4,19}$\"},\"title\":{\"type\":\"string\"},\"vertical\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"position\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"teamLead\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]},\"recruiters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]}},\"status\":{\"type\":\"string\",\"enum\":[\"DRAFT\",\"OPEN\",\"ON_HOLD\",\"FILLED\",\"CANCELLED\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"NORMAL\",\"URGENT\"]},\"source\":{\"type\":\"string\",\"enum\":[\"APP\",\"TELEGRAM_BOT\"]},\"openedAt\":{\"type\":[\"string\",\"null\"],\"format\":\"date-time\"},\"createdAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"headcount\":{\"type\":\"integer\",\"exclusiveMinimum\":0},\"seniority\":{\"type\":[\"string\",\"null\"]},\"workFormat\":{\"type\":[\"string\",\"null\"],\"enum\":[\"REMOTE\",\"OFFICE\",\"HYBRID\",null]},\"employmentType\":{\"type\":[\"string\",\"null\"]},\"location\":{\"type\":[\"string\",\"null\"]},\"salaryMinMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryMaxMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryCurrency\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^[A-Z]{3}$\"},\"probationDays\":{\"type\":\"integer\",\"minimum\":30,\"maximum\":90},\"recruiterInitiated\":{\"type\":\"boolean\"},\"version\":{\"type\":\"integer\",\"exclusiveMinimum\":0}},\"required\":[\"id\",\"number\",\"title\",\"vertical\",\"position\",\"teamLead\",\"recruiters\",\"status\",\"priority\",\"source\",\"openedAt\",\"createdAt\",\"updatedAt\",\"headcount\",\"seniority\",\"workFormat\",\"employmentType\",\"location\",\"salaryMinMinor\",\"salaryMaxMinor\",\"salaryCurrency\",\"probationDays\",\"recruiterInitiated\",\"version\"]}));",
+                  "const cancelled = pm.response.json();",
+                  "pm.test('the author cancels the own draft after the refusals', () => {",
+                  "  pm.expect(cancelled.id).to.equal(",
+                  "    pm.collectionVariables.get('vacancy_head_draft_id'),",
+                  "  );",
+                  "  pm.expect(cancelled.status).to.equal('CANCELLED');",
+                  "  pm.expect(cancelled.version).to.equal(2);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "cancelVacancyDraft — Admin gets 404, not 409, for the cancelled Head Recruiter draft",
+          "request": {
+            "name": "cancelVacancyDraft — Admin gets 404, not 409, for the cancelled Head Recruiter draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "cancel"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_head_draft_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"reason\":\"Тест API\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_head_draft_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "deleteVacancyDraft — Admin gets 404 for the cancelled Head Recruiter draft",
+          "request": {
+            "name": "deleteVacancyDraft — Admin gets 404 for the cancelled Head Recruiter draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_head_draft_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_head_draft_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "getVacancy — Admin cannot read the cancelled Head Recruiter draft",
+          "request": {
+            "name": "getVacancy — Admin cannot read the cancelled Head Recruiter draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_head_draft_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "method": "GET",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_admin}}", "type": "string" }
+              ]
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_head_draft_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "deleteVacancyDraft — Head Recruiter deletes the own cancelled draft",
+          "request": {
+            "name": "deleteVacancyDraft — Head Recruiter deletes the own cancelled draft",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_head_draft_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "DELETE",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_head_draft_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"}},\"required\":[\"id\"]}));",
+                  "pm.test('the response names the deleted Head Recruiter draft', () => {",
+                  "  pm.expect(pm.response.json()).to.deep.equal({",
+                  "    id: pm.collectionVariables.get('vacancy_head_draft_id'),",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ],
       "event": []

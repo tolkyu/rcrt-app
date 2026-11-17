@@ -13,9 +13,10 @@ import {
   vacancyEditHref,
   type DraftActions,
 } from '@/lib/vacancy-draft-actions';
+import { closeActions, useDraftClose } from './use-draft-close';
 import { preloadDraftPublish, useDraftPublish } from './use-draft-publish';
 
-/** The menu of an own draft row; its own chunk, so the list's initial JavaScript carries none of the publish code (PERF-04). */
+/** The menu of an own draft row; its own chunk, so the list's initial JavaScript carries none of the publish, cancel or delete code (PERF-04). */
 export default function DraftMenu({
   vacancy,
   plan,
@@ -27,33 +28,52 @@ export default function DraftMenu({
   const router = useRouter();
   const queryClient = useQueryClient();
   const publish = useDraftPublish();
+  const { openDialog, dialog } = useDraftClose({
+    ...vacancy,
+    status: plan.stage,
+  });
+  const draft = plan.stage === 'DRAFT';
   // Publishing needs the draft's version: reading it on hover or focus makes the press itself instant.
   const prefetch = () => {
-    if (plan.publishBlocked) return;
+    if (!draft || plan.publishBlocked) return;
     void queryClient.prefetchQuery(vacancyDetailQuery(vacancy.id));
     preloadDraftPublish();
   };
   const actions: RowAction[] = [
-    {
-      id: 'edit',
-      label: t('draft.actions.edit'),
-      onSelect: () => router.push(vacancyEditHref(vacancy.id)),
-    },
-    {
-      id: 'publish',
-      label: t('draft.actions.publish'),
-      onSelect: () => publish(vacancy),
-      disabledReason: plan.publishBlocked
-        ? t('draftErrors.positionRequired')
-        : undefined,
-    },
+    ...(plan.stage === 'DRAFT'
+      ? [
+          {
+            id: 'edit',
+            label: t('draft.actions.edit'),
+            onSelect: () => router.push(vacancyEditHref(vacancy.id)),
+          },
+          {
+            id: 'publish',
+            label: t('draft.actions.publish'),
+            onSelect: () => publish(vacancy),
+            disabledReason: plan.publishBlocked
+              ? t('draftErrors.positionRequired')
+              : undefined,
+          },
+        ]
+      : [
+          {
+            id: 'open',
+            label: t('openCard'),
+            onSelect: () => router.push(`/vacancies/${vacancy.id}`),
+          },
+        ]),
+    ...closeActions(t, openDialog, plan.stage),
   ];
   return (
-    <span onPointerEnter={prefetch} onFocus={prefetch} className="shrink-0">
-      <RowActionsMenu
-        label={t('draft.actions.menuLabel', { title: vacancy.title })}
-        actions={actions}
-      />
-    </span>
+    <>
+      <span onPointerEnter={prefetch} onFocus={prefetch} className="shrink-0">
+        <RowActionsMenu
+          label={t('draft.actions.menuLabel', { title: vacancy.title })}
+          actions={actions}
+        />
+      </span>
+      {dialog}
+    </>
   );
 }

@@ -34,11 +34,15 @@ export async function createOwnDraft(
   return (await answer.json()) as VacancyDetail;
 }
 
+const menuLabel = (title: string) => ta.menuLabel.replace('{title}', title);
+/** The row's own `⋯`: at 1280 px and up the preview of the selected row has one with the same name. */
 export const menuButton = (page: Page, title: string) =>
-  page.getByRole('button', {
-    name: ta.menuLabel.replace('{title}', title),
-    exact: true,
-  });
+  page
+    .getByRole('region', { name: messages.vacancies.resultsLabel })
+    .getByRole('button', { name: menuLabel(title), exact: true });
+/** The `⋯` of a card page. */
+export const cardMenuButton = (page: Page, title: string) =>
+  page.getByRole('button', { name: menuLabel(title), exact: true });
 export const rowLink = (page: Page, title: string) =>
   page
     .getByRole('link', { name: title, exact: true })
@@ -64,6 +68,20 @@ export const draftCount = async (page: Page) => {
   await expect(count).toHaveText(/^\d+$/);
   return Number(await count.innerText());
 };
+
+/** The chip minus the server's own count. Other workers create and sweep drafts of the same author, so neither number holds still; their difference does. */
+export const draftCountOffset = (page: Page, api: APIRequestContext) =>
+  expect.poll(async () => {
+    const answer = await api.get('/api/v1/vacancies/drafts/count');
+    const { count } = (await answer.json()) as { count: number };
+    return (await draftCount(page)) - count;
+  });
+
+/** A request still held by a closed gate reaches the real server once its route is removed (a failed test once published a draft that way), so the browser goes offline first. */
+export async function removeStubs(page: Page) {
+  await page.context().setOffline(true);
+  await page.unrouteAll({ behavior: 'ignoreErrors' });
+}
 
 export interface PublishStub {
   readonly requests: { key: string | undefined; body: unknown }[];

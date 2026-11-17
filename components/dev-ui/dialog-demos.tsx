@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { trackLastFocus } from '@/lib/last-focus';
-import { VACANCY_REASON_MAX } from '@/lib/schemas/vacancy';
+import { VACANCY_REASON_MAX } from '@/lib/reason-length';
 import { toast } from '@/lib/toast';
 import { GalleryGroup } from './gallery-section';
 

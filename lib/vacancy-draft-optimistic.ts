@@ -31,14 +31,14 @@ export interface OptimisticPublish {
   readonly settle: () => void;
 }
 
-const isPage = (data: unknown): data is VacancyPage =>
+export const isPage = (data: unknown): data is VacancyPage =>
   typeof data === 'object' &&
   data !== null &&
   'items' in data &&
   Array.isArray(data.items);
 const isDetail = (data: unknown): data is VacancyDetail =>
   typeof data === 'object' && data !== null && 'status' in data;
-const isCount = (data: unknown): data is VacancyDraftCount =>
+export const isCount = (data: unknown): data is VacancyDraftCount =>
   typeof data === 'object' &&
   data !== null &&
   'count' in data &&

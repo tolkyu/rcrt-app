@@ -3,6 +3,18 @@
 > Read order: `CLAUDE.md` → this file → `docs/PROGRESS.md` → `docs/PRD.md` §14 (owner decisions D1–D70).
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
+## Checkpoint — 2026-11-17 (Codex: S3.5 fixes and S3.6 gallery)
+
+- Resumed Claude's uncommitted S3.5 from `42e41ac`. Cancel/delete implementation is present; **S3.5/S3.6 are still in progress**, not independently approved. Astra code/perf/QA agents hit their usage limit; model policy was not changed.
+- Initial code review found four issues; fixed all: old detail GET restoring DRAFT, changed-reason uncertain retries, collapsed internal breaks (D113), and reconciliation publishing status before dialog close/focus. Retry regressions also cover two lost answers and intervening 403/429. The security review initially passed; see coordinator addendum and remaining Low.
+- S3.6 exposed/fixed a stale «Виправте N полів» summary. Both forms dismiss its snapshot when values change, including picker `setValue`, without removing field errors. A refused-work integration snapshot now orders rows by stable primary keys.
+- Verified: production build (lint/TypeScript), **4,163 Vitest / 163 files**, secret/dev-route check and all JS gates. `/vacancies` 165.44 kB, card 157.14, create 177.73, edit 177.95. Generated OpenAPI/Postman hashes are stable (42 paths). Newman: **502 requests / 2,910 assertions**, zero failures (`docs/qa-phase-2-s3.md`).
+- E2E: main run **755 passed**, one known **BUG-S3-14** desktop 403 toast failure, 29 skips and 160 dependent cases not run. Those Admin cases passed separately in order: **96 desktop + 64 mobile**. The 403 test then passed **3/3** focused repeats; it stays open. Do not call the one-shot full E2E gate green.
+- Gallery: **180 new S3 PNGs**, **522 Phase-2 PNGs**, both themes and viewports; all 22 new gallery cases passed. Phase-2/latest images and HTML match. Representative coordinator visual review is recorded; the remaining wireframe §10 matrix, 320 px/200% visual pass, owner's real-phone check and independent UX verdict remain open.
+- Reports: `docs/review-phase-2-s3-5.md`, `docs/security/review-phase-2-s3-5.md`, `docs/perf/report-phase-2-s3-5.md`, `docs/qa-phase-2-s3.md`, `docs/ux/review-phase-2-s3.md`. **Next:** independent re-review when Astra is available, BUG-S3-14 investigation, finish S3.6; then F10. Do not rebuild S3.5 from scratch.
+- Test notes: full E2E must preserve project dependencies (no `--no-deps` on the combined four-project command). Focused reruns reuse sessions with `--no-deps`. Nested `pnpm` is absent in this shell: generate contracts with `corepack pnpm api:openapi`, then `corepack pnpm exec tsx scripts/postman.ts`.
+- Screenshot carry-over: this run also changed ten unrelated Phase-1 PNGs plus their latest copies (reactivation backgrounds and mobile priorities). They are intentionally left outside this checkpoint for determinism triage; no Phase-1 product UI changed. One inspected reactivation difference is 523 pixels in the background table only. Do not promote these as an intended UI change.
+
 ## Checkpoint — 2026-11-17 (S3.2b + S3.2c pushed)
 
 - Pushed: S3.2b `5ef93bd` (D122 one TL predicate, test-only create limit), S3.2c `f8fc4f3` («Умови», readiness rail, draft-limit reason, BUG-S3-1/2 fixed). QA green (integration 309, E2E create 159, Newman 463/2691), code review APPROVED, security PASS.

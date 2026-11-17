@@ -17,11 +17,8 @@ import {
   hasOnlyVisibleChars,
   normalizePositionName,
 } from '@/lib/position-name';
-import {
-  VACANCY_REASON_MAX,
-  VACANCY_TITLE_MAX,
-  VACANCY_TITLE_MIN,
-} from '@/lib/schemas/vacancy';
+import { VACANCY_REASON_MAX } from '@/lib/reason-length';
+import { VACANCY_TITLE_MAX, VACANCY_TITLE_MIN } from '@/lib/schemas/vacancy';
 import { serverTextLength } from '@/lib/text-length';
 import { GalleryGroup } from './gallery-section';
 

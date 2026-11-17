@@ -14,6 +14,7 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] A toast action repeats the action that failed, not a neighbour. Give the failure handler an explicit `retry` callback. A test asserts which request the button sends.
 - [ ] A retry of a non-idempotent write that meets a conflict checks whether the earlier attempt already stored the change before it warns.
 - [ ] A retry that adopts the stored result compares everything the user sees, not only the changed keys.
+- [ ] A reconciliation read leaves the active cache unchanged until the normal completion path closes the dialog and arms focus; older detail requests cannot overwrite the successful mutation.
 
 ## Lazy code (`import()`, `next/dynamic`, `React.lazy`)
 

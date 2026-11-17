@@ -1,5 +1,5 @@
+import { cancelVacancySchema } from '@/lib/schemas/vacancy-cancel';
 import {
-  cancelVacancySchema,
   vacancyDetailSchema,
   vacancyIdParamsSchema,
 } from '@/lib/schemas/vacancy';
@@ -17,7 +17,7 @@ export const POST = defineRoute(
     requireGrant: 'vacancy.create',
     hideUnless: authorsAnywhere,
     summary:
-      'Cancel the author’s own DRAFT (`DRAFT → CANCELLED`, D82) with a reason; the cancelled draft stays private to its author. Another user’s draft, or any caller without an authoring role, gets 404; a vacancy that is not a draft is 409 `VACANCY_NOT_DRAFT`; no audit row (D92)',
+      'Cancel the author’s own DRAFT (`DRAFT → CANCELLED`, D82) with a reason (1..500 characters, line breaks allowed: D113); the cancelled draft stays private to its author. Another user’s draft, or any caller without an authoring role, gets 404; a vacancy that is not a draft is 409 `VACANCY_NOT_DRAFT`; no audit row (D92)',
     tags: ['Vacancies'],
     params: vacancyIdParamsSchema,
     body: cancelVacancySchema,

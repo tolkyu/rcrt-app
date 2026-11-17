@@ -1432,5 +1432,441 @@
     "body": "{}",
     "status": 404,
     "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "Admin saves a second throwaway draft for the cancel dialog",
+    "as": "admin",
+    "headers": {
+      "Idempotency-Key": "newman-cancel-{{vacancy_run}}"
+    },
+    "body": "{\"mode\":\"DRAFT\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\",\"title\":\"Тест API — скасування {{vacancy_run}}\"}",
+    "status": 201,
+    "script": "vacancy-cancel-created"
+  },
+  {
+    "operation": "countOwnVacancyDrafts",
+    "name": "Admin counts the drafts before the cancel",
+    "as": "admin",
+    "status": 200,
+    "script": "vacancy-cancel-count-created"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a reason with a NUL character is refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"Дубль\\u0000\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a reason with a vertical tab is refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"Дубль\\u000B\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a reason with a zero-width space is refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"Дубль\\u200B\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a reason with a bidi override is refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"Дубль\\u202E\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a reason of only blank lines is refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"  \\n \\n\\t\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "501 characters are refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"ааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааа\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a line break counts as a character: 250 + break + 250 is refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"аааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааа\\nбббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббб\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a reason that is not text is refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":[\"Дубль\"]}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "unknown fields next to the reason are refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"Дубль\",\"status\":\"OPEN\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "getVacancy",
+    "name": "the refused reasons left the draft a draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "status": 200,
+    "script": "vacancy-cancel-read-draft"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Admin cancels with a multi-line reason, extra spaces and blank lines",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"  Потреба зникла\\r\\n\\r\\n\\r\\n\\r\\n  Дубль   вакансії\\tV-0001\\n\"}",
+    "status": 200,
+    "script": "vacancy-cancel-cancelled"
+  },
+  {
+    "operation": "countOwnVacancyDrafts",
+    "name": "the cancelled draft leaves the count",
+    "as": "admin",
+    "status": 200,
+    "script": "vacancy-cancel-count-closed"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a second cancel is not a draft any more",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"Ще раз\"}",
+    "status": 409,
+    "code": "VACANCY_NOT_DRAFT"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "a cancelled draft cannot be edited",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"expectedVersion\":2,\"title\":\"Назва чернетки\"}",
+    "status": 409,
+    "code": "VACANCY_NOT_DRAFT"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "a cancelled draft cannot be published",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-cancelled-0004"
+    },
+    "body": "{\"expectedVersion\":2}",
+    "status": 409,
+    "code": "VACANCY_NOT_DRAFT"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Head Recruiter cannot read the cancelled Admin draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Head Recruiter gets 404, not 409, for the cancelled Admin draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Head Recruiter gets 404 for the cancelled Admin draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "HR gets 404 for the cancelled Admin draft",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "a Recruiter of another vertical gets 404 for the cancelled Admin draft",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Admin still reads the own cancelled draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "status": 200,
+    "script": "vacancy-cancel-read"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Admin deletes the own cancelled, never opened draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{}",
+    "status": 200,
+    "script": "vacancy-cancel-deleted"
+  },
+  {
+    "operation": "countOwnVacancyDrafts",
+    "name": "deleting the cancelled draft changes no count",
+    "as": "admin",
+    "status": 200,
+    "script": "vacancy-cancel-count-closed"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "the deleted cancelled draft is gone even for its author",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a deleted draft cannot be cancelled",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"Пізно\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "Head Recruiter saves a throwaway draft",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-head-draft-{{vacancy_run}}"
+    },
+    "body": "{\"mode\":\"DRAFT\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\",\"title\":\"Тест API — чернетка керівника {{vacancy_run}}\"}",
+    "status": 201,
+    "script": "vacancy-head-draft-created",
+    "snapshot": "vacancy_head_draft_snapshot"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Admin gets 404 for the Head Recruiter draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_head_draft_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Admin gets 404 for the Head Recruiter draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_head_draft_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "the Head Recruiter draft is unchanged after the refusals",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_head_draft_id}}"
+    },
+    "status": 200,
+    "sameAs": "vacancy_head_draft_snapshot"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Head Recruiter cancels the own draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_head_draft_id}}"
+    },
+    "body": "{\"reason\":\"Тест API — дубль\"}",
+    "status": 200,
+    "script": "vacancy-head-cancelled"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Admin gets 404, not 409, for the cancelled Head Recruiter draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_head_draft_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Admin gets 404 for the cancelled Head Recruiter draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_head_draft_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Admin cannot read the cancelled Head Recruiter draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_head_draft_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Head Recruiter deletes the own cancelled draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_head_draft_id}}"
+    },
+    "body": "{}",
+    "status": 200,
+    "script": "vacancy-head-deleted"
   }
 ]

@@ -131,19 +131,23 @@ async function stored(args: Fixture, userId: string) {
     args.ctx.db
       .select()
       .from(schema.userRole)
-      .where(eq(schema.userRole.userId, userId)),
+      .where(eq(schema.userRole.userId, userId))
+      .orderBy(schema.userRole.id),
     args.ctx.db
       .select()
       .from(schema.userSession)
-      .where(eq(schema.userSession.userId, userId)),
+      .where(eq(schema.userSession.userId, userId))
+      .orderBy(schema.userSession.sessionId),
     args.ctx.db
       .select()
       .from(schema.entityEvent)
-      .where(eq(schema.entityEvent.subjectId, userId)),
+      .where(eq(schema.entityEvent.subjectId, userId))
+      .orderBy(schema.entityEvent.id),
     args.ctx.db
       .select()
       .from(schema.auditLog)
-      .where(eq(schema.auditLog.entityId, userId)),
+      .where(eq(schema.auditLog.entityId, userId))
+      .orderBy(schema.auditLog.id),
   ]);
   return { user, roles, sessions, events, audits };
 }

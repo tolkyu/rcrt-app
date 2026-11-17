@@ -1,0 +1,18 @@
+# S3.5 review checkpoint — 2026-11-17
+
+Scope: current cancel/delete UI, multi-line reason schema and HTTP/API coverage [STORY-VAC-01-1, STORY-VAC-01-3, D82, D92, D98, D112, D113].
+
+Independent code reviewer initially returned **CHANGES REQUESTED**. Coordinator fixes below are implemented and covered; the configured reviewer reached its usage limit before re-review. **Final independent approval is pending; S3.5/S3.6 remain in progress.**
+
+| Finding                                                               | Correction                                                                                                                                                                                                            | Evidence                                                                                                  |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| An older detail GET restores DRAFT after cancellation.                | `applyClosed` cancels list/count and exact detail reads before publishing the response.                                                                                                                               | Deferred-response regression in `draft-close.test.ts`.                                                    |
+| Changed reason after a lost answer can adopt an older cancellation.   | Reconcile only matching normalized uncertain requests. Different possible bodies or a known conflict disable status-only reconciliation for the current dialog; intervening 403/429 cannot erase earlier uncertainty. | Hook regressions for changed reason, multiple lost answers and intervening refusals.                      |
+| Internal blank lines disappear, contrary to D113.                     | Preserve every internal break, normalize CRLF/CR to LF, count with the same helper on both sides.                                                                                                                     | Reason/schema/counter units and service/HTTP event-PII assertions.                                        |
+| Reconciliation updates the active card before close/focus completion. | Read directly without committing to the query cache; normal completion publishes the result.                                                                                                                          | Regression checks the cached card remains unchanged while reconciliation returns the stored cancellation. |
+
+Security reviewer: initial **PASS / APPROVED**, no Critical/High/Medium findings; coordinator follow-ups and residual Low are recorded in `security/review-phase-2-s3-5.md`. Performance measurements are in `perf/report-phase-2-s3-5.md`; coordinator visual review and remaining S3.6 boundaries are in `ux/review-phase-2-s3.md`.
+
+Additional S3.6 fix: value edits dismiss the stale submit-error count in both vacancy forms without removing field errors. The real React Hook Form regression covers picker `setValue`, and gallery tests assert the banner is gone before capturing the filled form.
+
+Open verification issue: BUG-S3-14 can lose the forbidden toast during a 403/RSC refresh. It remains open even when focused repeats pass. No independent final verdict is inferred from coordinator test results.

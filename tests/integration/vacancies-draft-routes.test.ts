@@ -2,8 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { positionNameKey } from '../../lib/position-name';
+import { cancelVacancySchema } from '../../lib/schemas/vacancy-cancel';
 import {
-  cancelVacancySchema,
   createVacancySchema,
   patchVacancySchema,
   publishDraftSchema,
@@ -662,6 +662,179 @@ describe('Publish over HTTP, as the optimistic list action sends it [STORY-VAC-0
       );
       expect(limited.status).toBe(429);
       expect(await problemOf(limited)).toMatchObject({ code: 'RATE_LIMITED' });
+    });
+  });
+});
+
+describe('Cancel and delete over HTTP, as the dialogs send them [STORY-VAC-01-3, D111, D112, D113]', () => {
+  const stored = async (args: Args, id: string) => {
+    const [row] = await args.ctx.db
+      .select({
+        status: schema.vacancy.status,
+        version: schema.vacancy.version,
+        deletedAt: schema.vacancy.deletedAt,
+      })
+      .from(schema.vacancy)
+      .where(eq(schema.vacancy.id, id));
+    return row!;
+  };
+
+  it('refuses a reason with control, zero-width or bidi characters, or over 500 characters after normalising, and leaves the draft untouched', async () => {
+    await fixture.run(async (args) => {
+      await setup(args);
+      const mine = routes(args, args.identity);
+      const draft = await mine.createDraft({
+        verticalId: args.user.verticalId,
+        title: 'Причина з сенсом',
+      });
+      const before = await stored(args, draft.id);
+      for (const [reason, code] of [
+        ['Дубль\u0000', 'custom'],
+        ['Дубль\u000B', 'custom'],
+        ['Дубль\u200B', 'custom'],
+        ['Дубль\u202E', 'custom'],
+        ['\u2028', ['custom', 'too_small']],
+        ['   \n \n  ', 'too_small'],
+        ['а'.repeat(501), 'too_big'],
+        [`${'а'.repeat(250)}\n${'б'.repeat(250)}`, 'too_big'],
+      ] as const) {
+        const refused = await mine.cancel(draft.id, { reason });
+        expect(refused.status, JSON.stringify(reason)).toBe(400);
+        expect((await problemOf(refused)).errors).toEqual(
+          [code].flat().map((c) => ({ path: 'body.reason', code: c })),
+        );
+      }
+      expect(await stored(args, draft.id)).toEqual(before);
+    });
+  });
+
+  it('accepts 500 characters across lines, counts every break once and stores all blank lines', async () => {
+    await fixture.run(async (args) => {
+      await setup(args);
+      const mine = routes(args, args.identity);
+      const draft = await mine.createDraft({
+        verticalId: args.user.verticalId,
+        title: 'Багаторядкова причина',
+      });
+      const cancelled = await mine.cancel(draft.id, {
+        reason: ` ${'а'.repeat(249)} \r\n\r\n\r\n ${'б'.repeat(248)}\t`,
+      });
+      expect(cancelled.status).toBe(200);
+      expect((await cancelled.json()) as VacancyDetail).toMatchObject({
+        status: 'CANCELLED',
+        openedAt: null,
+      });
+      const [pii] = await args.ctx.db
+        .select({ data: schema.entityEventPii.data })
+        .from(schema.entityEventPii)
+        .innerJoin(
+          schema.entityEvent,
+          eq(schema.entityEvent.id, schema.entityEventPii.eventId),
+        )
+        .where(eq(schema.entityEvent.vacancyId, draft.id));
+      expect(pii!.data).toEqual({
+        reason: `${'а'.repeat(249)}\n\n\n${'б'.repeat(248)}`,
+      });
+    });
+  });
+
+  it('answers 409 VACANCY_NOT_DRAFT to a second cancel, then lets the author delete the cancelled draft, and 404 to another author for both', async () => {
+    await fixture.run(async (args) => {
+      const { other } = await setup(args);
+      const mine = routes(args, args.identity);
+      const theirs = routes(args, other);
+      const draft = await mine.createDraft({
+        verticalId: args.user.verticalId,
+        title: 'Скасована і видалена',
+      });
+      expect((await mine.cancel(draft.id, { reason: 'Дубль' })).status).toBe(
+        200,
+      );
+      const twice = await mine.cancel(draft.id, { reason: 'Ще раз' });
+      expect(twice.status).toBe(409);
+      expect(await problemOf(twice)).toMatchObject({
+        code: 'VACANCY_NOT_DRAFT',
+      });
+      for (const response of [
+        await theirs.cancel(draft.id, { reason: 'Чужа' }),
+        await theirs.remove(draft.id),
+      ]) {
+        expect(response.status).toBe(404);
+        expect(await problemOf(response)).toMatchObject({ code: 'NOT_FOUND' });
+      }
+      expect(await stored(args, draft.id)).toMatchObject({
+        status: 'CANCELLED',
+        deletedAt: null,
+      });
+      expect((await mine.remove(draft.id)).status).toBe(200);
+    });
+  });
+
+  it('answers 409 VACANCY_NOT_DRAFT to a delete of a cancelled vacancy that was once OPEN and changes nothing', async () => {
+    await fixture.run(async (args) => {
+      const { positionId } = await setup(args);
+      const mine = routes(args, args.identity);
+      const draft = await mine.createDraft({
+        verticalId: args.user.verticalId,
+        title: 'Була відкрита',
+        positionId,
+      });
+      expect(
+        (
+          await mine.publish(
+            draft.id,
+            { 'idempotency-key': randomUUID() },
+            { expectedVersion: draft.version },
+          )
+        ).status,
+      ).toBe(200);
+      await args.ctx.db
+        .update(schema.vacancy)
+        .set({
+          status: 'CANCELLED',
+          closedAt: new Date(),
+          cancelledAt: new Date(),
+        })
+        .where(eq(schema.vacancy.id, draft.id));
+      const before = await stored(args, draft.id);
+      const refused = await mine.remove(draft.id);
+      expect(refused.status).toBe(409);
+      expect(await problemOf(refused)).toMatchObject({
+        code: 'VACANCY_NOT_DRAFT',
+      });
+      expect(await stored(args, draft.id)).toEqual(before);
+    });
+  });
+
+  it('answers 429 RATE_LIMITED to a cancel and a delete once the write budget is spent, and writes nothing', async () => {
+    await fixture.run(async (args) => {
+      await setup(args);
+      const mine = routes(args, args.identity);
+      const draft = await mine.createDraft({
+        verticalId: args.user.verticalId,
+        title: 'Ліміт скасування',
+      });
+      for (let n = 1; n < VACANCY_WRITE_RATE_LIMIT.perUser; n += 1)
+        expect(
+          (
+            await mine.patch(draft.id, {
+              expectedVersion: draft.version,
+              title: draft.title,
+            })
+          ).status,
+        ).toBe(200);
+      const before = await stored(args, draft.id);
+      for (const response of [
+        await mine.cancel(draft.id, { reason: 'Дубль' }),
+        await mine.remove(draft.id),
+      ]) {
+        expect(response.status).toBe(429);
+        expect(await problemOf(response)).toMatchObject({
+          code: 'RATE_LIMITED',
+        });
+        expect(response.headers.get('Retry-After')).not.toBeNull();
+      }
+      expect(await stored(args, draft.id)).toEqual(before);
     });
   });
 });

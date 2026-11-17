@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { VACANCY_REASON_MAX } from '@/lib/reason-length';
+import { cancelVacancySchema } from '@/lib/schemas/vacancy-cancel';
 import {
-  cancelVacancySchema,
   patchVacancySchema,
   publishDraftSchema,
   vacancyDraftCountSchema,
-  VACANCY_REASON_MAX,
   VACANCY_TITLE_MAX,
 } from '@/lib/schemas/vacancy';
 
@@ -167,7 +167,32 @@ describe('publish contract [D92, SEC-V2S2-04]', () => {
   });
 });
 
-describe('cancel contract [D82]', () => {
+describe('cancel contract [D82, D113]', () => {
+  it('keeps line breaks, normalises them and the spaces around them', () => {
+    const reason = (value: string) =>
+      cancelVacancySchema.parse({ reason: value }).reason;
+    expect(reason('Дубль\nвакансії')).toBe('Дубль\nвакансії');
+    expect(reason(' перший  рядок \r\n\r\n\r\n\r\n другий\tрядок ')).toBe(
+      'перший рядок\n\n\n\nдругий рядок',
+    );
+    expect(reason('a\rb')).toBe('a\nb');
+  });
+
+  it('still refuses other control, line-separator and bidi characters', () => {
+    for (const reason of [
+      'a\u0000b',
+      'a\u000Bb',
+      'a\u0085b',
+      'a b',
+      'a b',
+      'a​b',
+      '\n\n',
+    ])
+      expect(cancelVacancySchema.safeParse({ reason }).success, reason).toBe(
+        false,
+      );
+  });
+
   it('needs a trimmed, visible reason within bounds', () => {
     expect(
       cancelVacancySchema.parse({ reason: '  Потреба   зникла ' }).reason,

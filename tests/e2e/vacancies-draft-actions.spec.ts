@@ -17,9 +17,11 @@ import {
   delayEditNavigation,
   editPrefetched,
   draftCount,
+  draftCountOffset,
   draftListPath,
   menuButton,
   menuItem,
+  removeStubs,
   rowLink,
   stubPublish,
   ta,
@@ -47,7 +49,7 @@ test.describe('draft actions in the list, preview and card [STORY-VAC-01-1, VAC-
     second = await createOwnDraft(api, 'B', true);
     bare = await createOwnDraft(api, 'N', false);
   });
-  test.afterEach(({ page }) => page.unrouteAll({ behavior: 'ignoreErrors' }));
+  test.afterEach(({ page }) => removeStubs(page));
   test.afterAll(async () => {
     await sweepDrafts(api);
     await api.dispose();
@@ -59,7 +61,7 @@ test.describe('draft actions in the list, preview and card [STORY-VAC-01-1, VAC-
     return titles[at + 1] ?? titles[at - 1]!;
   };
 
-  test('the menu of a draft row offers «Редагувати» and «Опублікувати», nothing else, and passes axe [ux §6.1]', async ({
+  test('the menu of a draft row offers edit, publish, then cancel and delete (destructive, after a separator), and passes axe [ux §6.1]', async ({
     page,
     isMobile,
   }, testInfo) => {
@@ -71,11 +73,24 @@ test.describe('draft actions in the list, preview and card [STORY-VAC-01-1, VAC-
       expect(box.width).toBeGreaterThanOrEqual(44);
       expect(box.height).toBeGreaterThanOrEqual(44);
     }
+    // The audit needs the preview's actions loaded: a scrollable region without focusable content fails it.
+    if (!isMobile)
+      await expect(
+        page
+          .getByRole('complementary', { name: v.previewLabel })
+          .getByRole('button', { name: ta.publish, exact: true }),
+      ).toBeVisible();
     await checkAccessibility(page, testInfo);
     await trigger.click();
-    await expect(page.getByRole('menuitem')).toHaveCount(2);
+    await expect(page.getByRole('menuitem')).toHaveText([
+      ta.edit,
+      ta.publish,
+      ta.cancel,
+      ta.delete,
+    ]);
     await expect(menuItem(page, ta.edit)).toBeEnabled();
     await expect(menuItem(page, ta.publish)).toBeEnabled();
+    await expect(page.getByRole('separator')).toHaveCount(1);
     // The open modal menu hides the whole app root from assistive tech, so (as in the dev-ui gallery) the audit covers the menu and the list, not the hidden shell.
     const audit = await new AxeBuilder({ page })
       .include('[role="menu"]')
@@ -183,7 +198,7 @@ test.describe('draft actions in the list, preview and card [STORY-VAC-01-1, VAC-
     stub.release();
     await expect(rowLink(page, second.title)).toBeVisible();
     await expect(rowLink(page, second.title)).toBeFocused();
-    expect(await draftCount(page)).toBe(before);
+    await draftCountOffset(page, api).toBe(0);
     const warning = toastWith(page, ta.toast.stale);
     await expect(warning).toContainText(ta.toast.staleDescription);
     await warning.getByRole('button', { name: ta.edit, exact: true }).click();
@@ -330,7 +345,7 @@ test.describe('draft actions in the list, preview and card [STORY-VAC-01-1, VAC-
     ).toHaveCount(0);
   });
 
-  test('on a phone the card puts «Опублікувати» on a full row and «Редагувати» on the next [ux §6.2 2d]', async ({
+  test('on a phone the card puts «Опублікувати» on a full row, «Редагувати» and `⋯` (44 px) on the next [ux §6.2 2d]', async ({
     page,
     isMobile,
   }) => {
@@ -345,10 +360,19 @@ test.describe('draft actions in the list, preview and card [STORY-VAC-01-1, VAC-
     const edit = (await page
       .getByRole('link', { name: ta.edit, exact: true })
       .boundingBox())!;
+    const more = (await page
+      .getByRole('button', {
+        name: ta.menuLabel.replace('{title}', second.title),
+      })
+      .boundingBox())!;
     expect(publish.width).toBeGreaterThanOrEqual(row.width - 1);
     expect(publish.height).toBeGreaterThanOrEqual(44);
-    expect(edit.width).toBeGreaterThanOrEqual(row.width - 1);
     expect(edit.y).toBeGreaterThanOrEqual(publish.y + publish.height);
+    expect(more.width).toBeGreaterThanOrEqual(44);
+    expect(more.height).toBeGreaterThanOrEqual(44);
+    expect(more.y).toBeGreaterThanOrEqual(publish.y + publish.height);
+    expect(more.x).toBeGreaterThanOrEqual(edit.x + edit.width);
+    expect(edit.width + more.width).toBeGreaterThanOrEqual(row.width - 16);
   });
 
   test('worst case on a 320 px phone: a draft without a position keeps the reason, the button and «Редагувати» apart [break-ui]', async ({
@@ -385,7 +409,7 @@ test.describe('draft actions in the list, preview and card [STORY-VAC-01-1, VAC-
     let blocked = true;
     await page.route('**/_next/static/chunks/**', async (route) => {
       const response = await route.fetch();
-      if (blocked && (await response.text()).includes('status:"busy"'))
+      if (blocked && (await response.text()).includes('stale:vacancy:'))
         return route.abort('failed');
       return route.fulfill({ response });
     });
@@ -562,10 +586,15 @@ test.describe('who sees the draft actions [D92, D98]', () => {
       );
       const seeded = demoVacancy(DRAFT_VACANCY);
       await expect(menuButton(page, seeded.title)).toBeVisible();
-      const rows = await visibleTitles(page);
-      await expect(page.getByRole('button', { name: /^Дії: / })).toHaveCount(
-        rows.length,
-      );
+      const rowMenus = page
+        .getByRole('region', { name: messages.vacancies.resultsLabel })
+        .getByRole('button', { name: /^Дії: / });
+      await expect
+        .poll(
+          async () =>
+            (await rowMenus.count()) - (await visibleTitles(page)).length,
+        )
+        .toBe(0);
     } finally {
       await context.close();
     }

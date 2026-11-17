@@ -16,7 +16,7 @@ function focusFirstInvalid(invalid: readonly string[]) {
   if (first) focusField(first);
 }
 
-/** The «Виправте N полів» summary and the first-invalid-field focus both vacancy forms share; `announce` mutes per-field alerts right after a failed submit so the summary is heard once. */
+/** Both forms announce one submit summary, dismiss its stale count on edits and focus the first invalid field. */
 export function useFieldSummary(
   subscribe: UseFormReturn<VacancyFormValues>['subscribe'],
 ) {
@@ -27,7 +27,12 @@ export function useFieldSummary(
       subscribe({
         formState: { values: true },
         callback: ({ type }) => {
-          if (type === 'change') setAnnounce(true);
+          if (type === 'change') {
+            setAnnounce(true);
+          }
+          setSummary((current) =>
+            current.count === 0 ? current : { ...current, count: 0 },
+          );
         },
       }),
     [subscribe],
