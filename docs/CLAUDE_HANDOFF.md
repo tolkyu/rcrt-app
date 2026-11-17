@@ -9,7 +9,8 @@
 - Review follow-ups pushed `5dd7515` (re-review APPROVED). BUG-S3-4 (focus-then-hover tooltip, Minor) open — fix in S3.6 polish.
 - S3.3 pushed `b031f15` (QA green, security PASS `docs/security/review-phase-2-s3-3.md`, review APPROVED). Orchestrator decision: blank headcount/probation on EDIT = required error (create keeps defaults) — tell owner. Headroom: `/vacancies/new` 179.27 kB (0.73 left) — perf cut before any form growth (F10!).
 - S3.4 pushed `4f8fe3a` (QA full E2E 850/0, review APPROVED x2, designer decisions in wireframe §6.2, perf C lazy own-draft UI). Last full test:e2e was before the final S3.4 fixes — rerun at S3.6.
-- In progress: perf slice (performance-engineer): cacheGroups appCore + split vacancy detail/draft-count queries; goal /vacancies/new ≤ ~177 kB. Then S3.5 (cancel/delete dialogs) → S3.6. Then S3.3 (edit + publish + stale version) → S3.4 → S3.5 → S3.6 (regenerate gallery; `screenshots/*38-admin-ui-page-frame-*` modified in tree, uncommitted on purpose).
+- Perf slice pushed `9ae739b` (ADR-015 app-core chunk; /vacancies/new 177.71, edit 177.93, list 165.33, card 156.91). Next cut if needed: tooltip trigger shell (~0.7 kB, risky). Mobile flake once: vacancies-create-basics.spec.ts:456 (403 toast), 3/3 alone.
+- In progress: S3.5 (cancel/delete dialogs) → S3.6. Then S3.3 (edit + publish + stale version) → S3.4 → S3.5 → S3.6 (regenerate gallery; `screenshots/*38-admin-ui-page-frame-*` modified in tree, uncommitted on purpose).
 - Accepted: probation field visible only with the GLOBAL grant (D115) while the API accepts a vertical grant (D78) — intentional, not a predicate bug.
 - `pnpm` is not on PATH for agents: use `corepack pnpm`.
 
