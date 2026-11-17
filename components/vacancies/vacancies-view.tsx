@@ -5,13 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import {
-  ChevronLeft,
-  ChevronRight,
-  FileText,
-  Search,
-  BriefcaseBusiness,
-} from 'lucide-react';
+import { FileText, Search, BriefcaseBusiness } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -51,9 +45,12 @@ import { rememberVacancyList } from '@/lib/vacancy-list-memory';
 import { navigateVacancies as navigate } from '@/lib/vacancy-navigation';
 import { ALL_VERTICALS } from '@/lib/vertical-filter';
 import { CreateVacancyLink } from './create-vacancy-link';
+import { DraftLeaveProvider } from './draft-leave';
 import { RowSkeleton } from './row-skeleton';
+import { useDraftLeaveHandlers } from './use-draft-leave';
 import { useStatusChips } from './use-status-chips';
 import { VacanciesList } from './vacancies-list';
+import { VacanciesPager } from './vacancies-pager';
 import { VacancyPreview } from './vacancy-preview';
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -158,7 +155,7 @@ export function VacanciesView({
   };
 
   const select = useCallback(
-    (id: string) =>
+    (id: string | undefined) =>
       navigate((current) => withVacancySelection(current, id), 'replaceState'),
     [],
   );
@@ -170,6 +167,12 @@ export function VacanciesView({
   const filtered = hasVacancyFilters(state);
   const emptyResult = Boolean(query.data) && items.length === 0;
   const selectedId = state.selected ?? items[0]?.id;
+  const draftLeave = useDraftLeaveHandlers({
+    items,
+    selectedId,
+    select,
+    results,
+  });
   const visibleVerticals = verticals.data?.items ?? [];
   /** With several verticals a cleared filter is written as `vertical=all`, so the header preset cannot bring a vertical back (D83). */
   const clearedVertical =
@@ -238,6 +241,7 @@ export function VacanciesView({
         wide={wide}
         onSelect={select}
         onPreviewIntent={prefetchPreview}
+        canAuthorDrafts={canAuthorDrafts}
       />
     );
   }
@@ -328,62 +332,43 @@ export function VacanciesView({
           options={statusOptions}
         />
       </FilterBar>
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="min-w-0">
-          <FilterBarResults
-            ref={results}
-            tabIndex={-1}
-            aria-label={t('resultsLabel')}
-            busy={query.isPlaceholderData}
-          >
-            <Card className="overflow-hidden p-0">{body}</Card>
-          </FilterBarResults>
-          {query.isError && query.data && (
-            <SectionError
-              onRetry={() => void query.refetch()}
-              retrying={query.isFetching}
-            />
-          )}
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-            <p role="status" className="text-muted-foreground text-sm">
-              {query.isPlaceholderData
-                ? t('refreshing')
-                : items.length > 0
-                  ? t('shown', { count: items.length })
-                  : null}
-            </p>
-            {(prevCursor || nextCursor) && (
-              <nav aria-label={t('paging')} className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="h-11"
-                  disabled={!prevCursor || query.isPlaceholderData}
-                  onClick={() => prevCursor && page(prevCursor, 'newer')}
-                >
-                  <ChevronLeft aria-hidden="true" />
-                  {t('newer')}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-11"
-                  disabled={!nextCursor || query.isPlaceholderData}
-                  onClick={() => nextCursor && page(nextCursor, 'older')}
-                >
-                  {t('older')}
-                  <ChevronRight aria-hidden="true" />
-                </Button>
-              </nav>
+      <DraftLeaveProvider value={draftLeave}>
+        <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="min-w-0">
+            <FilterBarResults
+              ref={results}
+              tabIndex={-1}
+              aria-label={t('resultsLabel')}
+              busy={query.isPlaceholderData}
+            >
+              <Card className="overflow-hidden p-0">{body}</Card>
+            </FilterBarResults>
+            {query.isError && query.data && (
+              <SectionError
+                onRetry={() => void query.refetch()}
+                retrying={query.isFetching}
+              />
             )}
+            <VacanciesPager
+              count={items.length}
+              refreshing={query.isPlaceholderData}
+              prevCursor={prevCursor}
+              nextCursor={nextCursor}
+              onPage={page}
+            />
           </div>
+          <aside aria-label={t('previewLabel')} className="hidden xl:block">
+            {wide && selectedId && (
+              <Card className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto">
+                <VacancyPreview
+                  id={selectedId}
+                  canAuthorDrafts={canAuthorDrafts}
+                />
+              </Card>
+            )}
+          </aside>
         </div>
-        <aside aria-label={t('previewLabel')} className="hidden xl:block">
-          {wide && selectedId && (
-            <Card className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto">
-              <VacancyPreview id={selectedId} />
-            </Card>
-          )}
-        </aside>
-      </div>
+      </DraftLeaveProvider>
     </>
   );
 }

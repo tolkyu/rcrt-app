@@ -94,6 +94,7 @@ export function SkeletonDemos() {
             wide={false}
             onSelect={ignore}
             onPreviewIntent={ignore}
+            canAuthorDrafts={false}
           />
         </Card>
       </Sample>

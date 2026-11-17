@@ -148,7 +148,11 @@ describe('the status-less list predicate never widens a role scope [D110, D92, D
         input('DRAFT', tag),
         randomUUID(),
       );
-      for (const lost of [roles().teamLead, roles().hr, roles().recruiterOther]) {
+      for (const lost of [
+        roles().teamLead,
+        roles().hr,
+        roles().recruiterOther,
+      ]) {
         const ctx = await s.as(lost, { userId: authorId });
         for (const status of [undefined, 'DRAFT', 'CANCELLED'] as const)
           expect(

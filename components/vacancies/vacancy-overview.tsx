@@ -3,11 +3,13 @@
 import { ExternalLink, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { DetailHeader } from '@/components/ui/detail-header';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
+import { isPrivateDraft } from '@/lib/vacancy-draft-actions';
 import { toast } from '@/lib/toast';
+import { DraftHeaderActions } from './draft-header-actions';
 import { formatVacancyMoney } from './money';
 import { VacancyFlags, VacancyStatus } from './vacancy-badges';
 
@@ -25,13 +27,40 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 export function VacancyOverview({
   vacancy,
   preview = false,
+  canAuthorDrafts = false,
 }: {
   vacancy: VacancyDetail;
   preview?: boolean;
+  canAuthorDrafts?: boolean;
 }) {
   const t = useTranslations('vacancies');
   const [copyFailed, setCopyFailed] = useState(false);
   const [copying, setCopying] = useState(false);
+  const actionsRef = useRef<HTMLDivElement>(null);
+  const publishRef = useRef<HTMLButtonElement>(null);
+  const focusRequest = useRef<'header' | 'publish' | null>(null);
+  // Set on the press and read after the render that flips the status, so focus never lands on a button that is about to unmount.
+  const card = useMemo(
+    () => ({
+      removed: () => {
+        focusRequest.current = 'header';
+      },
+      restored: () => {
+        focusRequest.current = 'publish';
+      },
+    }),
+    [],
+  );
+  useEffect(() => {
+    const request = focusRequest.current;
+    if (request === 'header' && vacancy.status === 'OPEN')
+      actionsRef.current?.querySelector<HTMLElement>('a, button')?.focus();
+    else if (request === 'publish' && vacancy.status === 'DRAFT')
+      publishRef.current?.focus();
+    else return;
+    focusRequest.current = null;
+  }, [vacancy.status]);
+  const privateDraft = isPrivateDraft(vacancy);
   const path = `/vacancies/${vacancy.id}`;
   const Heading = preview ? 'h3' : 'h2';
   const copy = async () => {
@@ -86,8 +115,16 @@ export function VacancyOverview({
             <VacancyFlags vacancy={vacancy} />
           </>
         }
+        note={privateDraft ? t('draft.privateNote') : undefined}
+        actionsRef={actionsRef}
         actions={
           <>
+            <DraftHeaderActions
+              vacancy={vacancy}
+              canAuthorDrafts={canAuthorDrafts}
+              card={card}
+              publishRef={publishRef}
+            />
             {preview && (
               <Button asChild size="sm" variant="outline" className="h-11">
                 <Link href={path}>
@@ -96,16 +133,18 @@ export function VacancyOverview({
                 </Link>
               </Button>
             )}
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-11"
-              onClick={() => void copy()}
-              disabled={copying}
-            >
-              <Share2 aria-hidden="true" />
-              {t('share')}
-            </Button>
+            {!privateDraft && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-11"
+                onClick={() => void copy()}
+                disabled={copying}
+              >
+                <Share2 aria-hidden="true" />
+                {t('share')}
+              </Button>
+            )}
           </>
         }
       />

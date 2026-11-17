@@ -118,6 +118,7 @@ describe('VacanciesList [STORY-VAC-04-1, UI-04..07]', () => {
       wide: props.wide ?? false,
       onSelect: props.onSelect ?? vi.fn(),
       onPreviewIntent: props.onPreviewIntent ?? vi.fn(),
+      canAuthorDrafts: false,
     });
 
   it('links each title to the real card and shows number, badges and honest placeholders', () => {
@@ -315,6 +316,7 @@ describe('urgent highlight [STORY-VAC-04-4, D97]', () => {
         wide: false,
         onSelect: vi.fn(),
         onPreviewIntent: vi.fn(),
+        canAuthorDrafts: false,
       }),
     );
     const edge = 'var(--destructive)';

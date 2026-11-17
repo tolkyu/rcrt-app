@@ -7,6 +7,8 @@ import { memo, type MouseEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import type { VacancySummary } from '@/lib/schemas/vacancy';
 import { cn } from '@/lib/utils';
+import { hasRowMenu } from '@/lib/vacancy-draft-actions';
+import { DraftRowMenu } from './draft-row-menu';
 import { VacanciesTableHead } from './vacancies-table-head';
 import { urgentEdge, VacancyFlags, VacancyStatus } from './vacancy-badges';
 
@@ -60,19 +62,24 @@ export const VacanciesList = memo(function VacanciesList({
   wide,
   onSelect,
   onPreviewIntent,
+  canAuthorDrafts,
 }: {
   items: readonly VacancySummary[];
   selectedId: string | undefined;
   wide: boolean;
   onSelect: (id: string) => void;
   onPreviewIntent: (id: string) => void;
+  canAuthorDrafts: boolean;
 }) {
   const t = useTranslations('vacancies');
   const selectFromRow = (
     event: MouseEvent<HTMLTableRowElement>,
     id: string,
   ) => {
-    if (!wide || (event.target as HTMLElement).closest(INTERACTIVE)) return;
+    const target = event.target as HTMLElement;
+    // A portalled menu still bubbles its clicks through React to the row; they are not clicks on the row.
+    if (!wide || !event.currentTarget.contains(target)) return;
+    if (target.closest(INTERACTIVE)) return;
     // A drag that selected text is not a click.
     if (event.detail > 0 && window.getSelection()?.toString()) return;
     onSelect(id);
@@ -98,20 +105,29 @@ export const VacanciesList = memo(function VacanciesList({
                   )}
                 >
                   <th scope="row" className="px-4 py-3 text-left font-normal">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <Link
-                        href={`/vacancies/${vacancy.id}`}
-                        prefetch={false}
-                        className="text-foreground inline-flex min-h-6 rounded-sm font-semibold [overflow-wrap:anywhere] hover:underline"
-                      >
-                        {vacancy.title}
-                      </Link>
-                      <VacancyFlags vacancy={vacancy} />
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <Link
+                            href={`/vacancies/${vacancy.id}`}
+                            prefetch={false}
+                            data-vacancy-link={vacancy.id}
+                            className="text-foreground inline-flex min-h-6 rounded-sm font-semibold [overflow-wrap:anywhere] hover:underline"
+                          >
+                            {vacancy.title}
+                          </Link>
+                          <VacancyFlags vacancy={vacancy} />
+                        </div>
+                        <span className="text-muted-foreground text-xs tabular-nums">
+                          {vacancy.number}
+                          <MissingPosition vacancy={vacancy} />
+                        </span>
+                      </div>
+                      <DraftRowMenu
+                        vacancy={vacancy}
+                        canAuthorDrafts={canAuthorDrafts}
+                      />
                     </div>
-                    <span className="text-muted-foreground text-xs tabular-nums">
-                      {vacancy.number}
-                      <MissingPosition vacancy={vacancy} />
-                    </span>
                   </th>
                   <td className="px-4 py-3 break-words">
                     {vacancy.vertical.name}
@@ -163,10 +179,22 @@ export const VacanciesList = memo(function VacanciesList({
             <Link
               href={`/vacancies/${vacancy.id}`}
               prefetch={false}
-              className="text-foreground min-h-6 font-semibold [overflow-wrap:anywhere] after:absolute after:inset-0"
+              data-vacancy-link={vacancy.id}
+              className={cn(
+                'text-foreground min-h-6 font-semibold [overflow-wrap:anywhere] after:absolute after:inset-0',
+                hasRowMenu(vacancy, canAuthorDrafts) && 'pr-11',
+              )}
             >
               {vacancy.title}
             </Link>
+            {hasRowMenu(vacancy, canAuthorDrafts) && (
+              <div className="absolute top-2 right-2 z-10">
+                <DraftRowMenu
+                  vacancy={vacancy}
+                  canAuthorDrafts={canAuthorDrafts}
+                />
+              </div>
+            )}
             <p className="text-muted-foreground text-xs [overflow-wrap:anywhere]">
               {t('numberInVertical', {
                 number: vacancy.number,

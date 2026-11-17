@@ -9,10 +9,23 @@ import { vacancyDetailQuery } from '@/lib/queries/vacancies';
 import { VacancyOverview } from './vacancy-overview';
 
 /** Own request and error state, so a failing preview never takes the list down (VIS-01, UI-06). */
-export function VacancyPreview({ id }: { id: string }) {
+export function VacancyPreview({
+  id,
+  canAuthorDrafts,
+}: {
+  id: string;
+  canAuthorDrafts: boolean;
+}) {
   const t = useTranslations('vacancies');
   const query = useQuery(vacancyDetailQuery(id));
-  if (query.data) return <VacancyOverview vacancy={query.data} preview />;
+  if (query.data)
+    return (
+      <VacancyOverview
+        vacancy={query.data}
+        preview
+        canAuthorDrafts={canAuthorDrafts}
+      />
+    );
   if (query.error instanceof ApiError && query.error.status === 404)
     return (
       <p role="status" className="text-muted-foreground p-5 text-sm">

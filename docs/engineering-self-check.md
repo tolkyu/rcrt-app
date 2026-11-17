@@ -48,6 +48,11 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] A client rule that mirrors an exported server rule must call that function, not re-implement it. A stand-in for unparsable input is documented and tested per field combination.
 - [ ] E2E assertions comparing a cached UI count with a live API count are baseline-relative (read before, expect before + 1).
 - [ ] A list copied into a Zod-free module has one source: the schema imports it.
+- [ ] An optimistic update's rollback undoes only its own change (this call's rows, its own count step, its card), never a whole-cache snapshot. Test two overlapping calls that both fail, in both orders.
+- [ ] While an optimistic update is in flight, a refetch that returns the old server state does not undo it (sticky), and a settled call stops watching. Test with a fetch during the flight.
+- [ ] A client rule that mirrors a contract only through a pinning test (`publishBlocker` against the PUBLISH schema): extending the rule means extending that test in the same change.
+- [ ] Code between the optimistic write and the `try` that releases it is inside the `try` or covered by `finally { settle() }`; test with a throwing hook.
+- [ ] Lazy own-feature UI (menus, actions) is gated by a synchronous predicate and loaded with `React.lazy` + `LoadBoundary` + `Suspense` (not `next/dynamic`, which costs more) behind a placeholder of the final size; the shared hook and toasts live in the lazy chunk.
 
 ## Rules check
 

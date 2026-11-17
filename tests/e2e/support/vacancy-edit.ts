@@ -22,12 +22,12 @@ export const toasts = (page: Page) => page.locator('[data-slot="toast"]');
 export const toastWith = (page: Page, title: string) =>
   toasts(page).filter({ hasText: title });
 
-const write = (key: string = randomUUID()) => ({
+export const write = (key: string = randomUUID()) => ({
   ...MUTATION_HEADERS,
   'idempotency-key': key,
 });
 
-async function activePositionId(api: APIRequestContext) {
+export async function activePositionId(api: APIRequestContext) {
   const answer = await api.get(
     `/api/v1/positions?status=active&verticalId=${DEMO_VERTICALS.gambling}`,
   );

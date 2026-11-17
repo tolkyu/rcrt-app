@@ -35,7 +35,13 @@ function BackLink({ className }: { className?: string }) {
 }
 
 /** Full-width card for direct links and mobile; the data was prefetched by the segment layout. */
-export function VacancyDetailView({ id }: { id: string }) {
+export function VacancyDetailView({
+  id,
+  canAuthorDrafts,
+}: {
+  id: string;
+  canAuthorDrafts: boolean;
+}) {
   const t = useTranslations('vacancies');
   const query = useQuery(vacancyDetailQuery(id));
   const vacancy = query.data;
@@ -46,7 +52,10 @@ export function VacancyDetailView({ id }: { id: string }) {
         <>
           <PageHeader title={vacancy.title} />
           <Card className="max-w-3xl">
-            <VacancyOverview vacancy={vacancy} />
+            <VacancyOverview
+              vacancy={vacancy}
+              canAuthorDrafts={canAuthorDrafts}
+            />
           </Card>
         </>
       )}

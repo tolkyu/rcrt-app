@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { positionNameKey } from '../../lib/position-name';
 import {
@@ -8,6 +9,7 @@ import {
   publishDraftSchema,
   vacancyDeletedSchema,
   vacancyDetailSchema,
+  VACANCY_WRITE_RATE_LIMIT,
   vacancyIdParamsSchema,
   type VacancyDetail,
 } from '../../lib/schemas/vacancy';
@@ -527,6 +529,139 @@ describe('Draft lifecycle over HTTP [STORY-VAC-01-3, D92, D98]', () => {
         title: 'Моя назва',
       });
       expect(still.status).toBe(200);
+    });
+  });
+});
+
+describe('Publish over HTTP, as the optimistic list action sends it [STORY-VAC-01-1, D98]', () => {
+  it('replays the stored answer byte for byte for a lost-answer retry, even after the position was deactivated', async () => {
+    await fixture.run(async (args) => {
+      const { positionId } = await setup(args);
+      const mine = routes(args, args.identity);
+      const draft = await mine.createDraft({
+        verticalId: args.user.verticalId,
+        title: 'Повтор після втраченої відповіді',
+        positionId,
+      });
+      const headers = { 'idempotency-key': randomUUID() };
+      const body = { expectedVersion: draft.version };
+      const first = await mine.publish(draft.id, headers, body);
+      expect(first.status).toBe(200);
+      const opened = (await first.json()) as VacancyDetail;
+      await args.ctx.db
+        .update(schema.position)
+        .set({ isActive: false })
+        .where(eq(schema.position.id, positionId));
+      const replay = await mine.publish(draft.id, headers, body);
+      expect(replay.status).toBe(200);
+      expect((await replay.json()) as VacancyDetail).toEqual(opened);
+      const reused = await mine.publish(draft.id, headers, {
+        expectedVersion: draft.version + 1,
+      });
+      expect(reused.status).toBe(409);
+      expect(await problemOf(reused)).toMatchObject({
+        code: 'IDEMPOTENCY_KEY_REUSED',
+      });
+    });
+  });
+
+  it('answers 409 POSITION_INACTIVE and 409 STALE_STATE without storing the key, so the same key publishes after the fix', async () => {
+    await fixture.run(async (args) => {
+      const { positionId } = await setup(args);
+      const mine = routes(args, args.identity);
+      const draft = await mine.createDraft({
+        verticalId: args.user.verticalId,
+        title: 'Посаду деактивовано',
+        positionId,
+      });
+      const headers = { 'idempotency-key': randomUUID() };
+      await args.ctx.db
+        .update(schema.position)
+        .set({ isActive: false })
+        .where(eq(schema.position.id, positionId));
+      const inactive = await mine.publish(draft.id, headers, {
+        expectedVersion: draft.version,
+      });
+      expect(inactive.status).toBe(409);
+      expect(await problemOf(inactive)).toMatchObject({
+        code: 'POSITION_INACTIVE',
+      });
+      await args.ctx.db
+        .update(schema.position)
+        .set({ isActive: true })
+        .where(eq(schema.position.id, positionId));
+
+      const edited = await mine.patch(draft.id, {
+        expectedVersion: draft.version,
+        headcount: 3,
+      });
+      expect(edited.status).toBe(200);
+      const stale = await mine.publish(draft.id, headers, {
+        expectedVersion: draft.version,
+      });
+      expect(stale.status).toBe(409);
+      expect(await problemOf(stale)).toMatchObject({ code: 'STALE_STATE' });
+
+      const opened = await mine.publish(draft.id, headers, {
+        expectedVersion: draft.version + 1,
+      });
+      expect(opened.status).toBe(200);
+      expect((await opened.json()) as VacancyDetail).toMatchObject({
+        status: 'OPEN',
+        headcount: 3,
+      });
+    });
+  });
+
+  it('answers 409 VACANCY_NOT_DRAFT, not STALE_STATE, to a publish of a cancelled draft sent with an old version', async () => {
+    await fixture.run(async (args) => {
+      const { positionId } = await setup(args);
+      const mine = routes(args, args.identity);
+      const draft = await mine.createDraft({
+        verticalId: args.user.verticalId,
+        title: 'Скасована в іншій вкладці',
+        positionId,
+      });
+      expect((await mine.cancel(draft.id, { reason: 'Дубль' })).status).toBe(
+        200,
+      );
+      const refused = await mine.publish(
+        draft.id,
+        { 'idempotency-key': randomUUID() },
+        { expectedVersion: draft.version },
+      );
+      expect(refused.status).toBe(409);
+      expect(await problemOf(refused)).toMatchObject({
+        code: 'VACANCY_NOT_DRAFT',
+      });
+    });
+  });
+
+  it('answers 429 RATE_LIMITED to a publish once the write budget is spent', async () => {
+    await fixture.run(async (args) => {
+      const { positionId } = await setup(args);
+      const mine = routes(args, args.identity);
+      const draft = await mine.createDraft({
+        verticalId: args.user.verticalId,
+        title: 'Ліміт записів',
+        positionId,
+      });
+      for (let n = 1; n < VACANCY_WRITE_RATE_LIMIT.perUser; n += 1)
+        expect(
+          (
+            await mine.patch(draft.id, {
+              expectedVersion: draft.version,
+              title: draft.title,
+            })
+          ).status,
+        ).toBe(200);
+      const limited = await mine.publish(
+        draft.id,
+        { 'idempotency-key': randomUUID() },
+        { expectedVersion: draft.version },
+      );
+      expect(limited.status).toBe(429);
+      expect(await problemOf(limited)).toMatchObject({ code: 'RATE_LIMITED' });
     });
   });
 });
