@@ -367,7 +367,7 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
 
 ### UI screenshots for owner review (SHOT-xx)
 
-- **SHOT-01** Every E2E run produces full-page screenshots of every screen and key dialog, per role, in light and dark theme, desktop (1440×900) and mobile (390×844).
+- **SHOT-01** Every E2E run produces full-page screenshots of every screen and key dialog, per role, in light and dark theme, desktop (1440×900) and mobile (390×844). *(Narrowed by D125: lean matrix.)*
 - **SHOT-02** Saved to `screenshots/<phase>/<NN>-<role>-<screen>-<state>-<viewport>-<theme>.png` (e.g. `phase-3/04-recruiter-candidate-card-polygraph-desktop-light.png`), committed to the repo, plus `screenshots/<phase>/index.html` gallery (grouped by screen, opens locally without a server).
 - **SHOT-03** Screenshots use seeded, realistic Ukrainian data (no lorem ipsum), fixed clock and disabled animations so diffs are stable; the latest set is also copied to `screenshots/latest/`.
 
@@ -503,6 +503,7 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
 | D122 | One eligibility rule for assigning a Team Lead to a vacancy | **Decided by owner 2026-11-16 (Q-187, recommendation a accepted):** a Team Lead can be assigned to a vacancy only if they are active, hold the TEAM_LEAD role in the vacancy's vertical and have accepted their invite (`activated_at` set). The same rule applies on create, draft create/update, publish and in the Team Lead picker (and the priorities page); the server enforces it, not only the UI. Implemented with S3.2b. Ref: `docs/security/review-phase-2-s3-2a.md` S1. |
 | D123 | Where the draft cancel reason is shown | **Decided by owner 2026-11-17:** the author sees the cancel reason on the card of their cancelled draft; no other role sees it (matches the dialog line «Бачите лише ви», D113). |
 | D124 | Form footer exit button label | **Decided by owner 2026-11-17:** the form footer button that leaves without saving reads «Вийти без збереження» (was «Скасувати»), so it is not confused with «Скасувати вакансію». |
+| D125 | Screenshot matrix | **Decided by owner 2026-11-17:** lean matrix overrides SHOT-01's full role × theme × viewport product — PNGs only for new screens/dialogs/distinct states; light by default, one dark capture per new screen; mobile only where the layout differs; role variants only when the UI differs; edge cases checked by E2E assertions (CLAUDE.md §7). |
 
 ---
 

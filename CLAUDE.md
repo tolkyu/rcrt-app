@@ -126,7 +126,7 @@ At the start of every session read `docs/CLAUDE_HANDOFF.md` (short, current stat
 
 ## 7. UI screenshots (PRD SHOT-01..03)
 
-- `pnpm test:screens` runs the Playwright screenshot suite: every screen and key dialog × each role × light/dark × desktop 1440×900 / mobile 390×844.
+- **Lean matrix (owner decision D125, 2026-11-17):** a PNG only for what the owner must see — each new screen, dialog or distinct state. Light theme by default; dark = one capture per new screen/dialog. Mobile 390×844 only where the layout differs (forms, footers, sheets, lists, TL flows); else desktop 1440×900. Role variants only when the UI differs; one capture per denial kind. Worst case / 320 px / 200 % and toast wording → E2E assertions, not PNGs. Never re-capture an unchanged screen.
 - Output: `screenshots/phase-N/<NN>-<role>-<screen>-<state>-<viewport>-<theme>.png` + `screenshots/phase-N/index.html` (static gallery, grouped by screen) + copy to `screenshots/latest/`.
 - Fixed clock, seeded Ukrainian data, animations off. Commit the screenshots.
 - `ux-ui-designer` reviews the gallery each phase and files issues before the owner sees it.
