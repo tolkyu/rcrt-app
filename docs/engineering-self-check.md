@@ -22,6 +22,7 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] Anything the server action depends on (response schema, validator) resolves **before** `fetch`. A chunk failure must stop the call before the server acts.
 - [ ] No `React.lazy` on the main path without an error boundary. Prefer loading into state in an effect.
 - [ ] A dependency-free fallback exists where the user needs feedback without the chunk.
+- [ ] UI that must appear right after an action that also calls `router.refresh()` or navigates (toasts) does not rely on a Suspense retry of a lazy chunk. Load the chunk into state in an effect.
 
 ## Tests
 
@@ -61,3 +62,4 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] Comments: one line, _why_ only. No stacked JSDoc.
 - [ ] `tsconfig.json` and `screenshots/` are not changed by accident. There are no leftover temp folders such as `.next-*`.
 - [ ] Only one Playwright, build or integration run at a time on this machine.
+- [ ] A Low or deferred security finding goes into the PROGRESS gap list in the same change. A shared-rule gap (e.g. `FORBIDDEN_CHARS`) is fixed once for every field that uses the rule.
