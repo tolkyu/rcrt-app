@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { createElement, type ReactNode } from 'react';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, expect, it, vi } from 'vitest';
 import { AppShell } from '@/components/shell/app-shell';
 import { ApiError } from '@/lib/api-client';
 import messages from '@/messages/uk.json';
@@ -25,6 +25,8 @@ vi.mock('@/components/shell/sidebar', () => ({
 }));
 vi.mock('@/components/shell/user-menu', () => ({ UserMenu: () => null }));
 vi.mock('@/components/theme/theme-toggle', () => ({ ThemeToggle: () => null }));
+
+beforeAll(() => import('@/components/settings/mfa-recovery'));
 
 afterEach(cleanup);
 

@@ -13,7 +13,15 @@ import { NextIntlClientProvider } from 'next-intl';
 import { createElement, type ReactNode } from 'react';
 import { hydrateRoot, type Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { PositionsView } from '@/components/positions/positions-view';
 import { ApiError, apiRequest } from '@/lib/api-client';
 import { positionsClientMessages } from '@/lib/i18n/positions-messages';
@@ -55,6 +63,13 @@ vi.mock('@/lib/api-client', async (original) => ({
 }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 vi.mock('@/lib/toast', () => ({ toast }));
+
+beforeAll(() =>
+  Promise.all([
+    import('@/components/positions/position-name-dialog'),
+    import('@/components/positions/deactivate-position-dialog'),
+  ]),
+);
 
 const t = messages.positions;
 const GAMBLING = '11111111-1111-4111-8111-111111111111';
