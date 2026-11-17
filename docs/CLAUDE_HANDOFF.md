@@ -5,6 +5,7 @@
 
 ## Checkpoint — 2026-11-17 (Codex: S3.5 fixes and S3.6 gallery)
 
+- Implementation/gallery checkpoint: **`ac0b63f`**, saved locally. **Push is blocked pending explicit owner approval:** automatic approval review rejected `git push origin phase-2` because the configured destination `https://github.com/tolkyu/rcrt-app.git` was not explicitly authorized for sending this private-code checkpoint. Do not retry or work around the rejection until the owner approves that remote write. No remote push succeeded in this session.
 - Resumed Claude's uncommitted S3.5 from `42e41ac`. Cancel/delete implementation is present; **S3.5/S3.6 are still in progress**, not independently approved. Astra code/perf/QA agents hit their usage limit; model policy was not changed.
 - Initial code review found four issues; fixed all: old detail GET restoring DRAFT, changed-reason uncertain retries, collapsed internal breaks (D113), and reconciliation publishing status before dialog close/focus. Retry regressions also cover two lost answers and intervening 403/429. The security review initially passed; see coordinator addendum and remaining Low.
 - S3.6 exposed/fixed a stale «Виправте N полів» summary. Both forms dismiss its snapshot when values change, including picker `setValue`, without removing field errors. A refused-work integration snapshot now orders rows by stable primary keys.
