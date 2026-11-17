@@ -7,7 +7,7 @@
 - Branch `phase-2`, HEAD `c955138`, pushed. Owner approved pushes; work continues without waiting for the owner.
 - Done: S3.5 + S3.6 reviewed (code APPROVED x3, security PASS), BUG-S3-14 fixed, D123/D124/D125 recorded, lean gallery captures (`c955138`), rich-text fragment fix `6cd0276`.
 - New skills (`.claude/skills/`): deslop, no-comments, thermo-nuclear (QA), blast-radius (reviewer), benchmark-checklist (perf), tdd, typescript-best-practices, make-pr-easy-to-review, babysit, fix-ci, fix-merge-conflicts. Wired into `docs/engineering-self-check.md` and agent files.
-- In progress: senior-fullstack-engineer S3.7 quality slice (thermo findings + BUG-S3-20, see `docs/qa-phase-2-s3.md`).
+- **S3.7 stopped mid-work (owner reboot, 2026-11-17).** Uncommitted, unverified edits left in the tree: `components/ui/sonner.tsx` (toast fallback on chunk failure, item 2), `components/ui/tooltip-content.tsx` (BUG-S3-20), `components/vacancies/use-draft-close.tsx` + `lib/vacancy-draft-close.ts` (timer/retry, items 1/3/8), tests in `tests/unit/ui/{disabled-reason,sonner-toaster-failed-chunk}.test.ts`, `tests/unit/vacancies/{draft-close,use-draft-close}.test.ts`. Agent's last note: a stray brace to fix, then finish `vacancy-draft-close.ts` + the hook. Resume: run typecheck + those unit tests, then relaunch the engineer with the S3.7 brief (items 1–9 in `docs/qa-phase-2-s3.md` «Code quality (thermo-nuclear)» + BUG-S3-20 + preview scroll a11y + form-error buttons + clampDescription + last-cell helper), telling it to continue from the tree.
 
 ## Next (in order)
 
