@@ -82,7 +82,7 @@ Tap a card → S-06 (no preview panel).
 
 ## Терміновість (VAC-08-2, VAC-04-4)
 
-Scope of this file: how urgency **looks** in the list, the preview panel and the filter. The control that changes it, the history wording, toasts and conflicts are in [`vacancy-card.md`](vacancy-card.md) → «Терміновість (VAC-08-2, VAC-04-4)». Decisions D94, D97, D99. Skills applied: `emil-design-eng` (frequency gate, no decorative motion), `animate` (gate result: no animation).
+Scope of this file: how urgency **looks** in the list, the preview panel and the filter. The control that changes it, the history wording, toasts and conflicts are in [`vacancy-card.md`](vacancy-card.md) → «Терміновість (VAC-08-2, VAC-04-4)». Decisions D94, D97, D99, D127 (urgency changes only on `OPEN`/`ON_HOLD`; the Team Lead priority override is Phase 3 and is not shown anywhere in the list or preview). Skills applied: `emil-design-eng` (frequency gate, no decorative motion), `animate` (gate result: no animation).
 
 ### 1. One rule, one component
 
@@ -163,7 +163,7 @@ preview 360 (selected urgent OPEN row)
 │ ┃░ Медіабаєр — Facebook         ░│
 │ ┃░ (● Відкрита)(🔥 Термінова)   ░│
 │ [Відкрити картку] [Поділитися]   │  actions outside the tint
-│ Терміновість вакансії            │  section from the card file §2 (control or read-only row)
+│ Терміновість вакансії            │  section from the card file §1: only for Head Recruiter/Admin on OPEN/ON_HOLD
 │ (Звичайна)(Термінова)            │
 │ Команда … Умови … (existing)     │
 └──────────────────────────────────┘

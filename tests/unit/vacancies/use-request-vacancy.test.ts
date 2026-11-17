@@ -256,6 +256,27 @@ describe('useRequestVacancy [STORY-VAC-03-3]', () => {
     expect(posts()[1]?.body).toMatchObject({ positionId: OTHER_POSITION });
   });
 
+  it('a blur after a server-refused position keeps the unavailable error', async () => {
+    mount();
+    await fill();
+    answers(
+      problem(400, 'VALIDATION_FAILED', [
+        { path: 'body.positionId', code: 'position_inactive' },
+      ]),
+    );
+    await press();
+    await waitFor(() =>
+      expect(current().errors.positionId).toBe('positionUnavailable'),
+    );
+    await act(async () => {
+      current().validateField('positionId');
+      await Promise.resolve();
+    });
+    await waitFor(() =>
+      expect(current().errors.positionId).toBe('positionUnavailable'),
+    );
+  });
+
   it('a 404 shows an unavailable position without saying why', async () => {
     mount();
     await fill();

@@ -34,6 +34,7 @@ export function useRequestVacancy(guard: RefObject<LeaveGuardHandle | null>) {
   const [notice, setNotice] = useState<RequestNotice | null>(null);
   const [summary, setSummary] = useState(0);
   const [unavailable, setUnavailable] = useState<string | null>(null);
+  const unavailableRef = useRef<string | null>(null);
   useEffect(() => {
     loadRequest().catch(() => undefined);
   }, []);
@@ -59,9 +60,16 @@ export function useRequestVacancy(guard: RefObject<LeaveGuardHandle | null>) {
         )
           return;
         const result = lib.parseRequest(latestRef.current);
+        const refused =
+          field === 'positionId' &&
+          latestRef.current.positionId === unavailableRef.current;
         setErrors((current) => ({
           ...current,
-          [field]: result.ok ? undefined : result.errors[field],
+          [field]: !result.ok
+            ? result.errors[field]
+            : refused
+              ? 'positionUnavailable'
+              : undefined,
         }));
       },
       () => undefined,
@@ -98,6 +106,7 @@ export function useRequestVacancy(guard: RefObject<LeaveGuardHandle | null>) {
         if (outcome.failure.kind === 'fields') {
           showFields(outcome.failure.errors);
           if (outcome.failure.errors.positionId === 'positionUnavailable') {
+            unavailableRef.current = values.positionId;
             setUnavailable(values.positionId);
             lib.refreshRequestPositions(queryClient).catch(() => undefined);
           }

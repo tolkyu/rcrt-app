@@ -125,7 +125,7 @@ export function VacancyRequestForm({
           <Button
             asChild
             variant="outline"
-            className="h-11 basis-full md:basis-auto"
+            className="h-11 basis-full md:h-10 md:basis-auto"
             aria-disabled={form.pending || undefined}
           >
             <Link
@@ -141,7 +141,7 @@ export function VacancyRequestForm({
             type="submit"
             aria-disabled={form.pending || form.notice === 'forbidden'}
             aria-busy={form.pending}
-            className="h-11 basis-full md:basis-auto"
+            className="h-11 basis-full md:h-10 md:basis-auto"
           >
             {t(form.pending ? 'pending' : 'title')}
           </Button>

@@ -17,6 +17,6 @@ export const vacancyRequestSkeleton: readonly FormSkeletonRow[] = [
 
 /** Natural widths of «Вийти без збереження» and «Запросити вакансію». */
 export const REQUEST_BUTTON_WIDTHS = [
-  'min-w-[11.3rem]',
-  'min-w-[10.2rem]',
+  'min-w-[11.5rem]',
+  'min-w-[10.35rem]',
 ] as const;

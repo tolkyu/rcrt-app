@@ -10,12 +10,12 @@
 - **S3.7 closed (D126):** part 1 `b48910d` (items 7, 8, BUG-S3-20), part 2 (items 1, 6: pure `planAttempt`/`settle` in `lib/vacancy-draft-retry.ts`). Both code-reviewer APPROVED. Rest of thermo items → Phase 7 tech debt (PROGRESS «Gaps»).
 - **D126 (owner, 2026-11-17):** one review round per slice; only bugs/security/authz/PII/PRD mismatch block; screenshots once per V-block.
 
-## Next (in order) — paused for owner reboot 2026-11-17 night
+## Next (in order) — 2026-11-17 late, parallel run
 
-1. **STORY-VAC-03-3 (uncommitted, build done).** Engineer finished; typecheck + lint green; security VR-01 fixed; code-reviewer **APPROVED** (D126). QA agent was **stopped mid-work**: it left `tests/integration/vacancies-request-concurrency.test.ts`, `tests/support/vacancy-request-db.ts`, `tests/e2e/vacancy-request.spec.ts` (unfinished) and a temp `tests/e2e/zz-measure.spec.ts` (skeleton width measure — delete after use). Resume: new qa-engineer task → finish concurrency (T-4) + E2E desktop/mobile + skeleton widths `REQUEST_BUTTON_WIDTHS` at 320/360/390; run `vacancies-request*.test.ts` alone; then full `corepack pnpm test:unit` once (reviewer's run failed on env collision) → commit `feat(vacancies): TL vacancy request [VAC-03, D122]` (exclude Phase-1 PNGs) → push.
-2. Then STORY-VAC-08-2 slice A (urgency) per `docs/adr/016-vacancy-urgency.md`; align before build: event (ADR new `vacancy.urgency_changed` vs BA audit + `vacancy.updated`) and UX wireframe (DRAFT editable + TL override block) with D127 (OPEN/ON_HOLD only; override → Phase 3). Then STORY-VAC-04-4 remainder (urgency filter, contrast tests, PNGs). Screenshots at V2 end.
-3. Owner decisions today: D127 (Q-188 defer override to Phase 3, Q-189 urgency only OPEN/ON_HOLD), D128 (agent effort medium/high in frontmatter, selective tests). Mark Q-188/Q-189 answered in `docs/OPEN_QUESTIONS.md`.
-4. New skill `subtract-before-you-add` (wired in self-check). Perf: create 179.76 / edit 179.96 of 180 kB — at the limit; next UI work on those routes needs perf-engineer.
+1. VAC-03-3 code committed `3a1b504` (pushed). QA agent finishes concurrency + E2E in main tree (uncommitted: `tests/e2e/vacancy-request.spec.ts`, `tests/integration/vacancies-request-concurrency.test.ts`, `tests/support/vacancy-request-db.ts`, `zz-measure.spec.ts` temp, `package.json`/`playwright.config.ts`) → commit `test(vacancies): …`.
+2. **Worktrees (manual; tool isolation fails on d:/D: case):** `D:/recruiting-wt/urgency-api` branch `vac-08-2-api` (ADR-016 slice 1 server) and `D:/recruiting-wt/urgency-ui` branch `vac-04-4-highlight` (slice 3 highlight). Agents commit there, no push. Merge into `phase-2` (api first; ui touches `vacancy-badges.tsx` styling only), then code-review + security (api), remove worktrees.
+3. Next ADR-016 slices: 2 (client control), 4 (list filter), 5 (E2E, Postman, PNGs, perf + security). BA expands V3 stories (VAC-03-1, 03-2, 02-1, UI-09-1).
+4. Perf: create 179.76 / edit 179.96 of 180 kB — perf-engineer before more UI on those routes.
 5. Phase 7: remind owner about demo videos.
 
 ## Open, not blocking
