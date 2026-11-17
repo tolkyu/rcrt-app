@@ -10,6 +10,10 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] Every rejected promise is handled. No bare `void promise` without `.catch`.
 - [ ] A late success after unmount still updates the caches. Toast and navigation run only while mounted.
 - [ ] Mutations invalidate the right query keys. Check with a test.
+- [ ] A patch or diff builder expresses every field state or refuses it with a field error. It never drops a changed field. A field that cannot be cleared (no `null`) is required in the form.
+- [ ] A toast action repeats the action that failed, not a neighbour. Give the failure handler an explicit `retry` callback. A test asserts which request the button sends.
+- [ ] A retry of a non-idempotent write that meets a conflict checks whether the earlier attempt already stored the change before it warns.
+- [ ] A retry that adopts the stored result compares everything the user sees, not only the changed keys.
 
 ## Lazy code (`import()`, `next/dynamic`, `React.lazy`)
 
@@ -28,6 +32,7 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 ## Budget and structure
 
 - [ ] Run `corepack pnpm build && corepack pnpm perf:size` **before** reporting. Report the kB for every touched route. 180 kB gz is a hard limit.
+- [ ] A second form or screen with the same submit flow extracts the shared hook or buttons before it copies them (`useSubmitLifecycle`, `SubmitButtons`).
 - [ ] Components stay under ~400 lines. Extract hooks (`useXxx`) and small components early.
 - [ ] No second definition of the same rule (authz predicate, class string, schema). Share one helper.
 - [ ] Copy with numbers uses ICU arguments from the shared constants, not hard-coded values.

@@ -5,9 +5,8 @@ import { PREFERENCE_COOKIES } from '@/lib/preference-cookie';
 import { ALL_VERTICALS, resolveVerticalFilter } from '@/lib/vertical-filter';
 import type { VerticalId } from '@/server/authz/types';
 import {
-  canSetCreateProbation,
-  grantCovers,
   vacancyAuthorVerticals,
+  vacancyFormGrants,
 } from '@/server/authz/vacancy-author';
 import { requireSession } from './session';
 import { getVisibleVerticals } from './verticals';
@@ -27,13 +26,7 @@ export const getCreateFormVerticals = cache(async () => {
     )
     .map((vertical) => ({
       ...vertical,
-      // Per vertical: a Head Recruiter of one vertical who only recruits in another may not name a Team Lead there.
-      canSetTeamLead: grantCovers(
-        ctx.auth,
-        'vacancy.team_lead.set',
-        vertical.id as VerticalId,
-      ),
-      canSetProbation: canSetCreateProbation(ctx.auth),
+      ...vacancyFormGrants(ctx.auth, vertical.id as VerticalId),
     }));
   const [only] = verticals;
   // One option is preset (and shown disabled); with several, the header vertical (D83) presets, «Усі» leaves the choice open.

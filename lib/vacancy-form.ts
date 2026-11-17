@@ -65,6 +65,13 @@ export type VacancyFormErrorCode =
   | 'salaryCurrencyNoAmount'
   | 'probationRange';
 
+/** Fields a form may insist on filling in beyond what the mode needs: the edit form cannot express «cleared» for them (a patch has no null for either), so a blank one is this error. */
+export const FILLED_CODE = {
+  headcount: 'headcountRange',
+  probationDays: 'probationRange',
+} as const satisfies Partial<Record<VacancyFormField, VacancyFormErrorCode>>;
+export type FilledField = keyof typeof FILLED_CODE;
+
 export type VacancyFormErrors = Partial<
   Record<VacancyFormField, VacancyFormErrorCode>
 >;

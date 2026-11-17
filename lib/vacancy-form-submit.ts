@@ -26,6 +26,7 @@ import {
 } from '@/lib/vacancy-list-memory';
 import { VACANCY_DRAFT_LIMIT } from '@/lib/vacancy-limits';
 import {
+  type FilledField,
   type VacancyFormErrors,
   type VacancyFormMode,
   type VacancyFormValues,
@@ -104,13 +105,13 @@ export async function submitCreate(
   }
 }
 
-/** Seeds the card cache and refreshes every vacancy list, which also refreshes the «Чернетки» count (`['vacancies', 'draft-count']`). */
+/** Seeds the card cache and refreshes every vacancy list, which also refreshes the «Чернетки» count (`queryKeys.vacancyDraftCount()`). */
 export function applyCreatedVacancy(
   queryClient: QueryClient,
   created: CreatedVacancy,
 ) {
   queryClient.setQueryData(queryKeys.vacancy(created.id), created);
-  void queryClient.invalidateQueries({ queryKey: ['vacancies'] });
+  void queryClient.invalidateQueries({ queryKey: queryKeys.vacanciesAll() });
 }
 
 export interface PositionsSeed {
@@ -147,6 +148,16 @@ export async function applyDraftLimitHit(queryClient: QueryClient) {
 export const refreshAssignableTeamLeads = (queryClient: QueryClient) =>
   queryClient.invalidateQueries({ queryKey: teamLeadKeys.all });
 
+/** A refused position or Team Lead means the cached picker lists are out of date. */
+export function refreshAfterFieldErrors(
+  queryClient: QueryClient,
+  errors: VacancyFormErrors,
+) {
+  if (errors.positionId === 'positionInactive')
+    void queryClient.invalidateQueries({ queryKey: queryKeys.positionsAll() });
+  if (errors.teamLeadId) void refreshAssignableTeamLeads(queryClient);
+}
+
 export const fetchAssignableTeamLeads = (
   queryClient: QueryClient,
   verticalId: string,
@@ -175,8 +186,9 @@ const toFieldErrors = (
 export function resolveVacancyForm(
   values: VacancyFormValues,
   mode: VacancyFormMode,
+  filled: readonly FilledField[] = [],
 ): ResolverResult<VacancyFormValues> {
-  const result = parseVacancyForm(values, mode);
+  const result = parseVacancyForm(values, mode, filled);
   return result.ok
     ? { values, errors: {} }
     : { values: {}, errors: toFieldErrors(result.errors) };

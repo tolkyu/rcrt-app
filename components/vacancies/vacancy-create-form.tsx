@@ -1,8 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, type KeyboardEvent } from 'react';
-import { useForm, useWatch, type Resolver } from 'react-hook-form';
+import { useEffect, useRef, type KeyboardEvent } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { FormError } from '@/components/ui/form-error';
 import { FormPageLayout } from '@/components/ui/form-page-layout';
 import { FormRailLayout } from '@/components/ui/form-rail';
@@ -14,6 +14,7 @@ import {
 } from '@/components/vacancies/readiness-rail';
 import { useCreateVacancy } from '@/components/vacancies/use-create-vacancy';
 import { useVacancyErrorText } from '@/components/vacancies/use-vacancy-error-text';
+import { useVacancyResolver } from '@/components/vacancies/use-vacancy-resolver';
 import { VacancyBasicsGroup } from '@/components/vacancies/vacancy-basics-group';
 import { useVacancyPickers } from '@/components/vacancies/use-vacancy-pickers';
 import { VacancyConditionsGroup } from '@/components/vacancies/vacancy-conditions-group';
@@ -25,7 +26,6 @@ import {
   type VacancyFormMode,
   type VacancyFormValues,
 } from '@/lib/vacancy-form';
-import { loadSubmit } from '@/lib/vacancy-form-load';
 import type { PositionsSeed } from '@/lib/vacancy-form-submit';
 
 /** «Нова вакансія», groups «Основне» and «Умови» (VAC-01, STORY-VAC-01-1): one create call for both actions, checked by the shared Zod schema. */
@@ -51,17 +51,8 @@ export function VacancyCreateForm({
   const fieldError = useVacancyErrorText();
   const guard = useRef<LeaveGuardHandle>(null);
   const mode = useRef<VacancyFormMode>('DRAFT');
-  // Blur validation follows the last pressed action, so a publish-only error does not show while a draft is being filled in.
-  const resolver = useCallback<Resolver<VacancyFormValues>>(async (values) => {
-    try {
-      return (await loadSubmit()).resolveVacancyForm(values, mode.current);
-    } catch {
-      // No module, no field rules; the press that submits reports the failure.
-      return { values, errors: {} };
-    }
-  }, []);
   const form = useForm<VacancyFormValues>({
-    resolver,
+    resolver: useVacancyResolver(mode),
     mode: 'onTouched',
     shouldFocusError: false,
     defaultValues: emptyVacancyForm(

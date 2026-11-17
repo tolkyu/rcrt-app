@@ -15,6 +15,7 @@ export function TeamLeadField({
   announce,
   empty,
   readOnly,
+  selectedOption,
   onSearch,
   onValueChange,
 }: {
@@ -24,6 +25,7 @@ export function TeamLeadField({
   announce: boolean;
   empty: boolean;
   readOnly: boolean;
+  selectedOption?: ComboboxOption;
   onSearch: (query: string) => Promise<readonly ComboboxOption[]>;
   onValueChange: (id: string) => void;
 }) {
@@ -50,6 +52,7 @@ export function TeamLeadField({
               clearable
               disabled={!verticalId}
               readOnly={readOnly}
+              selectedOption={selectedOption}
               placeholder={t(
                 verticalId ? 'teamLead.placeholder' : 'position.needVertical',
               )}

@@ -28,6 +28,20 @@ export const PROBATION_HINT: FormSkeletonTextHint = {
   },
 };
 
+const VERTICAL_LOCKED_HINT: FormSkeletonTextHint = {
+  message: 'vacancyForm.edit.verticalLocked',
+};
+const POSITION_HINT: FormSkeletonTextHint = {
+  message: 'vacancyForm.position.hint',
+};
+
+/** Natural widths of «Скасувати», «Зберегти», «Опублікувати» (measured in the dev gallery at 1440 px: coarser steps wrap differently at 320 px). */
+export const EDIT_BUTTON_WIDTHS = [
+  'min-w-[6.29rem]',
+  'min-w-[5.84rem]',
+  'min-w-[7.61rem]',
+] as const;
+
 /** The line the rail replaces below the rail breakpoint uses the same role-specific copy. */
 export const vacancyAfterCreateSkeleton = (
   assigner: boolean,
@@ -53,13 +67,24 @@ export const vacancyConditionsSkeleton = (
     : { note: PROBATION_READ_ONLY_HINT },
 ];
 
-/** Row-for-row twin of the create form's fields (G20); keep it in step with `vacancy-create-form.tsx`. The Team Lead row exists only for those who may set one (the same people get the «Рекрутерів призначте…» note). */
-export const vacancyFormSkeleton = (
-  withTeamLead: boolean,
-  withProbation: boolean,
-): readonly FormSkeletonRow[] => [
+/** Row-for-row twin of the create and (`lockedVertical`) edit form's fields (G20); keep it in step with `vacancy-create-form.tsx` and `vacancy-edit-form.tsx`. The Team Lead row exists only for those who may set one (the same people get the «Рекрутерів призначте…» note). */
+export const vacancyFormSkeleton = ({
+  withTeamLead,
+  withProbation,
+  lockedVertical = false,
+}: {
+  withTeamLead: boolean;
+  withProbation: boolean;
+  /** The edit form: the vertical cannot change and says so. */
+  lockedVertical?: boolean;
+}): readonly FormSkeletonRow[] => [
   'group',
-  ['input', { kind: 'input', hint: true }],
+  lockedVertical
+    ? [
+        { kind: 'input', hint: VERTICAL_LOCKED_HINT },
+        { kind: 'input', hint: POSITION_HINT },
+      ]
+    : ['input', { kind: 'input', hint: true }],
   { kind: 'input', hint: true },
   [
     { kind: 'input', hint: true },

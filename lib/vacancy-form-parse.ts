@@ -6,6 +6,8 @@ import {
   type CreateVacancyBody,
 } from '@/lib/schemas/vacancy';
 import {
+  FILLED_CODE,
+  type FilledField,
   type VacancyFormErrorCode,
   type VacancyFormErrors,
   type VacancyFormMode,
@@ -122,10 +124,11 @@ function toInput(
   };
 }
 
-/** The shared create schema decides; this only turns its issues into field codes. DRAFT needs vertical and title, PUBLISH also the position and the headcount. */
+/** The shared create schema decides; this only turns its issues into field codes. DRAFT needs vertical and title, PUBLISH also the position and the headcount; `filled` names fields that must not be blank in either mode. */
 export function parseVacancyForm(
   values: VacancyFormValues,
   mode: VacancyFormMode,
+  filled: readonly FilledField[] = [],
 ):
   | { readonly ok: true; readonly body: CreateVacancyBody }
   | { readonly ok: false; readonly errors: VacancyFormErrors } {
@@ -134,6 +137,8 @@ export function parseVacancyForm(
   const errors: VacancyFormErrors = { ...salary.errors };
   if (mode === 'PUBLISH' && !values.headcount.trim())
     errors.headcount = 'headcountRange';
+  for (const field of filled)
+    if (!values[field].trim()) errors[field] = FILLED_CODE[field];
   if (!result.success) {
     const titleCodes: string[] = [];
     const locationCodes: string[] = [];

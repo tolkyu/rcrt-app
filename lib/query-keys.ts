@@ -5,8 +5,12 @@ export const queryKeys = {
   myMfa: () => ['me', 'mfa'] as const,
   myLoginHistory: () => ['me', 'login-history'] as const,
   verticals: () => ['verticals'] as const,
+  /** Prefix of every position list. */
+  positionsAll: () => ['positions'] as const,
   positions: (filters: Readonly<{ status: string; verticalId?: string }>) =>
     ['positions', filters] as const,
+  /** Prefix of every vacancy list and count: one invalidation refreshes them all. */
+  vacanciesAll: () => ['vacancies'] as const,
   vacancies: (filters: Readonly<Record<string, unknown>>) =>
     ['vacancies', filters] as const,
   /** Under `['vacancies']` so every list invalidation (create, publish, cancel, delete) refreshes the chip count too. */

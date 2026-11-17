@@ -1242,6 +1242,51 @@
   },
   {
     "operation": "updateVacancyDraft",
+    "name": "a probation length above 90 days is a field error",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_draft_version}},\"probationDays\":91}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.probationDays",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "an unknown Team Lead is a field error",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_draft_version}},\"teamLeadId\":\"00000000-0000-4000-8000-000000000000\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.teamLeadId",
+        "code": "invalid_team_lead"
+      }
+    ]
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "null clears an optional field, the refusals above left the version alone",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_draft_version}},\"location\":null}",
+    "status": 200,
+    "script": "vacancy-draft-cleared"
+  },
+  {
+    "operation": "updateVacancyDraft",
     "name": "Head Recruiter gets 404 for the Admin draft",
     "as": "head_recruiter_gambling",
     "params": {

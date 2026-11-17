@@ -4,8 +4,7 @@ import { NotFoundError } from '@/server/http/errors';
 import { getVacancyDetail } from '@/server/services/vacancy';
 import { requireSession } from '../../_lib/session';
 
-/** One scoped read per request for the detail layout and metadata; missing, malformed and out-of-scope ids are all `null`. */
-export const loadVacancy = cache(async (vacancyId: string) => {
+const readVacancy = cache(async (vacancyId: string) => {
   const ctx = await requireSession();
   try {
     return await getVacancyDetail(ctx, vacancyId);
@@ -14,3 +13,7 @@ export const loadVacancy = cache(async (vacancyId: string) => {
     throw error;
   }
 });
+
+/** One scoped read per request for the detail and edit layouts, pages and loading boundary; missing, malformed and out-of-scope ids are all `null`. The id is lower-cased first, so a link in capitals shares the cache entry of the canonical one. */
+export const loadVacancy = (vacancyId: string) =>
+  readVacancy(vacancyId.toLowerCase());

@@ -6,11 +6,11 @@ import { FormRailLayout } from './form-rail';
 import { Skeleton } from './skeleton';
 
 /** `min-w` and not `w`: an empty flex item has no content width, so only a minimum makes the phone footer wrap like the real buttons. Widths are the measured natural widths of «Скасувати», «Зберегти чернетку», «Створити вакансію»: coarser steps wrap differently at 320 px. */
-const BUTTON_WIDTHS = [
+const BUTTON_WIDTHS: readonly string[] = [
   'min-w-[6.16rem]',
   'min-w-[9.85rem]',
   'min-w-[9.86rem]',
-] as const;
+];
 
 type FieldKind = 'input' | 'textarea' | 'segmented';
 /** Real translated copy sizes wrapped hints without viewport-specific line-count guesses. */
@@ -183,6 +183,7 @@ export function FormSkeleton({
   back,
   fields,
   rail,
+  buttonWidths = BUTTON_WIDTHS,
 }: {
   title: string;
   subtitle?: string;
@@ -190,6 +191,8 @@ export function FormSkeleton({
   fields: readonly FormSkeletonRow[];
   /** Reserves the side rail of a form page that has one (shown only where the real rail is). */
   rail?: boolean;
+  /** Static `min-w-[…]` classes of the footer buttons, left to right; the default fits «Скасувати», «Зберегти чернетку», «Створити вакансію». */
+  buttonWidths?: readonly string[];
 }) {
   const t = useTranslations('states');
   const rows = fields.map((row, index) => {
@@ -237,7 +240,7 @@ export function FormSkeleton({
           rows
         )}
         <FormPageFooter>
-          {BUTTON_WIDTHS.map((width) => (
+          {buttonWidths.map((width) => (
             <Skeleton
               key={width}
               className={cn('h-11 rounded-lg md:h-10', width)}

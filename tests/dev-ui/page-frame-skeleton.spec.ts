@@ -238,6 +238,78 @@ for (const width of PHONE_WIDTHS) {
   });
 }
 
+async function expectEditRowTwins(page: Page) {
+  await openGallery(page);
+  await waitForSkeletons(page);
+  // The footer's position is the height of everything above it, so one box check covers the wrapped hints of both fields.
+  const selector =
+    'h1, [data-slot="form-page-footer"], [data-slot="form-page-footer"] > *';
+  const skeletonRoot = '[data-slot="edit-row-skeleton-sample"]';
+  const loadedRoot = '[data-slot="edit-row-loaded-sample"]';
+  await alignToTop(page, skeletonRoot);
+  const skeleton = await relativeBoxes(page, skeletonRoot, selector);
+  await alignToTop(page, loadedRoot);
+  const loaded = await relativeBoxes(page, loadedRoot, selector);
+  expect(skeleton).toHaveLength(5);
+  expectSameBoxes(skeleton, loaded);
+}
+
+for (const width of PHONE_WIDTHS) {
+  test(`the locked vertical and position row reserve the wrapped height of their hints at ${width} px [S3.3, G20]`, async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(
+      !isMobile,
+      'phone widths only; the desktop project is measured below',
+    );
+    await page.setViewportSize({ width, height: 844 });
+    await expectEditRowTwins(page);
+  });
+}
+
+test('the locked vertical and position row reserve the wrapped height of their hints at the project width [S3.3, G20]', async ({
+  page,
+}) => {
+  await expectEditRowTwins(page);
+});
+
+async function expectEditFooterTwins(page: Page) {
+  await openGallery(page);
+  await waitForSkeletons(page);
+  const selector =
+    'h1, [data-slot="form-page-footer"], [data-slot="form-page-footer"] > *';
+  const skeletonRoot = '[data-slot="edit-footer-skeleton-sample"]';
+  const loadedRoot = '[data-slot="edit-footer-loaded-sample"]';
+  await alignToTop(page, skeletonRoot);
+  const skeleton = await relativeBoxes(page, skeletonRoot, selector);
+  await alignToTop(page, loadedRoot);
+  const loaded = await relativeBoxes(page, loadedRoot, selector);
+  // heading, footer, «Скасувати», «Зберегти», «Опублікувати»
+  expect(skeleton).toHaveLength(5);
+  expectSameBoxes(skeleton, loaded);
+}
+
+for (const width of PHONE_WIDTHS) {
+  test(`the edit footer skeleton has the boxes of the real buttons at ${width} px [S3.3, G20]`, async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(
+      !isMobile,
+      'phone widths only; the desktop project is measured below',
+    );
+    await page.setViewportSize({ width, height: 844 });
+    await expectEditFooterTwins(page);
+  });
+}
+
+test('the edit footer skeleton has the boxes of the real buttons at the project width [S3.3, G20]', async ({
+  page,
+}) => {
+  await expectEditFooterTwins(page);
+});
+
 async function expectConditionsTwins(
   page: Page,
   variant: 'admin' | 'recruiter',

@@ -6,10 +6,10 @@ import { VacancyCreateForm } from '@/components/vacancies/vacancy-create-form';
 import { hasAnyGrant } from '@/server/authz/can';
 import { authorsAnywhere } from '@/server/authz/vacancy-author';
 import { describeError, logger } from '@/server/observability/logger';
-import { listPositionCatalog } from '@/server/services/position';
 import { countOwnDrafts } from '@/server/services/vacancy';
 import { getCreateFormVerticals } from '../../_lib/create-form-verticals';
 import { requireSession } from '../../_lib/session';
+import { loadPositionSeed } from '../_lib/position-seed';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('vacancyForm');
@@ -24,19 +24,7 @@ export default async function NewVacancyPage() {
   const { verticals, verticalId } = await getCreateFormVerticals();
   // Both lists are prefetched on the server and handed over as props (the positions seed the cache with their own age): `HydrationBoundary` would add its code to this route's initial JavaScript a second time (PERF-04).
   const [initialPositions, initialDraftCount] = await Promise.all([
-    verticalId
-      ? listPositionCatalog(ctx, { status: 'active', verticalId }).then(
-          (list) => ({ list, loadedAt: ctx.clock.now().getTime() }),
-          (error: unknown) => {
-            // The picker loads the list itself and shows its own error row; the log carries no names or ids.
-            logger.error(
-              { err: describeError(error) },
-              'vacancy form position prefetch failed',
-            );
-            return undefined;
-          },
-        )
-      : undefined,
+    verticalId ? loadPositionSeed(ctx, verticalId) : undefined,
     countOwnDrafts(ctx).then(
       ({ count }) => count,
       (error: unknown) => {

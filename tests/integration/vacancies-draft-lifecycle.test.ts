@@ -393,6 +393,105 @@ describe('Edit my draft [STORY-VAC-01-3 AC2, D92]', () => {
     });
   });
 
+  it('clears the position and every optional condition with null in one patch, as the edit form sends it, and the draft then needs a position to publish', async () => {
+    await scenario(async (s) => {
+      const created = await saveDraft(s, {
+        positionId: world.positions.p1,
+        seniority: 'Мідл',
+        workFormat: 'HYBRID',
+        employmentType: 'Повна зайнятість',
+        location: 'Київ',
+        headcount: 4,
+      });
+      const ctx = await s.as(roles().recruiter);
+      const cleared = await patchVacancyDraft(
+        ctx,
+        created.id,
+        edit(created.version, {
+          positionId: null,
+          seniority: null,
+          workFormat: null,
+          employmentType: null,
+          location: null,
+        }),
+      );
+      expect(cleared).toMatchObject({
+        position: null,
+        seniority: null,
+        workFormat: null,
+        employmentType: null,
+        location: null,
+        headcount: 4,
+        title: created.title,
+        version: created.version + 1,
+      });
+      expect((await eventsOf(s.tx, created.id)).at(-1)).toMatchObject({
+        type: 'vacancy.updated',
+        payload: {
+          fields: [
+            'positionId',
+            'seniority',
+            'workFormat',
+            'employmentType',
+            'location',
+          ],
+        },
+      });
+      expect(
+        await problem(publish(ctx, created.id, key(), cleared.version)),
+      ).toEqual({
+        status: 400,
+        code: 'VALIDATION_FAILED',
+        errors: [{ path: 'body.positionId', code: 'required' }],
+      });
+    });
+  });
+
+  it('refuses a probation length to a Recruiter with 403 FORBIDDEN, while a value that equals the stored one is no change and is not gated', async () => {
+    await scenario(async (s) => {
+      const created = await saveDraft(s);
+      const ctx = await s.as(roles().recruiter);
+      expect(
+        await problem(
+          patchVacancyDraft(
+            ctx,
+            created.id,
+            edit(created.version, { probationDays: 60 }),
+          ),
+        ),
+      ).toMatchObject({ status: 403, code: 'FORBIDDEN' });
+      expect(
+        await patchVacancyDraft(
+          ctx,
+          created.id,
+          edit(created.version, { probationDays: 90, teamLeadId: null }),
+        ),
+      ).toEqual(created);
+      expect(await row(s.tx, created.id)).toMatchObject({
+        version: created.version,
+        probationDays: 90,
+      });
+    });
+  });
+
+  it('answers 409 VACANCY_NOT_DRAFT, not STALE_STATE, to an edit of an opened vacancy sent with an old version', async () => {
+    await scenario(async (s) => {
+      const created = await saveDraft(s, { positionId: world.positions.p1 });
+      const ctx = await s.as(roles().recruiter);
+      const opened = await publish(ctx, created.id, key());
+      expect(opened.version).toBeGreaterThan(created.version);
+      expect(
+        await problem(
+          patchVacancyDraft(
+            ctx,
+            created.id,
+            edit(created.version, { title: 'Стара вкладка' }),
+          ),
+        ),
+      ).toMatchObject({ status: 409, code: 'VACANCY_NOT_DRAFT' });
+    });
+  });
+
   it('checks a newly chosen position: inactive is 409 POSITION_INACTIVE, another vertical or unknown is a field error', async () => {
     await scenario(async (s) => {
       const created = await saveDraft(s);

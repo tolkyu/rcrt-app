@@ -33,6 +33,15 @@ export const canSetCreateProbation = (ctx: AuthContext): boolean =>
     (grant) => grant.scope.kind === 'GLOBAL',
   );
 
+/** The optional fields a caller may fill in the vacancy form of one vertical; per vertical, because a Head Recruiter of one vertical who only recruits in another may not name a Team Lead there. */
+export const vacancyFormGrants = (
+  ctx: AuthContext,
+  verticalId: VerticalId,
+) => ({
+  canSetTeamLead: grantCovers(ctx, 'vacancy.team_lead.set', verticalId),
+  canSetProbation: canSetCreateProbation(ctx),
+});
+
 function intersect(a: VerticalSet, b: VerticalSet): VerticalSet {
   if (a === 'ALL') return b;
   if (b === 'ALL') return a;

@@ -1,29 +1,10 @@
 'use client';
 
-import { CircleAlert, LoaderCircle } from 'lucide-react';
+import { LoaderCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
+import { FormAlert } from '@/components/vacancies/form-alert';
 import { VACANCY_DRAFT_LIMIT } from '@/lib/vacancy-limits';
-
-function FormAlert({
-  children,
-  action,
-}: {
-  children: ReactNode;
-  action?: ReactNode;
-}) {
-  return (
-    <div
-      role="alert"
-      className="bg-destructive-subtle text-error-text flex flex-wrap items-start gap-x-2 gap-y-1 rounded-lg p-3 text-sm font-medium"
-    >
-      <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-      <span className="min-w-0 flex-1">{children}</span>
-      {action}
-    </div>
-  );
-}
 
 /** Inline answers of the create call that a field cannot carry; loaded only when one appears, so it stays out of the page's initial JavaScript (PERF-04). */
 export function FormAlerts({

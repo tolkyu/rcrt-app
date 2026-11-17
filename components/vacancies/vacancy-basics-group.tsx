@@ -8,7 +8,7 @@ import {
   type FieldErrors,
   type UseFormRegister,
 } from 'react-hook-form';
-import { Combobox } from '@/components/ui/combobox';
+import { Combobox, type ComboboxOption } from '@/components/ui/combobox';
 import { FormField } from '@/components/ui/form-field';
 import { FormGroup } from '@/components/ui/form-group';
 import { Input } from '@/components/ui/input';
@@ -48,6 +48,9 @@ export function VacancyBasicsGroup({
   showTeamLead,
   canManagePositions,
   feedback,
+  lockedVertical = false,
+  selectedPosition,
+  selectedTeamLead,
 }: {
   control: Control<VacancyFormValues>;
   register: UseFormRegister<VacancyFormValues>;
@@ -64,6 +67,11 @@ export function VacancyBasicsGroup({
   showTeamLead: boolean;
   canManagePositions: boolean;
   feedback: FeedbackModule | null;
+  /** A saved draft keeps its vertical (Q-185): the select stays disabled and says why. */
+  lockedVertical?: boolean;
+  /** The saved draft's own position and Team Lead, so the fields show them before any list loads. */
+  selectedPosition?: ComboboxOption;
+  selectedTeamLead?: ComboboxOption;
 }) {
   const t = useTranslations('vacancyForm');
   const autoFilled = picker.autoTitle !== '' && title === picker.autoTitle;
@@ -112,12 +120,16 @@ export function VacancyBasicsGroup({
           <p
             role="status"
             className={
-              picker.verticalNote
+              lockedVertical || picker.verticalNote
                 ? 'text-muted-foreground mt-1.5 text-xs'
                 : 'text-muted-foreground text-xs'
             }
           >
-            {picker.verticalNote ? t(RESET_NOTES[picker.verticalNote]) : null}
+            {lockedVertical
+              ? t('edit.verticalLocked')
+              : picker.verticalNote
+                ? t(RESET_NOTES[picker.verticalNote])
+                : null}
           </p>
         </div>
         <Controller
@@ -140,6 +152,7 @@ export function VacancyBasicsGroup({
                   key={verticalId}
                   className={CLEARANCE}
                   value={field.value}
+                  selectedOption={selectedPosition}
                   disabled={!verticalId}
                   readOnly={pending}
                   placeholder={t(
@@ -243,6 +256,7 @@ export function VacancyBasicsGroup({
           announce={announce}
           empty={picker.teamLeadsEmpty}
           readOnly={pending}
+          selectedOption={selectedTeamLead}
           onSearch={picker.searchTeamLeads}
           onValueChange={picker.chooseTeamLead}
         />

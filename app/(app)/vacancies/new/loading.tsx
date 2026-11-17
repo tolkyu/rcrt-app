@@ -17,10 +17,10 @@ export default async function NewVacancyLoading() {
         title={t('title')}
         subtitle={t('subtitle')}
         back={{ href: '/vacancies', label: t('back') }}
-        fields={vacancyFormSkeleton(
-          teamLeadFieldShown(verticals, verticalId),
-          probationFieldShown(verticals, verticalId),
-        )}
+        fields={vacancyFormSkeleton({
+          withTeamLead: teamLeadFieldShown(verticals, verticalId),
+          withProbation: probationFieldShown(verticals, verticalId),
+        })}
         rail
       />
     </FormRailFrame>

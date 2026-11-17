@@ -16,6 +16,7 @@ export const vacancyFormClientMessages = ({
     createErrors: vacancies.createErrors,
     notSpecified: vacancies.notSpecified,
     workFormat: vacancies.workFormat,
+    status: vacancies.status,
   },
   common,
   states,

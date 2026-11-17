@@ -115,13 +115,13 @@ export type FailureEffect =
       readonly retry: boolean;
     };
 
-const GENERIC_FAILURE: FailureEffect = {
+const GENERIC_FAILURE = {
   type: 'toast',
   tone: 'error',
   title: 'failed',
   description: 'failedDescription',
   retry: true,
-};
+} as const;
 
 /** What the form does with a failed create; a reused idempotency key gets one silent retry under a fresh key, then the generic error. */
 export function planFailure(
@@ -163,4 +163,35 @@ export function planFailure(
     case 'failed':
       return GENERIC_FAILURE;
   }
+}
+
+export type EditFailureEffect =
+  | Exclude<FailureEffect, { readonly type: 'alert' }>
+  | { readonly type: 'stale' }
+  | { readonly type: 'notDraft' }
+  | { readonly type: 'gone' };
+
+/** What the edit form does with a failed PATCH or publish: the draft-specific answers first, then the create rules (their create-only alerts cannot come from a draft, so they read as a generic failure). */
+export function planEditFailure(
+  error: unknown,
+  retried: true,
+  context?: FailureContext,
+): Exclude<EditFailureEffect, { readonly type: 'retry' }>;
+export function planEditFailure(
+  error: unknown,
+  retried: boolean,
+  context?: FailureContext,
+): EditFailureEffect;
+export function planEditFailure(
+  error: unknown,
+  retried: boolean,
+  context: FailureContext = NO_CONTEXT,
+): EditFailureEffect {
+  if (error instanceof ApiError) {
+    if (error.status === 404) return { type: 'gone' };
+    if (error.code === 'STALE_STATE') return { type: 'stale' };
+    if (error.code === 'VACANCY_NOT_DRAFT') return { type: 'notDraft' };
+  }
+  const effect = planFailure(error, retried, context);
+  return effect.type === 'alert' ? GENERIC_FAILURE : effect;
 }

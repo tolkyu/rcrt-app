@@ -14,6 +14,7 @@ import { FormSkeleton } from '@/components/ui/form-skeleton';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import type { VacancySummary } from '@/lib/schemas/vacancy';
+import { EditFooterDemos } from './edit-footer-demos';
 import { GalleryGroup } from './gallery-section';
 import { ConditionsSkeletonDemos } from './vacancy-conditions-demos';
 
@@ -185,6 +186,7 @@ export function SkeletonDemos() {
         </div>
       </Sample>
       <ConditionsSkeletonDemos />
+      <EditFooterDemos />
     </GalleryGroup>
   );
 }

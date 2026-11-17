@@ -340,6 +340,47 @@ describe('Draft lifecycle over HTTP [STORY-VAC-01-3, D92, D98]', () => {
         title: 'Після публікації',
       });
       expect(edited.status).toBe(409);
+      expect(await problemOf(edited)).toMatchObject({
+        code: 'VACANCY_NOT_DRAFT',
+      });
+    });
+  });
+
+  it('answers 403 FORBIDDEN to a Recruiter who sets a Team Lead or the probation length, then clears optional fields with null at the unchanged version', async () => {
+    await fixture.run(async (args) => {
+      const { positionId } = await setup(args);
+      const mine = routes(args, args.identity);
+      const draft = await mine.createDraft({
+        verticalId: args.user.verticalId,
+        title: 'Чернетка з умовами',
+        positionId,
+        location: 'Київ',
+        seniority: 'Мідл',
+      });
+      for (const rest of [
+        { teamLeadId: randomUUID() },
+        { probationDays: 60 },
+      ]) {
+        const refused = await mine.patch(draft.id, {
+          expectedVersion: draft.version,
+          ...rest,
+        });
+        expect(refused.status).toBe(403);
+        expect(await problemOf(refused)).toMatchObject({ code: 'FORBIDDEN' });
+      }
+      const cleared = await mine.patch(draft.id, {
+        expectedVersion: draft.version,
+        location: null,
+        seniority: null,
+        positionId: null,
+      });
+      expect(cleared.status).toBe(200);
+      expect((await cleared.json()) as VacancyDetail).toMatchObject({
+        location: null,
+        seniority: null,
+        position: null,
+        version: draft.version + 1,
+      });
     });
   });
 

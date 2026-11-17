@@ -1,4 +1,9 @@
-import { expect, type Page, type Request } from '@playwright/test';
+import {
+  expect,
+  type APIRequestContext,
+  type Page,
+  type Request,
+} from '@playwright/test';
 import { createTranslator } from 'next-intl';
 import type { VacancyDetail } from '../../../lib/schemas/vacancy';
 import { MUTATION_HEADERS } from '../../support/e2e-session';
@@ -60,8 +65,8 @@ export const creates = (page: Page) => {
 };
 
 /** Runs after a failure too; a leftover of an earlier broken run (older than ten minutes) goes as well: «Усі» of this user must stay as seeded for vacancies.spec.ts. */
-export async function sweepOwnDrafts(page: Page) {
-  const list = await page.request.get('/api/v1/vacancies?status=DRAFT');
+export async function sweepDrafts(request: APIRequestContext) {
+  const list = await request.get('/api/v1/vacancies?status=DRAFT');
   const { items } = (await list.json()) as {
     items: { id: string; title: string; createdAt: string }[];
   };
@@ -72,13 +77,15 @@ export async function sweepOwnDrafts(page: Page) {
       (draft.title.startsWith(E2E_DRAFT_PREFIX) &&
         Date.parse(draft.createdAt) < stale),
   )) {
-    const removed = await page.request.delete(`/api/v1/vacancies/${item.id}`, {
+    const removed = await request.delete(`/api/v1/vacancies/${item.id}`, {
       headers: MUTATION_HEADERS,
       data: {},
     });
     expect([200, 404], await removed.text()).toContain(removed.status());
   }
 }
+
+export const sweepOwnDrafts = (page: Page) => sweepDrafts(page.request);
 
 export type StubbedCreate = {
   verticalId: string;

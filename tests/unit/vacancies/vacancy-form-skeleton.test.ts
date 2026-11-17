@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  EDIT_BUTTON_WIDTHS,
   PROBATION_HINT,
   PROBATION_READ_ONLY_HINT,
   TEAM_LEAD_HINT,
@@ -44,8 +45,14 @@ describe('create form skeleton and the Team Lead field share one rule [S3.2a]', 
   });
 
   it('draws the Team Lead row only when the field is shown, with the reserved hint lines', () => {
-    const without = vacancyFormSkeleton(false, false);
-    const rows = vacancyFormSkeleton(true, false);
+    const without = vacancyFormSkeleton({
+      withTeamLead: false,
+      withProbation: false,
+    });
+    const rows = vacancyFormSkeleton({
+      withTeamLead: true,
+      withProbation: false,
+    });
     expect(rows).toHaveLength(without.length + 1);
     expect(rows).toContainEqual({ kind: 'input', hint: TEAM_LEAD_HINT });
     expect(without).not.toContainEqual({
@@ -71,7 +78,9 @@ describe('create form skeleton and the Team Lead field share one rule [S3.2a]', 
     'sizes the after-create note using the author role (assigner: %s)',
     (assigner, message) => {
       for (const withProbation of [true, false]) {
-        expect(vacancyFormSkeleton(assigner, withProbation).at(-1)).toEqual({
+        expect(
+          vacancyFormSkeleton({ withTeamLead: assigner, withProbation }).at(-1),
+        ).toEqual({
           note: { message },
           railHidden: true,
         });
@@ -86,5 +95,36 @@ describe('create form skeleton and the Team Lead field share one rule [S3.2a]', 
     expect(messages.devUi.pageFrame.teamLeadFieldLabel).toBe(
       messages.vacancyForm.teamLead.label,
     );
+  });
+});
+
+describe('edit form skeleton: the create rows with the locked vertical [S3.3]', () => {
+  it('has as many rows as the create twin and measures the two hints it changes with the real copy', () => {
+    const create = vacancyFormSkeleton({
+      withTeamLead: true,
+      withProbation: true,
+    });
+    const edit = vacancyFormSkeleton({
+      withTeamLead: true,
+      withProbation: true,
+      lockedVertical: true,
+    });
+    expect(edit).toHaveLength(create.length);
+    expect(edit.slice(2)).toEqual(create.slice(2));
+    expect(edit[1]).toEqual([
+      { kind: 'input', hint: { message: 'vacancyForm.edit.verticalLocked' } },
+      { kind: 'input', hint: { message: 'vacancyForm.position.hint' } },
+    ]);
+  });
+
+  it('draws three footer buttons, one per real button', () => {
+    expect(EDIT_BUTTON_WIDTHS).toHaveLength(3);
+  });
+
+  it('the copy the rows quote exists', () => {
+    expect(messages.vacancyForm.edit.verticalLocked).toBe(
+      'Вертикаль чернетки змінити не можна.',
+    );
+    expect(messages.vacancyForm.position.hint).not.toBe('');
   });
 });

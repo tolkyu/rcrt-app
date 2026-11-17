@@ -8,6 +8,7 @@ import {
   canSetCreateProbation,
   grantCovers,
   vacancyAuthorKind,
+  vacancyFormGrants,
   vacancyAuthorVerticals,
 } from '@/server/authz/vacancy-author';
 import {
@@ -45,6 +46,30 @@ describe('full-form vacancy authors [VAC-03, D77, D87, D89]', () => {
       'FINANCE',
     ] as const)
       expect(canSetCreateProbation(roleContext(role)), role).toBe(false);
+  });
+
+  it.each<[BuiltinRole, boolean, boolean]>([
+    ['ADMIN', true, true],
+    ['HEAD_RECRUITER', true, false],
+    ['RECRUITER', false, false],
+    ['HEAD_HR', false, false],
+  ])(
+    'the create and edit forms offer %s: Team Lead %s, probation %s [S3.3]',
+    (role, canSetTeamLead, canSetProbation) => {
+      expect(vacancyFormGrants(roleContext(role), GAMBLING)).toEqual({
+        canSetTeamLead,
+        canSetProbation,
+      });
+    },
+  );
+
+  it('names a Team Lead only in the vertical the grant covers', () => {
+    const ctx = contextFor([
+      { role: 'HEAD_RECRUITER', verticalId: GAMBLING },
+      { role: 'RECRUITER', verticalId: CRYPTO },
+    ]);
+    expect(vacancyFormGrants(ctx, GAMBLING).canSetTeamLead).toBe(true);
+    expect(vacancyFormGrants(ctx, CRYPTO).canSetTeamLead).toBe(false);
   });
 
   it.each(['RECRUITER', 'HEAD_RECRUITER'] as const)(
