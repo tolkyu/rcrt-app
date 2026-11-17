@@ -140,6 +140,15 @@ A closed urgent vacancy shows only the header note (§3) and the neutral badge; 
 | 404                                      | card: S-18; preview: selection clears, list refetches, toast «Вакансію не знайдено або доступ обмежено»                           |
 | History event `vacancy.urgency_changed` (actor in its own column) | Терміновість змінено: Звичайна → Термінова                                                                                        |
 
+Copy added in the build (keys under `vacancies.urgency.*`):
+
+| Place                                                              | Ukrainian                                                                                                      |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| 409 `VACANCY_URGENCY_LOCKED` (error toast, id `urgency:{id}`)      | **Зміну не збережено** · Вакансію закрито — терміновість не змінюється.                                        |
+| 429 (warning toast)                                                | Забагато змін за короткий час. Зачекайте хвилину й повторіть.                                                  |
+| Conflict, current value unreadable (warning, id `stale:vacancy:{id}`) | **Дані вже змінилися** · Терміновість уже змінено. Перевірте поточне значення й змініть ще раз, якщо потрібно. |
+| Control chunk failed to load (status line in place of the control) | Керування терміновістю не завантажилось. Оновіть сторінку.                                                     |
+
 Why no «змінила/змінив»: the actor's gender is unknown and the actor sits in the column next to the text.
 
 ### 4. Wireframes
@@ -218,7 +227,7 @@ The `ON_HOLD` header is tinted, shows the amber «Призупинена» chip 
 | Failure          | the control and the highlight roll back (instant), error toast with «Повторити» (re-sends the same change); focus stays on the radio group                                                                                  |
 | Conflict 409     | no overwrite, no retry; refetch (detail, list rows); the control shows the server value; warning toast §3 names the current value                                                                                          |
 | Same value       | clicking the already selected option sends nothing                                                                                                                                                                         |
-| Status flips to closed while the user is on the card | refetch removes the section (closed note appears in the header); focus (if it was in the group) moves to the section heading (`tabIndex=-1`), not to `<body>` |
+| Status flips to closed while the user is on the card | refetch removes the section (closed note appears in the header); focus (if it was in the group) moves to the heading of the next section «Команда» (`tabIndex=-1`; the urgency section leaves with its own heading), not to `<body>` |
 | Draft           | no control here: an own `DRAFT` changes urgency only in the draft edit form (`/edit`, `PATCH`); the route answers 409 `VACANCY_URGENCY_LOCKED` (D127)                                                                      |
 
 ### 7. History (vacancy Історія, filter «Поля»)

@@ -32,6 +32,7 @@ export function UrgencyControl({
   | 'aria-describedby'
   | 'aria-invalid'
   | 'aria-required'
+  | 'aria-busy'
 > & {
   id: string;
   options: readonly UrgencyOption[];
