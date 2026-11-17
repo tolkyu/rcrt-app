@@ -1,0 +1,196 @@
+# ADR-017 — Vacancy assignment, Team Lead assignment and status actions (STORY-VAC-03-1, VAC-03-2, VAC-02-1, UI-09-1)
+
+- **Status:** Proposed (V3 of Phase 2); rules fixed by owner decision D130 (Q-190..Q-194 closed with the recommended answers)
+- **Date:** 2026-11-17
+- **PRD:** VAC-02, VAC-03, D1, D75, D77, D79, D85, D87, D89, D92, D93, D122, D123, D130, UI-09, D58, AUD, HIST-01..03; builds on ADR-002, ADR-003, ADR-007, ADR-012, ADR-016
+
+## Context
+
+Already in the code (verified):
+
+- Table `vacancy_recruiter` (PK `(vacancy_id, user_id)`, `assigned_by`, `assigned_at`, index `(user_id, vacancy_id)`); `app_rw` has SELECT and INSERT only (migrations 0011, 0014). **No DELETE grant.**
+- `app_rw` already has column `UPDATE` on `status`, `team_lead_id`, `headcount`, `closed_at`, `cancelled_at`, `version`, `updated_at` (0015). DB guards: `vacancy_closed_chk` (`closed_at` set exactly for `FILLED`/`CANCELLED`), `vacancy_cancelled_chk`, trigger `vacancy_lifecycle_guard` (`opened_at` immutable, no return to `DRAFT`, `CANCELLED` is final). `FILLED → OPEN` and `OPEN ↔ ON_HOLD` are storable as is.
+- Permission codes and grants (`server/authz/roles.ts`): Admin / Head Recruiter (VERTICAL) hold `vacancy.assign_recruiters`, `vacancy.team_lead.set`, `vacancy.hold/resume/cancel/reopen`; Recruiter holds `vacancy.self_assign` with scope `UNASSIGNED_OPEN`; Team Lead holds `vacancy.hold/resume/cancel` with scope `OWN` (no `reopen`).
+- Read scope (`server/authz/vacancy-scope.ts`): `UNASSIGNED_OPEN` = `status = 'OPEN'` and zero recruiter rows (scalar count, PK probe); `ASSIGNED` = exists recruiter row (any status); `OWN` = `team_lead_id = me`. A DRAFT is author-only.
+- Pattern to follow (ADR-016, `server/services/vacancy-urgency.ts`): admit → write limit → parse → one transaction: scoped `readVacancy` (404) → grant check (403) → `lockAuthors` (users `FOR SHARE`, id order, fresh roles) → `lockVacancy` (`FOR NO KEY UPDATE`) → status/version checks → `updateVacancy` compare-and-set → `appendEvent` + `writeAudit` → re-read; `can*` flag on `VacancyDetail`.
+- Events today: `vacancy.recruiter_assigned {userId}` (strict, written at creation), `vacancy.status_changed {from,to}` (+ `pii: {reason}` for the draft cancel), `vacancy.updated`, `vacancy.urgency_changed`. No `vacancy.recruiter_unassigned`, no `vacancy.team_lead_assigned`.
+- There is **no** status state machine for vacancies; transitions of drafts are hard-coded in `vacancy-draft.ts`. `server/domain/` holds only `clock.ts`; `lib/vacancy-urgency.ts` is the precedent for a pure rule shared by server and client.
+- `findCancelReason` is keyed on the cancelling user (D123, drafts only). A published vacancy's reason must be readable by everyone who reads the vacancy (story VAC-02-1), so it needs its own reader.
+- `POST /vacancies/{id}/cancel` is the draft cancel (author-only); it stays unchanged.
+
+## Options and decisions
+
+| Topic | Options | Decision |
+| --- | --- | --- |
+| Vacancy status machine | A. if/else in the service; B. pure transition table in `server/domain/vacancy-status/` (no `server/*` imports so the client may import it), actor rules in `server/authz/vacancy-status.ts` | **B** (CLAUDE.md §3.3: buttons and API derive from one table). Table = `from × action → to + required data`; authz = permission per action + scope; the service combines them. The deferred `OPEN → FILLED` is **not** in the table (no manual button, no API shortcut); Phase 4 adds a system-only action. If the lint boundary forbids the client import, re-export through `lib/vacancy-status.ts` |
+| Status endpoint | A. one endpoint per action; B. one `PUT /vacancies/{id}/status` with a body discriminated by `action` | **B.** One table, one handler, one OpenAPI schema (`oneOf` on `action`), strict per variant (an extra key, e.g. `reason` on `HOLD`, is 400) |
+| Claim guard | A. `expectedVersion` on self-claim; B. re-check «no recruiters» under the vacancy lock, no version | **B.** A claim must not fail because someone changed urgency meanwhile; only another recruiter may defeat it (first claim wins). Manager writes (assign, remove, status, Team Lead) keep `expectedVersion` |
+| Remove-recruiter verb | A. `DELETE` with a JSON body; B. `DELETE` with query `expectedVersion` | **B** (proxies drop DELETE bodies; list routes already use `query` schemas) |
+| Team Lead re-set to the same user | A. 409; B. no-op | **B** (shared V3 no-op rule). A different user when one is set → 409 `TEAM_LEAD_ALREADY_SET` |
+| Migration | none / `GRANT DELETE` | **One tiny migration `0016`**: `GRANT DELETE ON app.vacancy_recruiter TO app_rw` (ADR-012 already specified the removal as an audited hard delete). No new table, column, index or constraint; no ERD change except the note on the table |
+| Realtime | bridge now / invalidation | Invalidation + `refetchOnWindowFocus` (as ADR-016); the Realtime bridge stays its own story |
+
+## Decision
+
+### Pure status table (`server/domain/vacancy-status/transitions.ts`)
+
+| Action | From → To | Required data | Notes |
+| --- | --- | --- | --- |
+| `HOLD` | `OPEN → ON_HOLD` | `expectedVersion` | |
+| `RESUME` | `ON_HOLD → OPEN` | `expectedVersion` | `opened_at` untouched (D85; the DB trigger also forbids a change) |
+| `CANCEL` | `OPEN`, `ON_HOLD → CANCELLED` | `reason` (`multilineReason(VACANCY_REASON_MAX)`, same as draft cancel), `expectedVersion` | sets `closed_at = cancelled_at = now` |
+| `REOPEN` | `FILLED → OPEN` | `expectedVersion`, optional `headcount` ≥ 1 (D130(4)) | `closed_at = null`; `cancelled_at` stays null |
+
+```ts
+export type VacancyStatusAction = 'HOLD' | 'RESUME' | 'CANCEL' | 'REOPEN';
+export interface VacancyTransition { readonly from: readonly VacancyStatus[]; readonly to: VacancyStatus; readonly permission: PermissionCode }
+export const VACANCY_TRANSITIONS: Readonly<Record<VacancyStatusAction, VacancyTransition>>;
+/** Target status when the action is legal from `status`, else null. */
+export function transitionTarget(status: VacancyStatus, action: VacancyStatusAction): VacancyStatus | null;
+/** Actions legal from `status`, in menu order; the authz layer then filters by actor. */
+export function actionsFrom(status: VacancyStatus): readonly VacancyStatusAction[];
+/** Idempotent repeat: HOLD on ON_HOLD, RESUME on OPEN, REOPEN on OPEN. */
+export function isRepeat(status: VacancyStatus, action: VacancyStatusAction): boolean;
+```
+
+`DRAFT` and `CANCELLED` appear in no `from` list (terminal / author-only). `CANCEL` on `CANCELLED` is **not** a repeat: the story lists it as `VACANCY_STATUS_INVALID`; the UI single-flights the button.
+
+### Authz (`server/authz/vacancy-assignment.ts`, `vacancy-status.ts`; no catalog change)
+
+| Action | Permission | Who (grant scope) | Extra rule |
+| --- | --- | --- | --- |
+| Claim | `vacancy.self_assign` | Recruiter (`UNASSIGNED_OPEN`) | vertical covered by the grant; status `OPEN`; zero recruiters (judged under lock); caller holds RECRUITER in the vertical on fresh role rows |
+| Assign / remove recruiters | `vacancy.assign_recruiters` | Admin (aal2), Head Recruiter of the vertical | status `OPEN` or `ON_HOLD`; other status → 409 `VACANCY_CLOSED` |
+| Set Team Lead | `vacancy.team_lead.set` | same | `OPEN`/`ON_HOLD`; `team_lead_id` null |
+| `HOLD`, `RESUME`, `CANCEL` | `vacancy.hold`, `.resume`, `.cancel` | Admin, Head Recruiter (vertical), Team Lead with `team_lead_id = me` (`OWN`) | table legality |
+| `REOPEN` | `vacancy.reopen` | Admin, Head Recruiter (vertical) | Team Lead has no grant → 403 |
+
+- `hasGrantCovering(ctx, code, verticalId)` (broad: GLOBAL/VERTICAL) and `hasOwnGrant(ctx, code, verticalId, teamLeadId)` are two small helpers in the new authz files, in the style of `hasBroadUpdate`. All `can*` helpers are pure on `AuthContext` plus fields already in the detail row.
+- Response codes: not readable (other vertical, other TL's vacancy, foreign draft, soft-deleted, out of scope) **404**; readable but no grant **403**; a Recruiter claiming outside his scope **404**, never 409.
+- Eligibility of assignees (D130(1)): `isEligibleRecruiterRow(user, role)` = active, `activated_at` set, `role = 'RECRUITER'` (+ same vertical) in `server/repositories/recruiter-eligibility.ts`, next to `team-lead-eligibility.ts`, with an SQL fragment for the picker. The Team Lead rule is D122 (`isEligibleTeamLeadRow`), reused. `lockAuthors` is extended to return `isEligibleRecruiter(userId, verticalId)` beside `isEligibleTeamLead`.
+
+### Endpoints (all under `/api/v1`, `defineRoute`, Zod, 30 writes/min per user via `consumeVacancyWriteLimit`)
+
+| Method and path | Body / query | Success | Errors |
+| --- | --- | --- | --- |
+| `POST /vacancies/{id}/recruiters/claim` (`claimVacancy`) | `{}` strict | 200 `VacancyDetail`; caller already a recruiter of it → 200 no-op | 403 (no `self_assign`), 404, 409 `VACANCY_ALREADY_ASSIGNED` (another recruiter exists), 429 |
+| `POST /vacancies/{id}/recruiters` (`assignVacancyRecruiters`) | `{recruiterIds: uuid[1..20] distinct, expectedVersion}` strict | 200 `VacancyDetail`; all already assigned → no-op | 400, 403, 404, 409 `STALE_STATE` / `VACANCY_CLOSED`, 422 `invalid_recruiter` (`body.recruiterIds`), 429 |
+| `DELETE /vacancies/{id}/recruiters/{userId}?expectedVersion=n` (`unassignVacancyRecruiter`) | query only | 200 `VacancyDetail`; user not assigned → no-op | 400, 403, 404, 409 `STALE_STATE` / `VACANCY_CLOSED`, 429 |
+| `GET /vacancies/{id}/assignable-recruiters` (`listAssignableRecruiters`) | — | 200 `{items: {id, fullName, assigned: boolean, active: boolean}[]}`: eligible recruiters of the vertical plus already-assigned inactive ones (D79) | 403, 404 |
+| `PUT /vacancies/{id}/team-lead` (`setVacancyTeamLead`) | `{teamLeadId, expectedVersion}` strict | 200 `VacancyDetail`; same user already set → no-op | 400, 403, 404, 409 `STALE_STATE` / `VACANCY_CLOSED` / `TEAM_LEAD_ALREADY_SET`, 422 `invalid_team_lead` (`body.teamLeadId`), 429 |
+| `PUT /vacancies/{id}/status` (`changeVacancyStatus`) | `{action:'HOLD'\|'RESUME', expectedVersion}` · `{action:'CANCEL', reason, expectedVersion}` · `{action:'REOPEN', headcount?, expectedVersion}` | 200 `VacancyDetail` (CANCEL: with `cancelReason`); repeat per `isRepeat` → 200 no-op | 400, 403, 404, 409 `STALE_STATE` / `VACANCY_STATUS_INVALID`, 429 |
+
+- New error codes (ConflictError, mapped in `messages/uk.json`): `VACANCY_ALREADY_ASSIGNED`, `VACANCY_CLOSED`, `TEAM_LEAD_ALREADY_SET`, `VACANCY_STATUS_INVALID`. `STALE_STATE` exists.
+- Picker list is read-only and needs `vacancy.assign_recruiters`; one query on `user_role` + `app_user` by vertical (index of the priorities picker), no vacancy scan.
+- Check order everywhere: `STALE_STATE` is judged after the legality checks (closed / invalid transition / already assigned), as in ADR-016, so a stale caller on a closed vacancy learns the real reason.
+
+### Order and locks (extends ADR-012 lock order: users → vacancy → children)
+
+1. admit (`vacancy.read`), write limit, parse body, bad uuid → 404.
+2. `ctx.db.transaction`: `readVacancy` (scoped; 404) → grant/status pre-check on the loaded detail (403).
+3. `lockAuthors(ctx, tx, others)`: caller **and** all target users (`recruiterIds`, `teamLeadId`) `FOR SHARE` in id order in one statement; roles read in the next statement. Never a user lock after the vacancy lock. Lost grant on fresh roles → 403.
+4. `lockVacancy` (`FOR NO KEY UPDATE`; missing/deleted → 404). Re-judge on the locked row: status, then per operation (below), then version.
+5. Read the current recruiter set (`select user_id from vacancy_recruiter where vacancy_id = $1`) — one statement under the lock; the vacancy lock serialises all writers of the set, the PK stops duplicates.
+6. Write (`updateVacancy` compare-and-set bumps version once per request; `insert`/`delete` on `vacancy_recruiter`), then events and audit, then `readVacancy`.
+
+**Concurrent claims.** Both transactions reach step 4; the second blocks on the row lock, the first commits its row, the second re-reads the set (READ COMMITTED sees it), finds a recruiter that is not itself → 409 `VACANCY_ALREADY_ASSIGNED`, nothing written. If the second reads after the commit, the vacancy has left its `UNASSIGNED_OPEN` scope and step 2 gives 404 (story: out of scope = 404). The winner's retry or double click: the caller is already in the set → 200 no-op, before any status check. A claim bumps the version, so a manager holding the old version gets 409 `STALE_STATE`; a manager with a fresh version adds to the existing set. A claim never succeeds on a vacancy that already has a recruiter.
+
+Per operation under the lock:
+
+| Operation | Checks (after the lock) | Write |
+| --- | --- | --- |
+| Claim | caller already assigned → return current (no-op); status ≠ `OPEN` → 409 `VACANCY_CLOSED`; set not empty → 409 `VACANCY_ALREADY_ASSIGNED`; fresh caller grant and RECRUITER role | insert `(vacancy, me, assigned_by = me, assigned_at = now)`; version +1 |
+| Assign | status in `OPEN`/`ON_HOLD` else 409 `VACANCY_CLOSED`; every id eligible in the vacancy's vertical (fresh rows) else 422 `invalid_recruiter`; version; skip ids already present; none new → no-op | insert new rows with `assigned_by = me`; version +1 once |
+| Remove | status as above; version; user not in set → no-op | delete row; version +1 |
+| Team Lead | status as above; `team_lead_id` null (else same id → no-op, other → 409 `TEAM_LEAD_ALREADY_SET`); `isEligibleTeamLead` on fresh rows else 422; version | `team_lead_id = x` via `updateVacancy`; version +1; `recruiter_initiated` untouched |
+| Status | `isRepeat` → return current; `transitionTarget` null → 409 `VACANCY_STATUS_INVALID`; version; actor grant per table | `updateVacancy({status: from, version}, {status: to, closedAt, cancelledAt, headcount?})`; no row → 409 `STALE_STATE` |
+
+A removed assignee's access ends in the same commit (scope is a live subquery); a stale link gets 404. Removing the last recruiter of an `OPEN` vacancy returns it to the unassigned pool with no extra write. The D24/D43 deactivation guard (`userHasOpenVacancyWork`) is unchanged and stays consistent: it takes the same user locks before any vacancy lock.
+
+### Events and audit (same transaction, one version bump per request)
+
+| Operation | Event(s) (`entity_event`, `vacancyId`, `verticalId` of the vacancy) | Audit row(s) (`before` → `after`) |
+| --- | --- | --- |
+| Claim / assign | one `vacancy.recruiter_assigned {userId, by, method}` per added user; `method` = `SELF` (claim) or `MANAGER` | one per added user, action `vacancy.recruiter_assigned`: `{recruiterIds: before}` → `{recruiterIds: after}` |
+| Remove | `vacancy.recruiter_unassigned {userId, by}` | `vacancy.recruiter_unassigned`, ids only |
+| Team Lead | `vacancy.team_lead_assigned {teamLeadId, by}` | `vacancy.team_lead_assigned`: `{teamLeadId: null}` → `{teamLeadId}` |
+| Status | `vacancy.status_changed {from, to}`; `CANCEL` adds `pii: {reason}` (purgeable side row); `REOPEN` with a changed headcount adds `vacancy.updated {fields:['headcount']}` | `vacancy.status_changed`: `{status}` → `{status}` (+ `headcount`); the reason is **never** in the audit row |
+
+- `server/events/index.ts`: `vacancy.recruiter_assigned` payload becomes `{userId, by?, method?: 'SELF'|'MANAGER'}` (additive, `by` and `method` optional only because the creation event and old rows carry `{userId}`; every new write sets both); add the two new strict schemas. Audit and event rows hold ids only (SEC-CORE-07); names are joined at read time. The audit viewer shows new actions as «Інша дія» until labels are added to its catalogue (slice 1).
+- Phase 5 addressees (no delivery now, D93): assigned recruiter (when assigned by another), vacancy's Team Lead, Head Recruiter on a self-claim; Team Lead assigned; status change → Team Lead, recruiters, Head Recruiter, actor excluded. Recorded in the event docs only.
+- Published cancel reason: new `findCancelReasonOfVacancy(db, vacancyId, visible)` (joined `entity_event_pii`, `type = 'vacancy.status_changed'`, `payload.to = 'CANCELLED'`, `visible = vacancyEventReadWhere(ctx.auth)`, latest). `getVacancyDetail` adds `cancelReason` for `CANCELLED` with `openedAt` not null; the draft rule (D123, caller-keyed) is unchanged. The DTO comment on `cancelReason` is updated.
+
+### Detail DTO flags (computed in `readVacancy` from `ctx.auth` and the loaded row; advisory, the service re-checks)
+
+| Field | Rule |
+| --- | --- |
+| `canSelfAssign: boolean` | covering `vacancy.self_assign` grant, status `OPEN`, `recruiters.length === 0` |
+| `canAssignRecruiters: boolean` | covering `vacancy.assign_recruiters`, status `OPEN`/`ON_HOLD` (also gates remove) |
+| `canSetTeamLead: boolean` | covering `vacancy.team_lead.set`, status `OPEN`/`ON_HOLD`, `teamLead === null` |
+| `statusActions: VacancyStatusAction[]` | `actionsFrom(status)` filtered by the actor rule table; `[]` for `DRAFT` and `CANCELLED`; Team Lead gets `HOLD/RESUME/CANCEL` only on own vacancy |
+
+All four are false/empty for a `DRAFT`. No extra query: `recruiters` and `teamLead` are in the detail select already.
+
+### List-scope impact (D130 (2), (5))
+
+- **No change to `vacancy-scope.ts`.** `UNASSIGNED_OPEN` already requires `status = 'OPEN'` and zero rows, so (5) (an unassigned `ON_HOLD` vacancy leaves recruiters' lists until `RESUME`) and (2) (removing the last recruiter of an `OPEN` vacancy returns it to the pool) hold by construction; `ASSIGNED` is status-independent, so assigned recruiters keep seeing `ON_HOLD`/`FILLED`/`CANCELLED`. Cancel/reopen/hold writes move rows between status chips: the list refetch handles it.
+- `OWN` picks up a vacancy the moment `team_lead_id` is set (Team Lead's list, D67). The tests below pin each of these as read-scope cases; no new index (claim probes the PK of `vacancy_recruiter`, Team Lead/status writes touch one row by PK).
+- Hot paths: claim = 1 scoped read + 2 user/role statements + PK lock + 1 count/select + 1 insert + 1 update + event + audit + re-read (same shape as ADR-016, well inside the write budget).
+
+### Client data (ADR-007)
+
+| Key | Use |
+| --- | --- |
+| `queryKeys.vacancy(id)` | every successful write `setQueryData` from the returned `VacancyDetail`; every 409/403/404 invalidates it and toasts |
+| `queryKeys.vacanciesAll()` | invalidated after every write (rows move between chips, assignment changes «Команда», counts) |
+| `queryKeys.vacancyAssignableRecruiters(id)` = `['vacancy', id, 'assignable-recruiters']` (new, `lib/query-keys.ts`) | fetched when the assign dialog opens; invalidated after assign/remove (the `['vacancy', id]` prefix covers it) |
+
+- Optimistic: `HOLD`/`RESUME` only (cheap, reversible, like urgency; rollback on 409/403/5xx). Claim, assign, remove, Team Lead, `CANCEL`, `REOPEN` are pessimistic (pending state, then `setQueryData`), because the outcome depends on a race or a confirmation dialog. Lost claim: toast «Цю вакансію вже взяв у роботу інший рекрутер» (proposed copy), refetch, the row leaves the list. Stale: «Оновити».
+- Dialogs: assign (multi-select picker), Team Lead picker (reuses `listAssignableTeamLeads` for the vertical), cancel (reason textarea, required), reopen (optional headcount). Pause/resume/claim have no dialog. Labels from `docs/ux/glossary.md`; menu `[⋯]` per `docs/ux/wireframes/vacancy-card.md`; controls render only from the DTO flags.
+
+### STORY-UI-09-1 (share)
+
+No server change, no route, no audit/event. Work is evidence: unit tests of the share control (success path, clipboard failure alert, hidden on a private `DRAFT`, double press = one toast), E2E link cases (colleague with access opens it; Крипто Head Recruiter, Finance, HR, other-vacancy Team Lead get the same 404 page; signed-out recipient returns to the card after sign-in via `next`, Admin after step-up; later claim/loss of scope changes the outcome per open), an integration/E2E assertion that `audit_log` and `entity_event` row counts are unchanged after a press, and the captures. If the sign-in `next` return does not reach the card, that is a defect for the slice. The candidate card is out of scope.
+
+## Files
+
+| Area | Files |
+| --- | --- |
+| New | `server/domain/vacancy-status/transitions.ts` · `server/authz/vacancy-assignment.ts` · `server/authz/vacancy-status.ts` · `server/repositories/recruiter-eligibility.ts` · `server/repositories/vacancy-recruiter.ts` (select set, insert many, delete, assignable list) · `server/services/vacancy-assignment.ts` · `server/services/vacancy-team-lead-set.ts` · `server/services/vacancy-status.ts` · `lib/schemas/vacancy-assignment.ts` · `lib/schemas/vacancy-status.ts` · routes `recruiters/claim`, `recruiters`, `recruiters/[userId]`, `assignable-recruiters`, `team-lead`, `status` under `app/api/v1/vacancies/[vacancyId]/` · migration `0016_vacancy_recruiter_delete.sql` |
+| Changed | `server/events/index.ts` · `lib/schemas/vacancy.ts` (4 flags) · `server/services/vacancy.ts` (`readVacancy` flags, `lockAuthors` recruiter eligibility, cancel-reason read) · `server/repositories/vacancy-cancel-reason.ts` · `lib/query-keys.ts` · `messages/uk.json` · `docs/authz-matrix.md` (pointer) · `docs/erd.md` (note on delete) · audit action labels |
+| Generated | `pnpm api:openapi`, `pnpm api:postman` (regenerate once at the end of server slices, never merge by hand) |
+
+## Test matrix
+
+| Layer | Cases |
+| --- | --- |
+| Unit | transition table: 5 statuses × 4 actions (legal set exactly the table, `DRAFT`/`CANCELLED` offer nothing, `isRepeat`); `can*` flags for every built-in role, mixed roles (Team Lead A + Head Recruiter B, Recruiter + Team Lead D35), Team Lead only on `OWN`; event schemas (accept new payloads and the old `{userId}`, reject unknown keys); request schemas (strict, 1..20 distinct ids, `reason` required on `CANCEL`, no `reason` on `HOLD`, `headcount` only on `REOPEN`) |
+| Integration | **Claim:** Recruiter wins unassigned `OPEN` (row, `assigned_by`, version +1, event `SELF`, one audit); **two parallel claims** (barrier before the lock) → exactly one row, loser 409 `VACANCY_ALREADY_ASSIGNED`, loser wrote no event/audit; winner retry 200 no-op; claim after commit → 404; `ON_HOLD`/closed unassigned → 404 for a Recruiter; assigned Recruiter claiming a vacancy of another → 409. **Assign/remove:** Head Recruiter + Admin (aal2) allowed; stale version 409; claim vs assign race (fresh version adds, stale 409); skip duplicates; ineligible (inactive, not accepted, wrong vertical, no RECRUITER role) 422 and nothing written, also when the user loses the role while the request waits (lock order); `FILLED`/`CANCELLED` 409 `VACANCY_CLOSED`; last removal on `OPEN` restores the unassigned scope for another Recruiter and the removed one gets 404. **Team Lead:** first set (visible in Team Lead's list, `recruiter_initiated` kept); set again 409 / same user no-op; two Heads different TLs → one wins, 409 `STALE_STATE`; deactivated / wrong vertical / no role 422; TL without priority allowed. **Status:** all four legal transitions with columns (`closed_at`, `cancelled_at`, `opened_at` unchanged, version, event, audit without reason, reason in side row); repeat no-op; each illegal pair `VACANCY_STATUS_INVALID`; pause vs cancel same version → one 409 `STALE_STATE`; reopen vs urgency change; Team Lead pauses/cancels own, cannot reopen (403), other TL's vacancy 404; reopen with headcount emits `vacancy.updated`; reason readable by a Recruiter who reads the vacancy, absent for a draft's non-author. **Denials (each: no write, event or audit):** Recruiter assign/remove/status 403, HR/Head HR/Finance 403 or 404 by visibility, Head Recruiter of another vertical 404, foreign DRAFT 404 even for Admin, Admin without aal2 401, extra keys 400, rate limit 429. **List scope:** unassigned `OPEN` visible to both recruiters; after claim hidden from the other; paused unassigned hidden, resumed visible; assigned sees `ON_HOLD`; Team Lead sees the vacancy after assignment. |
+| API/Newman | every route allowed/denied/409 in the generated collection; OpenAPI contract tests including the `oneOf` status body and the four new detail fields |
+| Component | controls rendered only from DTO flags; dialogs (picker states, required reason, optional headcount); pause/resume optimistic + rollback; claim loss toast and row removal; 409 «Оновити» |
+| E2E | Recruiter A and B race on V-0010 (second sees the toast, list loses the row); Head Recruiter assigns, removes, sets Team Lead on V-0012, TL then sees it; pause → chip counts and urgent red kept; cancel with reason then no controls; reopen `FILLED` urgent turns red; share-link cases above |
+| Screenshots (D125) | per new dialog/state: assign dialog, Team Lead dialog, cancel dialog, reopen dialog (desktop light, one dark each); card «Команда» with claim button (Recruiter) and with menu (Head Recruiter); mobile 390×844 only for the card header/menu and the dialogs as sheets; share clipboard-failure alert (desktop light). Toast wording, 320 px and 200 % → E2E assertions |
+| Review | `security-engineer` (authz/IDOR matrix, lock order, claim race, reason purge), `performance-engineer` (statement count, bundle: dialogs lazy-loaded) |
+
+## Consequences
+
+- One small migration (DELETE grant) and four new error codes; no table, no ERD structure change.
+- Vacancy status gets the same table-driven shape as the pipeline; the Phase 4 `FILLED` trigger adds one system-only action without changing the API.
+- «First claim wins» rests on the vacancy row lock, not on a unique index; any future writer of `vacancy_recruiter` must take `lockVacancy` first (rule recorded here and in ADR-012).
+- The audit viewer needs labels for the new actions (otherwise «Інша дія»).
+- Open points kept for later: Team Lead change/clear (Phase 3, Q-192); automatic `FILLED`, cancel with active applications (Phase 4 / ARCH-03); recruiter reassignment dialog on deactivation (ROLE-06 reuses `assignVacancyRecruiters`/`unassignVacancyRecruiter`).
+
+## Build slices
+
+Each slice ≤ 400 lines of diff. Slice 1 first; slices 2, 3, 4 touch disjoint new files and run in parallel; 5 → 6 are sequential (both change `vacancy-overview.tsx` and `messages/uk.json`); 7 is independent; 8 last.
+
+| Slice | Scope | Files | After / parallel |
+| --- | --- | --- | --- |
+| 1 | Foundation: migration 0016, pure status table + unit tests, eligibility, event schemas, authz helpers, four DTO flags in `readVacancy`, `lockAuthors` recruiter eligibility, query key, error codes in `messages/uk.json` | `server/db/migrations/0016_*`, `server/db/schema.ts` (no change expected), `server/domain/vacancy-status/*`, `server/authz/vacancy-{assignment,status}.ts`, `server/repositories/recruiter-eligibility.ts`, `server/events/index.ts`, `lib/schemas/vacancy.ts`, `server/services/vacancy.ts`, `lib/query-keys.ts`, `messages/uk.json` | first |
+| 2 | Assignment API: claim, assign, remove, assignable list + integration incl. the race | `server/services/vacancy-assignment.ts`, `server/repositories/vacancy-recruiter.ts`, `lib/schemas/vacancy-assignment.ts`, 4 routes, `tests/integration/vacancies-assignment*.test.ts` | after 1; parallel with 3, 4, 7 |
+| 3 | Status API: `PUT /status`, published cancel-reason reader, integration | `server/services/vacancy-status.ts`, `lib/schemas/vacancy-status.ts`, `app/api/v1/vacancies/[vacancyId]/status/route.ts`, `server/repositories/vacancy-cancel-reason.ts`, `server/services/vacancy.ts` (reason read: coordinate with slice 1 by keeping that edit in slice 3 only), `tests/integration/vacancies-status.test.ts` | after 1; parallel with 2, 4, 7 |
+| 4 | Team Lead API: `PUT /team-lead` + integration | `server/services/vacancy-team-lead-set.ts`, `app/api/v1/vacancies/[vacancyId]/team-lead/route.ts`, `tests/integration/vacancies-team-lead-set.test.ts` | after 1; parallel with 2, 3, 7 |
+| 5 | UI: «Команда» block (claim, assign dialog, remove, Team Lead dialog), hooks, messages | `components/vacancies/team-panel.tsx`, `assign-recruiters-dialog.tsx`, `team-lead-dialog.tsx`, `use-claim-vacancy.ts`, `use-assign-recruiters.ts`, `use-set-team-lead.ts`, `vacancy-overview.tsx`, `messages/uk.json`, component tests | after 2 and 4; then 6 |
+| 6 | UI: status menu `[⋯]` (pause/resume optimistic, cancel and reopen dialogs), reason display | `components/vacancies/status-menu.tsx`, `cancel-vacancy-dialog.tsx`, `reopen-vacancy-dialog.tsx`, `use-change-status.ts` (+ lazy optimistic helper), `vacancy-overview.tsx`, `messages/uk.json`, component tests | after 3 and 5 |
+| 7 | Share evidence: unit/component tests, DB-unchanged assertion, E2E link cases, fallback-alert capture | `tests/unit/vacancies/share-*.test.ts`, `tests/e2e/vacancy-share.spec.ts` | independent; parallel with 2–6 (adds tests only; E2E of the 404 cases needs no new code) |
+| 8 | E2E for slices 2–6, `pnpm api:openapi && pnpm api:postman`, Newman cases, screenshots + gallery, authz-matrix pointer, erd note, `security-engineer` and `performance-engineer` reviews | `tests/e2e/vacancy-assignment.spec.ts`, `vacancy-status.spec.ts`, `tests/postman/*`, `screenshots/phase-2/*`, docs | last |
