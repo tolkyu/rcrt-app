@@ -2050,5 +2050,110 @@
         "code": "too_big"
       }
     ]
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "HR holds no vacancy update grant",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "Recruiter holds no vacancy update grant",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "Team Lead cannot probe an unknown vacancy",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "an unknown vacancy is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "a malformed id is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "fields other than urgency are refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1,\"status\":\"FILLED\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
   }
 ]

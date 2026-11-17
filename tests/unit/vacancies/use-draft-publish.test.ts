@@ -58,6 +58,7 @@ const draft = (changes: Partial<VacancyDetail> = {}): VacancyDetail => ({
   probationDays: 90,
   recruiterInitiated: true,
   version: 3,
+  canChangeUrgency: false,
   ...changes,
 });
 const json = (status: number, body: unknown) =>

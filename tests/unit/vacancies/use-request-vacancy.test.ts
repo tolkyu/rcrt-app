@@ -47,6 +47,7 @@ const created = (): VacancyDetail => ({
   probationDays: 90,
   recruiterInitiated: false,
   version: 1,
+  canChangeUrgency: false,
 });
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {

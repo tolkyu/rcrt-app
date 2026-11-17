@@ -74,6 +74,7 @@ const detail = {
   probationDays: 90,
   recruiterInitiated: true,
   version: 1,
+  canChangeUrgency: false,
 };
 
 const body = {

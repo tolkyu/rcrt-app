@@ -107,6 +107,8 @@ export const vacancyDetailSchema = vacancySummarySchema
     probationDays: z.number().int().min(30).max(90),
     recruiterInitiated: z.boolean(),
     version: z.number().int().positive(),
+    /** Server decision for this viewer (broad `vacancy.update` in the vertical, status OPEN/ON_HOLD, D94, D127); the service re-checks on write. */
+    canChangeUrgency: z.boolean(),
     /** Only on the cancelled draft's own card, for the user who cancelled it (D123); absent for everyone else. */
     cancelReason: z.string().optional(),
   })
@@ -274,6 +276,16 @@ export const publishDraftSchema = z.object({ expectedVersion }).strict().meta({
     'Publishes exactly the draft the author last saw: when the stored version differs the answer is 409 STALE_STATE and the draft stays a draft.',
 });
 export type PublishDraftInput = z.input<typeof publishDraftSchema>;
+
+export const setVacancyUrgencySchema = z
+  .object({ priority: z.enum(VACANCY_PRIORITIES), expectedVersion })
+  .strict()
+  .meta({
+    id: 'SetVacancyUrgency',
+    description:
+      'Sets the vacancy urgency flag (NORMAL or URGENT; not the Team Lead priority). Needs a vacancy-wide `vacancy.update` grant (Head Recruiter of the vertical, Admin); a Team Lead is refused with 403 even on own vacancies (D94). Only OPEN and ON_HOLD change (409 VACANCY_URGENCY_LOCKED otherwise, D127); a stale `expectedVersion` answers 409 STALE_STATE; a request for the value already stored writes nothing and answers 200.',
+  });
+export type SetVacancyUrgencyInput = z.input<typeof setVacancyUrgencySchema>;
 
 export const vacancyDeletedSchema = z
   .object({ id: z.uuid() })

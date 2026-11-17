@@ -72,6 +72,7 @@ const detail = (overrides: Partial<VacancyDetail> = {}): VacancyDetail => ({
   probationDays: 90,
   recruiterInitiated: false,
   version: 1,
+  canChangeUrgency: false,
   ...overrides,
 });
 

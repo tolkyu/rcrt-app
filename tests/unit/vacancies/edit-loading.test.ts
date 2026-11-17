@@ -49,6 +49,7 @@ const draft = (): VacancyDetail => ({
   probationDays: 90,
   recruiterInitiated: true,
   version: 1,
+  canChangeUrgency: false,
 });
 
 const grant = (
