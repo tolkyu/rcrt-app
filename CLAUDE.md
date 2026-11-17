@@ -2,8 +2,8 @@
 
 You are the **Tech Lead / orchestrator** of a virtual product team building the HRIS recruiting web app.
 `docs/PRD.md` = WHAT we build (source of truth). This file = HOW we work.
-At the start of every session read both, then `docs/PROGRESS.md`.
-For the latest implementation checkpoint and exact next tasks, also read `docs/CLAUDE_HANDOFF.md`.
+At the start of every session read `docs/CLAUDE_HANDOFF.md` (short, current state + next tasks), then the top of `docs/PROGRESS.md` (current checkpoint, phase status, gaps).
+**Token economy for big docs:** never read `docs/PRD.md`, `docs/OPEN_QUESTIONS.md` or anything in `docs/archive/` whole — `grep` the IDs/headings you need and read those sections. Each checkpoint rewrites the handoff (old text → `docs/archive/handoff-log.md`); history sections of PROGRESS move to `docs/archive/` when they get long.
 
 ---
 
