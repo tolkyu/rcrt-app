@@ -149,11 +149,53 @@ describe('API filters and page URL stay in sync', () => {
 });
 
 describe('parseVacancyPageState [VAC-04, UI-09]', () => {
-  it('ignores the priority filter, which the page has no control for', () => {
+  it('reads the urgency filter from `urgency` and ignores the API name `priority` [VAC-04-4]', () => {
     expect(parse('priority=URGENT&status=OPEN').filters).toEqual({
       status: 'OPEN',
       limit: 25,
     });
+    expect(parse('urgency=URGENT&status=OPEN').filters).toEqual({
+      status: 'OPEN',
+      priority: 'URGENT',
+      limit: 25,
+    });
+  });
+
+  it.each([
+    ['urgency=URGENT', 'URGENT'],
+    ['urgency=NORMAL', 'NORMAL'],
+    ['urgency=urgent', undefined],
+    ['urgency=HIGH', undefined],
+    ['urgency=', undefined],
+    ['urgency=URGENT&urgency=NORMAL', undefined],
+    ['status=OPEN', undefined],
+  ])('urgency in %j gives %s', (query, expected) => {
+    expect(parse(query).filters.priority).toBe(expected);
+  });
+
+  it('writes the filter as `urgency` in the page URL and as `priority` in the API request', () => {
+    const filters = { status: 'OPEN', priority: 'URGENT', limit: 50 } as const;
+    expect(vacancyPageUrlSearch({ filters })).toBe(
+      'status=OPEN&urgency=URGENT&limit=50',
+    );
+    expect(vacancyPageSearch(filters).toString()).toBe(
+      'status=OPEN&priority=URGENT&limit=50',
+    );
+    expect(vacancyApiFilters(filters)).toEqual(filters);
+  });
+
+  it('keeps urgency through the URL, paging, selection and a header-vertical redirect', () => {
+    const state = parse(`urgency=NORMAL&status=OPEN&vacancy=${VACANCY}`);
+    expect(parse(vacancyPageUrlSearch(state))).toEqual(state);
+    expect(vacancyPageUrlSearch(withVacancyPage(state, '12', 'older'))).toBe(
+      'status=OPEN&urgency=NORMAL&cursor=12&direction=older',
+    );
+    expect(vacancyPageUrlSearch(withVacancySelection(state, VACANCY))).toBe(
+      `status=OPEN&urgency=NORMAL&vacancy=${VACANCY}`,
+    );
+    expect(
+      vacancyPresetSearch(new URLSearchParams('urgency=NORMAL'), VERTICAL),
+    ).toBe(`vertical=${VERTICAL}&urgency=NORMAL`);
   });
 
   it('accepts only a UUID as the selected preview row and lower-cases it', () => {
@@ -218,6 +260,25 @@ describe('URL transitions', () => {
       `status=OPEN&cursor=9&vacancy=${VACANCY}`,
     );
     expect(withVacancySelection(next, undefined).selected).toBeUndefined();
+  });
+
+  it('changing, keeping and clearing urgency resets the cursor and the selection [VAC-04-4]', () => {
+    const urgent = parse(
+      `urgency=URGENT&status=OPEN&cursor=9&direction=older&vacancy=${VACANCY}`,
+    );
+    expect(
+      vacancyPageUrlSearch(withVacancyFilters(urgent, { priority: 'NORMAL' })),
+    ).toBe('status=OPEN&urgency=NORMAL');
+    expect(
+      vacancyPageUrlSearch(withVacancyFilters(urgent, { status: undefined })),
+    ).toBe('urgency=URGENT');
+    const cleared = withVacancyFilters(urgent, {
+      status: undefined,
+      priority: undefined,
+    });
+    expect(hasVacancyFilters(urgent)).toBe(true);
+    expect(hasVacancyFilters(cleared)).toBe(false);
+    expect(vacancyPageUrlSearch(cleared)).toBe('');
   });
 
   it('keeps a non-default page size across filter changes', () => {

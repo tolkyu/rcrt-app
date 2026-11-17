@@ -153,6 +153,13 @@
       "CANCELLED": "Скасовані"
     },
     "all": "Усі",
+    "filters": {
+      "urgency": "Терміновість",
+      "urgencyOptions": {
+        "URGENT": "Термінова",
+        "NORMAL": "Звичайна"
+      }
+    },
     "unknownVertical": "Недоступна вертикаль",
     "resetFilters": "Скинути фільтри",
     "caption": "Вакансії",

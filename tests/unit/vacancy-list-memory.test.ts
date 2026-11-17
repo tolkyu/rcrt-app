@@ -34,6 +34,13 @@ describe('vacancy list memory [VAC-04, UI-09]', () => {
     expect(savedVacancyListSearch()).toBe('q=Face');
   });
 
+  it('keeps the urgency filter and drops the API spelling and bad values [VAC-04-4]', () => {
+    rememberVacancyList('status=OPEN&urgency=URGENT&priority=NORMAL');
+    expect(savedVacancyListSearch()).toBe('status=OPEN&urgency=URGENT');
+    rememberVacancyList('urgency=HIGH&priority=URGENT');
+    expect(savedVacancyListSearch()).toBe('');
+  });
+
   it('falls back to the plain list when storage is unavailable', () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
       throw new DOMException('blocked', 'SecurityError');

@@ -157,3 +157,37 @@ describe('vacancy filter integration [F6b, VAC-04, D92]', () => {
     expect((screen.getByRole('searchbox') as HTMLInputElement).value).toBe('');
   });
 });
+
+describe('urgency filter on the list [VAC-04-4]', () => {
+  const urgency = () =>
+    screen.getByRole('combobox', { name: messages.vacancies.filters.urgency });
+  const reset = () =>
+    screen.queryByRole('button', { name: messages.vacancies.resetFilters });
+
+  it('reads the filter from the URL and offers the reset', () => {
+    window.history.replaceState(null, '', '/vacancies?urgency=URGENT');
+    render(view());
+    expect(urgency().textContent).toContain('Термінова');
+    expect(reset()).not.toBeNull();
+  });
+
+  it('shows no active filter and no reset for an unusable value', () => {
+    window.history.replaceState(null, '', '/vacancies?urgency=HIGH');
+    render(view());
+    expect(urgency().textContent).toContain('Усі');
+    expect(reset()).toBeNull();
+  });
+
+  it('reset clears urgency together with the other filters and keeps the page size', () => {
+    window.history.replaceState(
+      null,
+      '',
+      '/vacancies?status=OPEN&urgency=NORMAL&limit=50',
+    );
+    const { rerender } = render(view());
+    fireEvent.click(reset()!);
+    rerender(view());
+    expect(window.location.search).toBe('?limit=50');
+    expect(urgency().textContent).toContain('Усі');
+  });
+});
