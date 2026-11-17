@@ -276,6 +276,17 @@ describe('rich text documents [DG-13]', () => {
     expect(richTextDocSchema.safeParse(doc([node])).success).toBe(false);
   });
 
+  it('accepts an emoji whose variation selector sits in the next node', () => {
+    const split = {
+      type: 'paragraph',
+      content: [
+        { type: 'text', text: '❤', marks: [{ type: 'bold' }] },
+        { type: 'text', text: '️' },
+      ],
+    };
+    expect(richTextDocSchema.safeParse(doc([split])).success).toBe(true);
+  });
+
   it('caps the stored size', () => {
     const big = Array.from({ length: 12 }, () => paragraph('я'.repeat(5000)));
     expect(richTextDocSchema.safeParse(doc(big)).success).toBe(false);

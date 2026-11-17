@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { hasOnlyVisibleChars } from '../visible-text';
+import { hasNoForbiddenChars, hasOnlyVisibleChars } from '../visible-text';
 
 export const RICH_TEXT_MAX_JSON = 50_000;
 
@@ -39,7 +39,7 @@ const text = z
       .string()
       .min(1)
       .max(5000)
-      .refine((value) => hasOnlyVisibleChars(value.replace(/\n/g, ' ')), {
+      .refine((value) => hasNoForbiddenChars(value.replace(/\n/g, ' ')), {
         message: 'invalid_chars',
       }),
     marks: z.array(mark).max(3).optional(),

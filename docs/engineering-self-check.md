@@ -65,3 +65,4 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] A Low or deferred security finding goes into the PROGRESS gap list in the same change. A shared-rule gap (e.g. `FORBIDDEN_CHARS`) is fixed once for every field that uses the rule.
 - [ ] A UX fix that adds visible UI updates the wireframe/UX contract in the same change; grep `docs/ux/` for every stale mention of a renamed label. An allowlist guard stays narrow: a new reader goes in its own module.
 - [ ] Before hand-back, apply `.claude/skills/deslop/SKILL.md` and `.claude/skills/no-comments/SKILL.md` to your slice diff and rerun the touched checks.
+- [ ] A validator written for a whole field value is not reused on fragments (rich-text nodes, split strings); context rules such as "refuse only when nothing else is visible" need a fragment-safe predicate.

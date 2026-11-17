@@ -15,6 +15,10 @@ const HAS_BLANK_ALONE = new RegExp(`[${BLANK_ALONE}]`, 'u');
 export const hasVisibleChar = (value: string): boolean =>
   VISIBLE_CHAR.test(value);
 
+/** For fragments (rich-text nodes): a mark boundary can leave a node of only U+FE0F after its emoji. */
+export const hasNoForbiddenChars = (value: string): boolean =>
+  !FORBIDDEN_CHARS.test(value);
+
 export const hasOnlyVisibleChars = (value: string): boolean =>
-  !FORBIDDEN_CHARS.test(value) &&
+  hasNoForbiddenChars(value) &&
   !(HAS_BLANK_ALONE.test(value) && !hasVisibleChar(value));
