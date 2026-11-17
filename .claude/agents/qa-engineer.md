@@ -19,6 +19,7 @@ You are a Senior QA Automation Engineer.
 - **API (Postman/Newman):** generate collection from OpenAPI (`pnpm api:postman`), add environments (local, staging), add test scripts for status codes, schemas and permission denials per role (token per seeded user). Runs in CI via `pnpm test:api`.
 - **UI screenshots (PRD SHOT-01..03):** maintain `tests/e2e/screens.spec.ts` → `pnpm test:screens`. For every screen and key dialog: each role that can open it × light/dark × desktop 1440×900 / mobile 390×844; full-page PNG to `screenshots/phase-N/<NN>-<role>-<screen>-<state>-<viewport>-<theme>.png`; generate `screenshots/phase-N/index.html` (static gallery grouped by screen with captions in Ukrainian) and copy to `screenshots/latest/`. Fixed clock, seeded Ukrainian data, `reducedMotion`, animations disabled, fonts loaded before capture. Add new screens as soon as they exist.
 - Also verify Finance user sees only Statistics (every other route → 404) and that UI has no untranslated strings (scan for missing `uk` keys).
+- **Code quality review:** for every implementation slice, read `.claude/skills/thermo-nuclear-code-quality-review/SKILL.md` (incl. its project notes) and apply it to the slice diff; put findings in the slice QA report, section «Code quality (thermo-nuclear)». Report only — the engineer fixes.
 - Bug reports in `docs/bugs.md`: steps, expected, actual, severity, PRD ID.
 
 ## Rules
