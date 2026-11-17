@@ -49,6 +49,7 @@ const draft = (changes: Partial<VacancyDetail> = {}): VacancyDetail => ({
   probationDays: 90,
   recruiterInitiated: true,
   version: 3,
+  canChangeUrgency: false,
   ...changes,
 });
 const summary = (id: string, number: string): VacancyPage['items'][number] => ({

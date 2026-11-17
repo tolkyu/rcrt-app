@@ -40,6 +40,7 @@ const draft = (changes: Partial<VacancyDetail> = {}): VacancyDetail => ({
   probationDays: 90,
   recruiterInitiated: true,
   version: 1,
+  canChangeUrgency: false,
   ...changes,
 });
 

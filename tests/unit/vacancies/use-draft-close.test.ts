@@ -70,6 +70,7 @@ const detail = (changes: Partial<VacancyDetail> = {}): VacancyDetail => ({
   probationDays: 90,
   recruiterInitiated: true,
   version: 3,
+  canChangeUrgency: false,
   ...changes,
 });
 const draft = (status: ClosableDraft['status'] = 'DRAFT'): ClosableDraft => ({

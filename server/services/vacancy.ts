@@ -29,6 +29,7 @@ import {
   vacancyAuthorKind,
   type VacancyAuthorKind,
 } from '../authz/vacancy-author';
+import { canChangeUrgency } from '../authz/vacancy-urgency';
 import {
   findVisibleVacancyOrThrow,
   vacancyEventReadWhere,
@@ -130,9 +131,14 @@ export async function readVacancy(
       findVacancy(db, scope, id),
     ),
   );
+  const verticalId = detail.vertical.id as VerticalId;
   return {
     ...detail,
-    vertical: { ...detail.vertical, id: detail.vertical.id as VerticalId },
+    vertical: { ...detail.vertical, id: verticalId },
+    canChangeUrgency: canChangeUrgency(ctx.auth, {
+      verticalId,
+      status: detail.status,
+    }),
   };
 }
 

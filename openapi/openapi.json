@@ -1066,6 +1066,7 @@
           "probationDays": { "type": "integer", "minimum": 30, "maximum": 90 },
           "recruiterInitiated": { "type": "boolean" },
           "version": { "type": "integer", "exclusiveMinimum": 0 },
+          "canChangeUrgency": { "type": "boolean" },
           "cancelReason": { "type": "string" }
         },
         "required": [
@@ -1092,7 +1093,8 @@
           "salaryCurrency",
           "probationDays",
           "recruiterInitiated",
-          "version"
+          "version",
+          "canChangeUrgency"
         ]
       },
       "CancelVacancy": {
@@ -1650,6 +1652,20 @@
         "type": "object",
         "properties": { "id": { "type": "string", "format": "uuid" } },
         "required": ["id"]
+      },
+      "SetVacancyUrgency": {
+        "type": "object",
+        "properties": {
+          "priority": { "type": "string", "enum": ["NORMAL", "URGENT"] },
+          "expectedVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "description": "Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved."
+          }
+        },
+        "required": ["priority", "expectedVersion"],
+        "additionalProperties": false,
+        "description": "Sets the vacancy urgency flag (NORMAL or URGENT; not the Team Lead priority). Needs a vacancy-wide `vacancy.update` grant (Head Recruiter of the vertical, Admin); a Team Lead is refused with 403 even on own vacancies (D94). Only OPEN and ON_HOLD change (409 VACANCY_URGENCY_LOCKED otherwise, D127); a stale `expectedVersion` answers 409 STALE_STATE; a request for the value already stored writes nothing and answers 200."
       },
       "VacancyDraftCount": {
         "type": "object",
@@ -5488,6 +5504,109 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/VacancyDeleted" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 1 MiB",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vacancies/{vacancyId}/urgency": {
+      "put": {
+        "operationId": "setVacancyUrgency",
+        "summary": "Set the vacancy urgency flag (`NORMAL` or `URGENT`; not the Team Lead priority) at the `expectedVersion` the caller last saw. Needs a vacancy-wide `vacancy.update` grant (Head Recruiter of the vertical, Admin with aal2): a caller without any `vacancy.update` grant gets 403, a Team Lead gets 403 even on own vacancies (404 outside their scope), and an unreadable vacancy (another vertical, someone else’s draft) is 404. 409 `VACANCY_URGENCY_LOCKED` unless the vacancy is `OPEN` or `ON_HOLD`; 409 `STALE_STATE` on a stale version; the value already stored writes nothing and answers 200",
+        "tags": ["Vacancies"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "format": "uuid" },
+            "required": true,
+            "name": "vacancyId",
+            "in": "path"
+          },
+          {
+            "schema": { "type": "string", "enum": ["1"] },
+            "required": true,
+            "name": "X-CSRF-Protection",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SetVacancyUrgency" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VacancyDetail" }
               }
             }
           },

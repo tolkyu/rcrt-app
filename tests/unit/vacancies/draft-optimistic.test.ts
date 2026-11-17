@@ -54,6 +54,7 @@ const detail = (
   probationDays: 90,
   recruiterInitiated: true,
   version: 3,
+  canChangeUrgency: false,
 });
 const page = (...rows: [string, string][]): VacancyPage => ({
   items: rows.map(([id, number]) => summary(id, number)),

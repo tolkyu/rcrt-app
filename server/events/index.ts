@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { USER_PROFILE_FIELDS } from '../../lib/user-constants';
-import { VACANCY_STATUSES } from '../../lib/vacancy-filters';
+import {
+  VACANCY_PRIORITIES,
+  VACANCY_STATUSES,
+} from '../../lib/vacancy-filters';
 import type { WriteContext } from '../context/request-context';
 import type { DbExecutor } from '../db';
 import { changeFeed, entityEvent, entityEventPii } from '../db/schema';
@@ -21,6 +24,7 @@ const settingField = z.enum([
 ]);
 const empty = z.object({}).strict();
 const vacancyStatus = z.enum(VACANCY_STATUSES);
+const vacancyPriority = z.enum(VACANCY_PRIORITIES);
 /** Field names of a vacancy edit; values never enter an event (SEC-CORE-07). */
 export const VACANCY_EDIT_FIELDS = [
   'title',
@@ -99,6 +103,11 @@ export const EVENT_PAYLOADS = {
   'vacancy.status_changed': z
     .object({ from: vacancyStatus, to: vacancyStatus })
     .strict(),
+  /** Enum values only; the timeline shows «Звичайна → Термінова» (the flag, not the Team Lead priority). */
+  'vacancy.urgency_changed': z
+    .object({ from: vacancyPriority, to: vacancyPriority })
+    .strict()
+    .refine((value) => value.from !== value.to),
   'vacancy.deleted': empty,
   'position.created': empty,
   'position.renamed': empty,

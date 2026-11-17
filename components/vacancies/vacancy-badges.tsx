@@ -4,6 +4,7 @@ import { Bot, Flame } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Badge, type BadgeProps } from '@/components/ui/badge';
 import type { VacancySummary } from '@/lib/schemas/vacancy';
+import { isUrgentHighlighted } from '@/lib/vacancy-urgency';
 
 const statusBadge = {
   DRAFT: { tone: 'neutral', dashed: true, outline: true },
@@ -28,14 +29,6 @@ export function VacancyStatus({
     </Badge>
   );
 }
-
-/** D97: urgency stops being actionable once a vacancy is closed, so only the red styling (not the label) depends on status. */
-export const isUrgentHighlighted = (
-  vacancy: Pick<VacancySummary, 'priority' | 'status'>,
-) =>
-  vacancy.priority === 'URGENT' &&
-  vacancy.status !== 'FILLED' &&
-  vacancy.status !== 'CANCELLED';
 
 /** Red accent edge for list rows and cards; the badge carries the text so colour is never the only signal. */
 export const urgentEdge = (
