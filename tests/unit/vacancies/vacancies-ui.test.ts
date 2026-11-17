@@ -268,16 +268,18 @@ describe('urgent highlight [STORY-VAC-04-4, D97]', () => {
   const badge = () => screen.getByText(messages.vacancies.urgent);
 
   it.each(['OPEN', 'ON_HOLD', 'DRAFT'] as const)(
-    'shows a %s urgent vacancy in the soft red tokens with the label',
+    'shows a %s urgent vacancy as a red outline badge with the label',
     (status) => {
       mount(
         createElement(VacancyFlags, {
           vacancy: summary({ priority: 'URGENT', status }),
         }),
       );
-      expect(badge().className).toContain('bg-destructive-subtle');
+      expect(badge().className).toContain('border-destructive');
+      expect(badge().className).toContain('bg-transparent');
       expect(badge().className).toContain('text-error-text');
       expect(badge().className).not.toContain('warning');
+      expect(badge().hasAttribute('title')).toBe(false);
     },
   );
 
@@ -292,6 +294,9 @@ describe('urgent highlight [STORY-VAC-04-4, D97]', () => {
       expect(badge().className).toContain('bg-surface-muted');
       expect(badge().className).not.toContain('destructive');
       expect(badge().className).not.toContain('error-text');
+      expect(badge().getAttribute('title')).toBe(
+        messages.vacancies.urgentClosed,
+      );
     },
   );
 
@@ -337,7 +342,134 @@ describe('urgent highlight [STORY-VAC-04-4, D97]', () => {
         preview: true,
       }),
     );
-    expect(badge().className).toContain('bg-destructive-subtle');
+    expect(badge().className).toContain('border-destructive');
+  });
+
+  describe('row tint, hover and selection', () => {
+    const tint = 'bg-destructive-subtle';
+    const hover = 'hover:bg-destructive-subtle-hover';
+    const touch = 'active:bg-destructive-subtle-hover';
+    const baseHover = 'hover:bg-surface-muted';
+    const items = [
+      summary({ number: 'V-0001', title: 'Термінова', priority: 'URGENT' }),
+      summary({
+        id: crypto.randomUUID(),
+        number: 'V-0002',
+        title: 'Закрита',
+        priority: 'URGENT',
+        status: 'FILLED',
+      }),
+      summary({ id: crypto.randomUUID(), number: 'V-0003', title: 'Звичайна' }),
+    ];
+    const renderList = (selectedId: string | undefined, wide: boolean) =>
+      mount(
+        createElement(VacanciesList, {
+          items,
+          selectedId,
+          wide,
+          onSelect: vi.fn(),
+          onPreviewIntent: vi.fn(),
+          canAuthorDrafts: false,
+        }),
+      );
+    const rows = () => within(screen.getByRole('table')).getAllByRole('row');
+    const cards = () =>
+      within(
+        screen.getByRole('list', { name: messages.vacancies.caption }),
+      ).getAllByRole('listitem');
+
+    it('tints an open urgent row and card with its own hover and touch token, without the base hover', () => {
+      renderList(undefined, false);
+      for (const element of [rows()[1]!, cards()[0]!]) {
+        expect(element.className).toContain(tint);
+        expect(element.className).toContain(hover);
+        expect(element.className).toContain(touch);
+        expect(element.className).toContain(
+          '[--muted-foreground:var(--muted-foreground-strong)]',
+        );
+        expect(element.className).not.toContain(baseHover);
+      }
+    });
+
+    it('keeps a closed urgent and a normal row neutral with the base hover', () => {
+      renderList(undefined, false);
+      for (const element of [
+        rows()[2]!,
+        rows()[3]!,
+        cards()[1]!,
+        cards()[2]!,
+      ]) {
+        expect(element.className).toContain(baseHover);
+        expect(element.className).not.toContain('destructive');
+        expect(element.className).not.toContain('muted-foreground-strong');
+      }
+    });
+
+    it('shows the red edge beside the brand bar on a selected urgent row', () => {
+      renderList(items[0]!.id, true);
+      const className = rows()[1]!.className;
+      expect(className).toContain('bg-primary-subtle');
+      expect(className).toContain(
+        'shadow-[inset_3px_0_0_var(--destructive),inset_5px_0_0_var(--brand)]',
+      );
+      expect(className).not.toContain(tint);
+      expect(className).not.toContain(hover);
+      expect(className).not.toContain(baseHover);
+    });
+
+    it('keeps the plain brand bar on a selected normal row', () => {
+      renderList(items[2]!.id, true);
+      const className = rows()[3]!.className;
+      expect(className).toContain('shadow-[inset_2px_0_0_0_var(--brand)]');
+      expect(className).not.toContain('destructive');
+    });
+  });
+});
+
+describe('detail header highlight [STORY-VAC-04-4, D99]', () => {
+  const block = () =>
+    document.querySelector('[data-slot="detail-header"] > div')!;
+
+  it.each(['OPEN', 'ON_HOLD'] as const)(
+    'tints the header block of a %s urgent vacancy and keeps the actions outside it',
+    (status) => {
+      mount(
+        createElement(VacancyOverview, {
+          vacancy: detail({ priority: 'URGENT', status }),
+        }),
+      );
+      expect(block().className).toContain('bg-destructive-subtle');
+      expect(block().className).toContain('var(--destructive)');
+      expect(block().querySelector('p')!.className).toContain(
+        'text-muted-foreground-strong',
+      );
+      const actions = document.querySelector(
+        '[data-slot="detail-header-actions"]',
+      )!;
+      expect(block().contains(actions)).toBe(false);
+      expect(screen.queryByText(messages.vacancies.urgentClosed)).toBeNull();
+    },
+  );
+
+  it.each(['FILLED', 'CANCELLED'] as const)(
+    'keeps the header of a %s urgent vacancy neutral with the closed note and an info mark',
+    (status) => {
+      mount(
+        createElement(VacancyOverview, {
+          vacancy: detail({ priority: 'URGENT', status }),
+        }),
+      );
+      expect(block().className).not.toContain('destructive');
+      const note = screen.getByText(messages.vacancies.urgentClosed);
+      expect(note.querySelector('svg.lucide-info')).not.toBeNull();
+      expect(note.querySelector('svg.lucide-lock')).toBeNull();
+    },
+  );
+
+  it('keeps a normal vacancy header plain without a note', () => {
+    mount(createElement(VacancyOverview, { vacancy: detail() }));
+    expect(block().className).not.toContain('destructive');
+    expect(screen.queryByText(messages.vacancies.urgentClosed)).toBeNull();
   });
 });
 

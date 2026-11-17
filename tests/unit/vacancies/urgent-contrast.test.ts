@@ -56,6 +56,68 @@ describe('urgent vacancy badge contrast [STORY-VAC-04-4, D97]', () => {
   );
 });
 
+describe('urgent row tint pairs [STORY-VAC-04-4, UX vacancies-list urgency section 3]', () => {
+  it('derives the hover token and maps it into the Tailwind theme', () => {
+    expect(token('destructive-subtle-hover', 'light').toLowerCase()).toBe(
+      '#fce8e8',
+    );
+    expect(token('destructive-subtle-hover', 'dark').toLowerCase()).toBe(
+      '#471e24',
+    );
+    expect(css).toContain(
+      '--color-destructive-subtle-hover: var(--destructive-subtle-hover);',
+    );
+  });
+
+  const textPairs = [
+    ['foreground', 'destructive-subtle'],
+    ['foreground', 'destructive-subtle-hover'],
+    ['error-text', 'destructive-subtle-hover'],
+    ['error-text', 'primary-subtle'],
+    ['muted-foreground-strong', 'destructive-subtle'],
+    ['muted-foreground-strong', 'destructive-subtle-hover'],
+    ['muted-foreground-strong', 'primary-subtle'],
+    ['muted-foreground', 'destructive-subtle'],
+    ['muted-foreground', 'destructive-subtle-hover'],
+    ['link', 'destructive-subtle'],
+  ] as const;
+
+  it.each(
+    textPairs.flatMap(([foreground, background]) =>
+      (['light', 'dark'] as const).map(
+        (theme) => [foreground, background, theme] as const,
+      ),
+    ),
+  )(
+    '%s on %s is at least 4.5:1 in the %s theme',
+    (foreground, background, theme) => {
+      expect(
+        contrast(token(foreground, theme), token(background, theme)),
+      ).toBeGreaterThanOrEqual(4.5);
+    },
+  );
+
+  it.each(['light', 'dark'] as const)(
+    'the red edge and badge border are at least 3:1 on the tint and the surface in the %s theme',
+    (theme) => {
+      for (const background of ['destructive-subtle', 'surface'])
+        expect(
+          contrast(plainToken('destructive'), token(background, theme)),
+        ).toBeGreaterThanOrEqual(3);
+    },
+  );
+
+  // The UX table has no edge-on-hover row: dark hover measures 2.94:1; the edge is a decorative duplicate of the labelled badge (UX section 4), so only light hover is pinned.
+  it('keeps the red edge at 3:1 on the light hover tint', () => {
+    expect(
+      contrast(
+        plainToken('destructive'),
+        token('destructive-subtle-hover', 'light'),
+      ),
+    ).toBeGreaterThanOrEqual(3);
+  });
+});
+
 function plainToken(name: string): string {
   const match = new RegExp(`--${name}:\\s*(#[0-9a-f]{6});`, 'i').exec(css);
   if (!match) throw new Error(`Token --${name} is not a plain hex colour`);

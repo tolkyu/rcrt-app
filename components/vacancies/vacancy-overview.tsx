@@ -11,7 +11,11 @@ import { isPrivateDraft, ownDraftActions } from '@/lib/vacancy-draft-actions';
 import { toast } from '@/lib/toast';
 import { DraftHeaderActions } from './draft-header-actions';
 import { formatVacancyMoney } from './money';
-import { VacancyFlags, VacancyStatus } from './vacancy-badges';
+import {
+  isUrgentHighlighted,
+  VacancyFlags,
+  VacancyStatus,
+} from './vacancy-badges';
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -62,6 +66,17 @@ export function VacancyOverview({
     focusRequest.current = null;
   }, [vacancy.status]);
   const privateDraft = isPrivateDraft(vacancy);
+  const urgentClosed =
+    vacancy.priority === 'URGENT' && !isUrgentHighlighted(vacancy);
+  const note = privateDraft
+    ? t(
+        vacancy.status === 'CANCELLED'
+          ? 'draft.privateNoteCancelled'
+          : 'draft.privateNote',
+      )
+    : urgentClosed
+      ? t('urgentClosed')
+      : undefined;
   const draftPlan = ownDraftActions(vacancy, canAuthorDrafts);
   const path = `/vacancies/${vacancy.id}`;
   const Heading = preview ? 'h3' : 'h2';
@@ -117,15 +132,9 @@ export function VacancyOverview({
             <VacancyFlags vacancy={vacancy} />
           </>
         }
-        note={
-          privateDraft
-            ? t(
-                vacancy.status === 'CANCELLED'
-                  ? 'draft.privateNoteCancelled'
-                  : 'draft.privateNote',
-              )
-            : undefined
-        }
+        note={note}
+        noteIcon={privateDraft ? 'lock' : 'info'}
+        tone={isUrgentHighlighted(vacancy) ? 'urgent' : undefined}
         actionsRef={actionsRef}
         actions={
           <>

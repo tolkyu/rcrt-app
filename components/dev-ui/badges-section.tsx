@@ -8,7 +8,7 @@ export async function BadgesSection() {
   const tags = t('tags').split('|');
   const flags = (
     <>
-      <Badge size="sm" icon={Flame} tone="danger">
+      <Badge size="sm" icon={Flame} tone="danger" outline>
         {t('urgent')}
       </Badge>
       <Badge size="sm" icon={Bot} tone="info" outline>
