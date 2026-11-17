@@ -7,11 +7,12 @@
 - Branch `phase-2`, HEAD `b48910d`, pushed. Owner approved pushes; work continues without waiting for the owner.
 - Done: S3.5 + S3.6 reviewed (code APPROVED x3, security PASS), BUG-S3-14 fixed, D123/D124/D125 recorded, lean gallery captures (`c955138`), rich-text fragment fix `6cd0276`.
 - New skills (`.claude/skills/`): deslop, no-comments, thermo-nuclear (QA), blast-radius (reviewer), benchmark-checklist (perf), tdd, typescript-best-practices, make-pr-easy-to-review, babysit, fix-ci, fix-merge-conflicts. Wired into `docs/engineering-self-check.md` and agent files.
-- **S3.7 part 1 done `b48910d` (pushed, code-reviewer APPROVED):** items 7, 8 + BUG-S3-20 + refreshDraft catch. Remaining S3.7: items 1–6, 9–11 of `docs/qa-phase-2-s3.md` «Code quality (thermo-nuclear)» + preview scroll a11y + form-error buttons (item 5) + clampDescription (item 3) + last-cell helper (item 9). Next slice: item 1 (pure `planAttempt`/`settle` in `lib/vacancy-draft-close.ts`) + item 6.
+- **S3.7 closed (D126):** part 1 `b48910d` (items 7, 8, BUG-S3-20), part 2 (items 1, 6: pure `planAttempt`/`settle` in `lib/vacancy-draft-retry.ts`). Both code-reviewer APPROVED. Rest of thermo items → Phase 7 tech debt (PROGRESS «Gaps»).
+- **D126 (owner, 2026-11-17):** one review round per slice; only bugs/security/authz/PII/PRD mismatch block; screenshots once per V-block.
 
 ## Next (in order)
 
-1. S3.7: QA (thermo pass) → code-reviewer (blast radius) → commit, push. Then mark S3.6/S3.7 done in PROGRESS.
+1. S3.6/S3.7 marked done in PROGRESS. Next: split PROGRESS history into `docs/archive/` (short), then next V2 story: STORY-VAC-03-3 (Team Lead «Запросити вакансію») → BA check of acceptance criteria → build.
 2. Split `docs/PROGRESS.md` history into `docs/archive/` (owner asked for token economy).
 3. F10 rich text (`docs/ux/ui-foundation.md`). Perf: create 178.19 / edit 178.39 of 180 kB.
 4. Phase 7: remind owner about demo videos.

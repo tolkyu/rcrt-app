@@ -23,7 +23,7 @@ Single log of phase status, deliverables, gaps and decisions148.14 Updated at th
 | ----- | -------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | 0     | Discovery & design                                             | ✅ Done 2026-10-31 — owner approved Phase 1                               | —                                                                                               |
 | 1     | Foundation                                                     | ✅ Done locally 2026-11-06 (branch `phase-1`)                             | `screenshots/phase-1/index.html` (auth, settings, role profiles; 274 PNGs + 4 Foundation links) |
-| 2     | Vacancies & candidates                                         | 🔄 In progress — V1/V2a done locally; V2b S3.5/S3.6 awaiting final review | `screenshots/phase-2/index.html` (vacancy list/detail, filters, empty/error, role denials)      |
+| 2     | Vacancies & candidates                                         | 🔄 In progress — V1/V2a/V2b (drafts S3.5–S3.7) done locally; next V2: VAC-03-3, VAC-08-2, VAC-04-4 | `screenshots/phase-2/index.html` (vacancy list/detail, filters, empty/error, role denials)      |
 | 3     | Pipeline + routing                                             | ⏳                                                                        |                                                                                                 |
 | 4     | Bonuses & statistics                                           | ⏳                                                                        |                                                                                                 |
 | 5     | Archive & notifications                                        | ⏳                                                                        |                                                                                                 |
@@ -305,6 +305,8 @@ Single log of phase status, deliverables, gaps and decisions148.14 Updated at th
 - Owner confirmed second TOTP/Admin reset and mixed-role `aal1` access (D22/D63). Security review: `docs/security/review-phase-1-auth-identity.md`; independent code review approved this slice. Full T4/Phase 1 remain in progress; no new commits, push or deployment in this session.
 
 ## Gaps and later-phase boundaries
+
+- **Tech debt → Phase 7 (D126):** S3.7 thermo items 2–5, 9–11 (`docs/qa-phase-2-s3.md`), preview scroll a11y, form-error link buttons, `clampDescription` non-string, shared actions-cell helper; tooltip clone strips the child's whole `aria-describedby`; toast fallback keeps only the latest notice.
 
 The final local closure above supersedes resolved Phase-1 labels in older checkpoints and reports. Active boundaries are listed below; hosted checks do not block the authorized local closure.
 

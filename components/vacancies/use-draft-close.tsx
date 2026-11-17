@@ -7,19 +7,23 @@ import { useEffect, useRef, useState } from 'react';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { RowAction } from '@/components/ui/row-actions-menu';
 import { reasonLength, VACANCY_REASON_MAX } from '@/lib/reason-length';
-import { hasOnlyReasonChars, normalizeReason } from '@/lib/reason-text';
+import { hasOnlyReasonChars } from '@/lib/reason-text';
+import { toast } from '@/lib/toast';
 import {
-  announceClosed,
-  announceGone,
   applyClosed,
   closeDraft,
   closedLandingHref,
-  isUnsure,
   refreshDraft,
   type ClosableDraft,
   type CloseFailure,
   type CloseKind,
 } from '@/lib/vacancy-draft-close';
+import {
+  CLEAR,
+  planAttempt,
+  settle,
+  type RetryState,
+} from '@/lib/vacancy-draft-retry';
 import { useDraftLeave } from './draft-leave';
 import type { CardFocus } from './use-draft-publish';
 
@@ -51,6 +55,35 @@ export function closeActions(
 
 const FLUSH_FALLBACK_MS = 600;
 
+/** The toast is global, so the result reaches the user after the row that started the call unmounted. */
+function announceClosed(t: Translate, kind: CloseKind, draft: ClosableDraft) {
+  if (kind === 'cancel')
+    toast.success(t('draft.close.toast.cancelled'), {
+      description: t('draft.close.toast.cancelledDescription', {
+        number: draft.number,
+      }),
+    });
+  else
+    toast.success(
+      t(
+        draft.status === 'DRAFT'
+          ? 'draft.close.toast.deletedDraft'
+          : 'draft.close.toast.deletedCancelled',
+      ),
+      {
+        description: t('draft.close.toast.deletedDescription', {
+          number: draft.number,
+          title: draft.title,
+        }),
+      },
+    );
+}
+
+const announceGone = (t: Translate) =>
+  toast.error(t('draft.actions.toast.gone'), {
+    description: t('draft.actions.toast.goneDescription'),
+  });
+
 const failureText = (t: Translate, failure: CloseFailure): string => {
   switch (failure) {
     case 'notDraft':
@@ -81,9 +114,7 @@ export function useDraftClose(draft: ClosableDraft, card?: CardFocus) {
   const [pending, setPending] = useState(false);
   const [failure, setFailure] = useState<CloseFailure | null>(null);
   const locked = useRef(false);
-  const unsure = useRef(false);
-  const attemptedReason = useRef<string | null>(null);
-  const reconciliationAllowed = useRef(true);
+  const retry = useRef<RetryState>(CLEAR);
   const mounted = useRef(true);
   const after = useRef<(() => void) | null>(null);
 
@@ -137,28 +168,22 @@ export function useDraftClose(draft: ClosableDraft, card?: CardFocus) {
       setPending(false);
       return;
     }
-    const normalizedReason = normalizeReason(reason);
-    if (
-      unsure.current &&
-      kind === 'cancel' &&
-      attemptedReason.current !== normalizedReason
-    )
-      reconciliationAllowed.current = false;
-    const retryingSameRequest =
-      reconciliationAllowed.current &&
-      unsure.current &&
-      (kind === 'delete' || attemptedReason.current === normalizedReason);
-    attemptedReason.current = normalizedReason;
+    const attempt = planAttempt(retry.current, kind, reason);
+    // A call that throws before it answers still keeps what planning decided.
+    retry.current = settle(attempt, { status: 'busy' });
     const outcome = await closeDraft(
       queryClient,
       kind,
       draft,
       reason,
-      retryingSameRequest,
+      attempt.kind === 'retry',
     );
+    retry.current = settle(attempt, outcome);
     if (outcome.status === 'done') {
-      unsure.current = false;
-      after.current = () => void finish(kind, outcome.vacancy);
+      const { vacancy } = outcome;
+      after.current = () => {
+        finish(kind, vacancy).catch(() => undefined);
+      };
       setOpen(false);
       // The close event normally runs it; this covers a close that never reports.
       fallbackTimer.current = window.setTimeout(flush, FLUSH_FALLBACK_MS);
@@ -167,11 +192,6 @@ export function useDraftClose(draft: ClosableDraft, card?: CardFocus) {
     locked.current = false;
     setPending(false);
     if (outcome.status === 'busy') return;
-    // A known conflict or ambiguous body stays ineligible for status-only recovery until the dialog reopens.
-    if (outcome.failure === 'notDraft' || outcome.failure === 'stale')
-      reconciliationAllowed.current = false;
-    // A refused retry cannot establish whether an earlier request succeeded.
-    unsure.current ||= isUnsure(outcome.failure);
     if (outcome.failure === 'gone') {
       setOpen(false);
       announceGone(t);
@@ -202,9 +222,7 @@ export function useDraftClose(draft: ClosableDraft, card?: CardFocus) {
   const openDialog = (next: CloseKind) => {
     setKind(next);
     setFailure(null);
-    unsure.current = false;
-    attemptedReason.current = null;
-    reconciliationAllowed.current = true;
+    retry.current = CLEAR;
     setOpen(true);
   };
 

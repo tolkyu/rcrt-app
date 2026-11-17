@@ -1,6 +1,5 @@
 /** Loaded with the dialog chunk, outside the list's initial JavaScript (PERF-04). */
 import type { QueryClient } from '@tanstack/react-query';
-import type { useTranslations } from 'next-intl';
 import { ApiError, apiRequest } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
 import {
@@ -9,7 +8,6 @@ import {
   type VacancyDetail,
   type VacancyDraftCount,
 } from '@/lib/schemas/vacancy';
-import { toast } from '@/lib/toast';
 import { isCount, isPage } from '@/lib/vacancy-draft-optimistic';
 import { vacancyPageUrlSearch } from '@/lib/vacancy-filters';
 
@@ -108,13 +106,13 @@ async function alreadyDone(
   }
 }
 
-/** `unsure`: an earlier press of this dialog ended without a clear answer. */
+/** `retrying`: this press repeats a request that may already be stored, so a conflict is checked against the stored draft first. */
 export async function closeDraft(
   queryClient: QueryClient,
   kind: CloseKind,
   draft: ClosableDraft,
   reason: string,
-  unsure: boolean,
+  retrying: boolean,
 ): Promise<CloseOutcome> {
   // Set before the first await: a double press cannot slip past it.
   if (inFlight.has(draft.id)) return { status: 'busy' };
@@ -126,7 +124,7 @@ export async function closeDraft(
     };
   } catch (error) {
     const failure = classifyCloseFailure(error, kind);
-    const adopted = unsure
+    const adopted = retrying
       ? await alreadyDone(queryClient, kind, draft.id, failure)
       : null;
     return adopted ?? { status: 'failed', failure };
@@ -185,38 +183,3 @@ export const closedLandingHref = (draft: ClosableDraft) =>
   `/vacancies?${vacancyPageUrlSearch({
     filters: { status: draft.status, vertical: draft.vertical.id },
   })}`;
-
-type Translate = ReturnType<typeof useTranslations<'vacancies'>>;
-
-/** The toast is global, so the result reaches the user after the row that started the call unmounted. */
-export function announceClosed(
-  t: Translate,
-  kind: CloseKind,
-  draft: ClosableDraft,
-) {
-  if (kind === 'cancel')
-    toast.success(t('draft.close.toast.cancelled'), {
-      description: t('draft.close.toast.cancelledDescription', {
-        number: draft.number,
-      }),
-    });
-  else
-    toast.success(
-      t(
-        draft.status === 'DRAFT'
-          ? 'draft.close.toast.deletedDraft'
-          : 'draft.close.toast.deletedCancelled',
-      ),
-      {
-        description: t('draft.close.toast.deletedDescription', {
-          number: draft.number,
-          title: draft.title,
-        }),
-      },
-    );
-}
-
-export const announceGone = (t: Translate) =>
-  toast.error(t('draft.actions.toast.gone'), {
-    description: t('draft.actions.toast.goneDescription'),
-  });

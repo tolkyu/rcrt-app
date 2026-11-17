@@ -69,3 +69,4 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] New/touched `.ts`/`.tsx` follow `.claude/skills/typescript-best-practices/SKILL.md` (no `as` without validation, discriminated unions over optional bags, exhaustive `never`, Zod/Drizzle-derived types).
 - [ ] A bug fix follows `.claude/skills/tdd/SKILL.md`: failing-before test output quoted in the hand-back (or why no cheap test exists).
 - [ ] A wrapper that strips or overrides a prop on a cloned child (e.g. `aria-describedby: undefined`) removes only what the wrapper added, or documents that it replaces the caller's value.
+- [ ] Review rounds (D126): one round per slice. Only bugs, security, authz/data isolation, PII and PRD mismatches block; style/structure findings go to the Phase 7 tech-debt list in PROGRESS. Screenshots only at the end of a V-block.

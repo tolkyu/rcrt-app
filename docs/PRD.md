@@ -504,6 +504,7 @@ Side states: `CANCELLED` (trigger never reached, e.g. probation failed before tr
 | D123 | Where the draft cancel reason is shown | **Decided by owner 2026-11-17:** the author sees the cancel reason on the card of their cancelled draft; no other role sees it (matches the dialog line «Бачите лише ви», D113). |
 | D124 | Form footer exit button label | **Decided by owner 2026-11-17:** the form footer button that leaves without saving reads «Вийти без збереження» (was «Скасувати»), so it is not confused with «Скасувати вакансію». |
 | D125 | Screenshot matrix | **Decided by owner 2026-11-17:** lean matrix overrides SHOT-01's full role × theme × viewport product — PNGs only for new screens/dialogs/distinct states; light by default, one dark capture per new screen; mobile only where the layout differs; role variants only when the UI differs; edge cases checked by E2E assertions (CLAUDE.md §7). |
+| D126 | Phase 2 pace | **Decided by owner 2026-11-17:** (1) close S3.7 after items 1, 6, 7, 8 + BUG-S3-20; thermo items 2–5, 9–11, preview scroll a11y, form-error buttons, clampDescription, last-cell helper → tech-debt list for Phase 7. (2) One review round per slice; only bugs, security, authz/data isolation, PII and PRD mismatches block — style/structure findings go to tech debt. (3) Screenshots captured once at the end of each V-block, not per slice. |
 
 ---
 
