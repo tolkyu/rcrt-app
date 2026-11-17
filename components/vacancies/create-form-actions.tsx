@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { SubmitButtons } from '@/components/vacancies/submit-buttons';
 import { DisabledReason } from '@/components/ui/disabled-reason';
-import { vacancyDraftCountQuery } from '@/lib/queries/vacancies';
+import { vacancyDraftCountQuery } from '@/lib/queries/vacancy-detail';
 import type { VacancyFormMode } from '@/lib/vacancy-form';
 import type { FeedbackModule } from '@/lib/vacancy-form-load';
 import { VACANCY_DRAFT_LIMIT } from '@/lib/vacancy-limits';

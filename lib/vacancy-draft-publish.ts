@@ -1,7 +1,7 @@
 /** Publishing a draft from a list row, the preview or the card, with an optimistic cache update and the toasts for every answer; loaded on the first press, outside the list's initial JavaScript (PERF-04). */
 import type { QueryClient } from '@tanstack/react-query';
 import type { useTranslations } from 'next-intl';
-import { vacancyDetailQuery } from '@/lib/queries/vacancies';
+import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
 import { queryKeys } from '@/lib/query-keys';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
 import { toast } from '@/lib/toast';

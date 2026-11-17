@@ -1,11 +1,21 @@
+import { resolve } from 'node:path';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
 const development = process.env.NODE_ENV === 'development';
 
+const posix = (path: string) => path.replaceAll('\\', '/');
+
 /** The message formatter is a few kB once messages are precompiled, below webpack's 20 kB split threshold: without this group every nested provider's entry chunk gets its own copy, and PERF-04 gzips each file on its own. */
 const INTL_MODULES =
   /node_modules\/(?:use-intl|next-intl|@formatjs|icu-minify)\//;
+
+/** Button, ApiError and `cn` are under webpack's 20 kB split threshold, so the `(app)` layout chunk and the page or shared chunk each kept a copy; sign-in pages use all three too (ADR-015). Add a module only after `perf:size` shows it duplicated on a route near the budget. */
+const APP_CORE_MODULES = new Set(
+  ['components/ui/button.tsx', 'lib/api-client.ts', 'lib/utils.ts'].map(
+    (file) => posix(resolve(process.cwd(), file)),
+  ),
+);
 
 const config: NextConfig = {
   poweredByHeader: false,
@@ -29,9 +39,16 @@ const config: NextConfig = {
         priority: 35,
         enforce: true,
         test: (module: { nameForCondition?: () => string | null }) =>
-          INTL_MODULES.test(
-            (module.nameForCondition?.() ?? '').replaceAll('\\', '/'),
-          ),
+          INTL_MODULES.test(posix(module.nameForCondition?.() ?? '')),
+      };
+    if (!isServer && !dev && typeof splitChunks === 'object')
+      splitChunks.cacheGroups.appCore = {
+        name: 'app-core',
+        chunks: 'all',
+        priority: 30,
+        enforce: true,
+        test: (module: { nameForCondition?: () => string | null }) =>
+          APP_CORE_MODULES.has(posix(module.nameForCondition?.() ?? '')),
       };
     return webpackConfig;
   },

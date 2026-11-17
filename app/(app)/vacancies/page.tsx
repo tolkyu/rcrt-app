@@ -8,11 +8,11 @@ import { PageHeader } from '@/components/shell/page-header';
 import { VacanciesView } from '@/components/vacancies/vacancies-view';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PREFERENCE_COOKIES } from '@/lib/preference-cookie';
+import { vacanciesQuery } from '@/lib/queries/vacancies';
 import {
-  vacanciesQuery,
   vacancyDetailQuery,
   vacancyDraftCountQuery,
-} from '@/lib/queries/vacancies';
+} from '@/lib/queries/vacancy-detail';
 import {
   parseVacancyPageState,
   vacancyPageUrlSearch,

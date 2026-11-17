@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { SectionError } from '@/components/states/section-error';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api-client';
-import { vacancyDetailQuery } from '@/lib/queries/vacancies';
+import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
 import { VacancyOverview } from './vacancy-overview';
 
 /** Own request and error state, so a failing preview never takes the list down (VIS-01, UI-06). */

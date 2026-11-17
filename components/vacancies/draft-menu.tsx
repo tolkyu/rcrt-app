@@ -7,7 +7,7 @@ import {
   RowActionsMenu,
   type RowAction,
 } from '@/components/ui/row-actions-menu';
-import { vacancyDetailQuery } from '@/lib/queries/vacancies';
+import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
 import type { VacancySummary } from '@/lib/schemas/vacancy';
 import {
   vacancyEditHref,

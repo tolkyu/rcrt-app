@@ -11,7 +11,7 @@ import { buttonVariants } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api-client';
-import { vacancyDetailQuery } from '@/lib/queries/vacancies';
+import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
 import { useVacancyListHref } from '@/lib/vacancy-list-memory';
 import { cn } from '@/lib/utils';
 import { VacancyOverview } from './vacancy-overview';

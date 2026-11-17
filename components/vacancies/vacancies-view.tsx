@@ -27,7 +27,8 @@ import { FilterChips } from '@/components/ui/filter-chips';
 import { FilterSelectField } from '@/components/ui/filter-select-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { vacanciesQuery, vacancyDetailQuery } from '@/lib/queries/vacancies';
+import { vacanciesQuery } from '@/lib/queries/vacancies';
+import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
 import { verticalsQuery } from '@/lib/queries/verticals';
 import { useWideScreen } from '@/lib/use-wide-screen';
 import {

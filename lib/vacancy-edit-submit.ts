@@ -2,7 +2,7 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { useTranslations } from 'next-intl';
 import { apiRequest } from '@/lib/api-client';
-import { vacancyDetailQuery } from '@/lib/queries/vacancies';
+import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
 import {
   vacancyDetailSchema,
   type CreateVacancyBody,

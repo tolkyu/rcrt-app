@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { useMemo } from 'react';
-import { vacancyDraftCountQuery } from '@/lib/queries/vacancies';
+import { vacancyDraftCountQuery } from '@/lib/queries/vacancy-detail';
 import type { VacancyListQuery } from '@/lib/schemas/vacancy';
 import { VACANCY_FILTER_ORDER } from '@/lib/vacancy-filters';
 
