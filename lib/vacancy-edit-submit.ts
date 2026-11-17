@@ -265,12 +265,9 @@ export function announceEdited(
 
 type EditTranslate = ReturnType<typeof useTranslations<'vacancyForm.edit'>>;
 
-/** One toast per draft: a second conflict replaces the first instead of stacking. */
+/** Title only: the persistent alert above the form carries the explanation, so the toast does not repeat it. One toast per draft. */
 export const announceStale = (t: EditTranslate, id: string) =>
-  toast.warning(t('toast.stale'), {
-    description: t('toast.staleDescription'),
-    id: `stale:vacancy:${id}`,
-  });
+  toast.warning(t('toast.stale'), { id: `stale:vacancy:${id}` });
 
 export const announceGone = (t: EditTranslate) =>
   toast.error(t('toast.gone'), { description: t('toast.goneDescription') });

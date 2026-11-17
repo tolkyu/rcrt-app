@@ -1,7 +1,11 @@
 import { useTranslations } from 'next-intl';
 
-/** Column head shared by the list and its skeleton, so the loading table has the same column minimums and head height. */
-export function VacanciesTableHead() {
+/** Column head shared by the list and its skeleton, so the loading table has the same column minimums and head height. `menuColumn`: the last column also carries the draft menu, so it shows below `xl` too. */
+export function VacanciesTableHead({
+  menuColumn = false,
+}: {
+  menuColumn?: boolean;
+}) {
   const t = useTranslations('vacancies');
   return (
     <thead>
@@ -24,7 +28,14 @@ export function VacanciesTableHead() {
         >
           {t('columns.openedAt')}
         </th>
-        <th scope="col" className="hidden w-14 px-2 py-3 xl:table-cell">
+        <th
+          scope="col"
+          className={
+            menuColumn
+              ? 'w-14 px-2 py-3 xl:w-28'
+              : 'hidden w-14 px-2 py-3 xl:table-cell'
+          }
+        >
           <span className="sr-only">{t('columns.preview')}</span>
         </th>
       </tr>

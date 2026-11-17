@@ -1,5 +1,12 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { NextIntlClientProvider } from 'next-intl';
 import { createElement, createRef, useState, type ReactElement } from 'react';
@@ -59,6 +66,39 @@ describe('Counter [UI foundation F5]', () => {
     expect(counter.querySelector('.sr-only')?.textContent).toBe(
       'Символів: 501 із 500, ліміт перевищено',
     );
+  });
+
+  it('warns only when asked to, from `warnFrom` up to the limit', () => {
+    const { container, rerender } = render(
+      provider(createElement(Counter, { id: 'c', count: 460, max: 500 })),
+    );
+    expect(container.querySelector('#c')?.hasAttribute('data-warn')).toBe(
+      false,
+    );
+    rerender(
+      provider(
+        createElement(Counter, {
+          id: 'c',
+          count: 449,
+          max: 500,
+          warnFrom: 450,
+        }),
+      ),
+    );
+    expect(container.querySelector('#c')?.hasAttribute('data-warn')).toBe(
+      false,
+    );
+    rerender(
+      provider(
+        createElement(Counter, {
+          id: 'c',
+          count: 450,
+          max: 500,
+          warnFrom: 450,
+        }),
+      ),
+    );
+    expect(container.querySelector('#c')?.hasAttribute('data-warn')).toBe(true);
   });
 });
 
@@ -273,5 +313,23 @@ describe('FormError [UI foundation F5]', () => {
     rerender(provider(createElement(FormError, { count: 2, attempt: 2 })));
     expect(screen.getByRole('alert')).not.toBe(first);
     expect(screen.getAllByRole('alert')).toHaveLength(1);
+  });
+
+  it('names at most three invalid fields as links outside the alert, and a link focuses its control', () => {
+    const field = document.createElement('input');
+    field.id = 'f-title';
+    document.body.append(field);
+    const links = ['title', 'position', 'salary', 'location', 'probation'].map(
+      (id) => ({ id: id === 'title' ? 'f-title' : id, label: `Поле ${id}` }),
+    );
+    render(provider(createElement(FormError, { count: 5, attempt: 1, links })));
+    expect(screen.getByRole('alert').textContent).toBe('Виправте 5 полів');
+    expect(screen.getAllByRole('link').map((link) => link.textContent)).toEqual(
+      ['Поле title', 'Поле position', 'Поле salary'],
+    );
+    expect(screen.getByText('і ще 2')).toBeTruthy();
+    fireEvent.click(screen.getByRole('link', { name: 'Поле title' }));
+    expect(document.activeElement).toBe(field);
+    field.remove();
   });
 });

@@ -106,6 +106,8 @@ export const vacancyDetailSchema = vacancySummarySchema
     probationDays: z.number().int().min(30).max(90),
     recruiterInitiated: z.boolean(),
     version: z.number().int().positive(),
+    /** Only on the cancelled draft's own card, for the user who cancelled it (D123); absent for everyone else. */
+    cancelReason: z.string().optional(),
   })
   .meta({ id: 'VacancyDetail' });
 export type VacancyDetail = z.infer<typeof vacancyDetailSchema>;

@@ -1,4 +1,4 @@
-/** Cancelling and deleting an own draft: the request, how a failure is read, and the caches after the answer. Loaded with the dialog chunk, outside the list's initial JavaScript (PERF-04). */
+/** Loaded with the dialog chunk, outside the list's initial JavaScript (PERF-04). */
 import type { QueryClient } from '@tanstack/react-query';
 import type { useTranslations } from 'next-intl';
 import { ApiError, apiRequest } from '@/lib/api-client';

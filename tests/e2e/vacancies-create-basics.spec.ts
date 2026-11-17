@@ -100,11 +100,15 @@ test.describe('leave guard, Recruiter [F9, STORY-VAC-01-1]', () => {
     page,
   }) => {
     await openHydrated(page, '/vacancies/new');
-    await page.getByRole('link', { name: messages.common.cancel }).click();
+    await page
+      .getByRole('link', { name: messages.vacancyForm.actions.leave })
+      .click();
     await expect(page).toHaveURL(/\/vacancies$/);
     await page.goto('/vacancies/new');
     await field(page, t.titleField.label).fill('Незбережена назва');
-    await page.getByRole('link', { name: messages.common.cancel }).click();
+    await page
+      .getByRole('link', { name: messages.vacancyForm.actions.leave })
+      .click();
     const dialog = page.getByRole('alertdialog');
     await expect(
       dialog.getByText(messages.common.leaveTitle, { exact: true }),
@@ -372,7 +376,10 @@ test.describe('create form, Recruiter [STORY-VAC-01-1, STORY-VAC-01-3]', () => {
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     const footer = page.locator('[data-slot="form-page-footer"]');
     const actions = [
-      footer.getByRole('link', { name: messages.common.cancel, exact: true }),
+      footer.getByRole('link', {
+        name: messages.vacancyForm.actions.leave,
+        exact: true,
+      }),
       saveDraft(page),
       publish(page),
     ];

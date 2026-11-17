@@ -19,7 +19,13 @@ function Line({
 }
 
 /** Loading twin of `VacanciesList` (G20): shares the real thead, paddings and line boxes so content replaces it without a shift. */
-export function RowSkeleton({ count = 8 }: { count?: number }) {
+export function RowSkeleton({
+  count = 8,
+  menuColumn = false,
+}: {
+  count?: number;
+  menuColumn?: boolean;
+}) {
   const t = useTranslations('states');
   const rows = Array.from({ length: count }, (_, index) => index);
   return (
@@ -28,7 +34,7 @@ export function RowSkeleton({ count = 8 }: { count?: number }) {
       <div aria-hidden="true">
         <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-sm">
-            <VacanciesTableHead />
+            <VacanciesTableHead menuColumn={menuColumn} />
             <tbody>
               {rows.map((row) => (
                 <tr
@@ -51,9 +57,17 @@ export function RowSkeleton({ count = 8 }: { count?: number }) {
                   <td className="px-4 py-3 xl:max-2xl:hidden">
                     <Line height="h-5" className="w-20" />
                   </td>
-                  <td className="hidden px-2 py-3 xl:table-cell">
-                    <div className="flex size-11 items-center justify-center">
-                      <Skeleton className="size-4" />
+                  <td
+                    className={cn(
+                      'px-2 py-3',
+                      !menuColumn && 'hidden xl:table-cell',
+                    )}
+                  >
+                    <div className="flex items-center justify-end">
+                      <div className="hidden size-11 items-center justify-center xl:flex">
+                        <Skeleton className="size-4" />
+                      </div>
+                      {menuColumn && <div className="size-11 xl:hidden" />}
                     </div>
                   </td>
                 </tr>

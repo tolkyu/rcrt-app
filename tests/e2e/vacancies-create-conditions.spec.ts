@@ -290,9 +290,10 @@ test.describe('group «Умови», Admin [STORY-VAC-01-1, D115, D116]', () => 
     await expect(salaryFrom(page)).toHaveValue(`2${NBSP}500,5`);
     await expect(salaryTo(page)).toHaveValue(`4${NBSP}000`);
     await focused(
-      page
-        .locator('[data-slot="form-page-footer"]')
-        .getByRole('link', { name: messages.common.cancel, exact: true }),
+      page.locator('[data-slot="form-page-footer"]').getByRole('link', {
+        name: messages.vacancyForm.actions.leave,
+        exact: true,
+      }),
     );
     await focused(saveDraft(page));
     await page.keyboard.press('Enter');

@@ -157,3 +157,20 @@ export const VACANCY_FIELD_IDS: Readonly<Record<VacancyFormField, string>> = {
   salaryCurrency: 'vacancy-form-salary-currency',
   probationDays: 'vacancy-form-probation',
 };
+
+/** Keys of `vacancyForm` that name each field in the submit summary; the three salary fields share one label. */
+export const VACANCY_FIELD_LABEL_KEYS = {
+  verticalId: 'vertical.label',
+  positionId: 'position.label',
+  title: 'titleField.label',
+  headcount: 'headcount.label',
+  teamLeadId: 'teamLead.label',
+  seniority: 'seniority.label',
+  workFormat: 'workFormat.label',
+  employmentType: 'employmentType.label',
+  location: 'location.label',
+  salaryMin: 'salary.legend',
+  salaryMax: 'salary.legend',
+  salaryCurrency: 'salary.legend',
+  probationDays: 'probation.label',
+} as const satisfies Record<VacancyFormField, string>;

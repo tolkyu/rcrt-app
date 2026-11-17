@@ -32,7 +32,7 @@ export function StaleAlert({
             <Button
               type="button"
               variant="outline"
-              className="h-11 md:h-10"
+              className="h-11 max-sm:w-full md:h-10"
               aria-disabled={busy || undefined}
               onClick={() => {
                 if (busy) return;

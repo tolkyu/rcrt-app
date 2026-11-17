@@ -204,7 +204,7 @@ export function VacanciesView({
         retrying={query.isFetching}
       />
     ) : (
-      <RowSkeleton />
+      <RowSkeleton menuColumn={canAuthorDrafts} />
     );
   } else if (items.length === 0 && draftsEmpty) {
     body = (

@@ -395,6 +395,8 @@ describe('vacancy read paths cannot bypass the draft rule [D92]', () => {
     'server/db/seed/index.ts',
     'server/events/index.ts',
     'server/repositories/user.ts',
+    // The author-only cancel reason (D123); its caller passes `vacancyEventReadWhere`.
+    'server/repositories/vacancy.ts',
   ];
   const EVENT_TABLE =
     /import\s*\{[^}]*(?:entityEvent|changeFeed)[^}]*\}\s*from\s*'[^']*db\/schema'|schema\.(?:entityEvent|changeFeed)/;

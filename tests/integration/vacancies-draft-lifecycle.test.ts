@@ -14,7 +14,10 @@ import { vacancyEventReadWhere } from '../../server/authz/vacancy-scope';
 import type { RequestContext } from '../../server/context/request-context';
 import type { DbExecutor } from '../../server/db';
 import * as schema from '../../server/db/schema';
-import { countLiveDrafts } from '../../server/repositories/vacancy';
+import {
+  countLiveDrafts,
+  findCancelReason,
+} from '../../server/repositories/vacancy';
 import { listPositionCatalog } from '../../server/services/position';
 import {
   createVacancy,
@@ -964,6 +967,50 @@ describe('Cancel my draft [STORY-VAC-01-3 AC5, D82]', () => {
             who,
           ).not.toContain(created.id);
       }
+    });
+  });
+
+  it('hands the reason back to the user who cancelled, on the cancel answer and on the card, and to no one else [D123]', async () => {
+    await scenario(async (s) => {
+      const created = await saveDraft(s);
+      const ctx = await s.as(roles().recruiter);
+      expect((await getVacancyDetail(ctx, created.id)).cancelReason).toBe(
+        undefined,
+      );
+      const cancelled = await cancelVacancyDraft(ctx, created.id, {
+        reason: '  Потреба\n зникла ',
+      });
+      expect(cancelled.cancelReason).toBe('Потреба\nзникла');
+      expect((await getVacancyDetail(ctx, created.id)).cancelReason).toBe(
+        'Потреба\nзникла',
+      );
+      // The read gate answers 404 for others; the query itself is also keyed on the caller.
+      const other = await addUser(s.tx);
+      const reasonFor = (who: string, auth = ctx.auth) =>
+        findCancelReason(s.tx, created.id, who, vacancyEventReadWhere(auth));
+      expect(await reasonFor(ctx.auth.userId)).toBe('Потреба\nзникла');
+      expect(await reasonFor(other)).toBeNull();
+      const stranger = await s.as(roles().recruiter, { userId: other });
+      expect(await reasonFor(ctx.auth.userId, stranger.auth)).toBeNull();
+      for (const who of ['head', 'admin', 'teamLead', 'hr'] as const) {
+        const reader = await s.as(roles()[who], { userId: other });
+        expect(
+          await problem(getVacancyDetail(reader, created.id)),
+          who,
+        ).toMatchObject({ status: 404 });
+      }
+    });
+  });
+
+  it('never attaches a reason to a draft that was not cancelled or to a published vacancy [D123]', async () => {
+    await scenario(async (s) => {
+      const created = await saveDraft(s, { positionId: world.positions.p1 });
+      const ctx = await s.as(roles().recruiter);
+      const published = await publish(ctx, created.id);
+      expect(published.cancelReason).toBeUndefined();
+      expect(
+        (await getVacancyDetail(ctx, created.id)).cancelReason,
+      ).toBeUndefined();
     });
   });
 

@@ -225,8 +225,13 @@ test.describe('cancel and delete dialogs of own drafts [STORY-VAC-01-1, VAC-01, 
       page.getByText(v.status.CANCELLED, { exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByText(v.draft.privateNote, { exact: true }),
+      page.getByText(v.draft.privateNoteCancelled, { exact: true }),
     ).toBeVisible();
+    // D123: the author reads the reason they gave on the card.
+    await expect(
+      page.getByRole('heading', { name: v.draft.cancelReasonTitle }),
+    ).toBeVisible();
+    await expect(page.getByText('Дубль вакансії')).toBeVisible();
     await expect(
       page.getByRole('button', { name: ta.delete, exact: true }),
     ).toBeVisible();

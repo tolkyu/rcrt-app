@@ -218,6 +218,29 @@ describe('useDraftClose: cancel [ux §6.3, §6.4, D113]', () => {
     ).toBeNull();
   });
 
+  it('the success toast still shows when the cache write throws, and the caches read the server again', async () => {
+    fetchSpy.mockResolvedValueOnce(
+      json(200, detail({ status: 'CANCELLED', version: 4 })),
+    );
+    leave.removed.mockImplementationOnce(() => {
+      throw new Error('cache write failed');
+    });
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+    mount(draft());
+    await userEvent.click(opener('cancel'));
+    fireEvent.change(reasonField(), { target: { value: 'Дубль' } });
+    await userEvent.click(confirmCancel());
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1), {
+      timeout: 3000,
+    });
+    await waitFor(() =>
+      expect(invalidate).toHaveBeenCalledWith({
+        queryKey: queryKeys.vacancy(ID),
+      }),
+    );
+  });
+
   it('a double press sends one request', async () => {
     fetchSpy.mockResolvedValueOnce(json(200, detail({ status: 'CANCELLED' })));
     mount(draft());

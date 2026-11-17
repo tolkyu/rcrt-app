@@ -7,6 +7,13 @@ import {
   type VacancyFormValues,
 } from '@/lib/vacancy-form';
 
+/** `fields` are the invalid ones in form order; `count` is what the announcement says. */
+export interface FieldSummary {
+  count: number;
+  attempt: number;
+  fields: readonly VacancyFormField[];
+}
+
 export const focusField = (field: VacancyFormField) =>
   document.getElementById(VACANCY_FIELD_IDS[field])?.focus();
 
@@ -20,35 +27,39 @@ function focusFirstInvalid(invalid: readonly string[]) {
 export function useFieldSummary(
   subscribe: UseFormReturn<VacancyFormValues>['subscribe'],
 ) {
-  const [summary, setSummary] = useState({ count: 0, attempt: 0 });
+  const [summary, setSummary] = useState<FieldSummary>({
+    count: 0,
+    attempt: 0,
+    fields: [],
+  });
   const [announce, setAnnounce] = useState(true);
+  const clearSummary = useCallback(
+    () =>
+      setSummary((current) =>
+        current.count === 0 ? current : { ...current, count: 0, fields: [] },
+      ),
+    [],
+  );
   useEffect(
     () =>
       subscribe({
         formState: { values: true },
         callback: ({ type }) => {
-          if (type === 'change') {
-            setAnnounce(true);
-          }
-          setSummary((current) =>
-            current.count === 0 ? current : { ...current, count: 0 },
-          );
+          if (type === 'change') setAnnounce(true);
+          clearSummary();
         },
       }),
-    [subscribe],
+    [subscribe, clearSummary],
   );
   const invalidFields = useCallback((invalid: readonly string[]) => {
     setAnnounce(false);
     setSummary((current) => ({
       count: invalid.length,
       attempt: current.attempt + 1,
+      fields: VACANCY_FORM_FIELDS.filter((field) => invalid.includes(field)),
     }));
     focusFirstInvalid(invalid);
   }, []);
-  const clearSummary = useCallback(
-    () => setSummary((current) => ({ ...current, count: 0 })),
-    [],
-  );
   return {
     summary,
     announce,

@@ -454,7 +454,10 @@ export async function cancelVacancyDraft(
       payload: { from: 'DRAFT', to: 'CANCELLED' },
       pii: { reason },
     }),
-    (tx, id) => readVacancy(ctx, tx, id),
+    async (tx, id) => ({
+      ...(await readVacancy(ctx, tx, id)),
+      cancelReason: reason,
+    }),
   );
 }
 

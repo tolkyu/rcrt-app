@@ -41,6 +41,11 @@ describe('position schemas [ADR-013, D76]', () => {
     ['private-use code point', 0xe000],
     ['lone high surrogate', 0xd800],
     ['lone low surrogate', 0xdc00],
+    ['braille pattern blank', 0x2800],
+    ['hangul choseong filler', 0x115f],
+    ['hangul jungseong filler', 0x1160],
+    ['hangul filler', 0x3164],
+    ['halfwidth hangul filler', 0xffa0],
   ])('rejects a %s inside the name', (_label, code) => {
     const result = positionNameSchema.safeParse(`Назва${char(code)}інша`);
     expect(result.success).toBe(false);

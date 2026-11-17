@@ -102,12 +102,12 @@ Hints and helper text (muted, under the control, linked by `aria-describedby`):
 │             │ │ [90         ]  Від 30 до 90 днів. За замовч. — 90│                           │
 │             │ └──────────────────────────────────────────────────┘                           │
 │             │ ┌ footer, sticky bottom 0 (border-top, surface) ────────────────────────────┐ │
-│             │ │ [Скасувати]                        [Зберегти чернетку] [Створити вакансію] │ │
+│             │ │ [Вийти без збереження]                      [Зберегти чернетку] [Створити вакансію] │ │
 │             │ └───────────────────────────────────────────────────────────────────────────┘ │
 └─────────────┴────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Footer: «Скасувати» outline (leaves; dirty → leave guard), «Зберегти чернетку» outline, «Створити вакансію» primary (rightmost, thumb zone). On desktop the cancel stays visually grouped with the others right-aligned (`FormPageFooter` as built: `justify-end`).
+Footer: «Вийти без збереження» outline (D124; leaves; dirty → leave guard), «Зберегти чернетку» outline, «Створити вакансію» primary (rightmost, thumb zone). On desktop the cancel stays visually grouped with the others right-aligned (`FormPageFooter` as built: `justify-end`).
 
 ### Mobile 390, Recruiter, light
 
@@ -143,7 +143,7 @@ Footer: «Скасувати» outline (leaves; dirty → leave guard), «Збе
 │ Вас буде призначено          │
 │ рекрутером на цю вакансію.   │
 ├──────────────────────────────┤  footer sticky above BottomNav (bottom: --chrome-bottom)
-│ [Скасувати][Зберегти чернетку]│  row 1 (flex-1 each)
+│ [Вийти без збер.][Зберегти чернетку]│  row 1 (flex-1 each)
 │ [     Створити вакансію     ]│  row 2, full width (wraps as built)
 ├──────────────────────────────┤
 │ bottom nav                   │
@@ -163,7 +163,7 @@ Footer: «Скасувати» outline (leaves; dirty → leave guard), «Збе
 
 - **Idempotency:** one key per attempt, generated on first click, **reused for a retry of the same payload** (network error/timeout), regenerated when any value changes. A second click on a pending button is ignored: exactly one request.
 - The draft list landing carries `vertical=` so the header preset (D83) cannot hide the new draft.
-- **Leave guard:** `dirty` = any value differs from the initial state; preset vertical and headcount 1 do **not** count, picking a position (which fills the title) does. Covers «Скасувати», back link, sidebar links, browser Back, tab close (F9b). Dialog «Вийти без збереження?» (existing copy). After a successful save always `release()` before `router.replace`.
+- **Leave guard:** `dirty` = any value differs from the initial state; preset vertical and headcount 1 do **not** count, picking a position (which fills the title) does. Covers «Вийти без збереження», back link, sidebar links, browser Back, tab close (F9b). Dialog «Вийти без збереження?» (existing copy). After a successful save always `release()` before `router.replace`.
 - **Validation failure:** `FormError` «Виправте N поля/полів» announced once (`role="alert"`), focus to the first invalid field, per-field errors inline (icon + text). Fields that are only invalid for publication are not flagged on «Зберегти чернетку».
 
 ### 4.1 Field errors (Zod/API code → Ukrainian)
@@ -250,7 +250,7 @@ Same form and components, differences only:
 
 Own **cancelled never-opened draft** (`status = CANCELLED` and `openedAt = null`; such a row can only be the viewer's own cancelled draft) under «Скасовані»: neutral «Скасована» badge, menu = «Відкрити картку» · ─ · «Видалити…». No edit/publish/cancel.
 
-Naming: the footer button «Скасувати» means «leave the form»; the menu/dialog action is therefore **«Скасувати вакансію…»** (S-06 already uses it), with the dialog buttons «Скасувати вакансію» / «Залишити чернетку». Never a bare «Скасувати…» next to «Скасувати».
+Naming: the footer button «Вийти без збереження» (D124, was «Скасувати») leaves the form; the menu/dialog action is therefore **«Скасувати вакансію…»** (S-06 already uses it), with the dialog buttons «Скасувати вакансію» / «Залишити чернетку». Never a bare «Скасувати…».
 
 ### 6.2 Preview panel (≥ 1280) and card (`/vacancies/[id]`, mobile)
 
@@ -340,7 +340,7 @@ Publishing from a row needs the draft `version`: use the cached detail (the row 
 
 ## 8. Accessibility and keyboard
 
-- Tab order: back link → Вертикаль → Посада → Назва → Кількість → Терміновість (one tab stop, arrows move) → Тімлід → Рівень → Формат → Зайнятість → Локація → Від → До → Валюта → [Випробувальний] → «Скасувати» → «Зберегти чернетку» → «Створити вакансію». Rail is not focusable.
+- Tab order: back link → Вертикаль → Посада → Назва → Кількість → Терміновість (one tab stop, arrows move) → Тімлід → Рівень → Формат → Зайнятість → Локація → Від → До → Валюта → [Випробувальний] → «Вийти без збереження» → «Зберегти чернетку» → «Створити вакансію». Rail is not focusable.
 - Labels always visible; `*` + sr-only «(обовʼязкове)» (`FormField`); errors `aria-describedby` + `aria-invalid`; summary `role="alert"` once per failed submit; first invalid field focused and scrolled with `scroll-margin` above the sticky footer.
 - Combobox follows APG (existing); Esc closes the popup first, never leaves the page; Select type-ahead works in Ukrainian.
 - Disabled-with-reason controls stay focusable (`aria-disabled`); on touch the reason is visible text.

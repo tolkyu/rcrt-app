@@ -117,7 +117,15 @@ export function VacancyOverview({
             <VacancyFlags vacancy={vacancy} />
           </>
         }
-        note={privateDraft ? t('draft.privateNote') : undefined}
+        note={
+          privateDraft
+            ? t(
+                vacancy.status === 'CANCELLED'
+                  ? 'draft.privateNoteCancelled'
+                  : 'draft.privateNote',
+              )
+            : undefined
+        }
         actionsRef={actionsRef}
         actions={
           <>
@@ -163,6 +171,21 @@ export function VacancyOverview({
             {path}
           </a>
         </div>
+      )}
+      {vacancy.cancelReason && (
+        <section
+          aria-labelledby={`vacancy-cancel-${preview ? 'preview' : 'detail'}`}
+        >
+          <Heading
+            id={`vacancy-cancel-${preview ? 'preview' : 'detail'}`}
+            className="mb-2 text-sm font-semibold"
+          >
+            {t('draft.cancelReasonTitle')}
+          </Heading>
+          <p className="text-foreground bg-surface-muted rounded-lg p-3 text-sm [overflow-wrap:anywhere] whitespace-pre-line">
+            {vacancy.cancelReason}
+          </p>
+        </section>
       )}
       <section
         aria-labelledby={`vacancy-team-${preview ? 'preview' : 'detail'}`}

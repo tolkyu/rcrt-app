@@ -27,7 +27,8 @@ export function FormAlert({
     >
       <CircleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
       <span className="min-w-0 flex-1">{children}</span>
-      {action}
+      {/* On a phone the action takes its own row, aligned with the text, so the message keeps the full width. */}
+      {action && <div className="max-sm:basis-full max-sm:pl-6">{action}</div>}
     </div>
   );
 }

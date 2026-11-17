@@ -3,7 +3,7 @@ import { publishBlocker } from '@/lib/vacancy-publish-rule';
 
 export const vacancyEditHref = (id: string) => `/vacancies/${id}/edit`;
 
-/** A draft, or a draft its author cancelled before it ever opened (D92, D112): only the author can open it, so nothing about it can be shared. Client twin of `isNeverOpenedCancelled` in `server/authz/vacancy-author.ts` (SQL twin: `server/authz/vacancy-scope.ts`); a unit test compares them. */
+/** Client twin of `isNeverOpenedCancelled` (server/authz/vacancy-author.ts); a unit test compares them. */
 export const isPrivateDraft = (
   vacancy: Pick<VacancySummary, 'status' | 'openedAt'>,
 ): boolean =>

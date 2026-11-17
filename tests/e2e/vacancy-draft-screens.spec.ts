@@ -45,6 +45,7 @@ async function shoot(
   role: string,
   state: string,
   theme: string,
+  realViewport = false,
 ) {
   if (await page.getByRole('menu').count()) {
     const result = await new AxeBuilder({ page })
@@ -59,6 +60,8 @@ async function shoot(
     info,
     `41-${role}-vacancy-form-${state}-${viewportOf(info)}-${theme}.png`,
     'phase-2',
+    // Toasts and small-screen states are judged at the real screen height, not at a page-tall viewport.
+    { deviceViewport: realViewport },
   );
 }
 
@@ -183,7 +186,7 @@ for (const { user, role } of AUTHORS) {
             .getByRole('alert')
             .filter({ hasText: te.toast.staleDescription }),
         ).toBeVisible();
-        await shoot(page, info, role, 'edit-stale', theme);
+        await shoot(page, info, role, 'edit-stale', theme, true);
       });
     });
 
@@ -238,6 +241,7 @@ for (const { user, role } of AUTHORS) {
     if (role === 'recruiter')
       test('long title, pending cancel and cancelled draft deletion', async ({
         page,
+        isMobile,
       }, info) => {
         test.setTimeout(180_000);
         const title =
@@ -247,11 +251,30 @@ for (const { user, role } of AUTHORS) {
         const fixed = await prepare(page, draft, { title });
         await forEachTheme(page, async (theme) => {
           fixed.status = 'DRAFT';
+          delete fixed.cancelReason;
           await openHydrated(page, `/vacancies/${draft.id}`);
           await cardMenuButton(page, title).click();
           await menuItem(page, ta.cancel).click();
           await expect(cancelDialog(page)).toContainText(title);
           await shoot(page, info, role, 'cancel-long-title', theme);
+          if (isMobile) {
+            // 320 px: the description is clamped and both buttons stay on screen without scrolling the sheet.
+            const original = page.viewportSize()!;
+            await page.setViewportSize({ width: 320, height: 568 });
+            const dialog = cancelDialog(page);
+            await reasonBox(page).fill('a'.repeat(450));
+            for (const name of [tc.cancel.keep, tc.cancel.confirm]) {
+              const box = await dialog
+                .getByRole('button', { name })
+                .boundingBox();
+              expect(box, name).not.toBeNull();
+              expect(box!.y + box!.height, name).toBeLessThanOrEqual(568);
+              expect(box!.x + box!.width, name).toBeLessThanOrEqual(320);
+            }
+            await shoot(page, info, role, 'cancel-long-title-320', theme, true);
+            await page.setViewportSize(original);
+            await reasonBox(page).fill('');
+          }
           await reasonBox(page).fill(
             'Найм призупинено до затвердження бюджету.',
           );
@@ -283,6 +306,7 @@ for (const { user, role } of AUTHORS) {
             .getByRole('button', { name: tc.cancel.keep })
             .click();
           fixed.status = 'CANCELLED';
+          fixed.cancelReason = 'Найм призупинено до затвердження бюджету.';
           await openHydrated(page, `/vacancies/${draft.id}`);
           await page
             .getByRole('button', { name: ta.delete, exact: true })

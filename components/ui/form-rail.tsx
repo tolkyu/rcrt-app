@@ -7,7 +7,7 @@ export const FORM_COLUMN_WIDTH = 'max-w-[45rem]';
 export function FormRailFrame({ children }: { children: ReactNode }) {
   return (
     <div className="@container">
-      <div className={`${FORM_COLUMN_WIDTH} @min-[67rem]:max-w-[72rem]`}>
+      <div className={`${FORM_COLUMN_WIDTH} @min-[67rem]:max-w-[67rem]`}>
         {children}
       </div>
     </div>

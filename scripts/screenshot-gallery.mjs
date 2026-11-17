@@ -462,6 +462,10 @@ const groups2 = [
       ['cancel-max-reason', 'Скасування — причина на межі 500 символів'],
       ['cancel-stale', 'Скасування — дані вже змінилися'],
       ['cancel-long-title', 'Скасування — назва на межі 200 символів'],
+      [
+        'cancel-long-title-320',
+        'Скасування — назва на межі 200 символів, екран 320 px',
+      ],
       ['cancel-pending', 'Скасування — очікування відповіді'],
       ['delete-draft', 'Видалення чернетки'],
       ['delete-cancelled', 'Видалення скасованої чернетки'],
@@ -470,6 +474,9 @@ const groups2 = [
       file: `41-recruiter-vacancy-form-${state}`,
       heading: title,
       dir: VAC,
+      ...(state.endsWith('-320')
+        ? { variants: ['mobile-light', 'mobile-dark'] }
+        : {}),
     })),
   },
   ...[

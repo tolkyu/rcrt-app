@@ -13,7 +13,7 @@ import {
   vacancyEditHref,
   type DraftActions,
 } from '@/lib/vacancy-draft-actions';
-import { closeActions, useDraftClose } from './use-draft-close';
+import { closeActions, openCardAction, useDraftClose } from './use-draft-close';
 import { preloadDraftPublish, useDraftPublish } from './use-draft-publish';
 
 /** The menu of an own draft row; its own chunk, so the list's initial JavaScript carries none of the publish, cancel or delete code (PERF-04). */
@@ -40,7 +40,7 @@ export default function DraftMenu({
     preloadDraftPublish();
   };
   const actions: RowAction[] = [
-    ...(plan.stage === 'DRAFT'
+    ...(draft
       ? [
           {
             id: 'edit',
@@ -56,13 +56,7 @@ export default function DraftMenu({
               : undefined,
           },
         ]
-      : [
-          {
-            id: 'open',
-            label: t('openCard'),
-            onSelect: () => router.push(`/vacancies/${vacancy.id}`),
-          },
-        ]),
+      : [openCardAction(t, () => router.push(`/vacancies/${vacancy.id}`))]),
     ...closeActions(t, openDialog, plan.stage),
   ];
   return (

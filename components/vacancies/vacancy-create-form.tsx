@@ -3,7 +3,6 @@
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, type KeyboardEvent } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { FormError } from '@/components/ui/form-error';
 import { FormPageLayout } from '@/components/ui/form-page-layout';
 import { FormRailLayout } from '@/components/ui/form-rail';
 import type { LeaveGuardHandle } from '@/components/ui/use-leave-guard';
@@ -16,6 +15,7 @@ import { useCreateVacancy } from '@/components/vacancies/use-create-vacancy';
 import { useVacancyErrorText } from '@/components/vacancies/use-vacancy-error-text';
 import { useVacancyResolver } from '@/components/vacancies/use-vacancy-resolver';
 import { VacancyBasicsGroup } from '@/components/vacancies/vacancy-basics-group';
+import { VacancyFormError } from '@/components/vacancies/vacancy-form-error';
 import { useVacancyPickers } from '@/components/vacancies/use-vacancy-pickers';
 import { VacancyConditionsGroup } from '@/components/vacancies/vacancy-conditions-group';
 import {
@@ -156,7 +156,7 @@ export function VacancyCreateForm({
           />
         }
       >
-        <FormError count={summary.count} attempt={summary.attempt} />
+        <VacancyFormError summary={summary} />
         <VacancyBasicsGroup
           control={control}
           register={register}

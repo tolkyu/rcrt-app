@@ -41,7 +41,7 @@ export function FormField({
   required?: boolean;
   hint?: ReactNode;
   error?: ReactNode;
-  counter?: { count: number; max: number };
+  counter?: { count: number; max: number; warnFrom?: number };
   layout?: 'stacked' | 'inline' | 'group';
   announce?: boolean;
   className?: string;
@@ -118,6 +118,7 @@ export function FormField({
             id={counterId}
             count={counter.count}
             max={counter.max}
+            warnFrom={counter.warnFrom}
             className="mt-1.5 shrink-0"
           />
         )}

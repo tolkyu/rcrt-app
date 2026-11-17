@@ -72,6 +72,9 @@ describe('create vacancy contract [VAC-01, D89]', () => {
     ['NUL', 'Назва\u0000'],
     ['zero-width space', 'Мед​іабаєр'],
     ['bidi override', '‮Назва'],
+    ['braille blank', 'Назва⠀'],
+    ['hangul filler', 'ㅤНазва'],
+    ['halfwidth hangul filler', 'Наﾠзва'],
     ['too long', 'Я'.repeat(VACANCY_TITLE_MAX + 1)],
   ])('refuses a title with %s', (_name, title) => {
     expect(valid({ ...publish, title })).toBe(false);

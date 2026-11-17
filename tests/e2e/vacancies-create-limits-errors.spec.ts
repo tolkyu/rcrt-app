@@ -135,7 +135,10 @@ test.describe('50-draft limit on «Зберегти чернетку» [D98, ux 
     await revalidateCount(page);
     const footer = page.locator('[data-slot="form-page-footer"]');
     await footer
-      .getByRole('link', { name: messages.common.cancel, exact: true })
+      .getByRole('link', {
+        name: messages.vacancyForm.actions.leave,
+        exact: true,
+      })
       .focus();
     await page.keyboard.press('Tab');
     await expect(saveDraft(page)).toBeFocused();

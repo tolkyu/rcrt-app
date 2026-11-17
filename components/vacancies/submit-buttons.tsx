@@ -31,13 +31,13 @@ export function SubmitButtons({
   /** The create form explains a disabled save here. */
   wrapSecondary?: (button: ReactElement<ButtonProps>) => ReactElement;
 }) {
-  const tCommon = useTranslations('common');
+  const t = useTranslations('vacancyForm.actions');
   const blocked = (mode: VacancyFormMode) =>
     (pendingMode !== null && pendingMode !== mode) || locked || undefined;
   return (
     <>
       <Button asChild variant="outline" className="h-11 md:h-10">
-        <Link href={listHref}>{tCommon('cancel')}</Link>
+        <Link href={listHref}>{t('leave')}</Link>
       </Button>
       {wrapSecondary(
         <Button

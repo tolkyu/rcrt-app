@@ -41,13 +41,15 @@ for (const { user, role } of AUTHORS) {
       test.setTimeout(180_000);
       await installFixedClock(page);
       await page.emulateMedia({ reducedMotion: 'reduce' });
-      const shoot = async (state: string, theme: string) => {
+      // Toasts are judged against the pinned footer, so their capture keeps the real screen height.
+      const shoot = async (state: string, theme: string, toast = false) => {
         await checkAccessibility(page, testInfo);
         await captureScreen(
           page,
           testInfo,
           `40-${role}-vacancy-form-${state}-${viewportOf(testInfo)}-${theme}.png`,
           'phase-2',
+          { deviceViewport: toast },
         );
       };
       await forEachTheme(page, async (theme) => {
@@ -86,7 +88,7 @@ for (const { user, role } of AUTHORS) {
         );
         await saveDraft(page).click();
         await expect(page.getByText(t.toast.rateLimited).first()).toBeVisible();
-        await shoot('rate-limited', theme);
+        await shoot('rate-limited', theme, true);
         await page.unroute(CREATE_URL);
       });
     });
@@ -115,5 +117,47 @@ for (const { user, role } of AUTHORS) {
         );
       });
     });
+
+    if (role === 'recruiter')
+      test('the footer labels fit and the summary links reach the field at 320, 360 and 390 px [D124, ux 7]', async ({
+        page,
+        isMobile,
+      }) => {
+        test.skip(!isMobile, 'a phone layout');
+        for (const width of [320, 360, 390]) {
+          await page.setViewportSize({ width, height: 700 });
+          await openHydrated(
+            page,
+            `/vacancies/new?vertical=${DEMO_VERTICALS.gambling}`,
+          );
+          await publish(page).click();
+          const link = page
+            .locator('[data-slot="form-error"] + ul')
+            .getByRole('link', { name: t.position.label });
+          await expect(link, `${width}px`).toBeVisible();
+          await link.click();
+          await expect(position(page), `${width}px`).toBeFocused();
+          const footer = page.locator('[data-slot="form-page-footer"] > *');
+          const fits = await footer.evaluateAll(
+            (items, viewport) =>
+              items.map((item) => {
+                const box = item.getBoundingClientRect();
+                return (
+                  box.left >= 0 &&
+                  box.right <= viewport &&
+                  item.scrollWidth <= item.clientWidth + 1
+                );
+              }),
+            width,
+          );
+          expect(fits, `${width}px`).toEqual([true, true, true]);
+          expect(
+            await page.evaluate(
+              () => document.documentElement.scrollWidth <= window.innerWidth,
+            ),
+            `${width}px`,
+          ).toBe(true);
+        }
+      });
   });
 }

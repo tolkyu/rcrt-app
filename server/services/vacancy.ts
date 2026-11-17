@@ -25,11 +25,13 @@ import type { UserId, VerticalId } from '../authz/types';
 import {
   authorsAnywhere,
   grantCovers,
+  isNeverOpenedCancelled,
   vacancyAuthorKind,
   type VacancyAuthorKind,
 } from '../authz/vacancy-author';
 import {
   findVisibleVacancyOrThrow,
+  vacancyEventReadWhere,
   vacancyListWhere,
   vacancyReadWhere,
 } from '../authz/vacancy-scope';
@@ -51,6 +53,7 @@ import { verticalExists } from '../repositories/vertical';
 import {
   countLiveDrafts,
   countVacancies,
+  findCancelReason,
   findVacancy,
   insertVacancy,
   insertVacancyRecruiter,
@@ -140,7 +143,16 @@ export async function getVacancyDetail(
   requirePermission(ctx.auth, 'vacancy.read');
   const id = uuidOf(rawId);
   if (!id) throw new NotFoundError();
-  return readVacancy(ctx, ctx.db, id);
+  const view = await readVacancy(ctx, ctx.db, id);
+  if (!isNeverOpenedCancelled(view.status, view.openedAt === null)) return view;
+  // D123: only the user who cancelled the draft reads the reason; the query is keyed on the caller, not on role.
+  const cancelReason = await findCancelReason(
+    ctx.db,
+    id,
+    ctx.auth.userId,
+    vacancyEventReadWhere(ctx.auth),
+  );
+  return cancelReason === null ? view : { ...view, cancelReason };
 }
 
 const CREATE_OPERATION = 'vacancy.create';

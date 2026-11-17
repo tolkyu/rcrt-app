@@ -142,7 +142,11 @@ const type = (field: keyof VacancyFormValues, value: string) =>
 const lastToast = (kind: 'error' | 'warning' | 'success') =>
   toast[kind].mock.calls.at(-1) as [
     string,
-    { action?: { label: string; onAction: () => void }; id?: string },
+    {
+      action?: { label: string; onAction: () => void };
+      id?: string;
+      description?: string;
+    },
   ];
 
 beforeEach(() => {
@@ -197,6 +201,8 @@ describe('useEditVacancy: what the form does after each answer [S3.3 review]', (
     await press('DRAFT');
     await waitFor(() => expect(current().edit.stale).toBe(true));
     expect(lastToast('warning')[1].id).toBe(`stale:vacancy:${ID}`);
+    // The alert above the form carries the explanation; the toast is the title alone.
+    expect(lastToast('warning')[1].description).toBeUndefined();
     expect(current().form.getValues('location')).toBe('Харків');
 
     answers(json(200, draft({ location: 'Одеса', version: 6 })));

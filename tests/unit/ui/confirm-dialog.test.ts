@@ -97,6 +97,57 @@ describe('ConfirmDialog [UI foundation F8, G16]', () => {
     expect(confirm().classList.contains('bg-destructive')).toBe(false);
   });
 
+  it('keeps the danger fill while pending, and the blocker is visible text on every device', () => {
+    mount({ tone: 'destructive', pending: true });
+    const classes = confirm().className;
+    expect(classes).toContain('aria-disabled:bg-destructive');
+    expect(classes).toContain('aria-disabled:text-white');
+    cleanup();
+    mount({ ...withReason });
+    const hint = document.getElementById(
+      confirm().getAttribute('aria-describedby') ?? '',
+    )!;
+    expect(hint.textContent).toBe(REQUIRED);
+    expect(hint.className).not.toContain('sr-only');
+  });
+
+  it('clamps a long description to three lines and keeps the full text in its title', () => {
+    const long = `V-0001 · ${'Д'.repeat(200)}`;
+    mount({ description: long, clampDescription: true });
+    const description = document.querySelector(
+      '[data-slot="alert-dialog-description"]',
+    )!;
+    expect(description.classList.contains('line-clamp-3')).toBe(true);
+    expect(description.getAttribute('title')).toBe(long);
+    cleanup();
+    mount({ description: long });
+    const plain = document.querySelector(
+      '[data-slot="alert-dialog-description"]',
+    )!;
+    expect(plain.classList.contains('line-clamp-3')).toBe(false);
+    expect(plain.hasAttribute('title')).toBe(false);
+  });
+
+  it('turns the counter into a warning from 90% of the limit and says when the limit is reached', () => {
+    mount({ reason: { label: LABEL, maxLength: 10 } });
+    const counter = () =>
+      document.querySelector<HTMLElement>('[data-slot="counter"]')!;
+    fireEvent.change(reasonField(), { target: { value: 'абвгдеж' } });
+    expect(counter().hasAttribute('data-warn')).toBe(false);
+    fireEvent.change(reasonField(), { target: { value: 'абвгдежзі' } });
+    expect(counter().hasAttribute('data-warn')).toBe(true);
+    expect(counter().querySelector('.sr-only')?.textContent).toBe(
+      'Символів: 9 із 10',
+    );
+    fireEvent.change(reasonField(), { target: { value: 'абвгдежзій' } });
+    expect(counter().querySelector('.sr-only')?.textContent).toBe(
+      'Символів: 10 із 10, ліміт досягнуто',
+    );
+    fireEvent.change(reasonField(), { target: { value: 'абвгдежзійк' } });
+    expect(counter().hasAttribute('data-over')).toBe(true);
+    expect(counter().hasAttribute('data-warn')).toBe(false);
+  });
+
   it('confirms at once without a reason field', async () => {
     const { onConfirm } = mount();
     await userEvent.click(confirm());
@@ -131,6 +182,7 @@ describe('ConfirmDialog [UI foundation F8, G16]', () => {
       ['spaces and line breaks', '   \n  \n '],
       ['zero-width characters', '\u200B\u200D\uFEFF'],
       ['non-breaking spaces', '\u00A0\u00A0'],
+      ['braille blank and hangul fillers', '\u2800\u115F\u1160\u3164\uFFA0'],
     ])('stays blocked for %s only', async (_name, value) => {
       const { onConfirm } = mount(withReason);
       fireEvent.change(reasonField(), { target: { value } });

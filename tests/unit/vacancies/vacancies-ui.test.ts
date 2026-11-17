@@ -378,6 +378,35 @@ describe('VacancyOverview [STORY-VAC-04-2, UI-09]', () => {
     ).toMatch(/^\/vacancies\//);
   });
 
+  it('shows the cancel reason of an own cancelled draft with its short caption, and nothing without a reason [D123]', () => {
+    const cancelled = detail({
+      status: 'CANCELLED',
+      openedAt: null,
+      cancelReason: 'Потреба зникла\nПовернемось пізніше',
+    });
+    mount(createElement(VacancyOverview, { vacancy: cancelled }));
+    expect(
+      screen.getByRole('heading', {
+        name: messages.vacancies.draft.cancelReasonTitle,
+      }),
+    ).toBeTruthy();
+    expect(screen.getByText(/Потреба зникла/).textContent).toBe(
+      'Потреба зникла\nПовернемось пізніше',
+    );
+    expect(
+      screen.getByText(messages.vacancies.draft.privateNoteCancelled),
+    ).toBeTruthy();
+    cleanup();
+    mount(
+      createElement(VacancyOverview, {
+        vacancy: { ...cancelled, cancelReason: undefined },
+      }),
+    );
+    expect(
+      screen.queryByText(messages.vacancies.draft.cancelReasonTitle),
+    ).toBeNull();
+  });
+
   it('copies the absolute detail link and confirms it', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  hasVisibleChar,
   normalizePositionName,
   positionNameKey,
   positionNameProblem,
@@ -75,6 +76,20 @@ describe('client name check mirrors the shared schema [ADR-013]', () => {
     expect(positionNameProblem(`Лід${char(0x202e)}`)).toBe('invalid');
     expect(positionNameProblem(`Лід${char(0)}`)).toBe('invalid');
   });
+
+  it.each([0x2800, 0x115f, 0x1160, 0x3164, 0xffa0])(
+    'rejects the blank filler U+%s',
+    (code) => {
+      expect(positionNameProblem(`Лід${char(code)}`)).toBe('invalid');
+      expect(hasVisibleChar(char(code))).toBe(false);
+    },
+  );
+
+  it('keeps emoji and ordinary text visible', () => {
+    expect(hasVisibleChar('а')).toBe(true);
+    expect(hasVisibleChar(String.fromCodePoint(0x1f680))).toBe(true);
+    expect(hasVisibleChar(` ${char(0x200b)}${char(0x2800)} `)).toBe(false);
+  });
 });
 
 describe('client check and schema agree on every kind of input [ADR-013, SEC-POS-01]', () => {
@@ -100,6 +115,8 @@ describe('client check and schema agree on every kind of input [ADR-013, SEC-POS
     ['bidi override', `Лід${char(0x202e)}`],
     ['lone high surrogate', `Лід${char(0xd800)}`],
     ['lone low surrogate', `${char(0xdc00)}Лід`],
+    ['braille blank', `Лід${char(0x2800)}`],
+    ['hangul filler', `${char(0x3164)}Лід`],
     ['modifier apostrophe', `П${char(0x02bc)}ятниця`],
     ['straight apostrophe', "П'ятниця"],
     ['NFC й', char(0x0439, 0x0439)],

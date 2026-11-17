@@ -1065,7 +1065,8 @@
           },
           "probationDays": { "type": "integer", "minimum": 30, "maximum": 90 },
           "recruiterInitiated": { "type": "boolean" },
-          "version": { "type": "integer", "exclusiveMinimum": 0 }
+          "version": { "type": "integer", "exclusiveMinimum": 0 },
+          "cancelReason": { "type": "string" }
         },
         "required": [
           "id",

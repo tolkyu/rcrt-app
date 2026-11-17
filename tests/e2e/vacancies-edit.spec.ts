@@ -148,7 +148,10 @@ test.describe('editing an own draft [STORY-VAC-01-1, VAC-01, D92]', () => {
     await expect(teamLead(page)).toHaveCount(0);
     await expect(page.getByText(probationReadOnly)).toBeVisible();
     await expect(
-      page.getByRole('link', { name: messages.common.cancel, exact: true }),
+      page.getByRole('link', {
+        name: messages.vacancyForm.actions.leave,
+        exact: true,
+      }),
     ).toBeVisible();
     await expect(saveEdit(page)).toBeVisible();
     await expect(publishEdit(page)).toBeVisible();
@@ -556,7 +559,10 @@ test.describe('editing an own draft [STORY-VAC-01-1, VAC-01, D92]', () => {
     const typed = field(page, t.location.label);
     await typed.fill('Харків');
     await page
-      .getByRole('link', { name: messages.common.cancel, exact: true })
+      .getByRole('link', {
+        name: messages.vacancyForm.actions.leave,
+        exact: true,
+      })
       .click();
     const dialog = page.getByRole('alertdialog');
     await expect(dialog).toContainText(messages.common.leaveTitle);

@@ -35,8 +35,20 @@ describe('hasOnlyReasonChars [D113]', () => {
     ['bidi override', 'а‮б', false],
     ['private use', 'аб', false],
     ['lone surrogate', 'а\uD800б', false],
+    ['braille pattern blank', 'а⠀б', false],
+    ['hangul choseong filler', 'аᅟб', false],
+    ['hangul jungseong filler', 'аᅠб', false],
+    ['hangul filler', 'аㅤб', false],
+    ['halfwidth hangul filler', 'аﾠб', false],
   ])('%s', (_name, input, expected) => {
     expect(hasOnlyReasonChars(input)).toBe(expected);
+  });
+});
+
+describe('cancelVacancySchema refuses blank fillers [D113]', () => {
+  it.each(['⠀', 'ㅤㅤ', 'аﾠ'])('%j', (reason) => {
+    const result = cancelVacancySchema.safeParse({ reason });
+    expect(result.success).toBe(false);
   });
 });
 

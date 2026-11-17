@@ -25,6 +25,11 @@ import type { CardFocus } from './use-draft-publish';
 
 type Translate = ReturnType<typeof useTranslations<'vacancies'>>;
 
+export const openCardAction = (
+  t: Translate,
+  openCard: () => void,
+): RowAction => ({ id: 'open', label: t('openCard'), onSelect: openCard });
+
 /** Cancel (a draft only) and delete as menu items; destructive, so the menu puts them after a separator. */
 export function closeActions(
   t: Translate,
@@ -63,11 +68,7 @@ const failureText = (t: Translate, failure: CloseFailure): string => {
   }
 };
 
-/**
- * Both destructive dialogs of an own draft (spec §6.3). Pessimistic on purpose: the answer decides where the row goes
- * («Скасовані» or nowhere). The dialog closes first and the row leaves after its close event, so the dialog's focus
- * trap never fights the focus and selection move that follows.
- */
+/** Pessimistic on purpose, and the row leaves only after the dialog's close event, so its focus trap never fights the focus move. */
 export function useDraftClose(draft: ClosableDraft, card?: CardFocus) {
   const t = useTranslations('vacancies');
   const router = useRouter();
@@ -103,11 +104,15 @@ export function useDraftClose(draft: ClosableDraft, card?: CardFocus) {
     vacancy: Parameters<typeof applyClosed>[2],
   ) {
     try {
-      await applyClosed(queryClient, draft, vacancy, () => {
-        if (!leave?.removed(draft.id) && done === 'cancel') card?.removed();
-      });
-      leave?.settled(draft.id);
-      announceClosed(t, done, draft);
+      try {
+        await applyClosed(queryClient, draft, vacancy, () => {
+          if (!leave?.removed(draft.id) && done === 'cancel') card?.removed();
+        });
+        leave?.settled(draft.id);
+      } finally {
+        // The server already did the work: the user hears it even when the cache write fails.
+        announceClosed(t, done, draft);
+      }
       if (done === 'delete' && !leave && mounted.current)
         router.replace(closedLandingHref(draft));
     } catch {
@@ -216,6 +221,7 @@ export function useDraftClose(draft: ClosableDraft, card?: CardFocus) {
         number: draft.number,
         title: draft.title,
       })}
+      clampDescription
       consequence={
         cancelling
           ? [

@@ -4,7 +4,6 @@ import { useTranslations } from 'next-intl';
 import { useRef, type KeyboardEvent } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import type { ComboboxOption } from '@/components/ui/combobox';
-import { FormError } from '@/components/ui/form-error';
 import { FormPageLayout } from '@/components/ui/form-page-layout';
 import { FormRailLayout } from '@/components/ui/form-rail';
 import type { LeaveGuardHandle } from '@/components/ui/use-leave-guard';
@@ -24,6 +23,7 @@ import { useVacancyPickers } from '@/components/vacancies/use-vacancy-pickers';
 import { useVacancyResolver } from '@/components/vacancies/use-vacancy-resolver';
 import { VacancyBasicsGroup } from '@/components/vacancies/vacancy-basics-group';
 import { VacancyConditionsGroup } from '@/components/vacancies/vacancy-conditions-group';
+import { VacancyFormError } from '@/components/vacancies/vacancy-form-error';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
 import { vacancyFormValues } from '@/lib/vacancy-edit-form';
 import {
@@ -163,7 +163,7 @@ export function VacancyEditForm({
             onReload={() => void edit.reloadLatest()}
           />
         )}
-        <FormError count={edit.summary.count} attempt={edit.summary.attempt} />
+        <VacancyFormError summary={edit.summary} />
         <VacancyBasicsGroup
           control={control}
           register={register}

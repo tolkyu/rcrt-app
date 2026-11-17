@@ -89,7 +89,7 @@ export const VacanciesList = memo(function VacanciesList({
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <caption className="sr-only">{t('caption')}</caption>
-          <VacanciesTableHead />
+          <VacanciesTableHead menuColumn={canAuthorDrafts} />
           <tbody>
             {items.map((vacancy) => {
               const selected = wide && vacancy.id === selectedId;
@@ -105,28 +105,22 @@ export const VacanciesList = memo(function VacanciesList({
                   )}
                 >
                   <th scope="row" className="px-4 py-3 text-left font-normal">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                          <Link
-                            href={`/vacancies/${vacancy.id}`}
-                            prefetch={false}
-                            data-vacancy-link={vacancy.id}
-                            className="text-foreground inline-flex min-h-6 rounded-sm font-semibold [overflow-wrap:anywhere] hover:underline"
-                          >
-                            {vacancy.title}
-                          </Link>
-                          <VacancyFlags vacancy={vacancy} />
-                        </div>
-                        <span className="text-muted-foreground text-xs tabular-nums">
-                          {vacancy.number}
-                          <MissingPosition vacancy={vacancy} />
-                        </span>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <Link
+                          href={`/vacancies/${vacancy.id}`}
+                          prefetch={false}
+                          data-vacancy-link={vacancy.id}
+                          className="text-foreground inline-flex min-h-6 rounded-sm font-semibold [overflow-wrap:anywhere] hover:underline"
+                        >
+                          {vacancy.title}
+                        </Link>
+                        <VacancyFlags vacancy={vacancy} />
                       </div>
-                      <DraftRowMenu
-                        vacancy={vacancy}
-                        canAuthorDrafts={canAuthorDrafts}
-                      />
+                      <span className="text-muted-foreground text-xs tabular-nums">
+                        {vacancy.number}
+                        <MissingPosition vacancy={vacancy} />
+                      </span>
                     </div>
                   </th>
                   <td className="px-4 py-3 break-words">
@@ -144,19 +138,32 @@ export const VacanciesList = memo(function VacanciesList({
                       draft={vacancy.status === 'DRAFT'}
                     />
                   </td>
-                  <td className="hidden px-2 py-3 xl:table-cell">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="size-11"
-                      aria-pressed={selected}
-                      aria-label={t('previewSelect', { title: vacancy.title })}
-                      onClick={() => onSelect(vacancy.id)}
-                      onPointerEnter={() => onPreviewIntent(vacancy.id)}
-                      onFocus={() => onPreviewIntent(vacancy.id)}
-                    >
-                      <PanelRight aria-hidden="true" />
-                    </Button>
+                  <td
+                    className={cn(
+                      'px-2 py-3',
+                      !canAuthorDrafts && 'hidden xl:table-cell',
+                    )}
+                  >
+                    <div className="flex items-center justify-end gap-1">
+                      <DraftRowMenu
+                        vacancy={vacancy}
+                        canAuthorDrafts={canAuthorDrafts}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="hidden size-11 xl:inline-flex"
+                        aria-pressed={selected}
+                        aria-label={t('previewSelect', {
+                          title: vacancy.title,
+                        })}
+                        onClick={() => onSelect(vacancy.id)}
+                        onPointerEnter={() => onPreviewIntent(vacancy.id)}
+                        onFocus={() => onPreviewIntent(vacancy.id)}
+                      >
+                        <PanelRight aria-hidden="true" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -207,7 +214,7 @@ export const VacanciesList = memo(function VacanciesList({
               <VacancyFlags vacancy={vacancy} />
             </div>
             <p className="flex flex-wrap gap-x-1 text-sm">
-              <span className="text-muted-foreground">
+              <span className="text-muted-foreground after:ml-1 after:content-['·']">
                 {t('columns.teamLead')}
               </span>
               <TeamLead vacancy={vacancy} />

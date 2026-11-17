@@ -84,6 +84,13 @@ export function VacancyBasicsGroup({
   ) : (
     t('position.hint')
   );
+  const verticalNote = lockedVertical
+    ? t('edit.verticalLocked')
+    : picker.verticalNote
+      ? t(RESET_NOTES[picker.verticalNote])
+      : verticals.length === 1
+        ? t('vertical.single')
+        : null;
   return (
     <FormGroup id="vacancy-form-basics" title={t('basics')}>
       <div className="grid items-start gap-6 md:grid-cols-2">
@@ -120,16 +127,12 @@ export function VacancyBasicsGroup({
           <p
             role="status"
             className={
-              lockedVertical || picker.verticalNote
+              verticalNote
                 ? 'text-muted-foreground mt-1.5 text-xs'
                 : 'text-muted-foreground text-xs'
             }
           >
-            {lockedVertical
-              ? t('edit.verticalLocked')
-              : picker.verticalNote
-                ? t(RESET_NOTES[picker.verticalNote])
-                : null}
+            {verticalNote}
           </p>
         </div>
         <Controller

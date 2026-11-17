@@ -16,14 +16,14 @@ import {
   vacancyEditHref,
   type DraftActions,
 } from '@/lib/vacancy-draft-actions';
-import { closeActions, useDraftClose } from './use-draft-close';
+import { closeActions, openCardAction, useDraftClose } from './use-draft-close';
 import {
   preloadDraftPublish,
   useDraftPublish,
   type CardFocus,
 } from './use-draft-publish';
 
-/** Header actions of an own draft; its own chunk (PERF-04). A draft: «Опублікувати», «Редагувати» and `⋯` with cancel and delete (the preview's `⋯` also opens the card); on a phone the primary action takes a full row and «Редагувати» with `⋯` the next (spec §6.2). A cancelled draft can only be deleted. The edit link keeps the default prefetch: for this dynamic page that fetches only the loading boundary, so a click shows the skeleton at once and never reads a draft version that a full prefetch could have cached. */
+/** The edit link keeps the default prefetch: it fetches only the loading boundary, so a click never reads a draft version a full prefetch could have cached. */
 export default function DraftActionButtons({
   vacancy,
   plan,
@@ -61,13 +61,7 @@ export default function DraftActionButtons({
     );
   const menu: RowAction[] = [
     ...(preview
-      ? [
-          {
-            id: 'open',
-            label: t('openCard'),
-            onSelect: () => router.push(`/vacancies/${vacancy.id}`),
-          },
-        ]
+      ? [openCardAction(t, () => router.push(`/vacancies/${vacancy.id}`))]
       : []),
     ...closeActions(t, openDialog, plan.stage),
   ];
