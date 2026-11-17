@@ -75,9 +75,16 @@ describe('create vacancy contract [VAC-01, D89]', () => {
     ['braille blank', 'Назва⠀'],
     ['hangul filler', 'ㅤНазва'],
     ['halfwidth hangul filler', 'Наﾠзва'],
+    ['variation selectors only', '\uFE0F\uFE0F\uFE0F'],
+    ['object replacement marks only', '\uFFFC\uFFFC'],
+    ['combining grapheme joiners only', '\u034F\u034F'],
     ['too long', 'Я'.repeat(VACANCY_TITLE_MAX + 1)],
   ])('refuses a title with %s', (_name, title) => {
     expect(valid({ ...publish, title })).toBe(false);
+  });
+
+  it('keeps a title with an emoji variation selector', () => {
+    expect(valid({ ...publish, title: 'Менеджер ❤\uFE0F' })).toBe(true);
   });
 
   it.each([

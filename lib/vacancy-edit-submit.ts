@@ -265,7 +265,7 @@ export function announceEdited(
 
 type EditTranslate = ReturnType<typeof useTranslations<'vacancyForm.edit'>>;
 
-/** Title only: the persistent alert above the form carries the explanation, so the toast does not repeat it. One toast per draft. */
+/** Title only: the alert above the form already explains it. */
 export const announceStale = (t: EditTranslate, id: string) =>
   toast.warning(t('toast.stale'), { id: `stale:vacancy:${id}` });
 

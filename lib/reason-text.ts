@@ -1,4 +1,4 @@
-import { hasOnlyVisibleChars } from '@/lib/position-name';
+import { hasOnlyVisibleChars } from '@/lib/visible-text';
 
 /** Reason text may break lines and carry tabs (D113); every other control, zero-width or bidi character is still refused. */
 export const hasOnlyReasonChars = (value: string): boolean =>

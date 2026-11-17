@@ -81,6 +81,30 @@ describe('RowSkeleton [UI foundation F9, G20]', () => {
   });
 });
 
+describe('RowSkeleton menu column [S3.6]', () => {
+  const lastCells = (container: HTMLElement) => [
+    container.querySelector('thead th:last-child')!,
+    container.querySelector('tbody tr td:last-child')!,
+  ];
+
+  it('shows the trailing column below xl only when the viewer has a draft menu, in head and rows alike', () => {
+    const plain = render(provider(createElement(RowSkeleton, { count: 2 })));
+    for (const cell of lastCells(plain.container)) {
+      expect(cell.className).toContain('hidden');
+      expect(cell.className).toContain('xl:table-cell');
+    }
+    plain.unmount();
+    const withMenu = render(
+      provider(createElement(RowSkeleton, { count: 2, menuColumn: true })),
+    );
+    const [head, cell] = lastCells(withMenu.container);
+    expect(head!.className).not.toContain('hidden');
+    expect(head!.className).toContain('xl:w-28');
+    expect(cell!.className).not.toContain('hidden');
+    expect(cell!.querySelector('.size-11.xl\\:hidden')).not.toBeNull();
+  });
+});
+
 describe('FormSkeleton [UI foundation F9, G20]', () => {
   it('keeps the real heading and back link and draws one box per field plus the footer', () => {
     const { container } = render(

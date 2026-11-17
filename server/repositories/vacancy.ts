@@ -1,12 +1,4 @@
-import {
-  and,
-  desc,
-  eq,
-  getTableColumns,
-  isNull,
-  sql,
-  type SQL,
-} from 'drizzle-orm';
+import { and, eq, getTableColumns, isNull, sql, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 import type { ResolvedVacancyListQuery } from '../../lib/schemas/vacancy';
@@ -14,8 +6,6 @@ import type { VacancyStatus } from '../authz/types';
 import type { DbExecutor } from '../db';
 import {
   appUser,
-  entityEvent,
-  entityEventPii,
   position,
   vacancy,
   vacancyRecruiter,
@@ -152,31 +142,6 @@ export async function findVacancy(db: DbExecutor, scope: SQL, id: string) {
     limit 1
   `);
   return rows[0] ? detailRowSchema.parse(rows[0]) : null;
-}
-
-/** The reason typed at cancel time lives only in the purgeable side row of the cancel event (D82); it is the cancelling user's alone, and a purge leaves `null`. `visible` is `vacancyEventReadWhere` (D92). */
-export async function findCancelReason(
-  db: DbExecutor,
-  vacancyId: string,
-  cancelledBy: string,
-  visible: SQL,
-): Promise<string | null> {
-  const [row] = await db
-    .select({ reason: sql<string | null>`${entityEventPii.data}->>'reason'` })
-    .from(entityEvent)
-    .innerJoin(entityEventPii, eq(entityEventPii.eventId, entityEvent.id))
-    .where(
-      and(
-        eq(entityEvent.vacancyId, vacancyId),
-        eq(entityEvent.type, 'vacancy.status_changed'),
-        eq(entityEvent.actorId, cancelledBy),
-        visible,
-        sql`${entityEvent.payload}->>'to' = 'CANCELLED'`,
-      ),
-    )
-    .orderBy(desc(entityEvent.id))
-    .limit(1);
-  return row?.reason ?? null;
 }
 
 export type NewVacancy = Omit<

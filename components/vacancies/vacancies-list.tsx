@@ -214,9 +214,7 @@ export const VacanciesList = memo(function VacanciesList({
               <VacancyFlags vacancy={vacancy} />
             </div>
             <p className="flex flex-wrap gap-x-1 text-sm">
-              <span className="text-muted-foreground after:ml-1 after:content-['·']">
-                {t('columns.teamLead')}
-              </span>
+              <span className="text-muted-foreground">{t('teamLeadLine')}</span>
               <TeamLead vacancy={vacancy} />
             </p>
             {vacancy.openedAt ? (

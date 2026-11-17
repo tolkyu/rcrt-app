@@ -1,10 +1,10 @@
 import { z } from 'zod';
 import {
-  hasOnlyVisibleChars,
   normalizePositionName,
   POSITION_NAME_MAX,
   POSITION_NAME_MIN,
 } from '../position-name';
+import { hasOnlyVisibleChars } from '../visible-text';
 import { uuid } from './uuid';
 
 export { POSITION_NAME_MAX, POSITION_NAME_MIN };

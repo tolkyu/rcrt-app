@@ -220,3 +220,31 @@ describe('FilterChips [F6a, VAC-02, UX accessibility]', () => {
     expect(row.dataset.overflowEnd).toBe('false');
   });
 });
+
+describe('FilterChips edge fade [S3.6, ux 9]', () => {
+  it('fades the clipped end 32 px wide, the start 16 px, and nothing when the row fits', () => {
+    render(createElement(FilterChips, props));
+    const row = screen.getByRole('radiogroup');
+    const measure = (scrollWidth: number, scrollLeft: number) => {
+      Object.defineProperty(row, 'scrollWidth', {
+        value: scrollWidth,
+        configurable: true,
+      });
+      Object.defineProperty(row, 'clientWidth', {
+        value: 358,
+        configurable: true,
+      });
+      row.scrollLeft = scrollLeft;
+      fireEvent.scroll(row);
+    };
+    measure(358, 0);
+    expect(row.style.maskImage).toBe('');
+    measure(561, 0);
+    expect(row.style.maskImage).toContain(
+      'black calc(100% - 32px), transparent',
+    );
+    expect(row.style.maskImage).not.toContain('16px');
+    measure(561, 100);
+    expect(row.style.maskImage).toContain('transparent, black 16px');
+  });
+});

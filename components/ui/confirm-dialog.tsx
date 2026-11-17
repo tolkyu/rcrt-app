@@ -3,7 +3,7 @@
 import { CircleAlert, LoaderCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useState, type ReactNode } from 'react';
-import { hasVisibleChar } from '@/lib/position-name';
+import { hasVisibleChar } from '@/lib/visible-text';
 import { trimmedTextLength } from '@/lib/text-length';
 import { cn } from '@/lib/utils';
 import {

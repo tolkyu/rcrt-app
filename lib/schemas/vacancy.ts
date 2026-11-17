@@ -16,7 +16,8 @@ import {
   VACANCY_SENIORITIES,
   VACANCY_WORK_FORMATS,
 } from '../vacancy-options';
-import { hasOnlyVisibleChars, normalizePositionName } from '../position-name';
+import { normalizePositionName } from '../position-name';
+import { hasOnlyVisibleChars } from '../visible-text';
 import {
   VACANCY_DRAFT_LIMIT,
   VACANCY_HEADCOUNT_MAX,

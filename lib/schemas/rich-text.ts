@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { hasOnlyVisibleChars } from '../position-name';
+import { hasOnlyVisibleChars } from '../visible-text';
 
 export const RICH_TEXT_MAX_JSON = 50_000;
 

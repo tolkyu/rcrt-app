@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 
-/** The visual «120/500» is hidden from assistive tech; the full sentence is read once as the field description, not on every keystroke. `warnFrom` colours the count and announces the limit when it is reached. */
+/** The visual «120/500» is hidden from assistive tech: the sentence is read once as the field description, not on every keystroke. */
 export function Counter({
   id,
   count,

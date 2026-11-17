@@ -13,13 +13,11 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { SegmentedControl } from '@/components/ui/segmented-control';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  hasOnlyVisibleChars,
-  normalizePositionName,
-} from '@/lib/position-name';
+import { normalizePositionName } from '@/lib/position-name';
 import { VACANCY_REASON_MAX } from '@/lib/reason-length';
 import { VACANCY_TITLE_MAX, VACANCY_TITLE_MIN } from '@/lib/schemas/vacancy';
 import { serverTextLength } from '@/lib/text-length';
+import { hasOnlyVisibleChars } from '@/lib/visible-text';
 import { GalleryGroup } from './gallery-section';
 
 const PRIORITIES = ['normal', 'urgent'] as const;

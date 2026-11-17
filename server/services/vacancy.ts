@@ -53,13 +53,13 @@ import { verticalExists } from '../repositories/vertical';
 import {
   countLiveDrafts,
   countVacancies,
-  findCancelReason,
   findVacancy,
   insertVacancy,
   insertVacancyRecruiter,
   listVacancies,
   type VacancySummaryRow,
 } from '../repositories/vacancy';
+import { findCancelReason } from '../repositories/vacancy-cancel-reason';
 import { requestHash } from '../security/idempotency';
 import {
   consumeRateLimit,

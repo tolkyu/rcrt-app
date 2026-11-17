@@ -27,6 +27,8 @@ export interface FilterChipsProps {
 
 const countFormat = new Intl.NumberFormat('uk-UA');
 const REVEAL_INSET = 20;
+/** Wider than the start fade so a half-hidden chip reads as «more this way» on a 390 px phone. */
+const END_FADE = 32;
 
 export function FilterChips({
   options,
@@ -154,7 +156,7 @@ export function FilterChips({
       style={{
         maskImage:
           edges.start || edges.end
-            ? `linear-gradient(to right, ${edges.start ? 'transparent, black 16px' : 'black'}, ${edges.end ? 'black calc(100% - 16px), transparent' : 'black'})`
+            ? `linear-gradient(to right, ${edges.start ? `transparent, black 16px` : 'black'}, ${edges.end ? `black calc(100% - ${END_FADE}px), transparent` : 'black'})`
             : undefined,
       }}
     >

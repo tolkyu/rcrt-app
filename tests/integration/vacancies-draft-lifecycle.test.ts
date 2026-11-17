@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -14,10 +14,8 @@ import { vacancyEventReadWhere } from '../../server/authz/vacancy-scope';
 import type { RequestContext } from '../../server/context/request-context';
 import type { DbExecutor } from '../../server/db';
 import * as schema from '../../server/db/schema';
-import {
-  countLiveDrafts,
-  findCancelReason,
-} from '../../server/repositories/vacancy';
+import { countLiveDrafts } from '../../server/repositories/vacancy';
+import { findCancelReason } from '../../server/repositories/vacancy-cancel-reason';
 import { listPositionCatalog } from '../../server/services/position';
 import {
   createVacancy,
@@ -999,6 +997,31 @@ describe('Cancel my draft [STORY-VAC-01-3 AC5, D82]', () => {
           who,
         ).toMatchObject({ status: 404 });
       }
+    });
+  });
+
+  it('answers 200 without a reason once the purge removed the side row [D123]', async () => {
+    // Only the migration connection may become the purge role.
+    await createScenarioRunner(admin)(async (s) => {
+      const created = await saveDraft(s);
+      const ctx = await s.as(roles().recruiter);
+      await cancelVacancyDraft(ctx, created.id, { reason: 'Дубль' });
+      expect((await getVacancyDetail(ctx, created.id)).cancelReason).toBe(
+        'Дубль',
+      );
+      // The purge role cannot read events, so the ids come first.
+      const ids = (await eventsOf(s.tx, created.id)).map((event) => event.id);
+      await s.tx.execute(sql`set local role app_purge`);
+      await s.tx.execute(
+        sql`delete from app.entity_event_pii where event_id in (${sql.join(
+          ids.map((id) => sql`${id}`),
+          sql`, `,
+        )})`,
+      );
+      await s.tx.execute(sql`reset role`);
+      const after = await getVacancyDetail(ctx, created.id);
+      expect(after).toMatchObject({ status: 'CANCELLED', openedAt: null });
+      expect(after.cancelReason).toBeUndefined();
     });
   });
 
