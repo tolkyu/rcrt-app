@@ -1,12 +1,4 @@
-import AxeBuilder from '@axe-core/playwright';
-import {
-  expect,
-  test,
-  type APIRequestContext,
-  type Page,
-  type TestInfo,
-} from '@playwright/test';
-import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
+import { expect, test, type APIRequestContext } from '@playwright/test';
 import type { VacancyDetail } from '../../lib/schemas/vacancy';
 import { DEMO_VERTICALS } from '../../server/db/seed';
 import messages from '../../messages/uk.json' with { type: 'json' };
@@ -14,11 +6,13 @@ import { E2E_ORIGIN, sessionFile } from '../support/e2e-session';
 import { openHydrated } from '../support/hydration';
 import { checkAccessibility } from '../support/accessibility';
 import { problemFulfill } from '../support/problem';
-import { captureScreen, forEachTheme, viewportOf } from './screens';
-import { activePositionId, write, saveEdit, te } from './support/vacancy-edit';
-import { t, field, OWN_DRAFT_PREFIX } from './support/vacancy-create';
+import { demoVacancy } from '../support/vacancy-demo';
+import { forEachTheme, installFixedClock } from './screens';
+import { saveEdit, te, publishEdit, editPath } from './support/vacancy-edit';
+import { t, field, notFound, position } from './support/vacancy-create';
 import {
   cardMenuButton,
+  editPrefetched,
   menuButton,
   menuItem,
   ta,
@@ -31,88 +25,33 @@ import {
   confirmCancel,
   tc,
 } from './support/vacancy-close';
+import {
+  AUTHORS,
+  TITLE,
+  createGalleryDraft,
+  holdNavigation,
+  openMenu,
+  PHONE_320,
+  ZOOM_200,
+  previewActionsReady,
+  prepare,
+  removeGalleryDrafts,
+  shoot,
+} from './support/vacancy-gallery';
 
-const TITLE = 'Медіабаєр — Facebook, міжнародна команда';
-const AUTHORS = [
-  { user: 'admin@demo', role: 'admin' },
-  { user: 'head.recruiter.gambling@demo', role: 'head-recruiter' },
-  { user: 'recruiter1.gambling@demo', role: 'recruiter' },
-] as const;
+const LIST_OF = (id: string) =>
+  `/vacancies?status=DRAFT&vertical=${DEMO_VERTICALS.gambling}&vacancy=${id}`;
+const LONG_TITLE =
+  'Медіабаєр-арбітражник-наставник-крос-платформений-спеціаліст-закупівлі-трафіку — міжнародна команда, розвиток рекламних напрямів Facebook та партнерських мереж. '
+    .repeat(2)
+    .slice(0, 200);
+const MISSING_ID = '5f3c9a1e-8d2b-4e6f-9a7c-1b2d3e4f5a6b';
+const draftsOf = messages.vacancies;
 
-async function shoot(
-  page: Page,
-  info: TestInfo,
-  role: string,
-  state: string,
-  theme: string,
-  realViewport = false,
-) {
-  if (await page.getByRole('menu').count()) {
-    const result = await new AxeBuilder({ page })
-      .include('[role="menu"]')
-      .include('main')
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-      .analyze();
-    expect(result.violations).toEqual([]);
-  } else await checkAccessibility(page, info);
-  await captureScreen(
-    page,
-    info,
-    `41-${role}-vacancy-form-${state}-${viewportOf(info)}-${theme}.png`,
-    'phase-2',
-    // Toasts and small-screen states are judged at the real screen height, not at a page-tall viewport.
-    { deviceViewport: realViewport },
-  );
-}
-
-/** Real route access, deterministic visible fixture: writes remain refused by each scenario's browser stub. */
-async function prepare(
-  page: Page,
-  draft: VacancyDetail,
-  overrides: Partial<Pick<VacancyDetail, 'title' | 'status'>> = {},
-) {
-  await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  const fixed = {
-    ...draft,
-    title: TITLE,
-    number: 'V-0501',
-    createdAt: FIXED_CLOCK_ISO,
-    updatedAt: FIXED_CLOCK_ISO,
-    ...overrides,
-  };
-  await page.route(
-    (url) => url.pathname.startsWith('/vacancies'),
-    async (route) => {
-      const response = await route.fetch();
-      const body = (await response.text())
-        .replaceAll(draft.title, fixed.title)
-        .replaceAll(draft.number, fixed.number)
-        .replaceAll(draft.createdAt, fixed.createdAt)
-        .replaceAll(draft.updatedAt, fixed.updatedAt)
-        .replace(/(isInvalidated\\?":)false/g, '$1true');
-      await route.fulfill({ response, body });
-    },
-  );
-  await page.route(
-    (url) => url.pathname === '/api/v1/vacancies',
-    (route) =>
-      route.request().method() === 'GET'
-        ? route.fulfill({
-            json: { items: [fixed], nextCursor: null, prevCursor: null },
-          })
-        : route.fallback(),
-  );
-  await page.route('**/api/v1/vacancies/drafts/count', (route) =>
-    route.fulfill({ json: { count: 1 } }),
-  );
-  await page.route(`**/api/v1/vacancies/${draft.id}`, (route) =>
-    route.request().method() === 'GET'
-      ? route.fulfill({ json: fixed })
-      : route.fallback(),
-  );
-  return fixed;
-}
+/** The new states are shot for the Recruiter only: the other authors see the same UI. */
+const keep = (role: string, png: { mobile?: boolean; dark?: boolean }) => ({
+  png: role === 'recruiter' ? png : (false as const),
+});
 
 for (const { user, role } of AUTHORS) {
   test.describe(`draft gallery ${role} [SHOT-01..03, D92, D112, D113]`, () => {
@@ -120,39 +59,25 @@ for (const { user, role } of AUTHORS) {
     test.describe.configure({ mode: 'serial' });
     let api: APIRequestContext;
     let draft: VacancyDetail;
+    let incomplete: VacancyDetail;
     test.beforeAll(async ({ playwright }) => {
       api = await playwright.request.newContext({
         baseURL: E2E_ORIGIN,
         storageState: sessionFile(user),
       });
-      const response = await api.post('/api/v1/vacancies', {
-        headers: write(),
-        data: {
-          mode: 'DRAFT',
-          verticalId: DEMO_VERTICALS.gambling,
-          positionId: await activePositionId(api),
-          title: `${OWN_DRAFT_PREFIX} ${TITLE}`,
-          priority: 'URGENT',
-          headcount: 3,
-        },
+      draft = await createGalleryDraft(api, TITLE);
+      incomplete = await createGalleryDraft(api, 'без посади', {
+        withPosition: false,
       });
-      expect(response.status(), await response.text()).toBe(201);
-      draft = (await response.json()) as VacancyDetail;
     });
     test.afterEach(({ page }) => removeStubs(page));
     test.afterAll(async () => {
-      if (draft) {
-        const response = await api.delete(`/api/v1/vacancies/${draft.id}`, {
-          headers: write(),
-          data: {},
-        });
-        expect([200, 404], await response.text()).toContain(response.status());
-      }
-      await api?.dispose();
+      await removeGalleryDrafts(api, [incomplete, draft]);
     });
 
     test('own draft list, row menu, card and edit states', async ({
       page,
+      isMobile,
     }, info) => {
       test.setTimeout(180_000);
       await prepare(page, draft);
@@ -163,6 +88,7 @@ for (const { user, role } of AUTHORS) {
         );
         await expect(menuButton(page, TITLE)).toHaveCount(1);
         await expect(menuButton(page, TITLE)).toBeVisible();
+        if (!isMobile) await previewActionsReady(page);
         await shoot(page, info, role, 'draft-list', theme);
         await menuButton(page, TITLE).click();
         await expect(menuItem(page, ta.cancel)).toBeVisible();
@@ -186,7 +112,217 @@ for (const { user, role } of AUTHORS) {
             .getByRole('alert')
             .filter({ hasText: te.toast.staleDescription }),
         ).toBeVisible();
-        await shoot(page, info, role, 'edit-stale', theme, true);
+        await shoot(page, info, role, 'edit-stale', theme, {
+          deviceViewport: true,
+        });
+      });
+    });
+
+    test('a 200-character title in the list row and the preview', async ({
+      page,
+      isMobile,
+    }, info) => {
+      test.setTimeout(120_000);
+      await prepare(page, draft, { title: LONG_TITLE });
+      await forEachTheme(page, async (theme) => {
+        await openHydrated(page, LIST_OF(draft.id));
+        await expect(menuButton(page, LONG_TITLE)).toBeVisible();
+        if (!isMobile) await previewActionsReady(page);
+        await shoot(page, info, role, 'draft-list-long-title', theme, {
+          png: false,
+        });
+      });
+    });
+
+    test('an incomplete draft: the row, the menu and the card explain the disabled publish', async ({
+      page,
+      isMobile,
+    }, info) => {
+      test.setTimeout(180_000);
+      await prepare(page, incomplete);
+      const reason = draftsOf.draftErrors.positionRequired;
+      await forEachTheme(page, async (theme) => {
+        await openHydrated(page, LIST_OF(incomplete.id));
+        await expect(menuButton(page, TITLE)).toBeVisible();
+        await expect(
+          page
+            .getByText(draftsOf.draft.noPosition)
+            .filter({ visible: true })
+            .first(),
+        ).toBeVisible();
+        if (!isMobile) await previewActionsReady(page);
+        await shoot(page, info, role, 'incomplete-draft-list', theme, {
+          png: false,
+        });
+        await openMenu(menuButton(page, TITLE), menuItem(page, ta.publish));
+        await expect(menuItem(page, ta.publish)).toContainText(reason);
+        await shoot(
+          page,
+          info,
+          role,
+          'incomplete-draft-menu',
+          theme,
+          keep(role, { mobile: true }),
+        );
+        await page.keyboard.press('Escape');
+        await openHydrated(page, `/vacancies/${incomplete.id}`);
+        const publishButton = page.getByRole('button', {
+          name: ta.publish,
+          exact: true,
+        });
+        await expect(publishButton).toHaveAttribute('aria-disabled', 'true');
+        if (isMobile) {
+          await expect(page.getByText(reason, { exact: true })).toBeVisible();
+          await shoot(
+            page,
+            info,
+            role,
+            'incomplete-draft-card',
+            theme,
+            keep(role, { mobile: true }),
+          );
+        } else {
+          await checkAccessibility(page, info);
+          await publishButton.hover();
+          await expect(
+            page
+              .locator('[data-radix-popper-content-wrapper] .motion-tooltip')
+              .filter({ hasText: reason }),
+          ).toBeVisible();
+          await shoot(page, info, role, 'incomplete-draft-card', theme, {
+            deviceViewport: true,
+            keepFocus: true,
+            scan: false,
+            png: keep(role, {}).png,
+          });
+        }
+      });
+    });
+
+    test('«Чернетки 0»: the empty own-draft list', async ({ page }, info) => {
+      test.setTimeout(120_000);
+      await installFixedClock(page);
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.route(
+        (url) => url.pathname === '/api/v1/vacancies',
+        (route) =>
+          route.request().method() === 'GET'
+            ? route.fulfill({
+                json: { items: [], nextCursor: null, prevCursor: null },
+              })
+            : route.fallback(),
+      );
+      await page.route('**/api/v1/vacancies/drafts/count', (route) =>
+        route.fulfill({ json: { count: 0 } }),
+      );
+      await forEachTheme(page, async (theme) => {
+        await openHydrated(
+          page,
+          `/vacancies?status=DRAFT&vertical=${DEMO_VERTICALS.gambling}`,
+        );
+        await expect(
+          page.getByText(draftsOf.draft.empty.title, { exact: true }),
+        ).toBeVisible();
+        await shoot(
+          page,
+          info,
+          role,
+          'drafts-empty',
+          theme,
+          keep(role, { mobile: true }),
+        );
+      });
+    });
+
+    test('the edit page while it loads', async ({ page }, info) => {
+      test.setTimeout(180_000);
+      await prepare(page, draft);
+      await forEachTheme(page, async (theme) => {
+        const prefetched = editPrefetched(page, draft.id);
+        await openHydrated(page, `/vacancies/${draft.id}`);
+        await prefetched;
+        const release = await holdNavigation(
+          page,
+          new RegExp(`^/vacancies/${draft.id}/edit$`),
+        );
+        try {
+          await page
+            .getByRole('link', { name: ta.edit, exact: true })
+            .filter({ visible: true })
+            .click();
+          await expect(page).toHaveURL(
+            new RegExp(`/vacancies/${draft.id}/edit$`),
+          );
+          await expect(
+            page.getByRole('heading', {
+              level: 1,
+              name: te.title,
+              exact: true,
+            }),
+          ).toBeVisible();
+          await expect(field(page, t.titleField.label)).toHaveCount(0);
+          await shoot(page, info, role, 'edit-loading', theme, keep(role, {}));
+        } finally {
+          release();
+        }
+        await expect(field(page, t.titleField.label)).toHaveValue(TITLE);
+      });
+    });
+
+    test('the edit page of a published vacancy and of a missing one', async ({
+      page,
+    }, info) => {
+      test.setTimeout(120_000);
+      await installFixedClock(page);
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await forEachTheme(page, async (theme) => {
+        await page.goto(editPath(demoVacancy(1).id));
+        await expect(
+          page
+            .getByRole('alert')
+            .filter({ hasText: draftsOf.draftErrors.notDraft }),
+        ).toBeVisible();
+        await expect(saveEdit(page)).toHaveCount(0);
+        await shoot(page, info, role, 'edit-not-draft', theme, keep(role, {}));
+        const missing = await page.goto(editPath(MISSING_ID));
+        expect(missing?.status()).toBe(404);
+        await expect(notFound(page)).toBeVisible();
+        await shoot(page, info, role, 'edit-not-found', theme, { png: false });
+      });
+    });
+
+    test('a publish refused for an inactive position flags the field', async ({
+      page,
+    }, info) => {
+      test.setTimeout(180_000);
+      await prepare(page, draft);
+      await page.route(
+        new RegExp(`/api/v1/vacancies/${draft.id}/publish$`),
+        async (route) =>
+          route.fulfill(await problemFulfill(409, 'POSITION_INACTIVE')),
+      );
+      await forEachTheme(page, async (theme) => {
+        await openHydrated(page, editPath(draft.id));
+        await expect(field(page, t.titleField.label)).toHaveValue(TITLE);
+        await publishEdit(page).click();
+        await expect(
+          page.getByText(draftsOf.draftErrors.positionInactive, {
+            exact: true,
+          }),
+        ).toBeVisible();
+        const refusal = page
+          .locator('[data-slot="toast"]')
+          .filter({ hasText: te.toast.refused });
+        await expect(refusal).toBeVisible();
+        await refusal
+          .getByRole('button', { name: te.toast.showFields })
+          .click();
+        await expect(position(page)).toBeFocused();
+        await expect(refusal).toHaveCount(0);
+        await shoot(page, info, role, 'publish-refused', theme, {
+          deviceViewport: true,
+          ...keep(role, { mobile: true }),
+        });
       });
     });
 
@@ -244,10 +380,7 @@ for (const { user, role } of AUTHORS) {
         isMobile,
       }, info) => {
         test.setTimeout(180_000);
-        const title =
-          'Медіабаєр-арбітражник-наставник-крос-платформений-спеціаліст-закупівлі-трафіку — міжнародна команда, розвиток рекламних напрямів Facebook та партнерських мереж. '
-            .repeat(2)
-            .slice(0, 200);
+        const title = LONG_TITLE;
         const fixed = await prepare(page, draft, { title });
         await forEachTheme(page, async (theme) => {
           fixed.status = 'DRAFT';
@@ -257,24 +390,32 @@ for (const { user, role } of AUTHORS) {
           await menuItem(page, ta.cancel).click();
           await expect(cancelDialog(page)).toContainText(title);
           await shoot(page, info, role, 'cancel-long-title', theme);
-          if (isMobile) {
-            // 320 px: the description is clamped and both buttons stay on screen without scrolling the sheet.
-            const original = page.viewportSize()!;
-            await page.setViewportSize({ width: 320, height: 568 });
-            const dialog = cancelDialog(page);
-            await reasonBox(page).fill('a'.repeat(450));
-            for (const name of [tc.cancel.keep, tc.cancel.confirm]) {
-              const box = await dialog
-                .getByRole('button', { name })
-                .boundingBox();
-              expect(box, name).not.toBeNull();
-              expect(box!.y + box!.height, name).toBeLessThanOrEqual(568);
-              expect(box!.x + box!.width, name).toBeLessThanOrEqual(320);
-            }
-            await shoot(page, info, role, 'cancel-long-title-320', theme, true);
-            await page.setViewportSize(original);
-            await reasonBox(page).fill('');
+          // 320 px and 200% zoom: the description is clamped and both buttons stay on screen without scrolling the sheet.
+          const original = page.viewportSize()!;
+          const narrow = isMobile ? PHONE_320 : ZOOM_200;
+          await page.setViewportSize(narrow);
+          const dialog = cancelDialog(page);
+          await reasonBox(page).fill('a'.repeat(450));
+          for (const name of [tc.cancel.keep, tc.cancel.confirm]) {
+            const box = await dialog
+              .getByRole('button', { name })
+              .boundingBox();
+            expect(box, name).not.toBeNull();
+            expect(box!.y + box!.height, name).toBeLessThanOrEqual(
+              narrow.height,
+            );
+            expect(box!.x + box!.width, name).toBeLessThanOrEqual(narrow.width);
           }
+          await shoot(
+            page,
+            info,
+            role,
+            `cancel-long-title-${isMobile ? '320' : 'zoom200'}`,
+            theme,
+            { deviceViewport: true, ...(isMobile ? {} : { png: false }) },
+          );
+          await page.setViewportSize(original);
+          await reasonBox(page).fill('');
           await reasonBox(page).fill(
             'Найм призупинено до затвердження бюджету.',
           );

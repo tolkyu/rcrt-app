@@ -430,6 +430,8 @@ const groups = [
 ];
 
 const VAC = 'phase-2';
+const LIGHT = ['desktop-light'];
+const BOTH = ['desktop-light', 'mobile-light'];
 /** Phase-2 «Вакансії» (V1): the shots are taken by tests/e2e/vacancies-screens.spec.ts. */
 const groups2 = [
   ...[
@@ -501,6 +503,122 @@ const groups2 = [
       dir: 'phase-2',
     })),
   })),
+  {
+    screen: 'Чернетки та форми — нові стани (Рекрутер)',
+    role: 'Рекрутер',
+    roles: ['Рекрутер'],
+    states: [
+      [
+        '41',
+        'incomplete-draft-menu',
+        'Чернетка без посади — «Опублікувати» недоступне, причина в меню',
+        BOTH,
+      ],
+      [
+        '41',
+        'incomplete-draft-card',
+        'Чернетка без посади — причина біля кнопки «Опублікувати» (підказка на компʼютері, текст на телефоні)',
+        BOTH,
+      ],
+      [
+        '41',
+        'drafts-empty',
+        'Чернетки 0 — порожній список власних чернеток',
+        BOTH,
+      ],
+      ['41', 'edit-loading', 'Редагування — завантаження форми', LIGHT],
+      [
+        '41',
+        'edit-not-draft',
+        'Редагування — вакансію вже опубліковано, форми немає',
+        LIGHT,
+      ],
+      [
+        '41',
+        'publish-refused',
+        'Редагування — публікацію відхилено: посада неактивна, поле позначено',
+        BOTH,
+      ],
+      [
+        '41',
+        'toast-published',
+        'Сповіщення — вакансію опубліковано, дія «Відкрити»',
+        BOTH,
+      ],
+      [
+        '40',
+        'position-empty',
+        'Створення — у вертикалі немає активних посад',
+        LIGHT,
+      ],
+      [
+        '40',
+        'draft-limit',
+        'Створення — ліміт чернеток: «Зберегти чернетку» недоступна, причина в підказці (компʼютер) або під кнопкою (телефон)',
+        BOTH,
+      ],
+      [
+        '40',
+        'pending-create',
+        'Створення — очікування відповіді сервера',
+        LIGHT,
+      ],
+      ['40', 'loading', 'Створення — завантаження форми', LIGHT],
+      [
+        '40',
+        'leave-guard',
+        'Створення — вихід із формою без збереження: діалог і шторка',
+        ['desktop-light', 'desktop-dark', 'mobile-light', 'mobile-dark'],
+      ],
+    ].map(([prefix, state, heading, variants]) => ({
+      file: `${prefix}-recruiter-vacancy-form-${state}`,
+      heading,
+      dir: VAC,
+      variants,
+    })),
+  },
+  {
+    screen: 'Створення вакансії — зміна вертикалі',
+    role: 'Адміністратор',
+    roles: ['Адміністратор'],
+    states: [
+      {
+        file: '40-admin-vacancy-form-vertical-changed',
+        heading:
+          'Зміна вертикалі — посаду й тімліда скинуто, про це сказано під полем',
+        dir: VAC,
+        variants: LIGHT,
+      },
+    ],
+  },
+  {
+    screen: 'Вакансії — порожній список без права створювати',
+    role: 'Тімлід, Керівник HR, HR-менеджер',
+    roles: ['Тімлід', 'Керівник HR', 'HR-менеджер'],
+    states: [
+      {
+        file: '32-team-lead-vacancies-empty',
+        heading:
+          'Вакансії — вакансій поки немає: без кнопки створення (так само Керівник HR і HR-менеджер)',
+        dir: VAC,
+        variants: LIGHT,
+      },
+    ],
+  },
+  {
+    screen: 'Нова вакансія без доступу',
+    role: 'HR-менеджер, Керівник HR, Тімлід, Фінансист',
+    roles: ['HR-менеджер', 'Керівник HR', 'Тімлід', 'Фінансист'],
+    states: [
+      {
+        file: '40-hr-vacancy-form-denied',
+        heading:
+          'Нова вакансія — «Сторінку не знайдено» (справжній HTTP 404): так само Керівник HR, Тімлід і Фінансист',
+        dir: VAC,
+        variants: LIGHT,
+      },
+    ],
+  },
   {
     screen: 'Вакансії — список',
     role: 'Адміністратор, Керівник рекрутингу, Рекрутер, Тімлід, Керівник HR',
@@ -662,7 +780,8 @@ const groups2 = [
         file: '32-admin-vacancies-empty',
         label: 'порожньо',
         dir: VAC,
-        heading: 'Вакансії — вакансій поки немає (без кнопки створення)',
+        heading:
+          'Вакансії — вакансій поки немає: Адміністратор, з кнопкою «Створити вакансію»',
       },
       {
         file: '32-admin-vacancies-preview-selected',

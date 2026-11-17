@@ -75,30 +75,40 @@ export async function settleRendering(page: Page) {
 /**
  * A page-tall viewport places fixed bars at the image edge instead of halfway through a full-page capture.
  * `deviceViewport` keeps the real screen for states where a fixed layer must be shown against pinned sticky bars (toasts).
+ * `keepFocus` leaves the pointer and focus where the test put them, for a tooltip that exists only while its trigger is hovered or focused.
  */
 export async function captureScreen(
   page: Page,
   testInfo: TestInfo,
   file: string,
   phase: 'phase-1' | 'phase-2' = 'phase-1',
-  { deviceViewport = false }: { deviceViewport?: boolean } = {},
+  {
+    deviceViewport = false,
+    keepFocus = false,
+  }: { deviceViewport?: boolean; keepFocus?: boolean } = {},
 ) {
-  await page.mouse.move(0, 0);
+  if (!keepFocus) await page.mouse.move(0, 0);
   // The ring left by the last click or Escape is not part of the screen (UX-G-11); text fields keep focus, blurring them would validate.
-  const blurred = await page.evaluateHandle(() => {
-    const active = document.activeElement;
-    const typing =
-      active instanceof HTMLTextAreaElement ||
-      (active instanceof HTMLElement && active.isContentEditable) ||
-      (active instanceof HTMLInputElement &&
-        !['checkbox', 'radio', 'button', 'submit', 'reset'].includes(
-          active.type,
-        ));
-    if (!(active instanceof HTMLElement) || active === document.body || typing)
-      return null;
-    active.blur();
-    return active;
-  });
+  const blurred = keepFocus
+    ? null
+    : await page.evaluateHandle(() => {
+        const active = document.activeElement;
+        const typing =
+          active instanceof HTMLTextAreaElement ||
+          (active instanceof HTMLElement && active.isContentEditable) ||
+          (active instanceof HTMLInputElement &&
+            !['checkbox', 'radio', 'button', 'submit', 'reset'].includes(
+              active.type,
+            ));
+        if (
+          !(active instanceof HTMLElement) ||
+          active === document.body ||
+          typing
+        )
+          return null;
+        active.blur();
+        return active;
+      });
   await settleRendering(page);
   const noHorizontalOverflow = () =>
     page.evaluate(
@@ -147,10 +157,10 @@ export async function captureScreen(
     await page.screenshot({ path, animations: 'disabled', scale: 'css' });
   } finally {
     await page.setViewportSize(viewport);
-    await blurred.evaluate((element) =>
+    await blurred?.evaluate((element) =>
       element?.focus({ preventScroll: true }),
     );
-    await blurred.dispose();
+    await blurred?.dispose();
   }
   copyFileSync(path, `screenshots/latest/${file}`);
   await testInfo.attach(file, { path, contentType: 'image/png' });

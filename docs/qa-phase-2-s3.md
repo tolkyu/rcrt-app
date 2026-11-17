@@ -77,3 +77,74 @@ Each line is scoped to the changed S3.5/S3.6 code; unchanged modules are not re-
 - **Checked.** Comments: one line, _why_ only. No stacked JSDoc.
 - **Checked.** `tsconfig.json` and `screenshots/` are not changed by accident. There are no leftover temp folders such as `.next-*`.
 - **Checked.** Only one Playwright, build or integration run at a time on this machine.
+
+## Code quality (thermo-nuclear)
+
+Scope: `git diff 42e41ac..6f2aa81 -- components lib server app` (47 files, +1,136/-256). Report only; the engineer fixes, `code-reviewer` confirms. No blocking structural regression. No new file passes 400 lines (largest: `use-draft-close.tsx` 266, `confirm-dialog.tsx` 225, `lib/vacancy-draft-close.ts` 219).
+
+### Non-blocking, ranked
+
+| #  | Finding | Judo move |
+| -- | ------- | --------- |
+| 1  | `use-draft-close.tsx`: an implicit retry state machine in six refs (`locked`, `unsure`, `attemptedReason`, `reconciliationAllowed`, `mounted`, `after`). `run` (lines 128-175) derives `retryingSameRequest` from three of them with a negative flag, then passes a derived boolean to `closeDraft`, which re-decides in `alreadyDone`. The decision lives half in the hook and half in `lib`. | Pure `lib` functions `planAttempt(state, kind, reason)` and `settle(state, outcome)` with a table test. The hook keeps `locked`, `mounted`, `after`. The double negation and three ref writes in `run` disappear. |
+| 2  | The `stage: 'DRAFT' \| 'CANCELLED'` union is branched in five places: `draft-actions.tsx` (early return with a second hand-written Delete button), `draft-header-actions.tsx` (placeholder and fallback), `draft-menu.tsx`, `closeActions`, `vacancy-overview.tsx` (`draftPlan?.stage !== 'DRAFT'`). Menu builders (`closeActions`, `openCardAction`) sit in a hook module. `draft-actions.tsx` calls `useDraftPublish()` for a cancelled draft that can never publish. | Let `ownDraftActions` return the action list (`edit`, `publish`, `cancel`, `delete`, `openCard`) plus `publishBlocked`, and map ids to items once. Stage branching and the duplicate Delete button go away; menu and button row share one model. |
+| 3  | `ConfirmDialog` grew to 225 lines with a flag matrix (`clampDescription`, `reason.countLength`, `DisabledReason alwaysVisible` + `reserveSpace`). `clampDescription` silently does nothing for a non-string description (the `title` attribute is set only when `typeof description === 'string'`). Three definitions of «the reason text»: `text.trim()` in the dialog, `normalizeReason` in the hook, `multilineReason` in the schema. | A `userText: string` prop (always clamped and titled) beside `description: ReactNode`. Pass the raw text to `onConfirm` and normalize once in the consumer, or give `ConfirmReason` a `normalize` next to `countLength`. |
+| 4  | `DisabledReason` carries `alwaysVisible` next to `reserveSpace`: class strings fork in two branches (four combinations) inside one tree. | One `visibility: 'touch' \| 'always'` prop and one class map. |
+| 5  | `form-error.tsx`: field links are `<a href="#id">` with `preventDefault` + `getElementById(id).focus()`. An anchor that never navigates is announced as a link and duplicates `focusField` in `use-field-summary.ts`. The label dedupe (three salary fields share one label) lives in the presentational `VacancyFormError`. | A link-styled `<button type="button">` that calls the shared `focusField`. Dedupe where `VACANCY_FIELD_LABEL_KEYS` is defined (group key), not in the view. |
+| 6  | UI side effects in `lib`: `announceClosed` and `announceGone` call `toast` from `lib/vacancy-draft-close.ts`; `type Translate` is declared twice. `applyClosed` invalidates `vacanciesAll` twice and `refreshDraft` is fired with bare `void` at three call sites (`use-draft-close.tsx` 120, 173, 194) plus `void invalidateQueries` (`vacancy-draft-close.ts` 177). The self-check asks for no bare `void promise` without `.catch`. | Move toasts and the `Translate` type to the hook module (one exported type). Give `refreshDraft` an internal `.catch(() => undefined)`. |
+| 7  | `window.setTimeout(flush, 600)` in `run`: a magic constant and a third entry point (with `onCloseAutoFocus` and the unmount cleanup) to the same idempotent continuation; the timer is not cleared on unmount. | Name the constant and clear it in the cleanup, or drop it and rely on the close event plus the unmount flush. |
+| 8  | `components/ui/sonner.tsx`: `import('./sonner-runtime').then(..., () => undefined)` swallows a chunk failure with no retry and no fallback, so a failed chunk loses every result toast (publish, cancel, delete) with no feedback. The self-check requires a dependency-free fallback where the user needs feedback. | Retry on the next toast request and render a plain `role="status"` live region as the fallback. Add a failed-chunk test on the result path, not only on the Toaster. |
+| 9  | `vacancies-list.tsx` and `row-skeleton.tsx` repeat the last-cell rule (`!canAuthorDrafts && 'hidden xl:table-cell'`, the `size-11 xl:hidden` placeholder) and `vacancies-table-head.tsx` the widths (`w-14 xl:w-28`); `menuColumn` is threaded through three components. | One shared `ACTIONS_CELL` / `ACTIONS_HEAD` helper next to `VacanciesTableHead`. |
+| 10 | Server: `cancelReason` is assembled in two places (`cancelVacancyDraft` response and `getVacancyDetail` + `findCancelReason`). `server/services/vacancy-draft.ts` is 481 lines (+9 here; already over ~400) and holds patch, publish, cancel and delete. `hasRowMenu` is a pass-through over `ownDraftActions !== null`. | Extract cancel/delete to their own service file; one `withCancelReason(ctx, view)`; drop `hasRowMenu`. |
+| 11 | Five small modules for one concept: `lib/reason-length.ts`, `reason-text.ts`, `schemas/reason.ts`, `schemas/vacancy-cancel.ts`, `visible-text.ts` (bundle-size split is justified, but `VACANCY_REASON_MAX` lives in `reason-length` while other limits live in `vacancy-limits`). `visible-text.ts` builds regexes from escaped string fragments, hard to audit. | Merge `reason-length` and `reason-text`; move the constant to `vacancy-limits`; write the classes as `\u{…}` literals with one comment per class (`visible-text.test.ts` already pins behaviour). |
+
+### What is good
+
+The pure pieces (`classifyCloseFailure`, `isUnsure`, `normalizeReason`, `multilineReason`, the `isPrivateDraft` twin pinned by a unit test) are small and table-testable. The server's author-only reason read is keyed on the caller (`findCancelReason` filters `actorId` and the event read scope) with no role shortcut. `cancelVacancySchema` left the form bundle without a behaviour change.
+
+## S3.6 §10 captures and a11y flake (QA, 2026-11-17)
+
+Owner rule applied: PNG only for new screens, dialogs and states. Light theme and desktop by default; mobile where the layout differs; dark once per new dialog. Worst case, 320 px and 200 % zoom are E2E assertions (`expectFitsViewport`: no sideways scroll, footer actions inside the viewport), no PNGs.
+
+| §10 item | Evidence |
+| -------- | -------- |
+| Empty list with CTA (Head Recruiter, Recruiter) | Asserted (`vacancy-entry-screens.spec.ts`: two CTAs); same UI as the existing `32-admin-vacancies-empty`, no PNG. Gallery caption of that PNG corrected («з кнопкою»). |
+| Empty list without CTA (TL, Head HR) | PNG `32-team-lead-vacancies-empty` (desktop light); Head HR asserted. |
+| `/vacancies/new` denied (HR, Head HR, TL, Finance) | Asserted for all four (404 + no form); PNG `40-hr-vacancy-form-denied` (one per denial kind). |
+| «Чернетки 0» | PNG `41-recruiter-…-drafts-empty` (desktop, mobile). |
+| Count 50, disabled save, tooltip / touch helper | PNG `40-recruiter-…-draft-limit` (desktop tooltip, mobile helper). |
+| Incomplete draft row, disabled publish tooltip / helper, mobile preview header actions | PNGs `incomplete-draft-menu` and `incomplete-draft-card` (desktop, mobile); the row is asserted. Mobile has no side preview; its header actions are the card header. |
+| Preset single vertical | Asserted (`vertical.single` note, select disabled) and already visible in `40-*-empty`; no PNG. |
+| Vertical-change note | PNG `40-admin-…-vertical-changed`. |
+| Position list empty / Team Lead empty | PNG `40-recruiter-…-position-empty`; Team Lead empty asserted for Admin and Head Recruiter. |
+| Pending (create, publish), 409 inline alert, loading skeleton | PNGs `pending-create`, `loading`; pending-draft and the 409 alert asserted. |
+| Leave guard (dialog and sheet) | PNG `40-recruiter-…-leave-guard` (desktop and mobile, light and dark). |
+| Edit: loading, not-draft, 404, publish refused | PNGs `edit-loading`, `edit-not-draft`, `publish-refused` (desktop, mobile); 404 asserted (status 404 + not-found heading). |
+| Toasts | PNG `toast-published` (desktop, mobile: sits above the sticky CTA, which answers UX issue 1); draft saved, created, cancelled, deleted asserted by text (stubbed writes, fixed number V-0501). Rate-limited and stale toasts already capture the real viewport. |
+| Worst case Admin: 200-char title, 80-char position, two Team Leads with one name, error summary, 320 px, 200 % zoom | Assertions in `vacancy-form-worst-screens.spec.ts` (publish errors, draft-limit alert and leave guard at 320 px and 720 px layout width) and in the cancel dialog (`cancel-long-title`: buttons inside 320 x 568 and 720 x 450). Existing 320 PNGs kept. |
+
+New PNGs: 14 stems, 24 files in `screenshots/phase-2` (copies in `latest`). Gallery registered in `scripts/screenshot-gallery.mjs`; `screenshots/phase-2/index.html` and `latest/index.html` regenerated. Phase-1 files untouched.
+
+Gap: none needing product code. «Limit» toast has no separate state: the draft limit is the inline alert and the disabled save.
+
+### Flake: `scrollable-region-focusable` on the preview card
+
+Cause: the preview `Card` (`sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto`) scrolls at 1440 x 900, and for a private draft its only focusable content is the lazily loaded action row (`Share` is hidden for private drafts). Until the chunk arrives the scrollable region has nothing focusable. It reproduced twice in two runs of the new toast spec before the fix. Fix in the tests: `previewActionsReady` waits for the «Редагувати» link in the preview before the scan (no sleeps). After the fix: 16/16 (8 repeats of the draft list test and of the draft-saved toast test). Product note (Low): give the scroll container `tabIndex={0}` with a label, or keep a focusable element in the placeholder; with a failed chunk the cancelled-draft preview (fallback `null`) has the same gap.
+
+### Bugs and notes found
+
+- BUG-S3-20 (Minor, `docs/bugs.md`): an open `decorative` tooltip leaves an unnamed `role="tooltip"` node (axe `aria-tooltip-name`). QA scans before the hover and captures with the tooltip open.
+- Observed (test side, no bug filed): a press on `⋯` that lands before the menu chunk arrives opens nothing (1 in 6 mobile repeats). The new specs use `openMenu` (repeat the press until the item shows); the same pattern as the known row-menu flake in this report.
+- Observed (test side): a toast that is leaving (after «Показати поля») fails `color-contrast` while it fades. The scan now waits for the toast to be gone.
+
+### Commands and counts
+
+| Command | Result |
+| ------- | ------ |
+| `corepack pnpm build` | passed (start of run) |
+| `corepack pnpm perf:size` | all routes under 180 kB; edit 178.39, card 157.25, positions 162.61 |
+| `corepack pnpm lint` | clean |
+| `tsc --noEmit` | clean |
+| E2E desktop (`vacancy-draft/form/form-worst/entry/toast` screens) | 63 passed, 1 skipped |
+| E2E mobile (same five files) | 59 passed, 3 failed (toast fade contrast, fixed) then `vacancy-draft-screens` 23/23 and `vacancy-entry-screens` 8/8 green |
+| Repeat run (desktop, 8 repeats of the two flake tests) | 16/16 |
