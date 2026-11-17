@@ -73,3 +73,4 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] Review rounds (D126): one round per slice. Only bugs, security, authz/data isolation, PII and PRD mismatches block; style/structure findings go to the Phase 7 tech-debt list in PROGRESS. Screenshots only at the end of a V-block.
 - [ ] Token economy (D128): run only the test files related to your change (`vitest run <files>`, one Playwright spec and one project); pipe long output through `tail -40`; never re-run a passing suite without a new change. Full suites run once at slice end.
 - [ ] A refactor that extracts a shared hook, helper or schema greps every consumer (`export *` chains included) and names them in the hand-back; a change to a shared invalidation list (e.g. `applyCreatedVacancy`) names each flow it affects.
+- [ ] A flag or ref set by a key-scoped component (`key={id}`) is reset when the key changes, not only on unmount.
