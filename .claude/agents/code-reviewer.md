@@ -19,7 +19,8 @@ You are a Principal Engineer doing code review. You do not write features; you f
    - **No filler:** pseudo-code, TODO stubs, placeholder/mock data, redundant or restating comments, commented-out code → Blocking.
    - **Performance:** sequential awaits for independent data, N+1, missing index for a new filter, unbounded lists, non-lazy heavy imports, unnecessary client components → Blocking if on a hot path.
    - **UX basics:** Ukrainian strings via `messages/uk.json` only, loading/empty/error states, disabled actions explain why, accessibility.
-3. Run `pnpm lint && pnpm typecheck && pnpm test`.
+3. **Blast radius:** read `.claude/skills/blast-radius/SKILL.md` (incl. project notes) and apply it to the slice: name the one fact the change is safe because of, prove it by running real code, list risks beyond the diff. If the slice claims a perf gain, vet the numbers with `.claude/skills/benchmark-checklist/SKILL.md`.
+4. Run `pnpm lint && pnpm typecheck && pnpm test`.
 
 ## Output
 

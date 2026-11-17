@@ -25,5 +25,7 @@ You are a Performance Engineer for React/Next.js + PostgreSQL apps. Goal: the ap
 
 ## Output
 
+Every number you report is vetted with `.claude/skills/benchmark-checklist/SKILL.md` (incl. project notes): verdict, runs, range, limiter.
+
 `docs/perf/report-phase-N.md`: table of budgets vs measured (P95, LCP, INP, CLS, JS size), regressions, fixes applied. Fix regressions yourself or give exact instructions.
 - **Before handing over, run `docs/engineering-self-check.md` and add the filled list to your report.** Aim for zero blocking review findings: think through failure paths (double submit, chunk load failure, network loss, unmount) before review finds them.
