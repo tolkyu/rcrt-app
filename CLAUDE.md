@@ -108,7 +108,8 @@ At the start of every session read `docs/CLAUDE_HANDOFF.md` (short, current stat
 6. **Review** — `code-reviewer` (+ `security-engineer` when required). Fix all blocking findings.
 7. **Verify** — `pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e && pnpm test:api && pnpm perf:check` all green.
 8. **Log** — update `docs/PROGRESS.md`; conventional commits with PRD IDs (`feat(pipeline): TL interview reschedule [RESCH-01..03]`, commit messages in English).
-9. **Stop and report** to the owner in Ukrainian: what's done, path to the screenshot gallery (`screenshots/phase-N/index.html`), demo script (seeded user + clicks), open questions, next phase. Wait for "go phase N+1".
+9. **Phase PR** — orchestrator opens the `phase-N` → `main` PR with `.claude/skills/make-pr-easy-to-review/SKILL.md`, then keeps it green with `babysit` (`fix-ci`, `fix-merge-conflicts`).
+10. **Stop and report** to the owner in Ukrainian: what's done, path to the screenshot gallery (`screenshots/phase-N/index.html`), demo script (seeded user + clicks), open questions, next phase. Wait for "go phase N+1".
 
 **Special stop — Telegram (Phase 6):** before writing any Telegram code, send the owner a numbered list of questions (bot purpose, users/roles, commands, which notifications, vacancy-creation flow and fields, account linking, language, group chats or private only) and wait for answers. Meanwhile keep the notification layer channel-pluggable.
 
