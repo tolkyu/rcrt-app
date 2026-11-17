@@ -7,7 +7,8 @@
 
 - Pushed: S3.2b `5ef93bd` (D122 one TL predicate, test-only create limit), S3.2c `f8fc4f3` («Умови», readiness rail, draft-limit reason, BUG-S3-1/2 fixed). QA green (integration 309, E2E create 159, Newman 463/2691), code review APPROVED, security PASS.
 - Review follow-ups pushed `5dd7515` (re-review APPROVED). BUG-S3-4 (focus-then-hover tooltip, Minor) open — fix in S3.6 polish.
-- In progress: S3.3 build (senior-fullstack-engineer). Then QA → code-reviewer → commit. Then S3.3 (edit + publish + stale version) → S3.4 → S3.5 → S3.6 (regenerate gallery; `screenshots/*38-admin-ui-page-frame-*` modified in tree, uncommitted on purpose).
+- S3.3 pushed `b031f15` (QA green, security PASS `docs/security/review-phase-2-s3-3.md`, review APPROVED). Orchestrator decision: blank headcount/probation on EDIT = required error (create keeps defaults) — tell owner. Headroom: `/vacancies/new` 179.27 kB (0.73 left) — perf cut before any form growth (F10!).
+- In progress: S3.4 remaining (row ⋯ menu, preview/card «Редагувати»/«Опублікувати», optimistic publish, BUG-S3-6). Then QA → review → commit. Then S3.3 (edit + publish + stale version) → S3.4 → S3.5 → S3.6 (regenerate gallery; `screenshots/*38-admin-ui-page-frame-*` modified in tree, uncommitted on purpose).
 - Accepted: probation field visible only with the GLOBAL grant (D115) while the API accepts a vertical grant (D78) — intentional, not a predicate bug.
 - `pnpm` is not on PATH for agents: use `corepack pnpm`.
 
