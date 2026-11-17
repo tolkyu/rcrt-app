@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { hasRowMenu } from '@/lib/vacancy-draft-actions';
 import { DraftRowMenu } from './draft-row-menu';
 import { VacanciesTableHead } from './vacancies-table-head';
-import { urgentEdge, VacancyFlags, VacancyStatus } from './vacancy-badges';
+import { urgentRow, VacancyFlags, VacancyStatus } from './vacancy-badges';
 
 const INTERACTIVE = 'a,button,input,select,textarea,summary';
 
@@ -98,10 +98,11 @@ export const VacanciesList = memo(function VacanciesList({
                   key={vacancy.id}
                   onClick={(event) => selectFromRow(event, vacancy.id)}
                   className={cn(
-                    'border-border hover:bg-surface-muted active:bg-surface-muted border-b align-middle last:border-0',
-                    selected
-                      ? 'bg-primary-subtle hover:bg-primary-subtle active:bg-primary-subtle shadow-[inset_2px_0_0_0_var(--brand)]'
-                      : urgentEdge(vacancy),
+                    'border-border border-b align-middle last:border-0',
+                    urgentRow(vacancy, selected) ??
+                      (selected
+                        ? 'bg-primary-subtle shadow-[inset_2px_0_0_0_var(--brand)]'
+                        : 'hover:bg-surface-muted active:bg-surface-muted'),
                   )}
                 >
                   <th scope="row" className="px-4 py-3 text-left font-normal">
@@ -179,8 +180,9 @@ export const VacanciesList = memo(function VacanciesList({
           <li
             key={vacancy.id}
             className={cn(
-              'hover:bg-surface-muted active:bg-surface-muted has-[a:focus-visible]:outline-ring relative flex flex-col gap-2 p-4 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2',
-              urgentEdge(vacancy),
+              'has-[a:focus-visible]:outline-ring relative flex flex-col gap-2 p-4 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2',
+              urgentRow(vacancy) ??
+                'hover:bg-surface-muted active:bg-surface-muted',
             )}
           >
             <Link

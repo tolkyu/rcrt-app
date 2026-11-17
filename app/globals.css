@@ -56,6 +56,7 @@
   --info-text: light-dark(#1d4ed8, #93c5fd);
   --destructive: #dc2626;
   --destructive-subtle: light-dark(#fef2f2, #3a1d24);
+  --destructive-subtle-hover: light-dark(#fce8e8, #471e24);
   --now-line: light-dark(#ef4444, #f87171);
   --tooltip: #0f172a;
   --tooltip-foreground: #ffffff;
@@ -139,6 +140,7 @@
   --color-info-text: var(--info-text);
   --color-destructive: var(--destructive);
   --color-destructive-subtle: var(--destructive-subtle);
+  --color-destructive-subtle-hover: var(--destructive-subtle-hover);
   --color-now-line: var(--now-line);
   --color-tooltip: var(--tooltip);
   --color-tooltip-foreground: var(--tooltip-foreground);
