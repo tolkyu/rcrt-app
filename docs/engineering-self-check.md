@@ -63,3 +63,4 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] `tsconfig.json` and `screenshots/` are not changed by accident. There are no leftover temp folders such as `.next-*`.
 - [ ] Only one Playwright, build or integration run at a time on this machine.
 - [ ] A Low or deferred security finding goes into the PROGRESS gap list in the same change. A shared-rule gap (e.g. `FORBIDDEN_CHARS`) is fixed once for every field that uses the rule.
+- [ ] A UX fix that adds visible UI updates the wireframe/UX contract in the same change; grep `docs/ux/` for every stale mention of a renamed label. An allowlist guard stays narrow: a new reader goes in its own module.
