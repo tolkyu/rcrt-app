@@ -66,3 +66,5 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] A UX fix that adds visible UI updates the wireframe/UX contract in the same change; grep `docs/ux/` for every stale mention of a renamed label. An allowlist guard stays narrow: a new reader goes in its own module.
 - [ ] Before hand-back, apply `.claude/skills/deslop/SKILL.md` and `.claude/skills/no-comments/SKILL.md` to your slice diff and rerun the touched checks.
 - [ ] A validator written for a whole field value is not reused on fragments (rich-text nodes, split strings); context rules such as "refuse only when nothing else is visible" need a fragment-safe predicate.
+- [ ] New/touched `.ts`/`.tsx` follow `.claude/skills/typescript-best-practices/SKILL.md` (no `as` without validation, discriminated unions over optional bags, exhaustive `never`, Zod/Drizzle-derived types).
+- [ ] A bug fix follows `.claude/skills/tdd/SKILL.md`: failing-before test output quoted in the hand-back (or why no cheap test exists).
