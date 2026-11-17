@@ -49,6 +49,8 @@ export function closeActions(
     : [item('delete')];
 }
 
+const FLUSH_FALLBACK_MS = 600;
+
 const failureText = (t: Translate, failure: CloseFailure): string => {
   switch (failure) {
     case 'notDraft':
@@ -85,7 +87,10 @@ export function useDraftClose(draft: ClosableDraft, card?: CardFocus) {
   const mounted = useRef(true);
   const after = useRef<(() => void) | null>(null);
 
+  const fallbackTimer = useRef<number | undefined>(undefined);
+
   const flush = () => {
+    window.clearTimeout(fallbackTimer.current);
     const run = after.current;
     after.current = null;
     run?.();
@@ -117,7 +122,7 @@ export function useDraftClose(draft: ClosableDraft, card?: CardFocus) {
         router.replace(closedLandingHref(draft));
     } catch {
       // The server did it; whatever went wrong locally, the caches read it again.
-      void refreshDraft(queryClient, draft.id);
+      refreshDraft(queryClient, draft.id);
     } finally {
       // A deleted draft on its own page stays locked until the page is left.
       if (done === 'cancel' || leave) locked.current = false;
@@ -156,7 +161,7 @@ export function useDraftClose(draft: ClosableDraft, card?: CardFocus) {
       after.current = () => void finish(kind, outcome.vacancy);
       setOpen(false);
       // The close event normally runs it; this covers a close that never reports.
-      window.setTimeout(flush, 600);
+      fallbackTimer.current = window.setTimeout(flush, FLUSH_FALLBACK_MS);
       return;
     }
     locked.current = false;
@@ -170,7 +175,7 @@ export function useDraftClose(draft: ClosableDraft, card?: CardFocus) {
     if (outcome.failure === 'gone') {
       setOpen(false);
       announceGone(t);
-      void refreshDraft(queryClient, draft.id);
+      refreshDraft(queryClient, draft.id);
     } else setFailure(outcome.failure);
   }
 
@@ -191,7 +196,7 @@ export function useDraftClose(draft: ClosableDraft, card?: CardFocus) {
     setOpen(next);
     // A conflict means the data moved on; the list reads it again once the user has seen the message.
     if (!next && (failure === 'notDraft' || failure === 'stale'))
-      void refreshDraft(queryClient, draft.id);
+      refreshDraft(queryClient, draft.id);
   };
 
   const openDialog = (next: CloseKind) => {

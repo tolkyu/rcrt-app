@@ -96,6 +96,13 @@ describe('DisabledReason [UI foundation F2, ui-foundation section 6]', () => {
     expect(tooltip.textContent).toBe(REASON);
   });
 
+  it('names the open tooltip node, so the decorative bubble leaves no unnamed role=tooltip [BUG-S3-20]', async () => {
+    const button = mount(vi.fn());
+    await userEvent.hover(button);
+    await screen.findByRole('tooltip', {}, { timeout: 3000 });
+    expect(screen.getByRole('tooltip', { name: REASON })).toBeTruthy();
+  });
+
   it('keeps only the helper description on touch keyboard focus [BUG-S3-2]', async () => {
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches: query === '(hover: none)',

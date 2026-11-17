@@ -509,6 +509,24 @@ describe('useDraftClose: cancel [ux §6.3, §6.4, D113]', () => {
       timeout: 3000,
     });
   });
+
+  it('the fallback flush timer is cleared when the row unmounts', async () => {
+    fetchSpy.mockResolvedValueOnce(json(200, detail({ status: 'CANCELLED' })));
+    const started = vi.spyOn(window, 'setTimeout');
+    const cleared = vi.spyOn(window, 'clearTimeout');
+    const view = mount(draft());
+    await userEvent.click(opener('cancel'));
+    fireEvent.change(reasonField(), { target: { value: 'Дубль' } });
+    await userEvent.click(confirmCancel());
+    await waitFor(() => expect(requests()).toHaveLength(1));
+    const timer = await waitFor(() => {
+      const index = started.mock.calls.findIndex(([, delay]) => delay === 600);
+      expect(index).toBeGreaterThanOrEqual(0);
+      return started.mock.results[index]!.value as number;
+    });
+    view.unmount();
+    expect(cleared).toHaveBeenCalledWith(timer);
+  });
 });
 
 describe('useDraftClose: delete [ux §6.3, §6.4, D112(1)]', () => {

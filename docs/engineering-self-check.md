@@ -68,3 +68,4 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] A validator written for a whole field value is not reused on fragments (rich-text nodes, split strings); context rules such as "refuse only when nothing else is visible" need a fragment-safe predicate.
 - [ ] New/touched `.ts`/`.tsx` follow `.claude/skills/typescript-best-practices/SKILL.md` (no `as` without validation, discriminated unions over optional bags, exhaustive `never`, Zod/Drizzle-derived types).
 - [ ] A bug fix follows `.claude/skills/tdd/SKILL.md`: failing-before test output quoted in the hand-back (or why no cheap test exists).
+- [ ] A wrapper that strips or overrides a prop on a cloned child (e.g. `aria-describedby: undefined`) removes only what the wrapper added, or documents that it replaces the caller's value.

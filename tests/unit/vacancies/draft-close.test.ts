@@ -10,6 +10,7 @@ import {
   closeDraft,
   closedLandingHref,
   isUnsure,
+  refreshDraft,
   type ClosableDraft,
   type CloseFailure,
 } from '@/lib/vacancy-draft-close';
@@ -418,5 +419,25 @@ describe('closedLandingHref: where the card page goes after a delete', () => {
     expect(closedLandingHref(draft('CANCELLED'))).toBe(
       `/vacancies?status=CANCELLED&vertical=${VERTICAL}`,
     );
+  });
+});
+
+const rejectedRead = async () => {
+  throw new Error('refetch failed');
+};
+
+describe('refreshDraft: a failed read never becomes an unhandled rejection', () => {
+  it('swallows a rejected invalidation from the list and from the card', async () => {
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    const queryClient = new QueryClient();
+    const invalidate = vi
+      .spyOn(queryClient, 'invalidateQueries')
+      .mockImplementation(rejectedRead);
+    refreshDraft(queryClient, ID);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    process.off('unhandledRejection', unhandled);
+    expect(invalidate).toHaveBeenCalledTimes(2);
+    expect(unhandled).not.toHaveBeenCalled();
   });
 });

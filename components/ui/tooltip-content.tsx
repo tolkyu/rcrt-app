@@ -2,11 +2,13 @@
 
 import { Tooltip as TooltipPrimitive } from 'radix-ui';
 import {
+  cloneElement,
   useCallback,
   useEffect,
   useRef,
   useState,
   useSyncExternalStore,
+  type HTMLAttributes,
   type ReactElement,
   type ReactNode,
   type RefObject,
@@ -54,7 +56,7 @@ export interface TooltipContentProps {
   hover: boolean;
   /** Set by the static trigger when it held focus as it was removed. */
   focusHeld: RefObject<boolean>;
-  children: ReactElement;
+  children: ReactElement<HTMLAttributes<HTMLElement>>;
 }
 
 export default function TooltipContent({
@@ -115,6 +117,12 @@ export default function TooltipContent({
     else startSkipWindow();
   };
 
+  // The named bubble describes the trigger while open; the child's whole aria-describedby (its reason id) is dropped so the reason is not read twice.
+  const described =
+    decorative && open
+      ? cloneElement(children, { 'aria-describedby': undefined })
+      : children;
+
   return (
     <TooltipPrimitive.Provider>
       <TooltipPrimitive.Root
@@ -123,7 +131,7 @@ export default function TooltipContent({
         delayDuration={skip ? 0 : DELAY_MS}
       >
         <TooltipPrimitive.Trigger asChild ref={attach}>
-          {children}
+          {described}
         </TooltipPrimitive.Trigger>
         {!disabled && (
           <TooltipPrimitive.Portal>
@@ -131,6 +139,9 @@ export default function TooltipContent({
               side={side}
               sideOffset={6}
               collisionPadding={8}
+              aria-label={
+                decorative && typeof content === 'string' ? content : undefined
+              }
               data-instant={instant ? '' : undefined}
               className={cn(
                 'motion-tooltip border-border bg-tooltip text-tooltip-foreground z-popover max-w-xs rounded-md border px-2.5 py-1.5 text-xs break-words shadow-md',

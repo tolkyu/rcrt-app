@@ -136,11 +136,12 @@ export async function closeDraft(
 }
 
 /** The data changed under the user: lists, count and card read the server again. */
-export const refreshDraft = (queryClient: QueryClient, id: string) =>
+export function refreshDraft(queryClient: QueryClient, id: string): void {
   Promise.all([
     queryClient.invalidateQueries({ queryKey: queryKeys.vacanciesAll() }),
     queryClient.invalidateQueries({ queryKey: queryKeys.vacancy(id) }),
-  ]);
+  ]).catch(() => undefined);
+}
 
 /** The row leaves every cached list at once and the count follows, then everything reads the server; `onRemoved` runs while the row is still on the page, so selection and focus can pick its neighbour. */
 export async function applyClosed(
@@ -174,7 +175,9 @@ export async function applyClosed(
     );
   if (vacancy) queryClient.setQueryData(queryKeys.vacancy(draft.id), vacancy);
   else queryClient.removeQueries({ queryKey: queryKeys.vacancy(draft.id) });
-  void queryClient.invalidateQueries({ queryKey: queryKeys.vacanciesAll() });
+  queryClient
+    .invalidateQueries({ queryKey: queryKeys.vacanciesAll() })
+    .catch(() => undefined);
 }
 
 /** After deleting from the card: the list the draft lived in (a cancelled one under «Скасовані»), its vertical kept so the header preset cannot hide it. */
