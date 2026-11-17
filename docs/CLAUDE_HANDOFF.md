@@ -2,18 +2,19 @@
 
 > **Rule:** this file holds only the latest checkpoint (≤ ~60 lines). On every checkpoint, move the old content to the top of `docs/archive/handoff-log.md` (newest first), then rewrite this file. Never append history here. Read the archive only when you need an old detail.
 
-## Checkpoint — 2026-11-17 (Claude)
+## Checkpoint — 2026-11-17 evening (Claude)
 
-- Branch `phase-2`, pushed to `origin`. Owner approved pushes (2026-11-17): push every green checkpoint.
-- Done today: S3.5 re-review APPROVED; BUG-S3-14 fixed `ddafec9` (Toaster without `React.lazy`); S3.6 polish + D123 (author sees cancel reason on own cancelled draft card) + D124 (footer «Вийти без збереження») `ebf00ae`; reviews `docs/review-phase-2-s3-6.md` APPROVED, `docs/security/review-phase-2-s3-6.md` PASS; deslop skill added `362573b`.
-- In progress: senior-fullstack-engineer follow-up slice (10 non-blocking items in `docs/review-phase-2-s3-6.md` + security L1/L2 + deslop).
+- Branch `phase-2`, HEAD `c955138`, pushed. Owner approved pushes; work continues without waiting for the owner.
+- Done: S3.5 + S3.6 reviewed (code APPROVED x3, security PASS), BUG-S3-14 fixed, D123/D124/D125 recorded, lean gallery captures (`c955138`), rich-text fragment fix `6cd0276`.
+- New skills (`.claude/skills/`): deslop, no-comments, thermo-nuclear (QA), blast-radius (reviewer), benchmark-checklist (perf), tdd, typescript-best-practices, make-pr-easy-to-review, babysit, fix-ci, fix-merge-conflicts. Wired into `docs/engineering-self-check.md` and agent files.
+- In progress: senior-fullstack-engineer S3.7 quality slice (thermo findings + BUG-S3-20, see `docs/qa-phase-2-s3.md`).
 
 ## Next (in order)
 
-1. Commit the follow-up slice after a short re-review.
-2. QA: missing §10 captures from `docs/ux/review-phase-2-s3.md` («Independent UX verdict» list), incl. 320 px / 200 %. Then close S3.6.
-3. F10 rich text (`docs/ux/ui-foundation.md`). Perf headroom: create 178.18 / edit 178.38 of 180 kB.
-4. Phase 7: remind the owner about full-cycle demo videos (`docs/PROGRESS.md` gaps).
+1. S3.7: QA (thermo pass) → code-reviewer (blast radius) → commit, push. Then mark S3.6/S3.7 done in PROGRESS.
+2. Split `docs/PROGRESS.md` history into `docs/archive/` (owner asked for token economy).
+3. F10 rich text (`docs/ux/ui-foundation.md`). Perf: create 178.19 / edit 178.39 of 180 kB.
+4. Phase 7: remind owner about demo videos.
 
 ## Open, not blocking
 
