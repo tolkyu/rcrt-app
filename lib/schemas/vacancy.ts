@@ -118,6 +118,8 @@ export const vacancyDetailSchema = vacancySummarySchema
     canSetTeamLead: z.boolean(),
     /** Status actions legal from the stored status and granted to this viewer; empty for a DRAFT and a CANCELLED vacancy. */
     statusActions: z.array(z.enum(VACANCY_STATUS_ACTIONS)),
+    /** D63: a team or status control this viewer lacks at aal1 that a 2FA step-up would unlock (an Admin grant is withheld until aal2); the card then shows it disabled with the way to verify. */
+    needsMfa: z.boolean(),
     /** A cancelled draft: only for the user who cancelled it (D123). A cancelled published vacancy: for everyone who reads it (D130-4). Absent otherwise. */
     cancelReason: z.string().optional(),
   })

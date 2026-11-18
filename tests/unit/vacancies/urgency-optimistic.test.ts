@@ -55,6 +55,7 @@ const detail = (
   canAssignRecruiters: false,
   canSetTeamLead: false,
   statusActions: [],
+  needsMfa: false,
 });
 const page = (...rows: VacancySummary[]): VacancyPage => ({
   items: rows,

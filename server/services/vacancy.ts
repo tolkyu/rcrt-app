@@ -34,6 +34,7 @@ import {
   canSelfAssign,
   canSetTeamLead,
 } from '../authz/vacancy-assignment';
+import { needsMfa } from '../authz/vacancy-mfa';
 import { permittedStatusActions } from '../authz/vacancy-status';
 import { canChangeUrgency } from '../authz/vacancy-urgency';
 import {
@@ -167,6 +168,11 @@ export async function readVacancy(
       verticalId,
       status: detail.status,
       teamLeadId: detail.teamLead?.id ?? null,
+    }),
+    needsMfa: needsMfa(ctx.auth, {
+      verticalId,
+      status: detail.status,
+      teamLead: detail.teamLead,
     }),
   };
 }

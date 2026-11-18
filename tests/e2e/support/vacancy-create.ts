@@ -134,6 +134,7 @@ export function stubbedVacancy(
     canAssignRecruiters: false,
     canSetTeamLead: false,
     statusActions: [],
+    needsMfa: false,
   };
 }
 

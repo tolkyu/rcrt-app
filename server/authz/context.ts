@@ -25,6 +25,11 @@ export interface AuthContext {
   /** Some grants are withheld until the session reaches aal2 (owner 2026-10-31, SEC-CORE-09). */
   readonly mfaRequired: boolean;
   readonly mfaWithheld: ReadonlySet<PermissionCode>;
+  /** The grants that aal2 would add, per permission and scope: lets the UI offer a step-up instead of hiding the control (D63). */
+  readonly mfaWithheldGrants: ReadonlyMap<
+    PermissionCode,
+    readonly ResolvedGrant[]
+  >;
   readonly timezone: string;
 }
 
@@ -55,6 +60,22 @@ interface Draft {
   verticalIds: Set<VerticalId> | 'ALL';
 }
 
+function resolveDrafts(
+  drafts: ReadonlyMap<string, Draft>,
+): Map<PermissionCode, ResolvedGrant[]> {
+  const grants = new Map<PermissionCode, ResolvedGrant[]>();
+  for (const draft of drafts.values()) {
+    const list = grants.get(draft.permission) ?? [];
+    list.push({
+      scope: draft.scope,
+      verticalIds:
+        draft.verticalIds === 'ALL' ? 'ALL' : [...draft.verticalIds].sort(),
+    });
+    grants.set(draft.permission, list);
+  }
+  return grants;
+}
+
 export function buildAuthContext(
   input: {
     readonly userId: UserId;
@@ -65,6 +86,7 @@ export function buildAuthContext(
   definitions: RoleDefinitions = BUILTIN_ROLES,
 ): AuthContext {
   const drafts = new Map<string, Draft>();
+  const withheldDrafts = new Map<string, Draft>();
   const withheld = new Set<PermissionCode>();
   let mfaRequired = false;
 
@@ -79,13 +101,14 @@ export function buildAuthContext(
       if (!legal.includes(scope.kind)) continue;
       const global = scope.kind === 'GLOBAL';
       if (global !== (verticalId === null)) continue;
-      if (needsAal2(permission, scope) && input.aal !== 'aal2') {
+      const held = needsAal2(permission, scope) && input.aal !== 'aal2';
+      if (held) {
         mfaRequired = true;
         withheld.add(permission);
-        continue;
       }
+      const target = held ? withheldDrafts : drafts;
       const key = scopeKey(permission, scope);
-      const draft = drafts.get(key) ?? {
+      const draft = target.get(key) ?? {
         permission,
         scope,
         verticalIds: global ? 'ALL' : new Set<VerticalId>(),
@@ -93,20 +116,11 @@ export function buildAuthContext(
       if (draft.verticalIds !== 'ALL' && verticalId) {
         draft.verticalIds.add(verticalId);
       }
-      drafts.set(key, draft);
+      target.set(key, draft);
     }
   }
 
-  const grants = new Map<PermissionCode, ResolvedGrant[]>();
-  for (const draft of drafts.values()) {
-    const list = grants.get(draft.permission) ?? [];
-    list.push({
-      scope: draft.scope,
-      verticalIds:
-        draft.verticalIds === 'ALL' ? 'ALL' : [...draft.verticalIds].sort(),
-    });
-    grants.set(draft.permission, list);
-  }
+  const grants = resolveDrafts(drafts);
   for (const permission of grants.keys()) withheld.delete(permission);
 
   return {
@@ -115,6 +129,7 @@ export function buildAuthContext(
     aal: input.aal,
     mfaRequired,
     mfaWithheld: withheld,
+    mfaWithheldGrants: resolveDrafts(withheldDrafts),
     timezone: input.timezone,
   };
 }

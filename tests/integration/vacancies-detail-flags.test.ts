@@ -1,10 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import postgres from 'postgres';
 import type { VacancyDetail } from '../../lib/schemas/vacancy';
+import { NotFoundError } from '../../server/http/errors';
 import { getVacancyDetail } from '../../server/services/vacancy';
 import {
   createScenarioRunner,
   rolesOf,
+  type Roles,
 } from '../support/vacancy-write-harness';
 import {
   createVacancyWorld,
@@ -160,6 +162,56 @@ describe('Assignment and status flags on the detail [STORY-VAC-03-1, VAC-03-2, V
       expect(await getVacancyDetail(lead, filled)).toMatchObject({
         statusActions: [],
       });
+    });
+  });
+});
+
+describe('needsMfa on the detail [D63, STORY-VAC-02-1, VAC-03-2]', () => {
+  const adminAnd = (extra: Roles) => [...rolesOf(world).admin, ...extra];
+
+  it.each([
+    ['Admin and Recruiter at aal1', 'recruiter', 'aal1', true],
+    ['Admin and Recruiter at aal2', 'recruiter', 'aal2', false],
+    ['Admin and Head Recruiter at aal1', 'head', 'aal1', false],
+  ] as const)('%s: %s', async (_name, extra, aal, expected) => {
+    await scenario(async (s) => {
+      const ctx = await s.as(adminAnd(rolesOf(world)[extra]), {
+        aal,
+        userId: world.users.recA,
+      });
+      const detail = await getVacancyDetail(ctx, world.v.assignedOpen);
+      expect(detail.needsMfa).toBe(expected);
+    });
+  });
+
+  it('a mixed-role user at aal1 gets 404 for a vacancy outside the vertical scope, not a step-up hint', async () => {
+    await scenario(async (s) => {
+      const ctx = await s.as(adminAnd(rolesOf(world).recruiter), {
+        aal: 'aal1',
+        userId: world.users.recA,
+      });
+      await expect(
+        getVacancyDetail(ctx, world.v.otherUnassigned),
+      ).rejects.toBeInstanceOf(NotFoundError);
+    });
+  });
+
+  it('a Recruiter without the Admin role never gets it, and a closed vacancy has nothing to unlock', async () => {
+    await scenario(async (s) => {
+      const plain = await s.as(rolesOf(world).recruiter, {
+        aal: 'aal1',
+        userId: world.users.recA,
+      });
+      expect(
+        (await getVacancyDetail(plain, world.v.assignedOpen)).needsMfa,
+      ).toBe(false);
+      const mixed = await s.as(adminAnd(rolesOf(world).recruiter), {
+        aal: 'aal1',
+        userId: world.users.recA,
+      });
+      expect((await getVacancyDetail(mixed, world.v.cancelled)).needsMfa).toBe(
+        false,
+      );
     });
   });
 });

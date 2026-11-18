@@ -2,11 +2,7 @@ import { z } from 'zod';
 import { VACANCY_HEADCOUNT_MAX } from '../vacancy-limits';
 import { VACANCY_REASON_MAX } from '../reason-length';
 import { multilineReason } from './reason';
-
-const expectedVersion = z.number().int().positive().meta({
-  description:
-    'Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved.',
-});
+import { expectedVersion } from './vacancy';
 
 const toggle = (action: 'HOLD' | 'RESUME') =>
   z.object({ action: z.literal(action), expectedVersion }).strict();
