@@ -2,21 +2,19 @@
 
 > **Rule:** this file holds only the latest checkpoint (≤ ~60 lines). On every checkpoint, move the old content to the top of `docs/archive/handoff-log.md` (newest first), then rewrite this file. Never append history here. Read the archive only when you need an old detail.
 
-## Checkpoint — 2026-11-17 evening (Claude)
+## Checkpoint — 2026-11-18 (Claude)
 
-- Branch `phase-2`, HEAD `b48910d`, pushed. Owner approved pushes; work continues without waiting for the owner.
-- Done: S3.5 + S3.6 reviewed (code APPROVED x3, security PASS), BUG-S3-14 fixed, D123/D124/D125 recorded, lean gallery captures (`c955138`), rich-text fragment fix `6cd0276`.
-- New skills (`.claude/skills/`): deslop, no-comments, thermo-nuclear (QA), blast-radius (reviewer), benchmark-checklist (perf), tdd, typescript-best-practices, make-pr-easy-to-review, babysit, fix-ci, fix-merge-conflicts. Wired into `docs/engineering-self-check.md` and agent files.
-- **S3.7 closed (D126):** part 1 `b48910d` (items 7, 8, BUG-S3-20), part 2 (items 1, 6: pure `planAttempt`/`settle` in `lib/vacancy-draft-retry.ts`). Both code-reviewer APPROVED. Rest of thermo items → Phase 7 tech debt (PROGRESS «Gaps»).
-- **D126 (owner, 2026-11-17):** one review round per slice; only bugs/security/authz/PII/PRD mismatch block; screenshots once per V-block.
+- Branch `phase-2`, HEAD `7a47c14` (V3 wireframes committed). D129 (risk-based DoD) and D130 (V3 rules, Q-190..194 answered) recorded; ADR-017 committed.
+- Urgency V2: slices 1–3 merged (API, highlight, card control). Slice 4 (list filter) on `vac-04-4-filter` (`D:/recruiting-wt/urgency-filter`): perf-engineer merging `phase-2`, measuring bundles, deciding on the lazy switcher change in `app-shell.tsx`.
+- V3 slice 1 (foundation per ADR-017) running in `D:/recruiting-wt/v3-foundation` (branch `v3-foundation`).
 
-## Next (in order) — 2026-11-17 late, wave 2
+## Next (in order)
 
-1. Done + pushed: VAC-03-3 (`3a1b504`, `95672ac`); urgency API slice 1 + highlight slice 3 merged `7d46438` (highlight code-review APPROVED).
-2. Running: security + code-review of urgency API (377c50c); slice 2 client control in `D:/recruiting-wt/urgency-client` (branch `vac-08-2-client`); slice 4 list filter in `D:/recruiting-wt/urgency-filter` (`vac-04-4-filter`); QA fixes flaky unit `waitFor` timeouts in main tree (uncommitted).
-3. Then merge slices 2+4 (uk.json may conflict trivially), review, slice 5 (E2E, Postman success/stale/locked, V2 gallery PNGs, perf + UX gallery review), remove worktrees. Worktrees are manual (tool isolation fails on d:/D: case).
-4. Owner questions open: Q-190..Q-194 (V3 defaults apply). Then V3 design (architect + UX) and build.
-5. Tech debt (Phase 7): private cancelled urgent draft shows only Lock note; record dark-hover 2.94:1 in UX contrast table; `change_feed` row for urgency not emitted (no consumer).
+1. Merge slice 4 into `phase-2` (level-b verify), push.
+2. Review V3 slice 1 (code-reviewer + security-engineer: authz), merge.
+3. V3 slices 2, 3, 4 (APIs) in parallel worktrees + slice 7 (share tests); then 5 → 6 (UI); then 8 (E2E, Newman, V2+V3 gallery, perf + security reviews). Urgency slice 5 (E2E/Postman/PNGs) folds into V3 slice 8 as one V-block end.
+4. Owner: UX questions in `docs/ux/wireframes/vacancy-card.md` §14 — defaults applied («Відновити», confirm on self-claim, no «Не призначено» filter option); tell owner in the report.
+5. Tech debt (Phase 7): private cancelled urgent draft shows only Lock note; dark-hover 2.94:1 in UX contrast table; urgency `change_feed` row not emitted.
 6. Phase 7: remind owner about demo videos.
 
 ## Open, not blocking
