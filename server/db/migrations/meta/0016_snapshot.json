@@ -68,14 +68,10 @@
         "app_setting_updated_by_app_user_id_fk": {
           "name": "app_setting_updated_by_app_user_id_fk",
           "tableFrom": "app_setting",
-          "columnsFrom": [
-            "updated_by"
-          ],
+          "columnsFrom": ["updated_by"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -233,28 +229,20 @@
         "app_user_deactivated_by_app_user_id_fk": {
           "name": "app_user_deactivated_by_app_user_id_fk",
           "tableFrom": "app_user",
-          "columnsFrom": [
-            "deactivated_by"
-          ],
+          "columnsFrom": ["deactivated_by"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "app_user_created_by_app_user_id_fk": {
           "name": "app_user_created_by_app_user_id_fk",
           "tableFrom": "app_user",
-          "columnsFrom": [
-            "created_by"
-          ],
+          "columnsFrom": ["created_by"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -263,16 +251,12 @@
       "uniqueConstraints": {
         "app_user_auth_user_id_uq": {
           "name": "app_user_auth_user_id_uq",
-          "columns": [
-            "auth_user_id"
-          ],
+          "columns": ["auth_user_id"],
           "nullsNotDistinct": false
         },
         "app_user_email_uq": {
           "name": "app_user_email_uq",
-          "columns": [
-            "email"
-          ],
+          "columns": ["email"],
           "nullsNotDistinct": false
         }
       },
@@ -592,14 +576,10 @@
         "audit_log_actor_id_app_user_id_fk": {
           "name": "audit_log_actor_id_app_user_id_fk",
           "tableFrom": "audit_log",
-          "columnsFrom": [
-            "actor_id"
-          ],
+          "columnsFrom": ["actor_id"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -709,28 +689,20 @@
         "change_feed_vertical_id_vertical_id_fk": {
           "name": "change_feed_vertical_id_vertical_id_fk",
           "tableFrom": "change_feed",
-          "columnsFrom": [
-            "vertical_id"
-          ],
+          "columnsFrom": ["vertical_id"],
           "tableTo": "vertical",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "change_feed_user_id_app_user_id_fk": {
           "name": "change_feed_user_id_app_user_id_fk",
           "tableFrom": "change_feed",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -991,42 +963,30 @@
         "entity_event_actor_id_app_user_id_fk": {
           "name": "entity_event_actor_id_app_user_id_fk",
           "tableFrom": "entity_event",
-          "columnsFrom": [
-            "actor_id"
-          ],
+          "columnsFrom": ["actor_id"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "entity_event_vertical_id_vertical_id_fk": {
           "name": "entity_event_vertical_id_vertical_id_fk",
           "tableFrom": "entity_event",
-          "columnsFrom": [
-            "vertical_id"
-          ],
+          "columnsFrom": ["vertical_id"],
           "tableTo": "vertical",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "entity_event_vacancy_id_vacancy_id_fk": {
           "name": "entity_event_vacancy_id_vacancy_id_fk",
           "tableFrom": "entity_event",
-          "columnsFrom": [
-            "vacancy_id"
-          ],
+          "columnsFrom": ["vacancy_id"],
           "tableTo": "vacancy",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -1076,14 +1036,10 @@
         "entity_event_pii_event_id_entity_event_id_fk": {
           "name": "entity_event_pii_event_id_entity_event_id_fk",
           "tableFrom": "entity_event_pii",
-          "columnsFrom": [
-            "event_id"
-          ],
+          "columnsFrom": ["event_id"],
           "tableTo": "entity_event",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -1251,28 +1207,20 @@
         "file_object_vertical_id_vertical_id_fk": {
           "name": "file_object_vertical_id_vertical_id_fk",
           "tableFrom": "file_object",
-          "columnsFrom": [
-            "vertical_id"
-          ],
+          "columnsFrom": ["vertical_id"],
           "tableTo": "vertical",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "file_object_uploaded_by_app_user_id_fk": {
           "name": "file_object_uploaded_by_app_user_id_fk",
           "tableFrom": "file_object",
-          "columnsFrom": [
-            "uploaded_by"
-          ],
+          "columnsFrom": ["uploaded_by"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -1281,9 +1229,7 @@
       "uniqueConstraints": {
         "file_object_storage_key_uq": {
           "name": "file_object_storage_key_uq",
-          "columns": [
-            "storage_key"
-          ],
+          "columns": ["storage_key"],
           "nullsNotDistinct": false
         }
       },
@@ -1425,14 +1371,10 @@
         "idempotency_key_user_id_app_user_id_fk": {
           "name": "idempotency_key_user_id_app_user_id_fk",
           "tableFrom": "idempotency_key",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -1533,10 +1475,7 @@
       "uniqueConstraints": {
         "job_run_key_uq": {
           "name": "job_run_key_uq",
-          "columns": [
-            "job_name",
-            "run_key"
-          ],
+          "columns": ["job_name", "run_key"],
           "nullsNotDistinct": false
         }
       },
@@ -1648,28 +1587,20 @@
         "position_vertical_id_vertical_id_fk": {
           "name": "position_vertical_id_vertical_id_fk",
           "tableFrom": "position",
-          "columnsFrom": [
-            "vertical_id"
-          ],
+          "columnsFrom": ["vertical_id"],
           "tableTo": "vertical",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "position_created_by_app_user_id_fk": {
           "name": "position_created_by_app_user_id_fk",
           "tableFrom": "position",
-          "columnsFrom": [
-            "created_by"
-          ],
+          "columnsFrom": ["created_by"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -1678,10 +1609,7 @@
       "uniqueConstraints": {
         "position_id_vertical_uq": {
           "name": "position_id_vertical_uq",
-          "columns": [
-            "id",
-            "vertical_id"
-          ],
+          "columns": ["id", "vertical_id"],
           "nullsNotDistinct": false
         }
       },
@@ -1743,10 +1671,7 @@
       "compositePrimaryKeys": {
         "rate_limit_bucket_key_window_start_pk": {
           "name": "rate_limit_bucket_key_window_start_pk",
-          "columns": [
-            "key",
-            "window_start"
-          ]
+          "columns": ["key", "window_start"]
         }
       },
       "uniqueConstraints": {},
@@ -1850,14 +1775,10 @@
         "saved_filter_user_id_app_user_id_fk": {
           "name": "saved_filter_user_id_app_user_id_fk",
           "tableFrom": "saved_filter",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -1933,42 +1854,30 @@
         "team_lead_priority_vertical_id_vertical_id_fk": {
           "name": "team_lead_priority_vertical_id_vertical_id_fk",
           "tableFrom": "team_lead_priority",
-          "columnsFrom": [
-            "vertical_id"
-          ],
+          "columnsFrom": ["vertical_id"],
           "tableTo": "vertical",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "team_lead_priority_user_id_app_user_id_fk": {
           "name": "team_lead_priority_user_id_app_user_id_fk",
           "tableFrom": "team_lead_priority",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "team_lead_priority_updated_by_app_user_id_fk": {
           "name": "team_lead_priority_updated_by_app_user_id_fk",
           "tableFrom": "team_lead_priority",
-          "columnsFrom": [
-            "updated_by"
-          ],
+          "columnsFrom": ["updated_by"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -1976,10 +1885,7 @@
       "compositePrimaryKeys": {
         "team_lead_priority_vertical_id_user_id_pk": {
           "name": "team_lead_priority_vertical_id_user_id_pk",
-          "columns": [
-            "vertical_id",
-            "user_id"
-          ]
+          "columns": ["vertical_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -2145,42 +2051,30 @@
         "user_invite_user_id_app_user_id_fk": {
           "name": "user_invite_user_id_app_user_id_fk",
           "tableFrom": "user_invite",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "user_invite_invited_by_app_user_id_fk": {
           "name": "user_invite_invited_by_app_user_id_fk",
           "tableFrom": "user_invite",
-          "columnsFrom": [
-            "invited_by"
-          ],
+          "columnsFrom": ["invited_by"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "user_invite_revoked_by_app_user_id_fk": {
           "name": "user_invite_revoked_by_app_user_id_fk",
           "tableFrom": "user_invite",
-          "columnsFrom": [
-            "revoked_by"
-          ],
+          "columnsFrom": ["revoked_by"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -2189,9 +2083,7 @@
       "uniqueConstraints": {
         "user_invite_token_hash_uq": {
           "name": "user_invite_token_hash_uq",
-          "columns": [
-            "token_hash"
-          ],
+          "columns": ["token_hash"],
           "nullsNotDistinct": false
         }
       },
@@ -2295,42 +2187,30 @@
         "user_role_user_id_app_user_id_fk": {
           "name": "user_role_user_id_app_user_id_fk",
           "tableFrom": "user_role",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "user_role_vertical_id_vertical_id_fk": {
           "name": "user_role_vertical_id_vertical_id_fk",
           "tableFrom": "user_role",
-          "columnsFrom": [
-            "vertical_id"
-          ],
+          "columnsFrom": ["vertical_id"],
           "tableTo": "vertical",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "user_role_created_by_app_user_id_fk": {
           "name": "user_role_created_by_app_user_id_fk",
           "tableFrom": "user_role",
-          "columnsFrom": [
-            "created_by"
-          ],
+          "columnsFrom": ["created_by"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -2339,11 +2219,7 @@
       "uniqueConstraints": {
         "user_role_uq": {
           "name": "user_role_uq",
-          "columns": [
-            "user_id",
-            "role",
-            "vertical_id"
-          ],
+          "columns": ["user_id", "role", "vertical_id"],
           "nullsNotDistinct": true
         }
       },
@@ -2449,14 +2325,10 @@
         "user_session_user_id_app_user_id_fk": {
           "name": "user_session_user_id_app_user_id_fk",
           "tableFrom": "user_session",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -2872,72 +2744,50 @@
         "vacancy_vertical_id_vertical_id_fk": {
           "name": "vacancy_vertical_id_vertical_id_fk",
           "tableFrom": "vacancy",
-          "columnsFrom": [
-            "vertical_id"
-          ],
+          "columnsFrom": ["vertical_id"],
           "tableTo": "vertical",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "vacancy_team_lead_id_app_user_id_fk": {
           "name": "vacancy_team_lead_id_app_user_id_fk",
           "tableFrom": "vacancy",
-          "columnsFrom": [
-            "team_lead_id"
-          ],
+          "columnsFrom": ["team_lead_id"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "vacancy_created_by_app_user_id_fk": {
           "name": "vacancy_created_by_app_user_id_fk",
           "tableFrom": "vacancy",
-          "columnsFrom": [
-            "created_by"
-          ],
+          "columnsFrom": ["created_by"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "vacancy_deleted_by_app_user_id_fk": {
           "name": "vacancy_deleted_by_app_user_id_fk",
           "tableFrom": "vacancy",
-          "columnsFrom": [
-            "deleted_by"
-          ],
+          "columnsFrom": ["deleted_by"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "vacancy_position_vertical_fk": {
           "name": "vacancy_position_vertical_fk",
           "tableFrom": "vacancy",
-          "columnsFrom": [
-            "position_id",
-            "vertical_id"
-          ],
+          "columnsFrom": ["position_id", "vertical_id"],
           "tableTo": "position",
           "schemaTo": "app",
-          "columnsTo": [
-            "id",
-            "vertical_id"
-          ],
+          "columnsTo": ["id", "vertical_id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -2946,17 +2796,12 @@
       "uniqueConstraints": {
         "vacancy_public_no_uq": {
           "name": "vacancy_public_no_uq",
-          "columns": [
-            "public_no"
-          ],
+          "columns": ["public_no"],
           "nullsNotDistinct": false
         },
         "vacancy_id_vertical_uq": {
           "name": "vacancy_id_vertical_uq",
-          "columns": [
-            "id",
-            "vertical_id"
-          ],
+          "columns": ["id", "vertical_id"],
           "nullsNotDistinct": false
         }
       },
@@ -3086,42 +2931,30 @@
         "vacancy_recruiter_vacancy_id_vacancy_id_fk": {
           "name": "vacancy_recruiter_vacancy_id_vacancy_id_fk",
           "tableFrom": "vacancy_recruiter",
-          "columnsFrom": [
-            "vacancy_id"
-          ],
+          "columnsFrom": ["vacancy_id"],
           "tableTo": "vacancy",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "vacancy_recruiter_user_id_app_user_id_fk": {
           "name": "vacancy_recruiter_user_id_app_user_id_fk",
           "tableFrom": "vacancy_recruiter",
-          "columnsFrom": [
-            "user_id"
-          ],
+          "columnsFrom": ["user_id"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         },
         "vacancy_recruiter_assigned_by_app_user_id_fk": {
           "name": "vacancy_recruiter_assigned_by_app_user_id_fk",
           "tableFrom": "vacancy_recruiter",
-          "columnsFrom": [
-            "assigned_by"
-          ],
+          "columnsFrom": ["assigned_by"],
           "tableTo": "app_user",
           "schemaTo": "app",
-          "columnsTo": [
-            "id"
-          ],
+          "columnsTo": ["id"],
           "onUpdate": "no action",
           "onDelete": "restrict"
         }
@@ -3129,10 +2962,7 @@
       "compositePrimaryKeys": {
         "vacancy_recruiter_vacancy_id_user_id_pk": {
           "name": "vacancy_recruiter_vacancy_id_user_id_pk",
-          "columns": [
-            "vacancy_id",
-            "user_id"
-          ]
+          "columns": ["vacancy_id", "user_id"]
         }
       },
       "uniqueConstraints": {},

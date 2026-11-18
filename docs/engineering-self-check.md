@@ -81,3 +81,4 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] A new module that imports a guarded table or event reader (`vacancy`, `vacancyRecruiter`, `entity_event`) runs the architecture guards `tests/unit/authz/vacancy-author.test.ts` and adds itself to the allowlist with a reason.
 - [ ] A date shown as "when it happened" but taken from `updatedAt` has a test or note proving nothing else writes the row after that event.
 - [ ] A deferred action that waits for data re-checks that its menu/dialog was not dismissed before it runs.
+- [ ] `corepack pnpm exec prettier --check` on every changed file, docs and generated JSON included (CI `format:check` covers the whole repo).

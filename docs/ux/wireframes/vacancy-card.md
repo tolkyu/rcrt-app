@@ -62,7 +62,7 @@
 
 | Role           | Differences                                                                                                                     |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Admin          | + bonus scheme override, + force actions (override «Пріоритет тімліда для цієї вакансії»: Phase 3, D127)                                                 |
+| Admin          | + bonus scheme override, + force actions (override «Пріоритет тімліда для цієї вакансії»: Phase 3, D127)                        |
 | Head Recruiter | full edit, recruiters assignment, reopen FILLED                                                                                 |
 | Recruiter      | edit if assigned ⚠ OPEN-V4; «Взяти в роботу» on unassigned                                                                      |
 | Head HR / HR   | read-only header; candidate list only Polygraph+; no routing panel                                                              |
@@ -105,49 +105,49 @@ V1 routing-group panel visibility · V2 days-open with ON_HOLD · V3 per-candida
 
 `VacancyOverview` (card and preview share it), directly under the header actions and above «Команда», so the control sits next to the badge it changes:
 
-| Section (heading, `text-sm` 600) | Content                                                              | Rendered when                                                                                       |
-| -------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| **Терміновість**                 | row «Терміновість вакансії»: `UrgencyControl` (segmented look) + helper line | `vacancy.canChangeUrgency` (server decision: Head Recruiter of the vertical or Admin, status `OPEN`/`ON_HOLD`) |
-| ~~Розподіл кандидатів між тімлідами~~ | **Phase 3 (D127), not built in Phase 2**                         | never in Phase 2                                                                                    |
+| Section (heading, `text-sm` 600)      | Content                                                                      | Rendered when                                                                                                  |
+| ------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Терміновість**                      | row «Терміновість вакансії»: `UrgencyControl` (segmented look) + helper line | `vacancy.canChangeUrgency` (server decision: Head Recruiter of the vertical or Admin, status `OPEN`/`ON_HOLD`) |
+| ~~Розподіл кандидатів між тімлідами~~ | **Phase 3 (D127), not built in Phase 2**                                     | never in Phase 2                                                                                               |
 
 Everyone else gets **no section and no read-only row**: the header badge «Термінова» is the display (story VAC-08-2: not rendered, not disabled). The section «Умови» keeps no urgency row (one place only).
 
 ### 2. Who sees what (control state)
 
-| Role                                   | `DRAFT` (own)                                                   | `OPEN` / `ON_HOLD` | `FILLED` / `CANCELLED`             |
-| -------------------------------------- | --------------------------------------------------------------- | ------------------ | ---------------------------------- |
-| Admin                                  | no section (change urgency in the draft edit form, D127)        | editable section   | no section; closed note in header  |
-| Head Recruiter (own vertical)          | no section (own draft: edit form; foreign draft: 404, D92)      | editable section   | no section; closed note in header  |
-| Recruiter, Team Lead, HR, Head HR      | no section                                                      | no section         | no section; closed note in header  |
-| Finance / out of scope / foreign draft | 404 (S-18); no hint that the vacancy exists                     | —                  | —                                  |
+| Role                                   | `DRAFT` (own)                                              | `OPEN` / `ON_HOLD` | `FILLED` / `CANCELLED`            |
+| -------------------------------------- | ---------------------------------------------------------- | ------------------ | --------------------------------- |
+| Admin                                  | no section (change urgency in the draft edit form, D127)   | editable section   | no section; closed note in header |
+| Head Recruiter (own vertical)          | no section (own draft: edit form; foreign draft: 404, D92) | editable section   | no section; closed note in header |
+| Recruiter, Team Lead, HR, Head HR      | no section                                                 | no section         | no section; closed note in header |
+| Finance / out of scope / foreign draft | 404 (S-18); no hint that the vacancy exists                | —                  | —                                 |
 
 A closed urgent vacancy shows only the header note (§3) and the neutral badge; no control, 409 `VACANCY_URGENCY_LOCKED` if a stale client sends a change.
 
 ### 3. Copy (keys proposed under `vacancies.urgency.*`; engineer adds to `messages/uk.json`)
 
-| Place                                    | Ukrainian                                                                                                                         |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Section heading                          | Терміновість                                                                                                                      |
-| Row label / radiogroup `aria-label`      | Терміновість вакансії                                                                                                             |
-| Options                                  | Звичайна · Термінова                                                                                                              |
-| Helper, editable                         | Термінові вакансії виділяються червоним у списках. Порядок розподілу кандидатів між тімлідами не змінюється.                      |
-| Header note under a closed urgent badge (visible text, also on touch) | Вакансію закрито — червоне виділення вимкнено. (same string is the badge `title` in lists)                        |
-| Success toast (4 s, id `urgency:{id}`)   | **Терміновість змінено** · V-0007 · Звичайна → Термінова (or «Термінова → Звичайна»)                                              |
-| Rollback toast (error, action)           | **Зміну не збережено** · Повернули як було. · action «Повторити» (foundation §4.1)                                               |
-| Conflict toast (warning, id `stale:vacancy:{id}`) | **Дані вже змінилися** · Терміновість уже змінено: тепер «Термінова». Якщо потрібно, змініть ще раз. (value = server state)        |
-| No connection (error, action)            | **Немає зʼєднання** · Зміни не збережено. Перевірте мережу й спробуйте ще раз. · «Повторити»                                       |
-| 403 (role/scope lost)                    | error toast «Недостатньо прав для цієї дії.»; detail refetch, the section disappears                                              |
-| 404                                      | card: S-18; preview: selection clears, list refetches, toast «Вакансію не знайдено або доступ обмежено»                           |
-| History event `vacancy.urgency_changed` (actor in its own column) | Терміновість змінено: Звичайна → Термінова                                                                                        |
+| Place                                                                 | Ukrainian                                                                                                                   |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Section heading                                                       | Терміновість                                                                                                                |
+| Row label / radiogroup `aria-label`                                   | Терміновість вакансії                                                                                                       |
+| Options                                                               | Звичайна · Термінова                                                                                                        |
+| Helper, editable                                                      | Термінові вакансії виділяються червоним у списках. Порядок розподілу кандидатів між тімлідами не змінюється.                |
+| Header note under a closed urgent badge (visible text, also on touch) | Вакансію закрито — червоне виділення вимкнено. (same string is the badge `title` in lists)                                  |
+| Success toast (4 s, id `urgency:{id}`)                                | **Терміновість змінено** · V-0007 · Звичайна → Термінова (or «Термінова → Звичайна»)                                        |
+| Rollback toast (error, action)                                        | **Зміну не збережено** · Повернули як було. · action «Повторити» (foundation §4.1)                                          |
+| Conflict toast (warning, id `stale:vacancy:{id}`)                     | **Дані вже змінилися** · Терміновість уже змінено: тепер «Термінова». Якщо потрібно, змініть ще раз. (value = server state) |
+| No connection (error, action)                                         | **Немає зʼєднання** · Зміни не збережено. Перевірте мережу й спробуйте ще раз. · «Повторити»                                |
+| 403 (role/scope lost)                                                 | error toast «Недостатньо прав для цієї дії.»; detail refetch, the section disappears                                        |
+| 404                                                                   | card: S-18; preview: selection clears, list refetches, toast «Вакансію не знайдено або доступ обмежено»                     |
+| History event `vacancy.urgency_changed` (actor in its own column)     | Терміновість змінено: Звичайна → Термінова                                                                                  |
 
 Copy added in the build (keys under `vacancies.urgency.*`):
 
-| Place                                                              | Ukrainian                                                                                                      |
-| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| 409 `VACANCY_URGENCY_LOCKED` (error toast, id `urgency:{id}`)      | **Зміну не збережено** · Вакансію закрито — терміновість не змінюється.                                        |
-| 429 (warning toast)                                                | Забагато змін за короткий час. Зачекайте хвилину й повторіть.                                                  |
+| Place                                                                 | Ukrainian                                                                                                      |
+| --------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| 409 `VACANCY_URGENCY_LOCKED` (error toast, id `urgency:{id}`)         | **Зміну не збережено** · Вакансію закрито — терміновість не змінюється.                                        |
+| 429 (warning toast)                                                   | Забагато змін за короткий час. Зачекайте хвилину й повторіть.                                                  |
 | Conflict, current value unreadable (warning, id `stale:vacancy:{id}`) | **Дані вже змінилися** · Терміновість уже змінено. Перевірте поточне значення й змініть ще раз, якщо потрібно. |
-| Control chunk failed to load (status line in place of the control) | Керування терміновістю не завантажилось. Оновіть сторінку.                                                     |
+| Control chunk failed to load (status line in place of the control)    | Керування терміновістю не завантажилось. Оновіть сторінку.                                                     |
 
 Why no «змінила/змінив»: the actor's gender is unknown and the actor sits in the column next to the text.
 
@@ -218,24 +218,24 @@ The `ON_HOLD` header is tinted, shows the amber «Призупинена» chip 
 
 ### 6. The urgency control (interaction)
 
-| Topic            | Spec                                                                                                                                                                                                                       |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Pattern          | `SegmentedControl` + `FormField layout="group"` (same as the create form): radio group, arrows move and select, Tab enters on the checked option. No «Зберегти» button; one value, instantly reversible                       |
-| Apply            | `onValueChange` → `PUT /vacancies/{id}/urgency` `{ priority, expectedVersion }` (ADR-016), **optimistic**: the badge, the tint (card + the cached list row + preview) flip in the same frame, < 100 ms. Press feedback = existing `scale .97`, 120 ms |
-| While in flight  | group gets `aria-busy="true"` and ignores further input (one request per change; a typical round trip is shorter than a second click). No spinner, no dimming; the thumb already shows the target value                    |
-| Success          | version updated from the response; success toast §3; history gets the event                                                                                                                                                |
-| Failure          | the control and the highlight roll back (instant), error toast with «Повторити» (re-sends the same change); focus stays on the radio group                                                                                  |
-| Conflict 409     | no overwrite, no retry; refetch (detail, list rows); the control shows the server value; warning toast §3 names the current value                                                                                          |
-| Same value       | clicking the already selected option sends nothing                                                                                                                                                                         |
-| Status flips to closed while the user is on the card | refetch removes the section (closed note appears in the header); focus (if it was in the group) moves to the heading of the next section «Команда» (`tabIndex=-1`; the urgency section leaves with its own heading), not to `<body>` |
-| Draft           | no control here: an own `DRAFT` changes urgency only in the draft edit form (`/edit`, `PATCH`); the route answers 409 `VACANCY_URGENCY_LOCKED` (D127)                                                                      |
+| Topic                                                | Spec                                                                                                                                                                                                                                                  |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pattern                                              | `SegmentedControl` + `FormField layout="group"` (same as the create form): radio group, arrows move and select, Tab enters on the checked option. No «Зберегти» button; one value, instantly reversible                                               |
+| Apply                                                | `onValueChange` → `PUT /vacancies/{id}/urgency` `{ priority, expectedVersion }` (ADR-016), **optimistic**: the badge, the tint (card + the cached list row + preview) flip in the same frame, < 100 ms. Press feedback = existing `scale .97`, 120 ms |
+| While in flight                                      | group gets `aria-busy="true"` and ignores further input (one request per change; a typical round trip is shorter than a second click). No spinner, no dimming; the thumb already shows the target value                                               |
+| Success                                              | version updated from the response; success toast §3; history gets the event                                                                                                                                                                           |
+| Failure                                              | the control and the highlight roll back (instant), error toast with «Повторити» (re-sends the same change); focus stays on the radio group                                                                                                            |
+| Conflict 409                                         | no overwrite, no retry; refetch (detail, list rows); the control shows the server value; warning toast §3 names the current value                                                                                                                     |
+| Same value                                           | clicking the already selected option sends nothing                                                                                                                                                                                                    |
+| Status flips to closed while the user is on the card | refetch removes the section (closed note appears in the header); focus (if it was in the group) moves to the heading of the next section «Команда» (`tabIndex=-1`; the urgency section leaves with its own heading), not to `<body>`                  |
+| Draft                                                | no control here: an own `DRAFT` changes urgency only in the draft edit form (`/edit`, `PATCH`); the route answers 409 `VACANCY_URGENCY_LOCKED` (D127)                                                                                                 |
 
 ### 7. History (vacancy Історія, filter «Поля»)
 
-| Event                              | Text (actor and time in their columns)                                                                  |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `vacancy.urgency_changed {from,to}` | Терміновість змінено: Звичайна → Термінова                                                              |
-| `vacancy.priority_overridden` (Phase 3, D127) | not shown in Phase 2                                                                          |
+| Event                                         | Text (actor and time in their columns)     |
+| --------------------------------------------- | ------------------------------------------ |
+| `vacancy.urgency_changed {from,to}`           | Терміновість змінено: Звичайна → Термінова |
+| `vacancy.priority_overridden` (Phase 3, D127) | not shown in Phase 2                       |
 
 A status change never writes an urgency event. `vacancy.updated` is not written for urgency (field names only, SEC-CORE-07; ADR-016).
 
@@ -245,11 +245,11 @@ A status change never writes an urgency event. `vacancy.updated` is not written 
 
 Entry: «Змінити порядок» (outline, h 44) in the second section. It is hidden, not disabled, for roles without the permission. Disabled with a visible reason (`DisabledReason`) for Admin when:
 
-| Condition                                  | Reason shown                                                      |
-| ------------------------------------------ | ----------------------------------------------------------------- |
-| Vacancy has no Team Lead (D77)             | Спершу призначте тімліда вакансії.                                |
-| Only one Team Lead in the distribution group | У групі розподілу один тімлід — порядок змінювати нема чого.   |
-| Vacancy closed                             | Вакансію закрито — порядок не змінюється.                         |
+| Condition                                    | Reason shown                                                 |
+| -------------------------------------------- | ------------------------------------------------------------ |
+| Vacancy has no Team Lead (D77)               | Спершу призначте тімліда вакансії.                           |
+| Only one Team Lead in the distribution group | У групі розподілу один тімлід — порядок змінювати нема чого. |
+| Vacancy closed                               | Вакансію закрито — порядок не змінюється.                    |
 
 Admin at `aal1` (2FA not confirmed): the section shows the order read-only and an `Alert` info line «Підтвердьте вхід кодом 2FA, щоб змінити порядок.» with the link «Підтвердити» → `/mfa/verify?next=…` (same pattern as the position catalog). An `MFA_REQUIRED` 401 in the dialog: inline `Alert` with the same line, values kept.
 
@@ -281,27 +281,27 @@ Dialog (desktop `Dialog`, 480 wide; below 768 px bottom sheet; focus first on th
 
 ### 9. Motion (gate result)
 
-| Moment                                           | Decision                                                                                          |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
+| Moment                                                               | Decision                                                                                                                                    |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Tint, edge, badge appear/vanish (own change, other tab, status flip) | **None.** Data being read, state changes tens of times a day, on the do-not-animate list (`design-system.md` §8.3). Instant is the feedback |
-| Segment press                                    | existing `scale .97`, `duration-press` 120 ms, `ease-out`; off under reduced motion               |
-| Override dialog (Phase 3)                        | existing `motion-modal` 200/150 ms (desktop), `motion-sheet-up` with `ease-drawer` (mobile); reduced motion = opacity only |
-| ↑ / ↓ reorder                                    | none (keyboard-initiated)                                                                         |
-| Toasts                                           | existing Sonner behaviour                                                                         |
+| Segment press                                                        | existing `scale .97`, `duration-press` 120 ms, `ease-out`; off under reduced motion                                                         |
+| Override dialog (Phase 3)                                            | existing `motion-modal` 200/150 ms (desktop), `motion-sheet-up` with `ease-drawer` (mobile); reduced motion = opacity only                  |
+| ↑ / ↓ reorder                                                        | none (keyboard-initiated)                                                                                                                   |
+| Toasts                                                               | existing Sonner behaviour                                                                                                                   |
 
 No new tokens, keyframes or libraries.
 
 ### 10. States
 
-| State                | Spec                                                                                                                                                                                                              |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Loading (card, preview) | For roles that can edit (the skeleton picks the variant from the session role) the section is part of the skeleton: heading bar, a 44 px control box, two helper lines reserved, so the block does not change height after load (±2 px, E2E geometry assertion). Other roles: no section skeleton. Header block skeleton has no tint |
-| Error (detail query) | Existing `SectionError`; the section never renders from partial data                                                                                                                                              |
-| Mutation pending     | §6                                                                                                                                                                                                                |
-| Mutation failed      | §6, rollback + toast                                                                                                                                                                                              |
-| Conflict             | §6 toast (override dialog: Phase 3, §8)                                                                                                                                                                          |
-| Permission change mid-session | Section re-renders from the fresh `canChangeUrgency`; a control the user just lost disappears; focus rule as in §6 |
-| Offline              | Click is rolled back after the failed request, toast «Немає зʼєднання» with «Повторити»; no queued writes                                                                                                         |
+| State                         | Spec                                                                                                                                                                                                                                                                                                                                 |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Loading (card, preview)       | For roles that can edit (the skeleton picks the variant from the session role) the section is part of the skeleton: heading bar, a 44 px control box, two helper lines reserved, so the block does not change height after load (±2 px, E2E geometry assertion). Other roles: no section skeleton. Header block skeleton has no tint |
+| Error (detail query)          | Existing `SectionError`; the section never renders from partial data                                                                                                                                                                                                                                                                 |
+| Mutation pending              | §6                                                                                                                                                                                                                                                                                                                                   |
+| Mutation failed               | §6, rollback + toast                                                                                                                                                                                                                                                                                                                 |
+| Conflict                      | §6 toast (override dialog: Phase 3, §8)                                                                                                                                                                                                                                                                                              |
+| Permission change mid-session | Section re-renders from the fresh `canChangeUrgency`; a control the user just lost disappears; focus rule as in §6                                                                                                                                                                                                                   |
+| Offline                       | Click is rolled back after the failed request, toast «Немає зʼєднання» with «Повторити»; no queued writes                                                                                                                                                                                                                            |
 
 ### 11. Accessibility and worst cases
 
@@ -312,13 +312,13 @@ No new tokens, keyframes or libraries.
 
 ### 12. Screenshots (D125 lean matrix; `screenshots/phase-2/NN-<role>-vacancy-urgency-<state>-<viewport>-<theme>.png`)
 
-| #  | Role                  | State                                                                                                         | Viewport | Theme |
-| -- | --------------------- | ------------------------------------------------------------------------------------------------------------- | -------- | ----- |
-| C1 | Admin                 | Card, urgent `OPEN`: tinted header, editable urgency (Термінова)                                              | 1440     | light |
-| C2 | Admin                 | Same screen (one dark capture)                                                                                | 1440     | dark  |
-| C3 | Head Recruiter        | Card, urgent `FILLED`: neutral header, closed note, no section                                                | 1440     | light |
-| C4 | Head Recruiter        | Card, editable urgency, Звичайна → Термінова mid-state (header already tinted)                                 | 390      | light |
-| C5 | Team Lead             | Card, urgent `OPEN`, no section (TL flow on phone)                                                            | 390      | light |
+| #   | Role           | State                                                                          | Viewport | Theme |
+| --- | -------------- | ------------------------------------------------------------------------------ | -------- | ----- |
+| C1  | Admin          | Card, urgent `OPEN`: tinted header, editable urgency (Термінова)               | 1440     | light |
+| C2  | Admin          | Same screen (one dark capture)                                                 | 1440     | dark  |
+| C3  | Head Recruiter | Card, urgent `FILLED`: neutral header, closed note, no section                 | 1440     | light |
+| C4  | Head Recruiter | Card, editable urgency, Звичайна → Термінова mid-state (header already tinted) | 390      | light |
+| C5  | Team Lead      | Card, urgent `OPEN`, no section (TL flow on phone)                             | 390      | light |
 
 Phase 3 (D127): override dialog (light, dark, bottom sheet), aal2 alert, role views of the override section.
 
@@ -342,16 +342,16 @@ Skills applied: `emil-design-eng`, `animate` (dialogs; gate in §8), `mobile-nat
 
 ### 1. Names (consistency with the glossary)
 
-| Action                                    | Label                          | Why this word                                                                                              |
-| ----------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------- |
-| Manager adds recruiters                   | **Призначити рекрутера**       | Glossary «Призначити …» = manager gives                                                                    |
-| Recruiter claims a free vacancy           | **Взяти вакансію** (in rows: «Взяти») | Not «Взяти в роботу»: that is the candidate stage action (D-01). Different object, different words |
-| Manager removes a recruiter               | **Прибрати**                   | Not «Видалити» (that means archive/soft delete in the glossary)                                             |
-| Team Lead added once                      | **Призначити тімліда**         |                                                                                                            |
-| `OPEN → ON_HOLD`                          | **Призупинити**                |                                                                                                            |
-| `ON_HOLD → OPEN`                          | **Відновити**                  | ⚠ glossary also uses «Відновити» for restore from Archive; context differs (active card vs archive). Fallback if the owner dislikes: «Поновити» (question 1) |
-| `OPEN`/`ON_HOLD → CANCELLED`              | **Скасувати вакансію…** (menu), **Скасувати вакансію** (dialog) | Same naming rule as the draft (`vacancy-form.md`): never a bare «Скасувати»                                |
-| `FILLED → OPEN`                           | **Відкрити знову**             | Distinct from «Відновити» (pause)                                                                          |
+| Action                          | Label                                                           | Why this word                                                                                                                                                |
+| ------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Manager adds recruiters         | **Призначити рекрутера**                                        | Glossary «Призначити …» = manager gives                                                                                                                      |
+| Recruiter claims a free vacancy | **Взяти вакансію** (in rows: «Взяти»)                           | Not «Взяти в роботу»: that is the candidate stage action (D-01). Different object, different words                                                           |
+| Manager removes a recruiter     | **Прибрати**                                                    | Not «Видалити» (that means archive/soft delete in the glossary)                                                                                              |
+| Team Lead added once            | **Призначити тімліда**                                          |                                                                                                                                                              |
+| `OPEN → ON_HOLD`                | **Призупинити**                                                 |                                                                                                                                                              |
+| `ON_HOLD → OPEN`                | **Відновити**                                                   | ⚠ glossary also uses «Відновити» for restore from Archive; context differs (active card vs archive). Fallback if the owner dislikes: «Поновити» (question 1) |
+| `OPEN`/`ON_HOLD → CANCELLED`    | **Скасувати вакансію…** (menu), **Скасувати вакансію** (dialog) | Same naming rule as the draft (`vacancy-form.md`): never a bare «Скасувати»                                                                                  |
+| `FILLED → OPEN`                 | **Відкрити знову**                                              | Distinct from «Відновити» (pause)                                                                                                                            |
 
 Status chip stays display-only. «Відкрити» (story wording for resume) is not used: it collides with «Відкрити картку».
 
@@ -390,13 +390,13 @@ CANCELLED   [Поділитися] [Клонувати]                [⋯]    
 
 Variants of the empty recruiter block:
 
-| Viewer                                           | Content                                                                                                                              |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Admin / Head Recruiter, `OPEN`                   | «Рекрутера ще не призначено» · helper «Вільну вакансію може взяти будь-який рекрутер вертикалі.» · primary **«Призначити рекрутера»** |
-| Admin / Head Recruiter, `ON_HOLD`                | «Рекрутера ще не призначено» · helper «Вакансія призупинена: рекрутери без призначення її не бачать.» · primary «Призначити рекрутера» |
-| Recruiter (not assigned), `OPEN`                 | same text as the `OPEN` manager row · primary **«Взяти вакансію»**                                                                    |
-| Team Lead, HR, Head HR                           | «Рекрутера ще не призначено» only (no helper, no button)                                                                              |
-| Any, `FILLED` / `CANCELLED`                      | recruiters list read-only; empty → «Рекрутера не було призначено»; no buttons                                                          |
+| Viewer                            | Content                                                                                                                                |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Admin / Head Recruiter, `OPEN`    | «Рекрутера ще не призначено» · helper «Вільну вакансію може взяти будь-який рекрутер вертикалі.» · primary **«Призначити рекрутера»**  |
+| Admin / Head Recruiter, `ON_HOLD` | «Рекрутера ще не призначено» · helper «Вакансія призупинена: рекрутери без призначення її не бачать.» · primary «Призначити рекрутера» |
+| Recruiter (not assigned), `OPEN`  | same text as the `OPEN` manager row · primary **«Взяти вакансію»**                                                                     |
+| Team Lead, HR, Head HR            | «Рекрутера ще не призначено» only (no helper, no button)                                                                               |
+| Any, `FILLED` / `CANCELLED`       | recruiters list read-only; empty → «Рекрутера не було призначено»; no buttons                                                          |
 
 - List cap: 5 rows, then «Ще 15» (Collapsible, `aria-expanded`). Names truncate with `title`; role caption never truncates. Deactivated assignee: neutral chip «неактивний» (D79), still removable.
 - `[Прибрати]` `aria-label` = «Прибрати рекрутера Оксана Кравець».
@@ -424,56 +424,56 @@ Header line of every dialog (muted): `V-0010 · Медіабаєр — Facebook 
 └───────────────────────────────────────────────────────────────┘
 ```
 
-| Item                | Spec                                                                                                                                                                                                                  |
-| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| List                | Only eligible users (active, accepted invite, RECRUITER in this vertical, D130-1). Several can be ticked (max 20; the 21st row is `aria-disabled` with «Не більше 20 за раз»). Already-assigned ones are checked + disabled with «Уже призначено» |
-| Primary button      | «Призначити»; with a selection «Призначити (2)» (live count, no motion). Disabled until ≥ 1 new tick; the reason is the visible line under the list, not only a tooltip                                                    |
-| Focus on open       | First enabled checkbox (search field if shown)                                                                                                                                                                        |
-| Pending             | Button pressed state at once; spinner after 150 ms; dialog waits for the server (no optimistic close: the version and eligibility are decided under lock)                                                              |
-| Success             | Dialog closes; list in «Команда» shows the new avatars (no animation); success toast; focus → the «Рекрутери» subheading (`tabIndex=-1`) so the reading position stays in the section                                     |
+| Item                | Spec                                                                                                                                                                                                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| List                | Only eligible users (active, accepted invite, RECRUITER in this vertical, D130-1). Several can be ticked (max 20; the 21st row is `aria-disabled` with «Не більше 20 за раз»). Already-assigned ones are checked + disabled with «Уже призначено»       |
+| Primary button      | «Призначити»; with a selection «Призначити (2)» (live count, no motion). Disabled until ≥ 1 new tick; the reason is the visible line under the list, not only a tooltip                                                                                 |
+| Focus on open       | First enabled checkbox (search field if shown)                                                                                                                                                                                                          |
+| Pending             | Button pressed state at once; spinner after 150 ms; dialog waits for the server (no optimistic close: the version and eligibility are decided under lock)                                                                                               |
+| Success             | Dialog closes; list in «Команда» shows the new avatars (no animation); success toast; focus → the «Рекрутери» subheading (`tabIndex=-1`) so the reading position stays in the section                                                                   |
 | Empty (no eligible) | EmptyState inside the dialog: «У цій вертикалі немає рекрутерів, яких можна призначити» · «Рекрутер має бути активним, прийняти запрошення й мати роль «Рекрутер» у вертикалі.» · no link (the client cannot tell Admin); button hidden, only «Закрити» |
-| Loading             | 4 skeleton rows h 48 (same boxes), buttons present, primary disabled                                                                                                                                                  |
-| Load error          | `SectionError` inside the dialog body: «Не вдалося завантажити рекрутерів» · «Спробувати ще раз»                                                                                                                      |
+| Loading             | 4 skeleton rows h 48 (same boxes), buttons present, primary disabled                                                                                                                                                                                    |
+| Load error          | `SectionError` inside the dialog body: «Не вдалося завантажити рекрутерів» · «Спробувати ще раз»                                                                                                                                                        |
 
 Errors (inline `Alert` at the top of the dialog body, `role="alert"`, values kept):
 
-| Case                                      | Copy                                                                                                                       |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Stale version (409)                       | «Склад команди вже змінили. Ми оновили список — перевірте вибір і підтвердьте ще раз.» (auto refetch, ticks kept where still valid) |
-| Ineligible at commit (422)                | «Когось із вибраних не можна призначити: він неактивний або втратив роль у вертикалі. Список оновлено.»                    |
-| Vacancy closed meanwhile (409)            | «Вакансію вже закрито — рекрутерів не призначають.» Dialog offers only «Закрити»; card refetches                            |
-| Out of scope / gone (404)                 | Dialog closes; toast «Вакансію не знайдено або доступ обмежено»; list refetch                                              |
-| 403                                       | Dialog closes; error toast «Недостатньо прав для цієї дії.»                                                                |
-| Offline / 5xx                             | Alert «Немає зʼєднання. Зміни не збережено.» + button «Повторити» (same payload)                                           |
+| Case                           | Copy                                                                                                                                |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Stale version (409)            | «Склад команди вже змінили. Ми оновили список — перевірте вибір і підтвердьте ще раз.» (auto refetch, ticks kept where still valid) |
+| Ineligible at commit (422)     | «Когось із вибраних не можна призначити: він неактивний або втратив роль у вертикалі. Список оновлено.»                             |
+| Vacancy closed meanwhile (409) | «Вакансію вже закрито — рекрутерів не призначають.» Dialog offers only «Закрити»; card refetches                                    |
+| Out of scope / gone (404)      | Dialog closes; toast «Вакансію не знайдено або доступ обмежено»; list refetch                                                       |
+| 403                            | Dialog closes; error toast «Недостатньо прав для цієї дії.»                                                                         |
+| Offline / 5xx                  | Alert «Немає зʼєднання. Зміни не збережено.» + button «Повторити» (same payload)                                                    |
 
 Toasts (4 s, id `team:{id}`): one → **Рекрутера призначено** · V-0010 · Оксана Кравець; many → **Призначено рекрутерів: 2** · V-0010 · Оксана Кравець, Дмитро Лисенко (the «label: N» form avoids Ukrainian plural forms).
 
 #### 3.2 Прибрати рекрутера (manager) — AlertDialog
 
-| Item    | Spec                                                                                                                                                                            |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Title   | «Прибрати рекрутера з вакансії?»                                                                                                                                                |
-| Body    | «Оксана Кравець втратить доступ до вакансії «Медіабаєр — Facebook» (V-0010).» + one extra line by case:                                                                         |
-|         | last recruiter, `OPEN`: «Вакансія стане вільною — її зможе взяти будь-який рекрутер вертикалі «Гемблінг».»                                                                       |
-|         | last recruiter, `ON_HOLD`: «Вакансія призупинена: рекрутери без призначення її не бачать, доки вакансію не відновлять.»                                                          |
-|         | other recruiters remain: «Інші рекрутери вакансії залишаються.»                                                                                                                 |
-| Buttons | «Залишити» (default focus) · «Прибрати» (destructive filled)                                                                                                                     |
-| Success | Row leaves the list without animation; toast **Рекрутера прибрано** · V-0010 · Оксана Кравець; focus → «Рекрутери» subheading (the trigger row is gone)                          |
-| Errors  | 409 stale «Склад команди вже змінили. Ми оновили картку.» (dialog closes, refetch); 404 on the removed recruiter's own stale tab is a plain 404 page (S-18)                       |
+| Item    | Spec                                                                                                                                                        |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Title   | «Прибрати рекрутера з вакансії?»                                                                                                                            |
+| Body    | «Оксана Кравець втратить доступ до вакансії «Медіабаєр — Facebook» (V-0010).» + one extra line by case:                                                     |
+|         | last recruiter, `OPEN`: «Вакансія стане вільною — її зможе взяти будь-який рекрутер вертикалі «Гемблінг».»                                                  |
+|         | last recruiter, `ON_HOLD`: «Вакансія призупинена: рекрутери без призначення її не бачать, доки вакансію не відновлять.»                                     |
+|         | other recruiters remain: «Інші рекрутери вакансії залишаються.»                                                                                             |
+| Buttons | «Залишити» (default focus) · «Прибрати» (destructive filled)                                                                                                |
+| Success | Row leaves the list without animation; toast **Рекрутера прибрано** · V-0010 · Оксана Кравець; focus → «Рекрутери» subheading (the trigger row is gone)     |
+| Errors  | 409 stale «Склад команди вже змінили. Ми оновили картку.» (dialog closes, refetch); 404 on the removed recruiter's own stale tab is a plain 404 page (S-18) |
 
 #### 3.3 Взяти вакансію (recruiter) — small confirm
 
 The claim cannot be undone by the recruiter (D130-2), so one short confirm stays. It opens from the card button, the preview button and the list-row «Взяти».
 
-| Item    | Spec                                                                                                                                                  |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Title   | «Взяти вакансію?»                                                                                                                                     |
-| Body    | «Ви станете відповідальним рекрутером вакансії «Медіабаєр — Facebook» (V-0010). Відмовитися самостійно не вийде — це зможе зробити керівник рекрутингу.» |
-| Buttons | «Не зараз» · **«Взяти вакансію»** (primary, default focus: Enter confirms in one keystroke)                                                            |
-| Pending | Button disabled + spinner after 150 ms; dialog waits (the first commit wins)                                                                          |
-| Failure | Offline/5xx text stays inside the shared ConfirmDialog; pressing the confirm button again is the retry (no separate «Повторити», same for «Прибрати»). Dialogs are hosted by TeamPanel / list cell, not by the trigger |
-| Success | Dialog closes; toast **Вакансію взято** · V-0010 · Ви — рекрутер вакансії; button disappears; the user appears in «Рекрутери»; focus → «Рекрутери» subheading (card) / avatar cell (list) |
-| Double press / retry by the winner | Same success, no second toast                                                                                                |
+| Item                               | Spec                                                                                                                                                                                                                   |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Title                              | «Взяти вакансію?»                                                                                                                                                                                                      |
+| Body                               | «Ви станете відповідальним рекрутером вакансії «Медіабаєр — Facebook» (V-0010). Відмовитися самостійно не вийде — це зможе зробити керівник рекрутингу.»                                                               |
+| Buttons                            | «Не зараз» · **«Взяти вакансію»** (primary, default focus: Enter confirms in one keystroke)                                                                                                                            |
+| Pending                            | Button disabled + spinner after 150 ms; dialog waits (the first commit wins)                                                                                                                                           |
+| Failure                            | Offline/5xx text stays inside the shared ConfirmDialog; pressing the confirm button again is the retry (no separate «Повторити», same for «Прибрати»). Dialogs are hosted by TeamPanel / list cell, not by the trigger |
+| Success                            | Dialog closes; toast **Вакансію взято** · V-0010 · Ви — рекрутер вакансії; button disappears; the user appears in «Рекрутери»; focus → «Рекрутери» subheading (card) / avatar cell (list)                              |
+| Double press / retry by the winner | Same success, no second toast                                                                                                                                                                                          |
 
 **Conflict — someone else was first (409):** dialog closes at once, warning toast (id `claim:{id}`, 6 s):
 
@@ -521,15 +521,15 @@ Mirrors the draft cancel dialog (`vacancy-form.md`); the difference is who reads
 └───────────────────────────────────────────────────────────────┘
 ```
 
-| Item      | Spec                                                                                                                                                                                                |
-| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Focus     | «Залишити вакансію» (safe default), like the draft dialog; Tab → reason → destructive                                                                                                               |
-| Reason    | 1–500 after trim, counter warns from 450, «ліміт досягнуто» at 500 (same component as draft); textarea 16 px on mobile                                                                              |
-| Destructive button | Filled `--destructive`, disabled until a visible character exists; `aria-describedby` → «Вкажіть причину»                                                                                   |
-| Pending   | Waits for the server (not optimistic: terminal, destructive); spinner after 150 ms; reason kept on error                                                                                            |
-| Success   | Dialog closes; card/preview refetch: chip «Скасована», banner §5, actions replaced per §2; toast **Вакансію скасовано** · V-0007 · Причину збережено в історії · action **«Клонувати»** (build: no action until the clone feature ships, then add it); focus → card `h1` (`tabIndex=-1`) because the `[⋯]` item is gone |
-| Errors    | 409 stale «Дані вже змінилися. Ми оновили картку — перевірте статус і повторіть.» and `VACANCY_STATUS_INVALID` (generic text, no status name; the server sends none): both show inline in the open dialog (`role="alert"`), the typed reason is kept, the card refetches behind it; the user closes or retries. 403 / 404 / offline as §3.1. Same rule for the reopen dialog (§3.6) |
-| Active candidates | Phase 2 has none; when candidates exist the resolution step of ARCH-03 is added to this dialog (story re-open). No placeholder text now |
+| Item               | Spec                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Focus              | «Залишити вакансію» (safe default), like the draft dialog; Tab → reason → destructive                                                                                                                                                                                                                                                                                               |
+| Reason             | 1–500 after trim, counter warns from 450, «ліміт досягнуто» at 500 (same component as draft); textarea 16 px on mobile                                                                                                                                                                                                                                                              |
+| Destructive button | Filled `--destructive`, disabled until a visible character exists; `aria-describedby` → «Вкажіть причину»                                                                                                                                                                                                                                                                           |
+| Pending            | Waits for the server (not optimistic: terminal, destructive); spinner after 150 ms; reason kept on error                                                                                                                                                                                                                                                                            |
+| Success            | Dialog closes; card/preview refetch: chip «Скасована», banner §5, actions replaced per §2; toast **Вакансію скасовано** · V-0007 · Причину збережено в історії · action **«Клонувати»** (build: no action until the clone feature ships, then add it); focus → card `h1` (`tabIndex=-1`) because the `[⋯]` item is gone                                                             |
+| Errors             | 409 stale «Дані вже змінилися. Ми оновили картку — перевірте статус і повторіть.» and `VACANCY_STATUS_INVALID` (generic text, no status name; the server sends none): both show inline in the open dialog (`role="alert"`), the typed reason is kept, the card refetches behind it; the user closes or retries. 403 / 404 / offline as §3.1. Same rule for the reopen dialog (§3.6) |
+| Active candidates  | Phase 2 has none; when candidates exist the resolution step of ARCH-03 is added to this dialog (story re-open). No placeholder text now                                                                                                                                                                                                                                             |
 
 #### 3.6 Відкрити знову (Admin, Head Recruiter) — dialog with optional headcount
 
@@ -559,16 +559,16 @@ One click, instant, reversible. Optimistic: chip, header button label and the ca
 
 `✓` = control rendered; `—` = not rendered (hidden); `R` = read-only data only. Server (`can`) is the authority; the client uses the flags it returns. Status columns = current status of the vacancy.
 
-| Control                              | Admin | Head Recruiter (own vertical) | Recruiter assigned | Recruiter, not assigned | Team Lead (own) | HR / Head HR | Finance |
-| ------------------------------------ | ----- | ----------------------------- | ------------------ | ----------------------- | --------------- | ------------ | ------- |
-| Призначити рекрутера (`OPEN`/`ON_HOLD`) | ✓   | ✓                             | —                  | —                       | —               | —            | 404     |
-| Прибрати рекрутера (`OPEN`/`ON_HOLD`)   | ✓   | ✓                             | —                  | —                       | —               | —            | 404     |
-| Взяти вакансію (unassigned `OPEN` only) | —   | —                             | —                  | ✓                       | —               | —            | 404     |
-| Призначити тімліда (none set, `OPEN`/`ON_HOLD`) | ✓ | ✓                      | —                  | —                       | —               | —            | 404     |
-| Призупинити / Відновити              | ✓     | ✓                             | —                  | —                       | ✓               | —            | 404     |
-| Скасувати вакансію… (`OPEN`/`ON_HOLD`)  | ✓   | ✓                             | —                  | —                       | ✓               | —            | 404     |
-| Відкрити знову (`FILLED`)            | ✓     | ✓                             | —                  | —                       | — (403)         | —            | 404     |
-| Команда, причина скасування          | R     | R                             | R                  | R (unassigned `OPEN` only, D130-5) | R | R          | 404     |
+| Control                                         | Admin | Head Recruiter (own vertical) | Recruiter assigned | Recruiter, not assigned            | Team Lead (own) | HR / Head HR | Finance |
+| ----------------------------------------------- | ----- | ----------------------------- | ------------------ | ---------------------------------- | --------------- | ------------ | ------- |
+| Призначити рекрутера (`OPEN`/`ON_HOLD`)         | ✓     | ✓                             | —                  | —                                  | —               | —            | 404     |
+| Прибрати рекрутера (`OPEN`/`ON_HOLD`)           | ✓     | ✓                             | —                  | —                                  | —               | —            | 404     |
+| Взяти вакансію (unassigned `OPEN` only)         | —     | —                             | —                  | ✓                                  | —               | —            | 404     |
+| Призначити тімліда (none set, `OPEN`/`ON_HOLD`) | ✓     | ✓                             | —                  | —                                  | —               | —            | 404     |
+| Призупинити / Відновити                         | ✓     | ✓                             | —                  | —                                  | ✓               | —            | 404     |
+| Скасувати вакансію… (`OPEN`/`ON_HOLD`)          | ✓     | ✓                             | —                  | —                                  | ✓               | —            | 404     |
+| Відкрити знову (`FILLED`)                       | ✓     | ✓                             | —                  | —                                  | — (403)         | —            | 404     |
+| Команда, причина скасування                     | R     | R                             | R                  | R (unassigned `OPEN` only, D130-5) | R               | R            | 404     |
 
 - Admin has no «Взяти вакансію»: they use «Призначити рекрутера» (picking themselves is allowed only if they hold RECRUITER in the vertical, D35 — they appear in the list like any other).
 - Closed (`FILLED`/`CANCELLED`): no assign/remove/take/TL control renders for anyone.
@@ -579,40 +579,40 @@ One click, instant, reversible. Optimistic: chip, header button label and the ca
 
 ### 5. Banners and header notes (status line under the badges, `Alert` below the header for closed states)
 
-| Status / viewer                 | Text and actions                                                                                                                                                                            |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ON_HOLD`, all roles            | Note (info, header slot): «Вакансію призупинено. Відновіть її, щоб працювати далі.» for roles that can resume; others: «Вакансію призупинено.»; unassigned adds: «Вільні вакансії на паузі не бачать рекрутери.» |
-| `FILLED`                        | Banner: «Вакансію закрито 20.11.2026 — Заповнена» · actions «Відкрити знову» (Admin, Head Recruiter), «Клонувати»                                                                              |
-| `CANCELLED`                     | Banner: «Вакансію скасовано 20.11.2026.» + «Скасовану вакансію не можна відкрити знову — створіть копію.» · action **«Клонувати»** (the clone hint; build omits the second sentence and the action until the clone feature ships: never promise a missing action). Banner date = `updatedAt` for FILLED/CANCELLED (no `closedAt` in the DTO; closed cards are not editable, so it matches; gap: add `closedAt`). Paused note and urgent-closed note join into one line when both apply. Below it a muted box «Причина скасування» (`whitespace-pre-line`, ≤ 500 chars, absent after a purge) |
-| No Team Lead, `OPEN`/`ON_HOLD`  | Team block text «Тімлід не призначений»; for Head Recruiter/Admin plus the button; no header banner                                                                                          |
+| Status / viewer                | Text and actions                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ON_HOLD`, all roles           | Note (info, header slot): «Вакансію призупинено. Відновіть її, щоб працювати далі.» for roles that can resume; others: «Вакансію призупинено.»; unassigned adds: «Вільні вакансії на паузі не бачать рекрутери.»                                                                                                                                                                                                                                                                                                                                                                             |
+| `FILLED`                       | Banner: «Вакансію закрито 20.11.2026 — Заповнена» · actions «Відкрити знову» (Admin, Head Recruiter), «Клонувати»                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `CANCELLED`                    | Banner: «Вакансію скасовано 20.11.2026.» + «Скасовану вакансію не можна відкрити знову — створіть копію.» · action **«Клонувати»** (the clone hint; build omits the second sentence and the action until the clone feature ships: never promise a missing action). Banner date = `updatedAt` for FILLED/CANCELLED (no `closedAt` in the DTO; closed cards are not editable, so it matches; gap: add `closedAt`). Paused note and urgent-closed note join into one line when both apply. Below it a muted box «Причина скасування» (`whitespace-pre-line`, ≤ 500 chars, absent after a purge) |
+| No Team Lead, `OPEN`/`ON_HOLD` | Team block text «Тімлід не призначений»; for Head Recruiter/Admin plus the button; no header banner                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 Banners are static text (`role` none; read in order). The closed urgent note of the urgency section stays under the badges and is not repeated in the banner.
 
 ### 6. History (vacancy Історія; actor and time in their columns; filter «Поля» / «Етапи»)
 
-| Event                                         | Text                                                                       |
-| --------------------------------------------- | -------------------------------------------------------------------------- |
-| `vacancy.recruiter_assigned` (manager)        | Рекрутера призначено: Оксана Кравець                                       |
-| `vacancy.recruiter_assigned` (self)           | Вакансію взято в роботу: Дмитро Лисенко                                    |
-| `vacancy.recruiter_assigned` (creator)        | Рекрутера призначено при створенні: Дмитро Лисенко                          |
-| `vacancy.recruiter_unassigned`                | Рекрутера прибрано: Оксана Кравець                                         |
-| `vacancy.team_lead_assigned`                  | Тімліда призначено: Василь Петренко                                        |
-| `vacancy.status_changed` OPEN→ON_HOLD         | Вакансію призупинено                                                       |
-| `vacancy.status_changed` ON_HOLD→OPEN         | Вакансію відновлено                                                        |
-| `vacancy.status_changed` →CANCELLED           | Вакансію скасовано. Причина: «…» (reason clamped 3 lines, «Показати повністю»; hidden after purge) |
-| `vacancy.status_changed` FILLED→OPEN          | Вакансію відкрито знову (+ «Кількість місць: 2 → 3» when changed)          |
+| Event                                  | Text                                                                                               |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `vacancy.recruiter_assigned` (manager) | Рекрутера призначено: Оксана Кравець                                                               |
+| `vacancy.recruiter_assigned` (self)    | Вакансію взято в роботу: Дмитро Лисенко                                                            |
+| `vacancy.recruiter_assigned` (creator) | Рекрутера призначено при створенні: Дмитро Лисенко                                                 |
+| `vacancy.recruiter_unassigned`         | Рекрутера прибрано: Оксана Кравець                                                                 |
+| `vacancy.team_lead_assigned`           | Тімліда призначено: Василь Петренко                                                                |
+| `vacancy.status_changed` OPEN→ON_HOLD  | Вакансію призупинено                                                                               |
+| `vacancy.status_changed` ON_HOLD→OPEN  | Вакансію відновлено                                                                                |
+| `vacancy.status_changed` →CANCELLED    | Вакансію скасовано. Причина: «…» (reason clamped 3 lines, «Показати повністю»; hidden after purge) |
+| `vacancy.status_changed` FILLED→OPEN   | Вакансію відкрито знову (+ «Кількість місць: 2 → 3» when changed)                                  |
 
 ### 7. Motion (gate result; no new tokens, keyframes or libraries)
 
-| Moment                                                         | Decision                                                                                                                                      |
-| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Assign / remove / claim / TL / cancel / reopen dialogs          | Occasional, user-initiated: existing `motion-modal` 200/150 ms desktop, `motion-sheet-up` + `ease-drawer` below 768 px (240/180 ms); overlay fades with it; reduced motion = opacity only |
-| Dialog opened from the keyboard (Enter on a menu item, `⋯`)     | `data-instant`, no animation                                                                                                                  |
-| Mobile action sheet from `[⋯]`                                  | Same sheet token; opening from a tap only                                                                                                      |
-| Chip, header button swap, banner, «Команда» rows added/removed, row disappearing from the list after a claim | **None** (do-not-animate §8.3: status chip change, list refresh); instant is the feedback                                    |
-| Buttons                                                         | Existing press `scale .97`, 120 ms; spinner appears after 150 ms, no fade                                                                       |
-| Checkbox / radio rows in pickers, count in «Призначити (2)»     | None (keyboard-repeated)                                                                                                                      |
-| Toasts                                                          | Existing Sonner                                                                                                                               |
+| Moment                                                                                                       | Decision                                                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Assign / remove / claim / TL / cancel / reopen dialogs                                                       | Occasional, user-initiated: existing `motion-modal` 200/150 ms desktop, `motion-sheet-up` + `ease-drawer` below 768 px (240/180 ms); overlay fades with it; reduced motion = opacity only |
+| Dialog opened from the keyboard (Enter on a menu item, `⋯`)                                                  | `data-instant`, no animation                                                                                                                                                              |
+| Mobile action sheet from `[⋯]`                                                                               | Same sheet token; opening from a tap only                                                                                                                                                 |
+| Chip, header button swap, banner, «Команда» rows added/removed, row disappearing from the list after a claim | **None** (do-not-animate §8.3: status chip change, list refresh); instant is the feedback                                                                                                 |
+| Buttons                                                                                                      | Existing press `scale .97`, 120 ms; spinner appears after 150 ms, no fade                                                                                                                 |
+| Checkbox / radio rows in pickers, count in «Призначити (2)»                                                  | None (keyboard-repeated)                                                                                                                                                                  |
+| Toasts                                                                                                       | Existing Sonner                                                                                                                                                                           |
 
 ### 8. Accessibility
 
@@ -627,16 +627,16 @@ Banners are static text (`role` none; read in order). The closed urgent note of 
 
 ### 9. States (card and preview)
 
-| State                                  | Spec                                                                                                                                                                                                             |
-| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Loading                                | Skeleton matches final: «Команда» = «Тімлід» row (avatar + 2 lines) + «Рекрутери» 2 rows; for roles that can assign/claim/pause the skeleton reserves one h 40 button box in «Команда» and one in the header (variant picked from the session role, like urgency) so nothing shifts (±2 px E2E) |
-| Error (detail)                         | Existing `SectionError`; no action renders from partial data                                                                                                                                                     |
-| Stale tab                              | Background refetch repaints chip/team/actions silently; an open dialog whose precondition vanished shows its inline error (§3)                                                                                    |
-| Action in flight                       | One request per control, `aria-busy`; other write buttons in the same section stay enabled (server version decides, conflict toast if two collide)                                                               |
-| Rate limit (429)                       | Warning toast «Забагато змін за короткий час. Зачекайте хвилину й повторіть.» (existing string)                                                                                                                  |
-| Conflict (STALE_STATE)                 | Dialogs: inline `Alert` + refetch. Pause/resume: warning toast id `stale:vacancy:{id}` **Дані вже змінилися** · Статус вакансії вже інший: тепер «Скасована». Перевірте й повторіть, якщо потрібно. (value from server; unreadable → «Перевірте поточний статус…») |
-| Offline                                | Optimistic pause/resume rolls back with «Немає зʼєднання» + «Повторити»; dialogs keep input and show the inline alert                                                                                              |
-| Mid-session close (another user cancels while a dialog is open) | Submit returns `VACANCY_STATUS_INVALID`; inline text per dialog; card refetches                                                                                                                       |
+| State                                                           | Spec                                                                                                                                                                                                                                                                                            |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Loading                                                         | Skeleton matches final: «Команда» = «Тімлід» row (avatar + 2 lines) + «Рекрутери» 2 rows; for roles that can assign/claim/pause the skeleton reserves one h 40 button box in «Команда» and one in the header (variant picked from the session role, like urgency) so nothing shifts (±2 px E2E) |
+| Error (detail)                                                  | Existing `SectionError`; no action renders from partial data                                                                                                                                                                                                                                    |
+| Stale tab                                                       | Background refetch repaints chip/team/actions silently; an open dialog whose precondition vanished shows its inline error (§3)                                                                                                                                                                  |
+| Action in flight                                                | One request per control, `aria-busy`; other write buttons in the same section stay enabled (server version decides, conflict toast if two collide)                                                                                                                                              |
+| Rate limit (429)                                                | Warning toast «Забагато змін за короткий час. Зачекайте хвилину й повторіть.» (existing string)                                                                                                                                                                                                 |
+| Conflict (STALE_STATE)                                          | Dialogs: inline `Alert` + refetch. Pause/resume: warning toast id `stale:vacancy:{id}` **Дані вже змінилися** · Статус вакансії вже інший: тепер «Скасована». Перевірте й повторіть, якщо потрібно. (value from server; unreadable → «Перевірте поточний статус…»)                              |
+| Offline                                                         | Optimistic pause/resume rolls back with «Немає зʼєднання» + «Повторити»; dialogs keep input and show the inline alert                                                                                                                                                                           |
+| Mid-session close (another user cancels while a dialog is open) | Submit returns `VACANCY_STATUS_INVALID`; inline text per dialog; card refetches                                                                                                                                                                                                                 |
 
 ### 10. Worst cases (break-ui; E2E assertions)
 
@@ -654,25 +654,25 @@ Button and success toast are built and unchanged («Посилання скоп�
 
 ### 12. Screenshots (D125 lean matrix; `screenshots/phase-2/NN-<role>-vacancy-<topic>-<state>-<viewport>-<theme>.png`; topics `team`, `status`)
 
-| #  | Role                  | State                                                                                                                    | Viewport | Theme |
-| -- | --------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------- | ----- |
-| T1 | Head Recruiter        | Card `OPEN` unassigned, recruiter-initiated, no Team Lead: «Призначити рекрутера», «Призначити тімліда», header actions     | 1440     | light |
-| T2 | Head Recruiter        | Same screen (one dark capture)                                                                                           | 1440     | dark  |
-| T3 | Head Recruiter        | «Призначити рекрутера» dialog: 3 rows, one already assigned, one ticked, counter in the button                           | 1440     | light |
-| T4 | Head Recruiter        | Same dialog (one dark capture)                                                                                           | 1440     | dark  |
-| T5 | Head Recruiter        | «Призначити тімліда» dialog with the one-time helper, one radio chosen                                                    | 1440     | light |
-| T6 | Head Recruiter        | «Прибрати рекрутера?» confirm (last recruiter, `OPEN`: returns to the pool)                                               | 1440     | light |
-| T7 | Recruiter             | Card `OPEN` unassigned: «Взяти вакансію» in «Команда» + confirm dialog open                                               | 1440     | light |
-| T8 | Recruiter             | List cards: unassigned `OPEN` card with full-width «Взяти вакансію», plus the sheet confirm                               | 390      | light |
-| S1 | Head Recruiter        | Card `ON_HOLD` unassigned: chip, note, «Відновити», recruiters block                                                      | 1440     | light |
-| S2 | Team Lead             | Own `OPEN` vacancy: «Призупинити» row + `[⋯]` action sheet open with «Скасувати вакансію…»                                | 390      | light |
-| S3 | Team Lead             | «Скасувати вакансію?» sheet with a typed reason and counter                                                               | 390      | light |
-| S4 | Head Recruiter        | Cancel dialog (desktop) with reason, destructive enabled                                                                  | 1440     | light |
-| S5 | Head Recruiter        | Same dialog (one dark capture)                                                                                            | 1440     | dark  |
-| S6 | Head Recruiter        | Card `CANCELLED`: banner with clone hint, reason box, neutral chip, no actions but «Клонувати»                            | 1440     | light |
-| S7 | Head Recruiter        | Card `FILLED`: banner, «Відкрити знову» + reopen sheet with headcount stepper (2 → 3)                                     | 390      | light |
-| S8 | Head Recruiter        | Reopen dialog (desktop)                                                                                                   | 1440     | light |
-| U1 | Admin                 | Clipboard-blocked share alert under the header (card)                                                                     | 1440     | light |
+| #   | Role           | State                                                                                                                   | Viewport | Theme |
+| --- | -------------- | ----------------------------------------------------------------------------------------------------------------------- | -------- | ----- |
+| T1  | Head Recruiter | Card `OPEN` unassigned, recruiter-initiated, no Team Lead: «Призначити рекрутера», «Призначити тімліда», header actions | 1440     | light |
+| T2  | Head Recruiter | Same screen (one dark capture)                                                                                          | 1440     | dark  |
+| T3  | Head Recruiter | «Призначити рекрутера» dialog: 3 rows, one already assigned, one ticked, counter in the button                          | 1440     | light |
+| T4  | Head Recruiter | Same dialog (one dark capture)                                                                                          | 1440     | dark  |
+| T5  | Head Recruiter | «Призначити тімліда» dialog with the one-time helper, one radio chosen                                                  | 1440     | light |
+| T6  | Head Recruiter | «Прибрати рекрутера?» confirm (last recruiter, `OPEN`: returns to the pool)                                             | 1440     | light |
+| T7  | Recruiter      | Card `OPEN` unassigned: «Взяти вакансію» in «Команда» + confirm dialog open                                             | 1440     | light |
+| T8  | Recruiter      | List cards: unassigned `OPEN` card with full-width «Взяти вакансію», plus the sheet confirm                             | 390      | light |
+| S1  | Head Recruiter | Card `ON_HOLD` unassigned: chip, note, «Відновити», recruiters block                                                    | 1440     | light |
+| S2  | Team Lead      | Own `OPEN` vacancy: «Призупинити» row + `[⋯]` action sheet open with «Скасувати вакансію…»                              | 390      | light |
+| S3  | Team Lead      | «Скасувати вакансію?» sheet with a typed reason and counter                                                             | 390      | light |
+| S4  | Head Recruiter | Cancel dialog (desktop) with reason, destructive enabled                                                                | 1440     | light |
+| S5  | Head Recruiter | Same dialog (one dark capture)                                                                                          | 1440     | dark  |
+| S6  | Head Recruiter | Card `CANCELLED`: banner with clone hint, reason box, neutral chip, no actions but «Клонувати»                          | 1440     | light |
+| S7  | Head Recruiter | Card `FILLED`: banner, «Відкрити знову» + reopen sheet with headcount stepper (2 → 3)                                   | 390      | light |
+| S8  | Head Recruiter | Reopen dialog (desktop)                                                                                                 | 1440     | light |
+| U1  | Admin          | Clipboard-blocked share alert under the header (card)                                                                   | 1440     | light |
 
 Not PNGs (E2E): all toast wording (success, conflict «Вакансію вже взяв інший рекрутер», rollback, offline, 403/404/429), inline dialog errors, role × status matrix of §4 (present/absent), focus targets of §8, aria names, skeleton geometry (±2 px), list-row «Взяти» (checked with T8's card and an E2E on the 1440 row), 20-recruiter and 60-picker cases, 320 px / 200 % zoom, reduced motion, axe on T1–U1. Role variants not captured because the UI barely differs: Admin (as Head Recruiter), HR / Head HR (read-only, as C3-like), Recruiter assigned (read-only list).
 

@@ -41,12 +41,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
 export function VacancyOverview(
   props: ComponentProps<typeof VacancyOverviewContent>,
 ) {
-  return (
-    <VacancyOverviewContent
-      key={props.vacancy.id}
-      {...props}
-    />
-  );
+  return <VacancyOverviewContent key={props.vacancy.id} {...props} />;
 }
 
 function VacancyOverviewContent({

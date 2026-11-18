@@ -6,12 +6,12 @@ Scope: `git diff phase-2...v3-needs-mfa` (3bf9d21), worktree `D:/recruiting-wt/v
 
 ## 1. `mfaWithheldGrants` (server/authz/context.ts)
 
-| Check | Result |
-| --- | --- |
-| Built from the same role rows | PASS. One loop over the same `roles x permissions x scopes`; the only difference is `target = held ? withheldDrafts : drafts` (context.ts:104-119). Same legality, global/vertical and `needsAal2` filters apply first. |
+| Check                                 | Result                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Built from the same role rows         | PASS. One loop over the same `roles x permissions x scopes`; the only difference is `target = held ? withheldDrafts : drafts` (context.ts:104-119). Same legality, global/vertical and `needsAal2` filters apply first.                                                                                    |
 | Cannot reach `can()` / scoped queries | PASS. `grep` shows the field read only in `server/authz/vacancy-mfa.ts` (and test fixtures). `hasGrantCovering`, `hasOwnGrant`, `requirePermission`, `vacancyReadWhere` and the scope builders read `ctx.grants` only. `mfaWithheld` (the Set used by `requirePermission` and `mfaRequired`) is unchanged. |
-| Augmented context is local | PASS. `afterStepUp` (vacancy-mfa.ts:11-17) copies the Map and each array (no mutation of `ctx.grants`), is called only inside `needsMfa`, and its result is never returned, stored or cached. `needsMfa` returns a boolean only. |
-| Serialisation | PASS. `/me` (`server/services/me.ts`) picks fields explicitly; the Map is not exposed. |
+| Augmented context is local            | PASS. `afterStepUp` (vacancy-mfa.ts:11-17) copies the Map and each array (no mutation of `ctx.grants`), is called only inside `needsMfa`, and its result is never returned, stored or cached. `needsMfa` returns a boolean only.                                                                           |
+| Serialisation                         | PASS. `/me` (`server/services/me.ts`) picks fields explicitly; the Map is not exposed.                                                                                                                                                                                                                     |
 
 ## 2. `needsMfa` DTO flag disclosure
 
@@ -24,6 +24,7 @@ Scope: `git diff phase-2...v3-needs-mfa` (3bf9d21), worktree `D:/recruiting-wt/v
 ## 3. Step-up link `/mfa/verify?next=` (components/vacancies/step-up-action.tsx)
 
 PASS. The client builds `next` from `usePathname()` + `useSearchParams()` (same-origin path, `encodeURIComponent`), href is a fixed relative `/mfa/verify`. Server side validation does not depend on the client:
+
 - verify page: `safeNextPath(next, '')` (app/(auth)/mfa/verify/page.tsx:20) before `redirect()` and before rendering the form;
 - POST `/api/v1/auth/mfa/verify` result: `safeNextPath(input.next, '/')` (server/services/auth/mfa.ts:239);
 - `safeNextPath` (server/auth/safe-redirect.ts) rejects non-`/` start, `//`, backslash, control chars, length > 512, dot-segment normalisation to `//`, foreign origin, and auth paths. No open redirect.
@@ -36,7 +37,7 @@ PASS. The client builds `next` from `usePathname()` + `useSearchParams()` (same-
 
 ## Findings
 
-| # | Severity | Finding | Fix |
-| --- | --- | --- | --- |
-| 1 | Low | Missing regression test that withheld grants never authorise (section 4). | Add the context unit test. |
-| 2 | Low | Missing 404 test for mixed-role out-of-scope read. | Add one case in `vacancies-detail-flags.test.ts`. |
+| #   | Severity | Finding                                                                   | Fix                                               |
+| --- | -------- | ------------------------------------------------------------------------- | ------------------------------------------------- |
+| 1   | Low      | Missing regression test that withheld grants never authorise (section 4). | Add the context unit test.                        |
+| 2   | Low      | Missing 404 test for mixed-role out-of-scope read.                        | Add one case in `vacancies-detail-flags.test.ts`. |

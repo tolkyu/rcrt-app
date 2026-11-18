@@ -6,16 +6,17 @@ Scope: `git diff phase-2...v3-team-ui` (worktree `D:/recruiting-wt/v3-team-ui`).
 
 ## 1. `selfAssignVerticals` and its data flow
 
-| Check | Result |
-| --- | --- |
-| Derived from the viewer only | Yes. `app/(app)/vacancies/page.tsx:137` passes `ctx.auth` to `server/authz/vacancy-assignment.ts:53`. It reads `grantedVerticals(ctx, 'vacancy.self_assign')` (`vacancy-author.ts:8`), which uses `ctx.grants` only. |
-| Leaks other users' grants | No. The output is a list of the viewer's own vertical ids, or `'ALL'`. |
-| Leaks vertical ids the viewer cannot otherwise see | No. These are the viewer's own role-assignment verticals, which the viewer already sees in rows and filters. |
-| Admin excluded | Yes. `roles.ts:23-26` removes `vacancy.self_assign` from Admin, so the result is `[]`. |
-| aal1 | `needsAal2` in `context.ts` withholds GLOBAL and MFA-flagged grants, so no `'ALL'` is produced at aal1. Recruiter grants are vertical-scoped and unaffected. |
-| Client trust | Mirror only (UI affordance). `server/services/vacancy-assignment.ts:125-133` re-checks `grantCovers` and the status and recruiter rule under the vacancy lock. A forged prop gains nothing. |
+| Check                                              | Result                                                                                                                                                                                                               |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Derived from the viewer only                       | Yes. `app/(app)/vacancies/page.tsx:137` passes `ctx.auth` to `server/authz/vacancy-assignment.ts:53`. It reads `grantedVerticals(ctx, 'vacancy.self_assign')` (`vacancy-author.ts:8`), which uses `ctx.grants` only. |
+| Leaks other users' grants                          | No. The output is a list of the viewer's own vertical ids, or `'ALL'`.                                                                                                                                               |
+| Leaks vertical ids the viewer cannot otherwise see | No. These are the viewer's own role-assignment verticals, which the viewer already sees in rows and filters.                                                                                                         |
+| Admin excluded                                     | Yes. `roles.ts:23-26` removes `vacancy.self_assign` from Admin, so the result is `[]`.                                                                                                                               |
+| aal1                                               | `needsAal2` in `context.ts` withholds GLOBAL and MFA-flagged grants, so no `'ALL'` is produced at aal1. Recruiter grants are vertical-scoped and unaffected.                                                         |
+| Client trust                                       | Mirror only (UI affordance). `server/services/vacancy-assignment.ts:125-133` re-checks `grantCovers` and the status and recruiter rule under the vacancy lock. A forged prop gains nothing.                          |
 
 **Finding L-1 (Low, test gap):** `selfAssignVerticals` has no direct unit test.
+
 - `tests/unit/authz/vacancy-assignment.test.ts` covers `canSelfAssign` and the grant helpers.
 - `tests/unit/vacancies/vacancy-team.test.ts` covers only the client-side `grantsClaim` and `canClaimRow`.
 - Fix: add cases to `tests/unit/authz/vacancy-assignment.test.ts`:

@@ -44,22 +44,22 @@ Image note: the light secondary-text label reads «#6474BB» because the image i
 
 ### 1.2 Derived tokens (needed for AA; not separate swatches in the image)
 
-| Token                                  | Light                 | Dark          | Use                                                                                                      |
-| -------------------------------------- | --------------------- | ------------- | -------------------------------------------------------------------------------------------------------- |
-| `--primary` (shadcn)                   | **`#5558EF`**         | **`#5558EF`** | Filled primary button bg, checked checkbox/radio/switch, active pagination page                          |
-| `--primary-hover` / `--primary-active` | `#4F46E5` / `#4338CA` | same          | Hover / pressed filled button                                                                            |
-| `--primary-foreground`                 | `#FFFFFF`             | `#FFFFFF`     | Text on `--primary`                                                                                      |
-| `--link` (primary text)                | **`#5558EF`**         | `#818CF8`     | Text links, active nav label + icon, active tab, outline/ghost primary button text, «Переглянути всіх →» |
-| `--primary-subtle`                     | `#EEF2FF`             | `#232B48`     | Active nav item bg, selected chip/segment bg, secondary button bg («Зберегти» soft)                      |
-| `--ring`                               | `#6366F1`             | `#818CF8`     | Focus outline                                                                                            |
-| `--input`                              | `#7B8698`             | `#64748B`     | Borders of inputs, selects, checkboxes, radios (≥ 3:1, WCAG 1.4.11)                                      |
-| `--success-text`                       | `#166534`             | `#34D399`     | Positive deltas, «Пройдено», success text                                                                |
-| `--warning-text`                       | `#92400E`             | `#FBBF24`     | Warning text, including tinted warning badges                                                            |
-| `--error-text`                         | `#B91C1C`             | `#F87171`     | Errors, validation, soft destructive button text                                                         |
-| `--destructive`                        | `#DC2626`             | `#DC2626`     | Filled destructive (confirm buttons in AlertDialog)                                                      |
-| `--destructive-subtle`                 | `#FEF2F2`             | `#3A1D24`     | Soft destructive button bg («Видалити» in the library)                                                   |
+| Token                                  | Light                 | Dark          | Use                                                                                                                                |
+| -------------------------------------- | --------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `--primary` (shadcn)                   | **`#5558EF`**         | **`#5558EF`** | Filled primary button bg, checked checkbox/radio/switch, active pagination page                                                    |
+| `--primary-hover` / `--primary-active` | `#4F46E5` / `#4338CA` | same          | Hover / pressed filled button                                                                                                      |
+| `--primary-foreground`                 | `#FFFFFF`             | `#FFFFFF`     | Text on `--primary`                                                                                                                |
+| `--link` (primary text)                | **`#5558EF`**         | `#818CF8`     | Text links, active nav label + icon, active tab, outline/ghost primary button text, «Переглянути всіх →»                           |
+| `--primary-subtle`                     | `#EEF2FF`             | `#232B48`     | Active nav item bg, selected chip/segment bg, secondary button bg («Зберегти» soft)                                                |
+| `--ring`                               | `#6366F1`             | `#818CF8`     | Focus outline                                                                                                                      |
+| `--input`                              | `#7B8698`             | `#64748B`     | Borders of inputs, selects, checkboxes, radios (≥ 3:1, WCAG 1.4.11)                                                                |
+| `--success-text`                       | `#166534`             | `#34D399`     | Positive deltas, «Пройдено», success text                                                                                          |
+| `--warning-text`                       | `#92400E`             | `#FBBF24`     | Warning text, including tinted warning badges                                                                                      |
+| `--error-text`                         | `#B91C1C`             | `#F87171`     | Errors, validation, soft destructive button text                                                                                   |
+| `--destructive`                        | `#DC2626`             | `#DC2626`     | Filled destructive (confirm buttons in AlertDialog)                                                                                |
+| `--destructive-subtle`                 | `#FEF2F2`             | `#3A1D24`     | Soft destructive button bg («Видалити» in the library)                                                                             |
 | `--destructive-subtle-hover`           | `#FCE8E8`             | `#471E24`     | Hover/`:active` of an urgent vacancy row, card and header (VAC-04-4); contrast in `wireframes/vacancies-list.md` «Терміновість» §3 |
-| `--now-line`                           | `#EF4444`             | `#F87171`     | Calendar current-time line + time pill (white text on pill: use `#DC2626`, 4.83:1)                       |
+| `--now-line`                           | `#EF4444`             | `#F87171`     | Calendar current-time line + time pill (white text on pill: use `#DC2626`, 4.83:1)                                                 |
 
 ### 1.3 Contrast check (WCAG 2.1 relative luminance; text needs ≥ 4.5:1, UI boundaries/icons ≥ 3:1)
 
@@ -121,14 +121,14 @@ Chip = pill, tinted bg + stage text + lucide icon + label. **Colour is never the
 
 ### 1.6 Other status palettes (same structure)
 
-| Kind           | Value → palette                                                                                                                                              |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Vacancy status | Чернетка slate (dashed border) · Відкрита green · Призупинена amber · Заповнена blue · Скасована slate                                                       |
-| Bonus status   | Заплановано slate · Нараховано blue · Затверджено indigo · Виплачено green · Скасовано slate · Призупинено amber · Очікує повернення orange · Повернено pink |
-| Urgency badge  | «Термінова»: `OPEN`/`ON_HOLD`/`DRAFT` = red outline badge (`--destructive-subtle` bg, `--error-text`, `--destructive` border) + row/header tint and 3 px edge; `FILLED`/`CANCELLED` = neutral badge, no tint (D99). Icon `flame`, separate badge, not a status                                                                                        |
-| Bot badge      | «З бота»: blue outline, icon `bot` (separate badge, not a status)                                                                                            |
-| Source label   | LinkedIn / Djinni / Telegram / Рекомендація / Інше: neutral text + small icon (not a coloured badge)                                                         |
-| Event pending  | «Очікує перенесення»: red-soft pill (`#FEF2F2` / `#B91C1C`) as in `06-calendar.webp`                                                                         |
+| Kind           | Value → palette                                                                                                                                                                                                                                                |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vacancy status | Чернетка slate (dashed border) · Відкрита green · Призупинена amber · Заповнена blue · Скасована slate                                                                                                                                                         |
+| Bonus status   | Заплановано slate · Нараховано blue · Затверджено indigo · Виплачено green · Скасовано slate · Призупинено amber · Очікує повернення orange · Повернено pink                                                                                                   |
+| Urgency badge  | «Термінова»: `OPEN`/`ON_HOLD`/`DRAFT` = red outline badge (`--destructive-subtle` bg, `--error-text`, `--destructive` border) + row/header tint and 3 px edge; `FILLED`/`CANCELLED` = neutral badge, no tint (D99). Icon `flame`, separate badge, not a status |
+| Bot badge      | «З бота»: blue outline, icon `bot` (separate badge, not a status)                                                                                                                                                                                              |
+| Source label   | LinkedIn / Djinni / Telegram / Рекомендація / Інше: neutral text + small icon (not a coloured badge)                                                                                                                                                           |
+| Event pending  | «Очікує перенесення»: red-soft pill (`#FEF2F2` / `#B91C1C`) as in `06-calendar.webp`                                                                                                                                                                           |
 
 ## 2. Typography
 
