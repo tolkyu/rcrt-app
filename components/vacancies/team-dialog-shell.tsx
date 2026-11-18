@@ -2,7 +2,7 @@
 
 import { CircleAlert, LoaderCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -22,12 +22,15 @@ export function TeamDialogShell({
   pending,
   onClose,
   onCloseAutoFocus,
+  initialFocus,
   footer,
   children,
 }: TeamDialogProps & {
   title: string;
   vacancy: Pick<VacancyDetail, 'number' | 'title' | 'vertical'>;
   pending: boolean;
+  /** Replaces the first-control default, for a dialog that opens on a field. */
+  initialFocus?: RefObject<HTMLElement | null>;
   footer: ReactNode;
   children: ReactNode;
 }) {
@@ -44,6 +47,11 @@ export function TeamDialogShell({
       <DialogContent
         closeLabel={tCommon('close')}
         onCloseAutoFocus={onCloseAutoFocus}
+        onOpenAutoFocus={(event) => {
+          if (!initialFocus?.current) return;
+          event.preventDefault();
+          initialFocus.current.focus();
+        }}
       >
         <div className="flex flex-col gap-1">
           <DialogTitle>{title}</DialogTitle>

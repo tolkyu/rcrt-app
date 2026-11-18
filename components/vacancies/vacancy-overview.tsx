@@ -21,6 +21,8 @@ import { toast } from '@/lib/toast';
 import { DraftHeaderActions } from './draft-header-actions';
 import { formatVacancyMoney } from './money';
 import { isUrgentHighlighted } from '@/lib/vacancy-urgency';
+import { StatusBanner, useStatusNote } from './status-banner';
+import { StatusHeaderActions } from './status-header-actions';
 import { TeamPanel } from './team-panel';
 import { UrgencySection } from './urgency-section';
 import { VacancyFlags, VacancyStatus } from './vacancy-badges';
@@ -107,6 +109,7 @@ function VacancyOverviewContent({
     urgencyRemoved.current = false;
     teamHeadingRef.current?.focus();
   }, [vacancy.canChangeUrgency]);
+  const holdNote = useStatusNote(vacancy);
   const privateDraft = isPrivateDraft(vacancy);
   const highlighted = isUrgentHighlighted(vacancy);
   const urgentClosed = vacancy.priority === 'URGENT' && !highlighted;
@@ -116,9 +119,9 @@ function VacancyOverviewContent({
           ? 'draft.privateNoteCancelled'
           : 'draft.privateNote',
       )
-    : urgentClosed
-      ? t('urgentClosed')
-      : undefined;
+    : [holdNote, urgentClosed ? t('urgentClosed') : undefined]
+        .filter(Boolean)
+        .join(' ') || undefined;
   const draftPlan = ownDraftActions(vacancy, canAuthorDrafts);
   const path = `/vacancies/${vacancy.id}`;
   const Heading = preview ? 'h3' : 'h2';
@@ -204,9 +207,17 @@ function VacancyOverviewContent({
                 {t('share')}
               </Button>
             )}
+            {!privateDraft && (
+              <StatusHeaderActions
+                key={vacancy.id}
+                vacancy={vacancy}
+                preview={preview}
+              />
+            )}
           </>
         }
       />
+      {!privateDraft && <StatusBanner vacancy={vacancy} />}
       {failedUrl && !privateDraft && (
         <div
           role="alert"

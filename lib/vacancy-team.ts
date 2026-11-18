@@ -1,11 +1,11 @@
-/** Writes of the «Команда» block (ADR-017 slice 5): claim, assign, remove, first Team Lead. Pessimistic: the cache takes the server's answer, never a guess. */
+/** Writes of the «Команда» block (ADR-017 slice 5): claim, assign, remove, first Team Lead; the status dialogs reuse the same reconciliation. Pessimistic: the cache takes the server's answer, never a guess. */
 import type { QueryClient } from '@tanstack/react-query';
 import { ApiError, apiRequest } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
 import type { VacancyDetail, VacancyPage } from '@/lib/schemas/vacancy';
 import { readCurrentVacancy, refreshVacancy } from '@/lib/vacancy-refresh';
 
-const detailSchema = async () =>
+export const detailSchema = async () =>
   (await import('@/lib/schemas/vacancy')).vacancyDetailSchema;
 const base = (id: string) => `/vacancies/${encodeURIComponent(id)}`;
 
@@ -53,6 +53,7 @@ export type TeamFailure =
   | 'closed'
   | 'taken'
   | 'teamLeadSet'
+  | 'statusInvalid'
   | 'invalid'
   | 'forbidden'
   | 'gone'
@@ -68,6 +69,7 @@ export function classifyTeamFailure(error: unknown): TeamFailure {
     if (error.code === 'VACANCY_CLOSED') return 'closed';
     if (error.code === 'VACANCY_ALREADY_ASSIGNED') return 'taken';
     if (error.code === 'TEAM_LEAD_ALREADY_SET') return 'teamLeadSet';
+    if (error.code === 'VACANCY_STATUS_INVALID') return 'statusInvalid';
     return 'failed';
   }
   if (error.status === 400)
