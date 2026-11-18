@@ -125,6 +125,7 @@ describe('VacanciesList [STORY-VAC-04-1, UI-04..07]', () => {
       onPreviewIntent: props.onPreviewIntent ?? vi.fn(),
       canAuthorDrafts: false,
       selfAssignVerticals: [],
+      statusGrants: null,
     });
 
   it('links each title to the real card and shows number, badges and honest placeholders', () => {
@@ -332,6 +333,7 @@ describe('urgent highlight [STORY-VAC-04-4, D97]', () => {
         onPreviewIntent: vi.fn(),
         canAuthorDrafts: false,
         selfAssignVerticals: [],
+        statusGrants: null,
       }),
     );
     const edge = 'var(--destructive)';
@@ -381,6 +383,7 @@ describe('urgent highlight [STORY-VAC-04-4, D97]', () => {
           onPreviewIntent: vi.fn(),
           canAuthorDrafts: false,
           selfAssignVerticals: [],
+          statusGrants: null,
         }),
       );
     const rows = () => within(screen.getByRole('table')).getAllByRole('row');

@@ -53,6 +53,7 @@ const view = (canAuthorDrafts = true, canRequestVacancy = false) =>
       canManagePositions: false,
       canAuthorDrafts,
       selfAssignVerticals: [],
+      statusGrants: null,
       canRequestVacancy,
     }),
   });

@@ -96,6 +96,7 @@ export function SkeletonDemos() {
             onPreviewIntent={ignore}
             canAuthorDrafts={false}
             selfAssignVerticals={[]}
+            statusGrants={null}
           />
         </Card>
       </Sample>

@@ -9,8 +9,13 @@ import type { VacancySummary } from '@/lib/schemas/vacancy';
 import type { SelfAssignVerticals } from '@/lib/vacancy-claim';
 import { cn } from '@/lib/utils';
 import { hasRowMenu } from '@/lib/vacancy-draft-actions';
+import {
+  rowStatusActions,
+  type StatusGrantMirror,
+} from '@/lib/vacancy-status-menu';
 import { DraftRowMenu } from './draft-row-menu';
 import { ClaimCard, RecruiterCell } from './recruiter-cell';
+import { StatusRowMenu } from './status-row-menu';
 import { VacanciesTableHead } from './vacancies-table-head';
 import { urgentRow, VacancyFlags, VacancyStatus } from './vacancy-badges';
 
@@ -66,6 +71,7 @@ export const VacanciesList = memo(function VacanciesList({
   onPreviewIntent,
   canAuthorDrafts,
   selfAssignVerticals,
+  statusGrants,
 }: {
   items: readonly VacancySummary[];
   selectedId: string | undefined;
@@ -74,8 +80,11 @@ export const VacanciesList = memo(function VacanciesList({
   onPreviewIntent: (id: string) => void;
   canAuthorDrafts: boolean;
   selfAssignVerticals: SelfAssignVerticals;
+  statusGrants: StatusGrantMirror | null;
 }) {
   const t = useTranslations('vacancies');
+  /** The table keeps the menu column below `xl` only when some row can have a menu. */
+  const menuColumn = canAuthorDrafts || statusGrants !== null;
   const selectFromRow = (
     event: MouseEvent<HTMLTableRowElement>,
     id: string,
@@ -93,7 +102,7 @@ export const VacanciesList = memo(function VacanciesList({
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <caption className="sr-only">{t('caption')}</caption>
-          <VacanciesTableHead menuColumn={canAuthorDrafts} />
+          <VacanciesTableHead menuColumn={menuColumn} />
           <tbody>
             {items.map((vacancy) => {
               const selected = wide && vacancy.id === selectedId;
@@ -152,13 +161,17 @@ export const VacanciesList = memo(function VacanciesList({
                   <td
                     className={cn(
                       'px-2 py-3',
-                      !canAuthorDrafts && 'hidden xl:table-cell',
+                      !menuColumn && 'hidden xl:table-cell',
                     )}
                   >
                     <div className="flex items-center justify-end gap-1">
                       <DraftRowMenu
                         vacancy={vacancy}
                         canAuthorDrafts={canAuthorDrafts}
+                      />
+                      <StatusRowMenu
+                        vacancy={vacancy}
+                        actions={rowStatusActions(vacancy, statusGrants)}
                       />
                       <Button
                         variant="ghost"
@@ -186,63 +199,71 @@ export const VacanciesList = memo(function VacanciesList({
         aria-label={t('caption')}
         className="divide-border divide-y md:hidden"
       >
-        {items.map((vacancy) => (
-          <li
-            key={vacancy.id}
-            className={cn(
-              'has-[a:focus-visible]:outline-ring relative flex flex-col gap-2 p-4 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2',
-              urgentRow(vacancy) ??
-                'hover:bg-surface-muted active:bg-surface-muted',
-            )}
-          >
-            <Link
-              href={`/vacancies/${vacancy.id}`}
-              prefetch={false}
-              data-vacancy-link={vacancy.id}
+        {items.map((vacancy) => {
+          const statusActions = rowStatusActions(vacancy, statusGrants);
+          const menu =
+            hasRowMenu(vacancy, canAuthorDrafts) || statusActions.length > 0;
+          return (
+            <li
+              key={vacancy.id}
               className={cn(
-                'text-foreground min-h-6 font-semibold [overflow-wrap:anywhere] after:absolute after:inset-0',
-                hasRowMenu(vacancy, canAuthorDrafts) && 'pr-11',
+                'has-[a:focus-visible]:outline-ring relative flex flex-col gap-2 p-4 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2',
+                urgentRow(vacancy) ??
+                  'hover:bg-surface-muted active:bg-surface-muted',
               )}
             >
-              {vacancy.title}
-            </Link>
-            {hasRowMenu(vacancy, canAuthorDrafts) && (
-              <div className="absolute top-2 right-2 z-10">
-                <DraftRowMenu
-                  vacancy={vacancy}
-                  canAuthorDrafts={canAuthorDrafts}
-                />
-              </div>
-            )}
-            <p className="text-muted-foreground text-xs [overflow-wrap:anywhere]">
-              {t('numberInVertical', {
-                number: vacancy.number,
-                vertical: vacancy.vertical.name,
-              })}
-              <MissingPosition vacancy={vacancy} />
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <VacancyStatus status={vacancy.status} />
-              <VacancyFlags vacancy={vacancy} />
-            </div>
-            <p className="flex flex-wrap gap-x-1 text-sm">
-              <span className="text-muted-foreground">{t('teamLeadLine')}</span>
-              <TeamLead vacancy={vacancy} />
-            </p>
-            <ClaimCard vacancy={vacancy} verticals={selfAssignVerticals} />
-            {vacancy.openedAt ? (
-              <p className="text-muted-foreground text-xs">
-                {t('openedOn', { at: new Date(vacancy.openedAt) })}
+              <Link
+                href={`/vacancies/${vacancy.id}`}
+                prefetch={false}
+                data-vacancy-link={vacancy.id}
+                className={cn(
+                  'text-foreground min-h-6 font-semibold [overflow-wrap:anywhere] after:absolute after:inset-0',
+                  menu && 'pr-11',
+                )}
+              >
+                {vacancy.title}
+              </Link>
+              {menu && (
+                <div className="absolute top-2 right-2 z-10">
+                  <DraftRowMenu
+                    vacancy={vacancy}
+                    canAuthorDrafts={canAuthorDrafts}
+                  />
+                  <StatusRowMenu vacancy={vacancy} actions={statusActions} />
+                </div>
+              )}
+              <p className="text-muted-foreground text-xs [overflow-wrap:anywhere]">
+                {t('numberInVertical', {
+                  number: vacancy.number,
+                  vertical: vacancy.vertical.name,
+                })}
+                <MissingPosition vacancy={vacancy} />
               </p>
-            ) : (
-              vacancy.status === 'DRAFT' && (
+              <div className="flex flex-wrap items-center gap-2">
+                <VacancyStatus status={vacancy.status} />
+                <VacancyFlags vacancy={vacancy} />
+              </div>
+              <p className="flex flex-wrap gap-x-1 text-sm">
+                <span className="text-muted-foreground">
+                  {t('teamLeadLine')}
+                </span>
+                <TeamLead vacancy={vacancy} />
+              </p>
+              <ClaimCard vacancy={vacancy} verticals={selfAssignVerticals} />
+              {vacancy.openedAt ? (
                 <p className="text-muted-foreground text-xs">
-                  {t('notOpenedYet')}
+                  {t('openedOn', { at: new Date(vacancy.openedAt) })}
                 </p>
-              )
-            )}
-          </li>
-        ))}
+              ) : (
+                vacancy.status === 'DRAFT' && (
+                  <p className="text-muted-foreground text-xs">
+                    {t('notOpenedYet')}
+                  </p>
+                )
+              )}
+            </li>
+          );
+        })}
       </ul>
     </>
   );

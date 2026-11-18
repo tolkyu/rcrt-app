@@ -7,7 +7,9 @@ import type { BuiltinRole, VacancyStatus } from '@/server/authz/types';
 import {
   mayRequestStatusAction,
   permittedStatusActions,
+  statusGrantMirror,
 } from '@/server/authz/vacancy-status';
+import { rowStatusActions } from '@/lib/vacancy-status-menu';
 import {
   contextFor,
   CRYPTO,
@@ -129,5 +131,119 @@ describe('statusActions of the detail [STORY-VAC-02-1]', () => {
       expect(
         permittedStatusActions(roleContext(role), { ...own, status }),
       ).toEqual([]);
+  });
+});
+
+describe('statusGrantMirror: what the list page sends to the row menu [STORY-VAC-02-1, D130-4]', () => {
+  const ALL = { HOLD: 'ALL', RESUME: 'ALL', CANCEL: 'ALL', REOPEN: 'ALL' };
+  const only = (...ids: string[]) => ({
+    HOLD: ids,
+    RESUME: ids,
+    CANCEL: ids,
+    REOPEN: ids,
+  });
+  const NOTHING = only();
+
+  it('Admin with aal2 holds every action everywhere', () => {
+    const mirror = statusGrantMirror(roleContext('ADMIN'));
+    expect(mirror).toEqual({ viewerId: ME, covering: ALL, own: NOTHING });
+  });
+
+  it('Admin with aal1 gets nothing: the global grants are withheld until MFA', () => {
+    expect(statusGrantMirror(roleContext('ADMIN', 'aal1'))).toBeNull();
+  });
+
+  it('Head Recruiter of one vertical gets that vertical for all four actions', () => {
+    expect(statusGrantMirror(roleContext('HEAD_RECRUITER'))).toEqual({
+      viewerId: ME,
+      covering: only(GAMBLING),
+      own: NOTHING,
+    });
+  });
+
+  it('Head Recruiter of one vertical and Team Lead of another keep their grants apart', () => {
+    const mirror = statusGrantMirror(
+      contextFor([
+        { role: 'HEAD_RECRUITER', verticalId: GAMBLING },
+        { role: 'TEAM_LEAD', verticalId: CRYPTO },
+      ]),
+    );
+    expect(mirror?.covering).toEqual(only(GAMBLING));
+    expect(mirror?.own).toEqual({
+      HOLD: [CRYPTO],
+      RESUME: [CRYPTO],
+      CANCEL: [CRYPTO],
+      REOPEN: [],
+    });
+  });
+
+  it('Team Lead holds hold, resume and cancel as OWN grants only, never reopen', () => {
+    expect(statusGrantMirror(roleContext('TEAM_LEAD'))).toEqual({
+      viewerId: ME,
+      covering: NOTHING,
+      own: {
+        HOLD: [GAMBLING],
+        RESUME: [GAMBLING],
+        CANCEL: [GAMBLING],
+        REOPEN: [],
+      },
+    });
+  });
+
+  it.each(NO_GRANT)('%s gets no mirror at all', (role) => {
+    expect(statusGrantMirror(roleContext(role))).toBeNull();
+  });
+
+  it('a user with no assignments gets no mirror', () => {
+    expect(statusGrantMirror(contextFor([]))).toBeNull();
+  });
+});
+
+describe('rowStatusActions is the client twin of permittedStatusActions [STORY-VAC-02-1]', () => {
+  const rows = (
+    status: VacancyStatus,
+    verticalId: typeof GAMBLING | typeof CRYPTO,
+    leader: typeof ME | typeof OTHER | null,
+  ) => ({
+    row: {
+      status,
+      vertical: { id: verticalId, name: 'x' },
+      teamLead: leader && { id: leader, fullName: 'x', isActive: true },
+    },
+    facts: { status, verticalId, teamLeadId: leader },
+  });
+  const viewers = [
+    ...ROLE_COLUMNS.flatMap((role) => [
+      [role, roleContext(role)] as const,
+      ...(role === 'ADMIN'
+        ? ([[`${role} aal1`, roleContext(role, 'aal1')]] as const)
+        : []),
+    ]),
+    [
+      'Team Lead here, Head Recruiter there',
+      contextFor([
+        { role: 'TEAM_LEAD', verticalId: GAMBLING },
+        { role: 'HEAD_RECRUITER', verticalId: CRYPTO },
+      ]),
+    ] as const,
+  ];
+
+  it.each(viewers)(
+    '%s sees the same items as the card would',
+    (_name, auth) => {
+      const mirror = statusGrantMirror(auth);
+      for (const status of STATUSES)
+        for (const verticalId of [GAMBLING, CRYPTO])
+          for (const leader of [ME, OTHER, null] as const) {
+            const { row, facts } = rows(status, verticalId, leader);
+            expect(rowStatusActions(row, mirror)).toEqual(
+              permittedStatusActions(auth, facts),
+            );
+          }
+    },
+  );
+
+  it('no mirror means no items', () => {
+    expect(rowStatusActions(rows('OPEN', GAMBLING, ME).row, null)).toEqual([]);
   });
 });
