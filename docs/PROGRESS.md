@@ -33,6 +33,7 @@ Current phase status, active boundaries and owner decisions. Historical checkpoi
 
 ## Gaps and later-phase boundaries
 
+- **V3 carry-over (security 2026-11-18, `docs/security/v3-adr-017-prereview.md`, `v3-s1-review.md`):** purge has no code for `entity_event_pii` (cancel reason, T-Z22) → Phase 5 purge; slice 8 adds audit labels for `recruiter_unassigned`/`team_lead_assigned` (S1-4), unit cases custom role at OWN/ASSIGNED refused + `canSelfAssign` false on DRAFT/unassigned ON_HOLD (S1-5), ADR-012 converse-lock rule (A6); optional parent-status trigger on `vacancy_recruiter` (S1-2). Owner question A5: daily claim cap against one recruiter claiming the whole pool. ADR-017 errata: ineligible user = 400 (no 422 class), TL race loser = `TEAM_LEAD_ALREADY_SET`, claim on another vacancy = 404.
 - **Tech debt → Phase 7 (D126):** S3.7 thermo items 2–5, 9–11 (`docs/qa-phase-2-s3.md`), preview scroll a11y, form-error link buttons, `clampDescription` non-string, shared actions-cell helper; tooltip clone strips the child's whole `aria-describedby`; toast fallback keeps only the latest notice.
 
 The final local closure above supersedes resolved Phase-1 labels in older checkpoints and reports. Active boundaries are listed below; hosted checks do not block the authorized local closure.

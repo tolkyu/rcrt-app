@@ -1,0 +1,116 @@
+# Security pre-review: ADR-017 (vacancy assignment, Team Lead assignment, status actions)
+
+- Scope: design review of `docs/adr/017-vacancy-assignment-status.md` before API slices 2-4. Inputs: D130, PRD §2.3 grants (`server/authz/roles.ts`), `vacancy-scope.ts`, `services/vacancy-urgency.ts`, `lockAuthors`/`lockUsersShared`, `vacancy-cancel-reason.ts`, threat model §3.2, slice 1 files in `D:/recruiting-wt/v3-foundation` (read only).
+- Date: 2026-11-18. No code or ADR edited.
+- Verdict: **no Critical or High finding. The design is sound** (scoped read first, 404 before 403, users `FOR SHARE` then vacancy `FOR NO KEY UPDATE`, compare-and-set, ids-only events). Four Medium items need an ADR text fix before slices 2-4 start (A1-A4); the rest are test requirements or Low.
+
+## Checklist result
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Finance reaches nothing | Pass. Finance has no `vacancy.read`; `requirePermission` throws `NotFoundError` (404) on every new route | `server/authz/can.ts:263-271` |
+| Admin aal2 | Pass. Global grants withheld without aal2, so 401 `MFA_REQUIRED` at the admit step; `lockAuthors` rebuilds auth with the same `aal` | `server/authz/can.ts:263-271`, `server/services/vacancy.ts:236-243` |
+| Lock order vs ADR-012 | Pass. `lockUsersShared` (id order, one statement) then roles in the next statement then `lockVacancy`. Role removal and deactivation take `lockUser` (NO KEY UPDATE), which conflicts with FOR SHARE, so "role revoked mid-request" is serialised. `userHasOpenVacancyWork` runs after the user lock, so an assignment that commits first is seen by the deactivation guard | `server/repositories/user.ts:360-392`, `server/services/user-roles.ts:67`, `server/repositories/vacancy-work.ts` |
+| Vertical isolation of reads | Pass by construction. Pre-read uses `vacancyReadWhere`; foreign draft, other vertical, other TL's vacancy, soft-deleted give 404 | `server/authz/vacancy-scope.ts` |
+| Recruiter releasing self (D130-2) | Pass. Recruiter has no `vacancy.assign_recruiters`; a Recruiter reads the vacancy (ASSIGNED) so the answer is 403, not 404 | `roles.ts:95-110` |
+| TL change after first set (D130-3) | Pass. `canSetTeamLead` needs `teamLead === null`; the draft PATCH cannot reach a published vacancy; schema `teamLeadId` must be a uuid (null is 400) | slice 1 `vacancy-assignment.ts:66-72`, `lib/schemas/vacancy.ts:268` |
+| CANCELLED reopen / manual FILLED | Pass in the table: `CANCELLED` is in no `from`; no `to: FILLED`; the DB trigger `vacancy_lifecycle_guard` also makes CANCELLED final | slice 1 `transitions.ts`, ADR Context |
+| Own-TL cancel scope | Pass if `hasOwnGrant` is fed the locked row's `team_lead_id` (see A1) | slice 1 `vacancy-status.ts:15-26` |
+| Mass assignment | Pass in design (strict schemas, `uuid` helper lowercases so the distinct check and the PK agree). Gaps: A1 (headcount bound), T-list below | `lib/schemas/uuid.ts` |
+| CSRF | Pass. `DELETE`, `PUT`, `POST` are all in `UNSAFE_METHODS` | `server/http/route-shared.ts:8-13` |
+| Events and audit | Pass in design: ids only, reason in the purgeable side row, never in audit | ADR §Events and audit |
+
+## Findings
+
+| ID | Severity | ADR section | Risk | Required change / test | Blocks slice |
+| --- | --- | --- | --- | --- | --- |
+| A1 | Medium | §Order and locks, per-operation table, row "Status"; §Pure status table | (a) The row lists "actor grant per table" **last**, after `isRepeat`. If implemented in that order a Team Lead sending `REOPEN` on an `OPEN` vacancy, or a Head Recruiter of another vertical racing a scope change, gets a 200 no-op instead of 403. (b) `hasOwnGrant` is fed `teamLeadId`; it must be the **locked row's** value, not the pre-lock detail. (c) `REOPEN {headcount}` on an `OPEN` vacancy is a "repeat" and returns 200 while silently dropping the headcount: the caller believes it was changed. (d) Reopen `headcount` is only "≥ 1"; the create schema caps it at `VACANCY_HEADCOUNT_MAX` (100, `lib/schemas/vacancy.ts:179`), the column is `smallint`, so 40000 is a 500 from the DB check/overflow, not 400. (e) A `DRAFT` must never get a status write or audit row (D92: drafts write no audit so the Admin viewer cannot reveal them) | Change ADR: order under the lock = legality of **grant on fresh roles and locked `team_lead_id`** (403) → `isRepeat` → `transitionTarget` (409 `VACANCY_STATUS_INVALID`) → version (409). A repeat requested **with a `headcount`** is not a repeat: 409 `VACANCY_STATUS_INVALID`. Reopen schema: `headcount` `.int().min(1).max(VACANCY_HEADCOUNT_MAX)`. State that `DRAFT` yields 409 with no event and no audit row | 3 |
+| A2 | Medium | §Test matrix (Claim), §Authz response codes | The matrix says "assigned Recruiter claiming a vacancy of another → 409". By ADR §Authz this is **404** (the vacancy is outside `UNASSIGNED_OPEN` and `ASSIGNED`, so step 2 fails). 409 `VACANCY_ALREADY_ASSIGNED` is reachable only when the pre-lock read passed and another claim committed first. Writing the wrong expectation would drive an implementation that leaks existence of an assigned vacancy (409 vs 404 oracle) | Fix the matrix: static case = 404; 409 only in the two-claim race. Also state: claim no-op ("caller already assigned") happens **after** the fresh-grant check (a claimant who lost RECRUITER or `self_assign` mid-request gets 403, not 200) and `isEligibleRecruiter(caller)` is checked on the locked rows before any insert | 2 |
+| A3 | Medium | §Endpoints, assign `422 invalid_recruiter` | Per-id detail or different messages for "no such user / other vertical / inactive / invite not accepted / not a Recruiter" let a Head Recruiter probe which uuids exist in another vertical (unguessable ids, so likelihood low, impact cross-vertical user enumeration). The same holds for `DELETE .../recruiters/{userId}` if it answers differently for an unknown user | Fix in ADR: one 422 with path `body.recruiterIds` only, no index, no id echoed, identical for all reasons. `DELETE` of any uuid not in the set (existing or not, any vertical) = identical 200 no-op. Test both | 2 |
+| A4 | Medium | §Test matrix (Team Lead) vs §Check order | Matrix says "two Heads different TLs → one wins, **409 `STALE_STATE`**". By the ADR check order (legality before version) the loser gets **409 `TEAM_LEAD_ALREADY_SET`**. A test written to the matrix fails or, worse, drives a reorder that gives a stale caller the wrong answer | Fix the matrix to `TEAM_LEAD_ALREADY_SET` (same user = 200 no-op; stale + same user = no-op as well, per shared V3 rule: say so). `STALE_STATE` appears only when `team_lead_id` is still null and the version moved | 4 |
+| A5 | Medium (owner) | §Authz Claim, §Endpoints (30 writes/min) | First-claim-wins plus 30 writes/min lets one Recruiter script the whole unassigned pool of a vertical in minutes (hoarding, starves colleagues, skews routing and bonus statistics later). Not a confidentiality issue; an integrity/fairness one that D130 does not bound | Owner question, not an ADR blocker: ask whether a recruiter gets a cap of simultaneously open self-claimed vacancies or a daily claim cap (new rate-limit namespace `vacancy:claim:day`, as `vacancy:create:day` exists). Until answered, keep the audit row per claim (already in the ADR) so abuse is visible | none |
+| A6 | Medium | §Context (migration 0016), §Consequences | `GRANT DELETE` is table-wide on `app.vacancy_recruiter` for `app_rw`: any future bug or injection in any service can erase assignment history; history then lives only in `entity_event`/`audit_log`. Also CLAUDE.md §3.6 (soft delete) is bypassed (accepted by ADR-012). New: before this slice the set was effectively immutable, so no code re-checks assignment under a lock. Phase 4/D76 writers that authorise through `ASSIGNED` scope (candidate/application writes, recruiter description edit) will race with removal | ADR text: (1) add to §Consequences the converse rule: **any write whose authorisation depends on `ASSIGNED` scope must re-judge it under `lockVacancy`** (same transaction), and record it in ADR-012. (2) Optional defence in depth in migration 0016: trigger on `vacancy_recruiter` that rejects DELETE/INSERT when the parent vacancy is not `OPEN`/`ON_HOLD` (mirrors `isTeamEditable`). (3) Test/lint: only `server/repositories/vacancy-recruiter.ts` imports `delete(vacancyRecruiter)`; delete has `WHERE vacancy_id = $1 AND user_id = $2` | 2 (tests), ADR |
+| A7 | Medium | §Events and audit, published cancel reason | The published reason is readable by every reader of the vacancy (Head Recruiter, HR, Head HR, TL, assigned Recruiter). The text is free-form and may carry personal data (a candidate's or colleague's name). Requirements are implicit in the ADR | Make explicit and test: (a) reader joins `entity_event_pii` on `entity_event.vacancy_id = $1`, `type = 'vacancy.status_changed'`, `payload.to = 'CANCELLED'`, `vacancyEventReadWhere(ctx.auth)`, latest; never keyed on the caller for published vacancies; (b) returned only when `status = 'CANCELLED' AND opened_at IS NOT NULL`; a never-opened cancelled draft keeps the D123 caller-keyed reader (events of drafts have `vertical_id` null, so `visible` already hides them from non-authors: test it); (c) the reason is never in `payload`, `audit_log`, logs, Sentry breadcrumbs or OpenAPI examples; the `PUT /status` CANCEL response carries it only to the caller who just wrote it; (d) the UI renders it as text; (e) **purge**: no purge code exists yet; add a PROGRESS gap that Admin purge of a vacancy or of its author deletes `entity_event_pii` rows reached through `entity_event.vacancy_id` (threat T-Z22) | 3 |
+| A8 | Low | §Endpoints `assignable-recruiters` | Contract is minimal (`id, fullName, assigned, active`; no email, no roles): good. Gaps: the vertical must come only from the scoped vacancy read (never a query param); behaviour on `DRAFT`/`FILLED`/`CANCELLED` is unspecified; ordering of 403 vs 404 unspecified | Specify: admit `vacancy.read` → object-independent 403 if no `vacancy.assign_recruiters` anywhere (as urgency) → scoped read (404) → covering-grant check (403) → status not `OPEN`/`ON_HOLD` = 409 `VACANCY_CLOSED` (no data). Response header `Cache-Control: no-store` (names). Inactive entries only if currently assigned to **this** vacancy | 2 |
+| A9 | Low | §Order step 1, rate limit | Limiter is consumed before the vacancy read (good: 404 probing costs budget). `GET assignable-recruiters` has no write limit; rely on the generic API read limiter, confirm it is active on this route. 20-id assign creates up to 20 audit rows per call, bounded by 30/min | Test or Newman case: 31st write in a window = 429, no write; confirm `defineRoute` default limiter covers the GET | 2 |
+| A10 | Low | §Authz (D130-2) | The rule "a recruiter cannot release themselves" is grant-based. A user holding RECRUITER **and** HEAD_RECRUITER in the vertical can remove themselves as Head Recruiter. Acceptable (managers may unassign anyone) but undocumented | Add one sentence to the ADR; test: Recruiter-only self-remove 403, dual-role allowed | 2 |
+| A11 | Low | §Endpoints `DELETE` | Query schema must be strict (unknown key 400) and `expectedVersion` rejected when `""`, `0`, `1.5`, `abc`, repeated key (array); path `userId` through `uuid`, bad value 404 (not 400, consistent with `uuidOf`) | Test list below | 2 |
+| A12 | Low | §Events | `by` duplicates `actor_id`. Harmless. `vacancy.recruiter_assigned` audit rows carry whole before/after id arrays: bounded by realistic set size; keep ids only | None; keep test that no `name`/`email` key appears | 2-4 |
+| A13 | Low | §Order step 4 | The final `readVacancy(freshCtx)` can throw 404 after the write if the caller lost read scope during the lock wait; the transaction rolls back, correct but undocumented (same as VAC08-S3). New case: Team Lead removed from the role while waiting, TL cancel | One-line ADR note; test T-S3 below | 3 |
+| A14 | Info | §Realtime / client | Invalidation after 403/404 is correct; ensure the 404 handler does not leave `['vacancy', id, 'assignable-recruiters']` cached with names after the user lost access (key prefix invalidation covers it) | Component test | 5 |
+
+## Open design checks that passed (no action)
+
+- Claim race: ADR's reliance on the vacancy row lock plus READ COMMITTED re-read of the set is correct; the PK also stops a double insert for the same user. The second claimant in the "after commit" case gets 404 from the scoped pre-read (UNASSIGNED_OPEN requires zero rows).
+- Ineligible assignee, role revoked mid-request: covered by FOR SHARE on targets + roles read in the next statement (SEC-VC-03 pattern), plus `userHasOpenVacancyWork`.
+- Last-recruiter removal returns the vacancy to the pool with no extra write; removed assignee gets 404 on the next read (live subquery).
+- Slice 1 `canSelfAssign` uses `grantCovers` (any scope kind, covering vertical): a Recruiter(Gambling)+Head Recruiter(Crypto) user cannot claim in Crypto (403). Keep this behaviour in the service pre-check; do not use `hasGrantCovering` (broad only) for claim or every Recruiter would get 403.
+
+## Mandatory denied-test cases per slice
+
+Each denied case asserts: HTTP status, **no row change** (`vacancy.version`, `vacancy_recruiter`, `team_lead_id`, `status`, `closed_at`), **no `entity_event` row, no `entity_event_pii` row, no `audit_log` row**.
+
+### Slice 2: claim, assign, remove, assignable list
+
+| # | Case | Expect |
+| --- | --- | --- |
+| 2.1 | Claim by Head Recruiter / HR / Head HR / Team Lead (no `self_assign`) | 403 (Finance 404) |
+| 2.2 | Claim of a vacancy in another vertical (Recruiter Крипто on Гемблінг) | 404 |
+| 2.3 | Claim of an assigned vacancy the caller is not on, and of `ON_HOLD` / `FILLED` / `CANCELLED` unassigned vacancy, and of a foreign DRAFT | 404, never 409 (A2) |
+| 2.4 | Two parallel claims (barrier before the lock) | one row, loser 409 `VACANCY_ALREADY_ASSIGNED`, loser wrote no event/audit; winner retry 200 no-op, no extra audit |
+| 2.5 | Claim by a user who lost RECRUITER or was deactivated while waiting on the user lock | 403, nothing written |
+| 2.6 | Dual-role Recruiter(Гемблінг)+Head Recruiter(Крипто) claims a Крипто vacancy | 403 |
+| 2.7 | Assign by Recruiter (assigned or not), by HR/Head HR, by Head Recruiter of another vertical, by foreign-draft viewer incl. Admin | 403 / 403 / 404 / 404 |
+| 2.8 | Recruiter removes self (assigned, ASSIGNED scope) and removes a colleague | 403 both; row stays |
+| 2.9 | Assign ineligible: inactive, invite not accepted (`activated_at` null), wrong vertical, no RECRUITER role (Head Recruiter/TL only), non-existent uuid, mixed list (one bad id) | 422 same body for all; nothing written for the valid ids either |
+| 2.10 | Assignee loses RECRUITER role / is deactivated between pre-read and lock | 422, nothing written |
+| 2.11 | Assign/remove on `FILLED`, `CANCELLED`, `DRAFT` (own draft by Admin author) | 409 `VACANCY_CLOSED`; DRAFT: no audit row (D92) |
+| 2.12 | Stale `expectedVersion` on assign and on remove (after a claim bumped it) | 409 `STALE_STATE`, set unchanged; legality checks win over stale (closed + stale = `VACANCY_CLOSED`) |
+| 2.13 | Admin without aal2 on all four routes | 401 `MFA_REQUIRED` |
+| 2.14 | Bodies: extra key, `recruiterIds` empty / 21 / duplicate (also differing in case) / non-uuid / not array, `expectedVersion` missing / string / 0 / float; `claim` body with any key; `DELETE` with unknown query key, `expectedVersion` `""`, `abc`, `1.5`, repeated | 400, no write |
+| 2.15 | `DELETE` of a user not in the set, existing user, other-vertical user and random uuid | identical 200 no-op, no version bump, no audit (A3) |
+| 2.16 | Assignable list: Recruiter, HR, Head HR, TL = 403; other-vertical Head Recruiter, foreign draft, unknown id, bad uuid = 404; Finance 404; list never contains users of another vertical, users without accepted invite, inactive users not assigned to this vacancy; keys are exactly `id, fullName, assigned, active` (no email) | as stated |
+| 2.17 | 31st write in a minute | 429, no write |
+| 2.18 | Missing Origin / `X-CSRF-Protection` / JSON content type on POST and DELETE | 403 `CSRF_FORBIDDEN` |
+| 2.19 | Removed recruiter then `GET` vacancy | 404; if last on `OPEN`, other Recruiter of the vertical sees it again; if `ON_HOLD`, nobody (D130-5) |
+
+### Slice 3: `PUT /status`
+
+| # | Case | Expect |
+| --- | --- | --- |
+| 3.1 | Recruiter (assigned or not), HR, Head HR on `HOLD`/`RESUME`/`CANCEL`/`REOPEN` | 403 (object-independent), Finance 404 |
+| 3.2 | Team Lead `REOPEN` on own `FILLED` and on `OPEN` (repeat must not mask the denial) | 403 both (A1) |
+| 3.3 | Team Lead `HOLD`/`RESUME`/`CANCEL` on another TL's vacancy, on an unassigned-TL vacancy of the same vertical | 404 (not readable under OWN) |
+| 3.4 | Team Lead who lost the TEAM_LEAD role while waiting on the lock | 403 or 404, nothing written |
+| 3.5 | Head Recruiter of another vertical; foreign DRAFT incl. Admin | 404 |
+| 3.6 | Every illegal pair: `CANCEL` on `CANCELLED`, `HOLD`/`RESUME`/`CANCEL` on `FILLED`, any action on `CANCELLED`, any action on `DRAFT` (author) | 409 `VACANCY_STATUS_INVALID`; DRAFT: no audit, no event; `CANCELLED` never leaves it (also assert DB trigger rejects a direct update) |
+| 3.7 | Any attempt to reach `FILLED`: `action:'FILL'`, `status:'FILLED'`, `REOPEN` of an `OPEN` vacancy | 400 / 400 / no-op 200; vacancy never `FILLED` |
+| 3.8 | `REOPEN` + `headcount` on `OPEN` (A1c) | 409 `VACANCY_STATUS_INVALID`, headcount unchanged |
+| 3.9 | `headcount` 0, -1, 1.5, 101, 40000, string, null; `headcount` on `HOLD`/`RESUME`/`CANCEL`; `reason` on `HOLD`/`RESUME`/`REOPEN`; `CANCEL` with missing / empty / whitespace-only / over-length reason; `action` lower case or unknown; extra keys; `expectedVersion` missing/invalid | 400, no write |
+| 3.10 | Stale: pause vs cancel same version; reopen vs urgency change | one wins, other 409 `STALE_STATE`; stale + illegal pair returns `VACANCY_STATUS_INVALID` |
+| 3.11 | Admin without aal2 | 401 `MFA_REQUIRED` |
+| 3.12 | Reason confidentiality: audit row and `entity_event.payload` do not contain the reason (search the serialised rows); reason absent from the response of other users who cannot read the vacancy (404); present for Head Recruiter / HR / TL / assigned Recruiter who read it; draft cancel reason still author-only (D123) and not returned by the published reader | as stated |
+| 3.13 | Repeat (`HOLD` on `ON_HOLD`, `RESUME` on `OPEN`) by a caller without the grant | 403, not 200 |
+| 3.14 | Rate limit 429, CSRF 403 | no write |
+
+### Slice 4: `PUT /team-lead`
+
+| # | Case | Expect |
+| --- | --- | --- |
+| 4.1 | Recruiter, HR, Head HR, TL (also the vacancy's own TL) | 403; Finance 404 |
+| 4.2 | Head Recruiter of another vertical, foreign DRAFT incl. Admin, unknown / bad uuid | 404 |
+| 4.3 | Second assignment: other user when one is set; two Heads racing with different TLs | 409 `TEAM_LEAD_ALREADY_SET` (loser), nothing written (A4); same user again 200 no-op |
+| 4.4 | `teamLeadId: null`, missing, non-uuid, extra keys, `expectedVersion` invalid | 400; no way to clear in Phase 2 (D130-3) |
+| 4.5 | Ineligible TL: inactive, invite not accepted, TL role in another vertical only, Head Recruiter/Recruiter only, non-existent uuid, role revoked while waiting | 422 `invalid_team_lead`, identical body, nothing written |
+| 4.6 | `FILLED` / `CANCELLED` / `DRAFT` | 409 `VACANCY_CLOSED`; DRAFT: no audit |
+| 4.7 | Stale version with `team_lead_id` still null | 409 `STALE_STATE` |
+| 4.8 | Admin without aal2 | 401 `MFA_REQUIRED` |
+| 4.9 | The draft `PATCH` and `POST /vacancies` cannot be used to change `teamLeadId` of a published vacancy | 404/409/400 per existing contract; vacancy `team_lead_id` unchanged |
+| 4.10 | Positive guard: after the set, the TL reads exactly this vacancy (and no other of the vertical), may HOLD/RESUME/CANCEL it, gets 403 on `REOPEN`; `recruiter_initiated` unchanged; 429 and CSRF cases | as stated |
+
+## Summary for the orchestrator
+
+- **Change the ADR before slices 2-4:** A1 (status check order, headcount max, repeat with headcount, DRAFT), A2 (claim test expectation 404 vs 409, no-op order), A3 (uniform 422 and uniform DELETE no-op), A4 (Team Lead race expectation `TEAM_LEAD_ALREADY_SET`).
+- **ADR text, not blocking code:** A6 (converse lock rule for `ASSIGNED`-scope writers, optional trigger on 0016), A7 (cancel reason reader contract and purge gap), A8 (assignable list gate order and `no-store`).
+- **Owner question:** A5 (claim hoarding).
+- **Everything else:** test requirements in the three tables above.
