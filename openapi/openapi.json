@@ -991,6 +991,25 @@
           "lastLoginAt"
         ]
       },
+      "AssignableRecruiters": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "fullName": { "type": "string" },
+                "assigned": { "type": "boolean" },
+                "active": { "type": "boolean" }
+              },
+              "required": ["id", "fullName", "assigned", "active"]
+            }
+          }
+        },
+        "required": ["items"]
+      },
       "VacancyDetail": {
         "type": "object",
         "properties": {
@@ -1067,6 +1086,16 @@
           "recruiterInitiated": { "type": "boolean" },
           "version": { "type": "integer", "exclusiveMinimum": 0 },
           "canChangeUrgency": { "type": "boolean" },
+          "canSelfAssign": { "type": "boolean" },
+          "canAssignRecruiters": { "type": "boolean" },
+          "canSetTeamLead": { "type": "boolean" },
+          "statusActions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["HOLD", "RESUME", "CANCEL", "REOPEN"]
+            }
+          },
           "cancelReason": { "type": "string" }
         },
         "required": [
@@ -1094,7 +1123,11 @@
           "probationDays",
           "recruiterInitiated",
           "version",
-          "canChangeUrgency"
+          "canChangeUrgency",
+          "canSelfAssign",
+          "canAssignRecruiters",
+          "canSetTeamLead",
+          "statusActions"
         ]
       },
       "CancelVacancy": {
@@ -1118,6 +1151,31 @@
         "required": ["expectedVersion"],
         "additionalProperties": false,
         "description": "Publishes exactly the draft the author last saw: when the stored version differs the answer is 409 STALE_STATE and the draft stays a draft."
+      },
+      "ClaimVacancy": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false,
+        "description": "Empty body. A Recruiter takes an `OPEN` vacancy nobody works on yet; the first claim wins and the second answers 409 VACANCY_ALREADY_ASSIGNED."
+      },
+      "AssignVacancyRecruiters": {
+        "type": "object",
+        "properties": {
+          "recruiterIds": {
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" },
+            "minItems": 1,
+            "maxItems": 20
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "description": "Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved."
+          }
+        },
+        "required": ["recruiterIds", "expectedVersion"],
+        "additionalProperties": false,
+        "description": "Adds 1 to 20 distinct recruiters (active, invite accepted, RECRUITER role in the vacancy vertical) to an `OPEN` or `ON_HOLD` vacancy; ids already assigned are skipped and a request that adds nobody writes nothing."
       },
       "PatchVacancy": {
         "type": "object",
@@ -1652,6 +1710,79 @@
         "type": "object",
         "properties": { "id": { "type": "string", "format": "uuid" } },
         "required": ["id"]
+      },
+      "ChangeVacancyStatus": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "action": { "type": "string", "enum": ["HOLD"] },
+              "expectedVersion": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "description": "Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved."
+              }
+            },
+            "required": ["action", "expectedVersion"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "action": { "type": "string", "enum": ["RESUME"] },
+              "expectedVersion": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "description": "Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved."
+              }
+            },
+            "required": ["action", "expectedVersion"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "action": { "type": "string", "enum": ["CANCEL"] },
+              "reason": { "type": "string", "minLength": 1, "maxLength": 500 },
+              "expectedVersion": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "description": "Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved."
+              }
+            },
+            "required": ["action", "reason", "expectedVersion"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "action": { "type": "string", "enum": ["REOPEN"] },
+              "headcount": { "type": "integer", "minimum": 1, "maximum": 100 },
+              "expectedVersion": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "description": "Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved."
+              }
+            },
+            "required": ["action", "expectedVersion"],
+            "additionalProperties": false
+          }
+        ],
+        "description": "HOLD (OPEN to ON_HOLD), RESUME (ON_HOLD to OPEN), CANCEL (OPEN or ON_HOLD to CANCELLED, with a required reason kept only in the purgeable side row) and REOPEN (FILLED to OPEN, optional new headcount). There is no action that fills or reopens a cancelled vacancy; unknown keys answer 400."
+      },
+      "SetVacancyTeamLead": {
+        "type": "object",
+        "properties": {
+          "teamLeadId": { "type": "string", "format": "uuid" },
+          "expectedVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "description": "Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved."
+          }
+        },
+        "required": ["teamLeadId", "expectedVersion"],
+        "additionalProperties": false,
+        "description": "Assigns the first Team Lead of an OPEN or ON_HOLD vacancy (D130 (3)); needs `vacancy.team_lead.set` (Head Recruiter of the vertical, Admin). The user must be an active, invited Team Lead of the vacancy vertical (D122), else 400 `invalid_team_lead` on `body.teamLeadId`. 409 `TEAM_LEAD_ALREADY_SET` when another Team Lead is set, 409 `VACANCY_CLOSED` outside OPEN/ON_HOLD, 409 `STALE_STATE` on a stale `expectedVersion`; the Team Lead already set writes nothing and answers 200."
       },
       "SetVacancyUrgency": {
         "type": "object",
@@ -5106,6 +5237,81 @@
         }
       }
     },
+    "/vacancies/{vacancyId}/assignable-recruiters": {
+      "get": {
+        "operationId": "listAssignableRecruiters",
+        "summary": "Recruiters that may be added to the vacancy: active, invite accepted, RECRUITER role in the vacancy vertical, plus everyone already assigned to it (`assigned`, `active`). 403 without the grant, 404 for an unreadable vacancy, 409 `VACANCY_CLOSED` unless the vacancy is `OPEN` or `ON_HOLD`",
+        "tags": ["Vacancies"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "format": "uuid" },
+            "required": true,
+            "name": "vacancyId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignableRecruiters"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/vacancies/{vacancyId}/cancel": {
       "post": {
         "operationId": "cancelVacancyDraft",
@@ -5244,6 +5450,326 @@
           "content": {
             "application/json": {
               "schema": { "$ref": "#/components/schemas/PublishDraft" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VacancyDetail" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 1 MiB",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vacancies/{vacancyId}/recruiters/{userId}": {
+      "delete": {
+        "operationId": "unassignVacancyRecruiter",
+        "summary": "Removes a recruiter from an `OPEN` or `ON_HOLD` vacancy at the `expectedVersion` (query) the caller last saw (Admin with aal2, Head Recruiter of the vertical; a Recruiter cannot remove anyone, self included: 403). Any well-formed user id outside the recruiter set, existing or not, answers the same 200 without a write; a malformed id is 404. 409 `VACANCY_CLOSED` / `STALE_STATE`",
+        "tags": ["Vacancies"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "format": "uuid" },
+            "required": true,
+            "name": "vacancyId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 64,
+              "description": "Recruiter user id (uuid)."
+            },
+            "required": true,
+            "description": "Recruiter user id (uuid).",
+            "name": "userId",
+            "in": "path"
+          },
+          {
+            "schema": { "type": "number" },
+            "required": true,
+            "name": "expectedVersion",
+            "in": "query"
+          },
+          {
+            "schema": { "type": "string", "enum": ["1"] },
+            "required": true,
+            "name": "X-CSRF-Protection",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VacancyDetail" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 1 MiB",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vacancies/{vacancyId}/recruiters/claim": {
+      "post": {
+        "operationId": "claimVacancy",
+        "summary": "A Recruiter takes an `OPEN` vacancy nobody works on yet (first claim wins). 403 without `vacancy.self_assign` or the RECRUITER role of the vertical, 404 for a vacancy outside the caller’s scope (assigned to others, paused, closed, another vertical, a draft), 409 `VACANCY_ALREADY_ASSIGNED` only when another claim committed first; a caller already assigned gets 200 and nothing is written",
+        "tags": ["Vacancies"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "format": "uuid" },
+            "required": true,
+            "name": "vacancyId",
+            "in": "path"
+          },
+          {
+            "schema": { "type": "string", "enum": ["1"] },
+            "required": true,
+            "name": "X-CSRF-Protection",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClaimVacancy" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VacancyDetail" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 1 MiB",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vacancies/{vacancyId}/recruiters": {
+      "post": {
+        "operationId": "assignVacancyRecruiters",
+        "summary": "Adds recruiters to an `OPEN` or `ON_HOLD` vacancy at the `expectedVersion` the caller last saw (Admin with aal2, Head Recruiter of the vertical). 403 without the grant, 404 for an unreadable vacancy, 409 `VACANCY_CLOSED` for any other status, 409 `STALE_STATE` on a stale version, one 400 `invalid_recruiter` on `body.recruiterIds` (same for every reason, no id echoed; the validation status the vacancy form uses for `invalid_team_lead`) when a new id is not an active, invited RECRUITER of the vertical; ids already assigned are skipped and an all-skipped request answers 200 without a write",
+        "tags": ["Vacancies"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "format": "uuid" },
+            "required": true,
+            "name": "vacancyId",
+            "in": "path"
+          },
+          {
+            "schema": { "type": "string", "enum": ["1"] },
+            "required": true,
+            "name": "X-CSRF-Protection",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignVacancyRecruiters"
+              }
             }
           }
         },
@@ -5504,6 +6030,212 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/VacancyDeleted" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 1 MiB",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vacancies/{vacancyId}/status": {
+      "put": {
+        "operationId": "changeVacancyStatus",
+        "summary": "Pause, resume, cancel (with a reason) or reopen a published vacancy at the `expectedVersion` the caller last saw. Admin and Head Recruiter of the vertical may do all four; a Team Lead may pause, resume and cancel only the vacancy where they are the Team Lead and never reopen. A caller with none of these grants gets 403, an unreadable vacancy (another vertical, someone else’s draft, another Team Lead’s vacancy) is 404. 409 `VACANCY_STATUS_INVALID` when the action is not legal from the stored status (a cancelled vacancy never reopens, nothing sets FILLED by hand, a DRAFT has no status action); 409 `STALE_STATE` on a stale version. Repeating pause on a paused vacancy, resume or reopen on an open one writes nothing and answers 200; reopen of an open vacancy with a `headcount` is 409 `VACANCY_STATUS_INVALID`. The cancel reason is returned as `cancelReason` and is readable on the detail by everyone who reads the vacancy",
+        "tags": ["Vacancies"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "format": "uuid" },
+            "required": true,
+            "name": "vacancyId",
+            "in": "path"
+          },
+          {
+            "schema": { "type": "string", "enum": ["1"] },
+            "required": true,
+            "name": "X-CSRF-Protection",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChangeVacancyStatus" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VacancyDetail" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 1 MiB",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vacancies/{vacancyId}/team-lead": {
+      "put": {
+        "operationId": "setVacancyTeamLead",
+        "summary": "Assign the first Team Lead of a vacancy at the `expectedVersion` the caller last saw (D130 (3); change and clear are not in Phase 2). Needs `vacancy.team_lead.set` for the vertical (Head Recruiter, Admin with aal2): a caller without the grant gets 403 and an unreadable vacancy is 404. The user must be an active, invited Team Lead of the vacancy vertical (D122), else 400 `invalid_team_lead` on `body.teamLeadId`. 409 `VACANCY_CLOSED` unless the vacancy is `OPEN` or `ON_HOLD`; 409 `TEAM_LEAD_ALREADY_SET` when another Team Lead is set; 409 `STALE_STATE` on a stale version; the Team Lead already set writes nothing and answers 200",
+        "tags": ["Vacancies"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "format": "uuid" },
+            "required": true,
+            "name": "vacancyId",
+            "in": "path"
+          },
+          {
+            "schema": { "type": "string", "enum": ["1"] },
+            "required": true,
+            "name": "X-CSRF-Protection",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SetVacancyTeamLead" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VacancyDetail" }
               }
             }
           },
