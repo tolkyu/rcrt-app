@@ -180,6 +180,17 @@ No server change, no route, no audit/event. Work is evidence: unit tests of the 
 - The audit viewer needs labels for the new actions (otherwise «Інша дія»).
 - Open points kept for later: Team Lead change/clear (Phase 3, Q-192); automatic `FILLED`, cancel with active applications (Phase 4 / ARCH-03); recruiter reassignment dialog on deactivation (ROLE-06 reuses `assignVacancyRecruiters`/`unassignVacancyRecruiter`).
 
+## Errata (2026-11-18, security pre-review + slice reviews; these override the tables above)
+
+| # | Was | Now |
+| --- | --- | --- |
+| E1 | 422 `invalid_recruiter` / `invalid_team_lead` | 400 with the same code on the same field (codebase has no 422 class; create/draft already return 400). Body identical for every reason, no ids echoed (A3) |
+| E2 | Two Heads set different Team Leads → loser 409 `STALE_STATE` | loser 409 `TEAM_LEAD_ALREADY_SET` (A4) |
+| E3 | Assigned Recruiter claiming another vacancy → 409 | 404 (out of `UNASSIGNED_OPEN` scope); 409 `VACANCY_ALREADY_ASSIGNED` only in the two-claim race (A2) |
+| E4 | Status: actor grant judged last | fresh-role grant (locked row's `team_lead_id`) → `isRepeat` → legality → version; REOPEN with `headcount` on `OPEN` → 409 `VACANCY_STATUS_INVALID`; reopen `headcount` ≤ `VACANCY_HEADCOUNT_MAX` (A1) |
+| E5 | Team Lead same user again | 200 no-op after the status check, before eligibility and version (a TL who lost eligibility gets a harmless no-op) |
+| E6 | DELETE of an id not in the set | identical 200 no-op for any uuid (A3) |
+
 ## Build slices
 
 Each slice ≤ 400 lines of diff. Slice 1 first; slices 2, 3, 4 touch disjoint new files and run in parallel; 5 → 6 are sequential (both change `vacancy-overview.tsx` and `messages/uk.json`); 7 is independent; 8 last.

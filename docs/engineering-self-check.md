@@ -76,3 +76,4 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] A flag or ref set by a key-scoped component (`key={id}`) is reset when the key changes, not only on unmount.
 - [ ] A new viewer-dependent DTO field (`can*` flag) is checked against tests that compare one DTO across roles (`grep -rn "toEqual(baseline" tests/integration`); run those integration files.
 - [ ] A shared predicate extracted from an existing check keeps a test of the old entry point with the same inputs; its SQL fragment and row predicate are tested together in the same slice.
+- [ ] A deviation from a binding spec (ADR table, security pre-review) is recorded in that document (errata row) in the same slice.
