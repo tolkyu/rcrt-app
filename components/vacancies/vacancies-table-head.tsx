@@ -19,6 +19,9 @@ export function VacanciesTableHead({
         <th scope="col" className="min-w-44 px-4 py-3 font-medium">
           {t('columns.teamLead')}
         </th>
+        <th scope="col" className="min-w-36 px-4 py-3 font-medium">
+          {t('columns.recruiters')}
+        </th>
         <th scope="col" className="min-w-32 px-4 py-3 font-medium">
           {t('columns.status')}
         </th>

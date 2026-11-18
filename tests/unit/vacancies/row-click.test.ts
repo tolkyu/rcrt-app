@@ -65,6 +65,7 @@ describe('a click in a row selects it, but not a click that bubbles out of a por
           onSelect,
           onPreviewIntent: vi.fn(),
           canAuthorDrafts: true,
+          selfAssignVerticals: [],
         }),
       }),
     );

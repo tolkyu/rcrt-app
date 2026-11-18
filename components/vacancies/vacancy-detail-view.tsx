@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, SearchX } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { PageHeader } from '@/components/shell/page-header';
 import { EmptyState } from '@/components/states/empty-state';
@@ -14,6 +15,7 @@ import { ApiError } from '@/lib/api-client';
 import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
 import { useVacancyListHref } from '@/lib/vacancy-list-memory';
 import { cn } from '@/lib/utils';
+import { TeamSkeleton } from './team-skeleton';
 import { VacancyOverview } from './vacancy-overview';
 
 function BackLink({ className }: { className?: string }) {
@@ -43,6 +45,8 @@ export function VacancyDetailView({
   canAuthorDrafts: boolean;
 }) {
   const t = useTranslations('vacancies');
+  const router = useRouter();
+  const listHref = useVacancyListHref();
   const query = useQuery(vacancyDetailQuery(id));
   const vacancy = query.data;
   return (
@@ -55,6 +59,7 @@ export function VacancyDetailView({
             <VacancyOverview
               vacancy={vacancy}
               canAuthorDrafts={canAuthorDrafts}
+              onClaimLost={() => router.replace(listHref)}
             />
           </Card>
         </>
@@ -84,7 +89,11 @@ export function VacancyDetailView({
         <div role="status" className="skeleton-delayed">
           <span className="sr-only">{t('previewLoading')}</span>
           <Skeleton className="h-8 w-64" />
-          <Skeleton className="mt-6 h-96 max-w-3xl rounded-xl" />
+          <Card className="mt-6 flex max-w-3xl flex-col gap-5 p-4 md:p-5">
+            <Skeleton className="h-6 w-24" />
+            <TeamSkeleton />
+            <Skeleton className="h-64 w-full" />
+          </Card>
         </div>
       )}
     </>

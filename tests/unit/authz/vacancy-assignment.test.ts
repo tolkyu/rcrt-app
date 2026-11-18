@@ -7,6 +7,7 @@ import {
   hasGrantCovering,
   hasOwnGrant,
   isTeamEditable,
+  selfAssignVerticals,
 } from '@/server/authz/vacancy-assignment';
 import {
   contextFor,
@@ -167,4 +168,44 @@ describe('canSelfAssign [D1, D130]', () => {
       canSelfAssign(roleContext('TEAM_LEAD'), { ...open, recruiters: [] }),
     ).toBe(false);
   });
+});
+
+describe('selfAssignVerticals: what the list page sends to the claim button [D130-2, security L-1]', () => {
+  it('Recruiter of one vertical gets that vertical', () => {
+    expect(selfAssignVerticals(roleContext('RECRUITER'))).toEqual([GAMBLING]);
+  });
+
+  it('Recruiter of two verticals gets both', () => {
+    const auth = contextFor([
+      { role: 'RECRUITER', verticalId: GAMBLING },
+      { role: 'RECRUITER', verticalId: CRYPTO },
+    ]);
+    expect(selfAssignVerticals(auth)).toEqual(
+      expect.arrayContaining([GAMBLING, CRYPTO]),
+    );
+    expect(selfAssignVerticals(auth)).toHaveLength(2);
+  });
+
+  it('Recruiter in one vertical and Team Lead in another gets only the Recruiter one', () => {
+    const auth = contextFor([
+      { role: 'RECRUITER', verticalId: GAMBLING },
+      { role: 'TEAM_LEAD', verticalId: CRYPTO },
+    ]);
+    expect(selfAssignVerticals(auth)).toEqual([GAMBLING]);
+  });
+
+  it.each([
+    ['Admin with aal2', roleContext('ADMIN')],
+    ['Admin with aal1', roleContext('ADMIN', 'aal1')],
+    ['Head Recruiter', roleContext('HEAD_RECRUITER')],
+    ['Team Lead', roleContext('TEAM_LEAD')],
+    ['HR', roleContext('HR')],
+    ['Finance', roleContext('FINANCE')],
+    ['a user with no assignments', contextFor([])],
+  ])(
+    '%s gets no vertical (they assign through a manager grant, not by claiming)',
+    (_name, auth) => {
+      expect(selfAssignVerticals(auth)).toEqual([]);
+    },
+  );
 });

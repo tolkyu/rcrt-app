@@ -19,6 +19,7 @@ import { toast } from '@/lib/toast';
 import { DraftHeaderActions } from './draft-header-actions';
 import { formatVacancyMoney } from './money';
 import { isUrgentHighlighted } from '@/lib/vacancy-urgency';
+import { TeamPanel } from './team-panel';
 import { UrgencySection } from './urgency-section';
 import { VacancyFlags, VacancyStatus } from './vacancy-badges';
 
@@ -37,10 +38,12 @@ export function VacancyOverview({
   vacancy,
   preview = false,
   canAuthorDrafts = false,
+  onClaimLost,
 }: {
   vacancy: VacancyDetail;
   preview?: boolean;
   canAuthorDrafts?: boolean;
+  onClaimLost?: () => void;
 }) {
   const t = useTranslations('vacancies');
   const [copyFailed, setCopyFailed] = useState(false);
@@ -129,14 +132,6 @@ export function VacancyOverview({
       return t('salaryTo', { amount: formatVacancyMoney(max, currency) });
     return absent;
   })();
-  const participant = (person: NonNullable<VacancyDetail['teamLead']>) => (
-    <span>
-      {person.fullName}
-      {!person.isActive && (
-        <span className="text-muted-foreground"> {t('inactive')}</span>
-      )}
-    </span>
-  );
   return (
     <div className="flex min-w-0 flex-col gap-5 p-4 md:p-5">
       <DetailHeader
@@ -232,22 +227,12 @@ export function VacancyOverview({
         >
           {t('teamTitle')}
         </Heading>
-        <dl className="divide-border divide-y">
-          <Field label={t('fields.teamLead')}>
-            {vacancy.teamLead ? participant(vacancy.teamLead) : t('unassigned')}
-          </Field>
-          <Field label={t('fields.recruiters')}>
-            {vacancy.recruiters.length ? (
-              <ul className="flex flex-col gap-2">
-                {vacancy.recruiters.map((person) => (
-                  <li key={person.id}>{participant(person)}</li>
-                ))}
-              </ul>
-            ) : (
-              t('unassigned')
-            )}
-          </Field>
-        </dl>
+        <TeamPanel
+          key={vacancy.id}
+          vacancy={vacancy}
+          preview={preview}
+          onLost={onClaimLost}
+        />
       </section>
       <section
         aria-labelledby={`vacancy-terms-${preview ? 'preview' : 'detail'}`}

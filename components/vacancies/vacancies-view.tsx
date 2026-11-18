@@ -31,6 +31,7 @@ import { vacanciesQuery } from '@/lib/queries/vacancies';
 import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
 import { verticalsQuery } from '@/lib/queries/verticals';
 import { useWideScreen } from '@/lib/use-wide-screen';
+import type { SelfAssignVerticals } from '@/lib/vacancy-claim';
 import {
   hasVacancyFilters,
   isHiddenDraftFilter,
@@ -63,10 +64,12 @@ export function VacanciesView({
   canManagePositions,
   canAuthorDrafts,
   canRequestVacancy,
+  selfAssignVerticals,
 }: {
   canManagePositions: boolean;
   canAuthorDrafts: boolean;
   canRequestVacancy: boolean;
+  selfAssignVerticals: SelfAssignVerticals;
 }) {
   const t = useTranslations('vacancies');
   const params = useSearchParams();
@@ -250,6 +253,7 @@ export function VacanciesView({
         onSelect={select}
         onPreviewIntent={prefetchPreview}
         canAuthorDrafts={canAuthorDrafts}
+        selfAssignVerticals={selfAssignVerticals}
       />
     );
   }

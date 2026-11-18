@@ -6,9 +6,11 @@ import { useTranslations } from 'next-intl';
 import { memo, type MouseEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import type { VacancySummary } from '@/lib/schemas/vacancy';
+import type { SelfAssignVerticals } from '@/lib/vacancy-claim';
 import { cn } from '@/lib/utils';
 import { hasRowMenu } from '@/lib/vacancy-draft-actions';
 import { DraftRowMenu } from './draft-row-menu';
+import { ClaimCard, RecruiterCell } from './recruiter-cell';
 import { VacanciesTableHead } from './vacancies-table-head';
 import { urgentRow, VacancyFlags, VacancyStatus } from './vacancy-badges';
 
@@ -63,6 +65,7 @@ export const VacanciesList = memo(function VacanciesList({
   onSelect,
   onPreviewIntent,
   canAuthorDrafts,
+  selfAssignVerticals,
 }: {
   items: readonly VacancySummary[];
   selectedId: string | undefined;
@@ -70,6 +73,7 @@ export const VacanciesList = memo(function VacanciesList({
   onSelect: (id: string) => void;
   onPreviewIntent: (id: string) => void;
   canAuthorDrafts: boolean;
+  selfAssignVerticals: SelfAssignVerticals;
 }) {
   const t = useTranslations('vacancies');
   const selectFromRow = (
@@ -129,6 +133,12 @@ export const VacanciesList = memo(function VacanciesList({
                   </td>
                   <td className="px-4 py-3">
                     <TeamLead vacancy={vacancy} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <RecruiterCell
+                      vacancy={vacancy}
+                      verticals={selfAssignVerticals}
+                    />
                   </td>
                   <td className="px-4 py-3">
                     <VacancyStatus status={vacancy.status} />
@@ -219,6 +229,7 @@ export const VacanciesList = memo(function VacanciesList({
               <span className="text-muted-foreground">{t('teamLeadLine')}</span>
               <TeamLead vacancy={vacancy} />
             </p>
+            <ClaimCard vacancy={vacancy} verticals={selfAssignVerticals} />
             {vacancy.openedAt ? (
               <p className="text-muted-foreground text-xs">
                 {t('openedOn', { at: new Date(vacancy.openedAt) })}

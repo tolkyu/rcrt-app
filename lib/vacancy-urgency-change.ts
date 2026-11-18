@@ -2,7 +2,6 @@
 import type { QueryClient } from '@tanstack/react-query';
 import type { useTranslations } from 'next-intl';
 import { ApiError, apiRequest } from '@/lib/api-client';
-import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
 import { queryKeys } from '@/lib/query-keys';
 import type {
   SetVacancyUrgencyInput,
@@ -10,6 +9,7 @@ import type {
 } from '@/lib/schemas/vacancy';
 import { toast } from '@/lib/toast';
 import type { VACANCY_PRIORITIES } from '@/lib/vacancy-filters';
+import { readCurrentVacancy, refreshVacancy } from '@/lib/vacancy-refresh';
 import { applyOptimisticUrgency } from '@/lib/vacancy-urgency-optimistic';
 
 type Priority = (typeof VACANCY_PRIORITIES)[number];
@@ -56,31 +56,6 @@ export function classifyUrgencyFailure(error: unknown): UrgencyFailure['kind'] {
   return 'failed';
 }
 
-const refresh = (queryClient: QueryClient, id: string) =>
-  Promise.all([
-    queryClient.invalidateQueries({ queryKey: queryKeys.vacanciesAll() }),
-    queryClient.invalidateQueries({ queryKey: queryKeys.vacancy(id) }),
-  ]).then(
-    () => undefined,
-    () => undefined,
-  );
-
-/** The server's current card, bypassing the cache; null when it cannot be read (the caller still has the failure to show). */
-async function readCurrent(
-  queryClient: QueryClient,
-  id: string,
-): Promise<VacancyDetail | null> {
-  try {
-    return await queryClient.fetchQuery({
-      ...vacancyDetailQuery(id),
-      staleTime: 0,
-      retry: false,
-    });
-  } catch {
-    return null;
-  }
-}
-
 /** The flag is flipped before the first await that talks to the server; everything after the optimistic write is inside the `try`, so no path leaves it applied. */
 export async function changeUrgency(
   queryClient: QueryClient,
@@ -104,17 +79,17 @@ export async function changeUrgency(
       });
       optimistic.settle();
       queryClient.setQueryData(queryKeys.vacancy(id), detail);
-      void refresh(queryClient, id);
+      void refreshVacancy(queryClient, id);
       return { status: 'changed', detail };
     } catch (error) {
       optimistic.restore();
       const kind = classifyUrgencyFailure(error);
       if (kind !== 'stale') {
-        if (kind !== 'rateLimited') void refresh(queryClient, id);
+        if (kind !== 'rateLimited') void refreshVacancy(queryClient, id);
         return { status: 'failed', failure: { kind } };
       }
-      const current = await readCurrent(queryClient, id);
-      void refresh(queryClient, id);
+      const current = await readCurrentVacancy(queryClient, id);
+      void refreshVacancy(queryClient, id);
       // A lost answer: the first attempt committed (exactly one write since our version) and the retry meets that write, so there is nothing to warn about.
       if (current && current.priority === to && current.version === version + 1)
         return { status: 'changed', detail: current };
