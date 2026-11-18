@@ -84,3 +84,4 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] `corepack pnpm exec prettier --check` on every changed file, docs and generated JSON included (CI `format:check` covers the whole repo).
 - [ ] A test that compares several DB rows in order (events, audit) has an explicit `orderBy` (e.g. `entityEvent.id`); Postgres row order differs between local and CI.
 - [ ] A slice that changes a shared screen (list, card, preview, shell, forms) runs ALL E2E specs of that screen (`grep -l` the route/component name in `tests/e2e`), not only its new specs (owner 2026-11-18: ~20 pre-V3 specs broke unseen).
+- [ ] A component that picks its variant with `useMobile` renders the desktop variant on the server; size both triggers the same or reserve the slot (no horizontal shift after hydration).
