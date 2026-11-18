@@ -34,6 +34,10 @@ export const shareVacancy = (
   recruiterInitiated: false,
   version: 1,
   canChangeUrgency: false,
+  canSelfAssign: false,
+  canAssignRecruiters: false,
+  canSetTeamLead: false,
+  statusActions: [],
   ...overrides,
 });
 
