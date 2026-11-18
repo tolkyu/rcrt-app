@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { createElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TeamPanel } from '@/components/vacancies/team-panel';
+import { teamLeadKeys } from '@/lib/queries/team-leads';
 import { queryKeys } from '@/lib/query-keys';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
 import messages from '@/messages/uk.json';
@@ -232,6 +233,23 @@ describe('claim [STORY-VAC-03-1, D130-2]', () => {
       else expect(screen.getByRole('alertdialog')).toBeTruthy();
     },
   );
+
+  it.each([
+    ['a stale state', 'STALE_STATE'],
+    ['a rule the dialog does not know', 'TEAM_LEAD_ALREADY_SET'],
+  ])('%s gets the generic line and keeps the dialog', async (_name, code) => {
+    stubApi({
+      [POST_CLAIM]: () => problem(409, code),
+      [GET_CARD]: () => json(vacancy({ canSelfAssign: true, version: 2 })),
+    });
+    mount(vacancy({ canSelfAssign: true }));
+    await press(t.claim);
+    await userEvent.click(await inDialog('alertdialog', t.claimDialog.confirm));
+    expect((await screen.findByRole('alert')).textContent).toContain(
+      t.unexpected,
+    );
+    expect(screen.getByRole('alertdialog')).toBeTruthy();
+  });
 
   it('a closed vacancy is explained inside the dialog', async () => {
     stubApi({ [POST_CLAIM]: () => problem(409, 'VACANCY_CLOSED') });
@@ -461,6 +479,21 @@ describe('assign recruiters [STORY-VAC-03-2]', () => {
     expect(
       await within(again).findByRole('checkbox', { name: /Дмитро Лисенко/ }),
     ).toBeTruthy();
+  });
+
+  it('shows «вакансію закрито» instead of a load error when the picker read itself answers 409', async () => {
+    stubApi({ [GET_LIST]: () => problem(409, 'VACANCY_CLOSED') });
+    mount(vacancy({ canAssignRecruiters: true }));
+    await press(t.assign);
+    const dialog = await screen.findByRole('dialog');
+    expect((await within(dialog).findByRole('alert')).textContent).toContain(
+      t.assignDialog.errors.closed,
+    );
+    expect(within(dialog).queryByText(t.assignDialog.loadFailed)).toBeNull();
+    expect(within(dialog).queryByRole('button', { name: t.retry })).toBeNull();
+    expect(
+      within(dialog).queryByRole('button', { name: /Призначити/ }),
+    ).toBeNull();
   });
 
   it('closes on Escape without writing and gives the focus back to the button', async () => {
@@ -716,6 +749,25 @@ describe('first Team Lead [STORY-VAC-03-2, D130-3]', () => {
       { teamLeadId: TARAS.id, expectedVersion: 1 },
       { teamLeadId: TARAS.id, expectedVersion: 4 },
     ]);
+  });
+
+  it('reads the Team Lead list again on open even when the form cached it a moment ago', async () => {
+    const card = vacancy({ canSetTeamLead: true });
+    const key = `GET /verticals/${card.vertical.id}/team-leads`;
+    const api = stubApi({ [key]: () => json({ items: [TARAS] }) });
+    const view = mount(card);
+    view.queryClient.setQueryData(teamLeadKeys.assignable(card.vertical.id), {
+      items: [VASYL],
+    });
+    await press(t.setTeamLead);
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      await within(dialog).findByRole('radio', { name: /Тарас Коваль/ }),
+    ).toBeTruthy();
+    expect(within(dialog).queryByRole('radio', { name: /Василь/ })).toBeNull();
+    expect(
+      api.calls.filter((call) => call.path.endsWith('/team-leads')),
+    ).toHaveLength(1);
   });
 
   it('shows the empty state with only «Закрити»', async () => {

@@ -127,6 +127,7 @@ export type TeamOutcome =
 /**
  * One write and its reconciliation. A stale answer may be the echo of our own earlier attempt (the retry of a lost
  * response), so `adopted` judges the current card: only then the retry counts as done instead of warning.
+ * If another manager made the identical change at the same version step, the outcome is the same and the toast may credit us.
  */
 export async function attemptTeamWrite(
   queryClient: QueryClient,

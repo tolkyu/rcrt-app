@@ -7,6 +7,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { ApiError } from '@/lib/api-client';
 import { assignableRecruitersQuery } from '@/lib/queries/vacancy-assignable';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
 import { VACANCY_ASSIGN_MAX } from '@/lib/schemas/vacancy-assignment';
@@ -17,7 +18,11 @@ import {
   TeamSubmit,
 } from './team-dialog-shell';
 import { useAssignRecruiters } from './use-assign-recruiters';
-import { closeWhenDone, type TeamDialogProps } from './use-team-write';
+import {
+  closeWhenDone,
+  useFailureText,
+  type TeamDialogProps,
+} from './use-team-write';
 
 const SEARCH_FROM = 8;
 
@@ -28,7 +33,7 @@ export default function AssignRecruitersDialog({
   onCloseAutoFocus,
 }: TeamDialogProps & { vacancy: VacancyDetail }) {
   const t = useTranslations('vacancies.team.assignDialog');
-  const tTeam = useTranslations('vacancies.team');
+  const failureText = useFailureText();
   const tCommon = useTranslations('common');
   const query = useQuery(assignableRecruitersQuery(vacancy.id));
   const { pending, failure, assign, mountedRef } = useAssignRecruiters(vacancy);
@@ -75,15 +80,16 @@ export default function AssignRecruitersDialog({
       onClose,
     );
 
-  const closed = failure === 'closed';
+  // The picker read itself answers 409 for a vacancy closed meanwhile: same state as a closed write.
+  const listClosed =
+    query.error instanceof ApiError && query.error.status === 409;
+  const closed = failure === 'closed' || listClosed;
   const empty = loaded && items.length === 0;
-  const inline = closed
-    ? t('errors.closed')
-    : failure === 'stale' || failure === 'invalid'
-      ? t(`errors.${failure}`)
-      : failure === 'network' || failure === 'failed'
-        ? tTeam('noConnection')
-        : undefined;
+  const inline = failureText(failure, {
+    closed: t('errors.closed'),
+    stale: t('errors.stale'),
+    invalid: t('errors.invalid'),
+  });
 
   return (
     <TeamDialogShell
@@ -127,8 +133,10 @@ export default function AssignRecruitersDialog({
           </TeamAlert>
         )}
         {query.isError && (
-          <TeamAlert onRetry={() => void query.refetch()}>
-            {t('loadFailed')}
+          <TeamAlert
+            onRetry={listClosed ? undefined : () => void query.refetch()}
+          >
+            {listClosed ? t('errors.closed') : t('loadFailed')}
           </TeamAlert>
         )}
         {query.isPending && <PickerLoading label={t('loading')} />}

@@ -27,16 +27,20 @@ const visible = (elements: HTMLElement[]) =>
   elements.find((element) => element.getClientRects().length > 0) ??
   elements[0];
 
-/** After a lost claim the row leaves: focus goes to the next row's title, or to the results region when it was the last (never `<body>`). */
-export function focusAfterRow(id: string): void {
+/**
+ * Where focus goes if the claim is lost and the row leaves: the next row's title, or the results region when it is the last (never `<body>`).
+ * Read when the dialog opens: by the time the answer arrives the list may already have dropped the row.
+ */
+export function nextRowTarget(id: string): HTMLElement | null {
   const link = visible(rowLinks(id));
   const row = link?.closest('tr, li');
-  const next = row?.nextElementSibling?.querySelector<HTMLElement>(
-    '[data-vacancy-link]',
+  return (
+    row?.nextElementSibling?.querySelector<HTMLElement>(
+      '[data-vacancy-link]',
+    ) ??
+    link?.closest<HTMLElement>('[data-slot="filter-bar-results"]') ??
+    null
   );
-  (
-    next ?? link?.closest<HTMLElement>('[data-slot="filter-bar-results"]')
-  )?.focus();
 }
 
 export const focusRowTitle = (id: string): void =>

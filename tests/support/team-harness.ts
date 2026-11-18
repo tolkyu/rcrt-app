@@ -62,7 +62,7 @@ export function mountTeam(node: ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { staleTime: Infinity, retry: false } },
   });
-  const view = render(
+  const wrap = (children: ReactElement) =>
     createElement(NextIntlClientProvider, {
       locale: 'uk',
       timeZone: 'Europe/Kyiv',
@@ -72,9 +72,14 @@ export function mountTeam(node: ReactElement) {
       },
       children: createElement(QueryClientProvider, {
         client: queryClient,
-        children: node,
+        children,
       }),
-    }),
-  );
-  return { queryClient, ...view };
+    });
+  const view = render(wrap(node));
+  return {
+    queryClient,
+    ...view,
+    /** Re-renders inside the same providers. */
+    update: (next: ReactElement) => view.rerender(wrap(next)),
+  };
 }

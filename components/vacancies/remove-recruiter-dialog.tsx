@@ -4,7 +4,11 @@ import { useTranslations } from 'next-intl';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
 import { useRemoveRecruiter } from './use-assign-recruiters';
-import { closeWhenDone, type TeamDialogProps } from './use-team-write';
+import {
+  closeWhenDone,
+  useFailureText,
+  type TeamDialogProps,
+} from './use-team-write';
 
 /** Lazy chunk (default export). Opens on «Залишити»: removing is destructive (wireframe §3.2). */
 export default function RemoveRecruiterDialog({
@@ -17,6 +21,7 @@ export default function RemoveRecruiterDialog({
   recruiter: VacancyDetail['recruiters'][number];
 }) {
   const t = useTranslations('vacancies.team');
+  const failureText = useFailureText();
   const { pending, failure, remove, mountedRef } = useRemoveRecruiter(vacancy);
   const last = vacancy.recruiters.length === 1;
   const consequence = !last
@@ -43,11 +48,7 @@ export default function RemoveRecruiterDialog({
       confirmLabel={t('removeDialog.confirm')}
       cancelLabel={t('removeDialog.keep')}
       pending={pending}
-      error={
-        failure === 'network' || failure === 'failed'
-          ? t('noConnection')
-          : undefined
-      }
+      error={failureText(failure, {}, ['stale', 'closed'])}
       onConfirm={() =>
         closeWhenDone(
           remove(recruiter.id, recruiter.fullName),

@@ -58,6 +58,27 @@ export function useTeamWrite(id: string) {
   return { pending, failure, run, mountedRef };
 }
 
+/**
+ * Inline text for a failure that leaves the dialog open: the dialog's own wording where it has one, a lost connection
+ * for network and 5xx, and a generic line for anything the dialog did not expect. `silent` failures end the dialog with a toast instead.
+ */
+export function useFailureText() {
+  const t = useTranslations('vacancies.team');
+  return (
+    failure: TeamFailure | null,
+    own: Partial<Record<TeamFailure, string>> = {},
+    silent: readonly TeamFailure[] = [],
+  ): string | undefined => {
+    if (!failure || silent.includes(failure)) return undefined;
+    return (
+      own[failure] ??
+      (failure === 'network' || failure === 'failed'
+        ? t('noConnection')
+        : t('unexpected'))
+    );
+  };
+}
+
 /** `gone` and `forbidden` end the dialog (the card or the right is gone); a rate limit keeps it for another try. */
 export const refusalNext = (failure: TeamFailure): TeamNext =>
   failure === 'gone' || failure === 'forbidden' ? 'closed' : 'stay';

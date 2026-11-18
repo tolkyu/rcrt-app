@@ -15,7 +15,11 @@ import {
   TeamSubmit,
 } from './team-dialog-shell';
 import { useSetTeamLead } from './use-set-team-lead';
-import { closeWhenDone, type TeamDialogProps } from './use-team-write';
+import {
+  closeWhenDone,
+  useFailureText,
+  type TeamDialogProps,
+} from './use-team-write';
 
 /** Lazy chunk (default export): one-time Team Lead choice, no preselection (wireframe §3.4). */
 export default function TeamLeadDialog({
@@ -24,9 +28,13 @@ export default function TeamLeadDialog({
   onCloseAutoFocus,
 }: TeamDialogProps & { vacancy: VacancyDetail }) {
   const t = useTranslations('vacancies.team.teamLeadDialog');
-  const tTeam = useTranslations('vacancies.team');
+  const failureText = useFailureText();
   const verticalId = vacancy.vertical.id;
-  const query = useQuery(assignableTeamLeadsQuery(verticalId));
+  // The form shares this list with a 60 s cache; a one-time choice must not show a Team Lead who lost the role a minute ago.
+  const query = useQuery({
+    ...assignableTeamLeadsQuery(verticalId),
+    refetchOnMount: 'always',
+  });
   const { pending, failure, set, mountedRef } = useSetTeamLead(vacancy);
   const [choice, setChoice] = useState('');
   const conditionId = useId();
@@ -47,13 +55,15 @@ export default function TeamLeadDialog({
   };
   const closed = failure === 'closed';
   const empty = loaded && items.length === 0;
-  const inline = closed
-    ? t('errors.closed')
-    : failure === 'stale' || failure === 'invalid'
-      ? t(`errors.${failure}`)
-      : failure === 'network' || failure === 'failed'
-        ? tTeam('noConnection')
-        : undefined;
+  const inline = failureText(
+    failure,
+    {
+      closed: t('errors.closed'),
+      stale: t('errors.stale'),
+      invalid: t('errors.invalid'),
+    },
+    ['teamLeadSet'],
+  );
 
   return (
     <TeamDialogShell

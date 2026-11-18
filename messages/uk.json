@@ -229,6 +229,7 @@
       "claim": "Взяти вакансію",
       "claimRow": "Взяти",
       "claimRowLabel": "Взяти вакансію {number} {title}",
+      "ownRow": "Ви — рекрутер цієї вакансії",
       "recruitersOf": "Рекрутери: {names}",
       "moreAvatars": "+{count}",
       "setTeamLead": "Призначити тімліда",
@@ -237,6 +238,7 @@
       "dialogHeader": "{number} · {title} · {vertical}",
       "loadFailed": "Не вдалося відкрити вікно. Оновіть сторінку й повторіть.",
       "noConnection": "Немає зʼєднання. Зміни не збережено.",
+      "unexpected": "Не вдалося зберегти зміни. Оновіть картку й спробуйте ще раз.",
       "retry": "Повторити",
       "toast": {
         "forbidden": "Недостатньо прав для цієї дії.",

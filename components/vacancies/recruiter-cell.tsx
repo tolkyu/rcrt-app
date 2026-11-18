@@ -2,13 +2,13 @@
 
 import { UserX } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import type { VacancySummary } from '@/lib/schemas/vacancy';
 import {
   canClaimRow,
-  focusAfterRow,
+  nextRowTarget,
   focusRowTitle,
   grantsClaim,
   type SelfAssignVerticals,
@@ -36,16 +36,31 @@ function ClaimHost({
   const t = useTranslations('vacancies.team');
   const [open, setOpen] = useState(false);
   const after = useRef<'self' | 'next' | null>(null);
-  const onClose = (next: TeamNext | null) => {
+  const next = useRef<HTMLElement | null>(null);
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+  const openDialog = () => {
+    next.current = nextRowTarget(vacancy.id);
+    setOpen(true);
+  };
+  const onClose = (result: TeamNext | null) => {
     setOpen(false);
-    after.current = next === 'done' ? 'self' : next === 'lost' ? 'next' : null;
+    after.current =
+      result === 'done' ? 'self' : result === 'lost' ? 'next' : null;
   };
   const onCloseAutoFocus = (event: Event) => {
-    const target = after.current;
+    // The row left with the dialog still open (the list read again first): nobody called `onClose`, so the focus rule is the lost-claim one.
+    const target = after.current ?? (alive.current ? null : 'next');
     after.current = null;
     if (!target) return;
     event.preventDefault();
-    if (target === 'next') focusAfterRow(vacancy.id);
+    if (target === 'next')
+      (next.current?.isConnected ? next.current : null)?.focus();
     else if (layout === 'cell') anchor.current?.focus();
     else focusRowTitle(vacancy.id);
   };
@@ -60,7 +75,7 @@ function ClaimHost({
             number: vacancy.number,
             title: vacancy.title,
           })}
-          onClick={() => setOpen(true)}
+          onClick={openDialog}
         >
           {t('claimRow')}
         </Button>
@@ -68,7 +83,7 @@ function ClaimHost({
         <Button
           variant="outline"
           className="relative z-10 h-11 w-full text-base"
-          onClick={() => setOpen(true)}
+          onClick={openDialog}
         >
           {t('claim')}
         </Button>
@@ -117,6 +132,7 @@ export function RecruiterCell({
   const anchor = useRef<HTMLDivElement>(null);
   const { recruiters, status } = vacancy;
   const claimable = canClaimRow(vacancy, verticals);
+  const own = grantsClaim(vacancy, verticals) && recruiters.length > 0;
   const names = recruiters.map((person) => person.fullName).join(', ');
   let content;
   if (recruiters.length > 0)
@@ -149,7 +165,14 @@ export function RecruiterCell({
       </span>
     );
   return (
-    <div ref={anchor} tabIndex={-1} className="outline-none">
+    <div
+      ref={anchor}
+      tabIndex={-1}
+      // A viewer who may claim here and sees staff on the row is that staff (the scope hides a staffed vacancy from other Recruiters).
+      role={own ? 'group' : undefined}
+      aria-label={own ? t('ownRow') : undefined}
+      className="outline-none"
+    >
       {content}
       {grantsClaim(vacancy, verticals) && (
         <ClaimHost
