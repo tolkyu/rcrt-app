@@ -2,20 +2,22 @@
 
 > **Rule:** this file holds only the latest checkpoint (≤ ~60 lines). On every checkpoint, move the old content to the top of `docs/archive/handoff-log.md` (newest first), then rewrite this file. Never append history here. Read the archive only when you need an old detail.
 
-## Checkpoint — 2026-11-18 (Claude)
+## Checkpoint — 2026-11-18 midday (Claude)
 
-- Branch `phase-2`, HEAD `7a47c14` (V3 wireframes committed). D129 (risk-based DoD) and D130 (V3 rules, Q-190..194 answered) recorded; ADR-017 committed.
-- Urgency V2: slices 1–3 merged (API, highlight, card control). Slice 4 (list filter) on `vac-04-4-filter` (`D:/recruiting-wt/urgency-filter`): perf-engineer merging `phase-2`, measuring bundles, deciding on the lazy switcher change in `app-shell.tsx`.
-- V3 slice 1 (foundation per ADR-017) running in `D:/recruiting-wt/v3-foundation` (branch `v3-foundation`).
+- `phase-2` local HEAD has slice 7 merged (share tests, `24cd363`) + docs; pushed up to `c64c941`. Merged + pushed: urgency filter (slice 4 of V2), V3 slice 1 foundation (code APPROVED, security CONDITIONAL → S1-1 fixed).
+- ADR-017 has an **Errata** table (E1–E6) from security pre-review `docs/security/v3-adr-017-prereview.md` — binding for slices 2–4.
+- V3 slice 4 (Team Lead API) `v3-teamlead` @71f8499: code APPROVED; security review running (with slice 3).
+- V3 slice 3 (status API) `v3-status` @da50f0a: code review + security running.
+- V3 slice 2 (assignment API) `v3-assign`: engineer still building.
+- Integration DB shared by agents: lock = `mkdir D:/recruiting-wt/.integration.lock`, `rmdir` after. Orchestrator also takes it for `pnpm test` (includes integration).
 
 ## Next (in order)
 
-1. Merge slice 4 into `phase-2` (level-b verify), push.
-2. Review V3 slice 1 (code-reviewer + security-engineer: authz), merge.
-3. V3 slices 2, 3, 4 (APIs) in parallel worktrees + slice 7 (share tests); then 5 → 6 (UI); then 8 (E2E, Newman, V2+V3 gallery, perf + security reviews). Urgency slice 5 (E2E/Postman/PNGs) folds into V3 slice 8 as one V-block end.
-4. Owner: UX questions in `docs/ux/wireframes/vacancy-card.md` §14 — defaults applied («Відновити», confirm on self-claim, no «Не призначено» filter option); tell owner in the report.
-5. Tech debt (Phase 7): private cancelled urgent draft shows only Lock note; dark-hover 2.94:1 in UX contrast table; urgency `change_feed` row not emitted.
-6. Phase 7: remind owner about demo videos.
+1. After security PASS: merge slices 3, 4 (then 2) into `phase-2`, full `pnpm test` under lock, push; remove worktrees.
+2. Slice 5 (UI «Команда» + share fix `useShareLink`/`ClipboardFallbackAlert`, see PROGRESS share follow-ups) → slice 6 (status menu). Card route has room (158 kB); edit/new at 178.8/178.6 of 180.
+3. Slice 8: E2E, OpenAPI/Postman, Newman, V2+V3 gallery (PNG 47 share already captured), audit labels, S1-5 unit cases, story copy fixes, UX review.
+4. Owner report: UX §14 defaults applied; A5 daily claim cap question; HR share AC vs D46.
+5. Phase 7: demo videos reminder; tech debt in PROGRESS.
 
 ## Open, not blocking
 
