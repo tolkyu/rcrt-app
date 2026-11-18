@@ -2,20 +2,20 @@
 
 > **Rule:** this file holds only the latest checkpoint (≤ ~60 lines). On every checkpoint, move the old content to the top of `docs/archive/handoff-log.md` (newest first), then rewrite this file. Never append history here. Read the archive only when you need an old detail.
 
-## Checkpoint — 2026-11-18 afternoon (Claude)
+## Checkpoint — 2026-11-18 evening (Claude, before VS Code restart)
 
-- `phase-2` @ `b8d7709`, pushed. Merged: V3 slices 1–5, 7, API contracts/Newman (658 req / 3831 assertions / 0 fail), Codex share-fallback fix (verified, one stale test fixed), Codex config, story wording (D46/D130/D131/errata). Full unit+integration 5110 green at `c712eb9`.
-- Owner D131: no claim cap; removed last recruiter may reclaim.
-- V3 slice 6 (status menu card/preview) @ `4fb4814` in `D:/recruiting-wt/v3-status-ui`: two code reviews (s6a logic, s6b dialogs) + UX deviation review running. ~930 non-test lines.
-- Decision (orchestrator, tech only): list-row `[⋯]` status items = option A — server sends per-vertical status-grant mirror (like `selfAssignVerticals`), row menu reads card version on open.
+- `phase-2` @ `412dd43`+, pushed. All V2 + V3 code merged: slices 1–7, 6b row status menu, needsMfa step-up reason, share fallback (Codex), API contracts + Newman. Every slice: code review APPROVED; security PASS (`docs/security/v3-*.md`); UX deviations in wireframes.
+- **Owner rule 2026-11-18 (CLAUDE.md §6.7, memory risk-based-dod-d129): never duplicate GitHub CI locally.** Merge = resolve conflicts → run only affected test files → push → CI → `babysit`/`fix-ci`. CI (`.github/workflows/ci.yml`) runs lint, typecheck, test, perf:check, test:e2e, test:screens, test:api.
+- Owner is installing `gh` (`winget install --id GitHub.cli`, `gh auth login`). CI status of recent pushes is UNKNOWN until then.
+- V-block end QA in `D:/recruiting-wt/v3-vblock` (branch `v3-vblock`): new `vacancy-assignment.spec.ts`, `vacancy-status.spec.ts`, captures C1–C5, T1–T8, S1–S8, re-capture U1 (PNG 47). Merge when done.
 
 ## Next (in order)
 
-1. Slice 6 review fixes → merge (typecheck, lint, full `pnpm test` under lock, build + perf:size) → push.
-2. Slice 6b: list-row status menu (option A).
-3. `needsMfa` DTO flag + DisabledReason for Admin without 2FA on team/status controls (PROGRESS gap).
-4. V-block end: E2E (assignment, status, share), Newman rerun, V2+V3 gallery PNGs (+ register PNG 47), UX gallery review, perf check. Then owner report (Ukrainian).
-5. Phase 7: demo videos reminder; tech debt (PROGRESS). Flaky under load: `tests/unit/auth/lazy-validation-forms.test.ts` MFA button, combobox listbox timeout.
+1. `gh auth status`; `gh run list --branch phase-2 --limit 5`; fix red CI with `fix-ci`.
+2. Merge `v3-vblock` (if not merged yet), push; UX reviews the gallery (`screenshots/phase-2/index.html`).
+3. Open PR `phase-2` → `main` with `make-pr-easy-to-review`, keep green with `babysit`.
+4. Owner report (Ukrainian): done, gallery path, demo script, open questions; wait for «go phase 3». Edit route JS 179.04/180 kB — perf follow-up before any form growth.
+5. Phase 7: demo videos reminder; tech debt in PROGRESS.
 
 ## Run notes / open checks
 

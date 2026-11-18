@@ -2,6 +2,21 @@
 
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
+## Checkpoint — 2026-11-18 afternoon (Claude)
+
+- `phase-2` @ `b8d7709`, pushed. Merged: V3 slices 1–5, 7, API contracts/Newman (658 req / 3831 assertions / 0 fail), Codex share-fallback fix (verified, one stale test fixed), Codex config, story wording (D46/D130/D131/errata). Full unit+integration 5110 green at `c712eb9`.
+- Owner D131: no claim cap; removed last recruiter may reclaim.
+- V3 slice 6 (status menu card/preview) @ `4fb4814` in `D:/recruiting-wt/v3-status-ui`: two code reviews (s6a logic, s6b dialogs) + UX deviation review running. ~930 non-test lines.
+- Decision (orchestrator, tech only): list-row `[⋯]` status items = option A — server sends per-vertical status-grant mirror (like `selfAssignVerticals`), row menu reads card version on open.
+
+## Next (in order)
+
+1. Slice 6 review fixes → merge (typecheck, lint, full `pnpm test` under lock, build + perf:size) → push.
+2. Slice 6b: list-row status menu (option A).
+3. `needsMfa` DTO flag + DisabledReason for Admin without 2FA on team/status controls (PROGRESS gap).
+4. V-block end: E2E (assignment, status, share), Newman rerun, V2+V3 gallery PNGs (+ register PNG 47), UX gallery review, perf check. Then owner report (Ukrainian).
+5. Phase 7: demo videos reminder; tech debt (PROGRESS). Flaky under load: `tests/unit/auth/lazy-validation-forms.test.ts` MFA button, combobox listbox timeout.
+
 ## Checkpoint — 2026-11-18 (Codex, SHARE-FALLBACK)
 
 - Branch `phase-2` @ `c712eb9`; V3 assignment/status/Team Lead APIs, team panel and API/review tests already merged. Old “merge slices 2–5” tasks are superseded.
