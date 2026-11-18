@@ -788,13 +788,10 @@ describe('Cancel and delete over HTTP, as the dialogs send them [STORY-VAC-01-3,
           )
         ).status,
       ).toBe(200);
+      const cancelledAt = new Date();
       await args.ctx.db
         .update(schema.vacancy)
-        .set({
-          status: 'CANCELLED',
-          closedAt: new Date(),
-          cancelledAt: new Date(),
-        })
+        .set({ status: 'CANCELLED', closedAt: cancelledAt, cancelledAt })
         .where(eq(schema.vacancy.id, draft.id));
       const before = await stored(args, draft.id);
       const refused = await mine.remove(draft.id);
