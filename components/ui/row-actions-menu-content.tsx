@@ -1,7 +1,7 @@
 'use client';
 
 import { LoaderCircle } from 'lucide-react';
-import { useState, type ReactElement } from 'react';
+import { useRef, useState, type ReactElement } from 'react';
 import { menuAutoFocus, type MenuOpenedBy } from './deferred-menu';
 import {
   DropdownMenu,
@@ -15,9 +15,11 @@ import type { RowAction } from './row-actions-menu';
 function ActionItem({
   action,
   close,
+  isOpen,
 }: {
   action: RowAction;
   close: () => void;
+  isOpen: () => boolean;
 }) {
   const reason = action.disabledReason;
   return (
@@ -26,7 +28,11 @@ function ActionItem({
       disabled={Boolean(reason)}
       aria-busy={action.pending || undefined}
       onSelect={(event) =>
-        action.onSelect({ keepOpen: () => event.preventDefault(), close })
+        action.onSelect({
+          keepOpen: () => event.preventDefault(),
+          close,
+          isOpen,
+        })
       }
       className={
         reason
@@ -61,11 +67,17 @@ export default function RowActionsMenuContent({
   actions: readonly RowAction[];
 }) {
   const [open, setOpen] = useState(true);
-  const close = () => setOpen(false);
+  const openRef = useRef(true);
+  const change = (next: boolean) => {
+    openRef.current = next;
+    setOpen(next);
+  };
+  const close = () => change(false);
+  const isOpen = () => openRef.current;
   const safe = actions.filter((action) => !action.destructive);
   const destructive = actions.filter((action) => action.destructive);
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu open={open} onOpenChange={change}>
       <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
       <DropdownMenuContent
         align="end"
@@ -73,11 +85,21 @@ export default function RowActionsMenuContent({
         {...menuAutoFocus(openedBy)}
       >
         {safe.map((action) => (
-          <ActionItem key={action.id} action={action} close={close} />
+          <ActionItem
+            key={action.id}
+            action={action}
+            close={close}
+            isOpen={isOpen}
+          />
         ))}
         {safe.length > 0 && destructive.length > 0 && <DropdownMenuSeparator />}
         {destructive.map((action) => (
-          <ActionItem key={action.id} action={action} close={close} />
+          <ActionItem
+            key={action.id}
+            action={action}
+            close={close}
+            isOpen={isOpen}
+          />
         ))}
       </DropdownMenuContent>
     </DropdownMenu>

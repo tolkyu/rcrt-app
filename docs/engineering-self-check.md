@@ -80,3 +80,4 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] A delete that feeds a live scope subquery (e.g. `vacancy_recruiter`) has a list-visibility test before and after; a read helper shared by a caller-keyed and a scope-keyed path keeps the key required on the restricted wrapper, with a test pinning the restricted path.
 - [ ] A new module that imports a guarded table or event reader (`vacancy`, `vacancyRecruiter`, `entity_event`) runs the architecture guards `tests/unit/authz/vacancy-author.test.ts` and adds itself to the allowlist with a reason.
 - [ ] A date shown as "when it happened" but taken from `updatedAt` has a test or note proving nothing else writes the row after that event.
+- [ ] A deferred action that waits for data re-checks that its menu/dialog was not dismissed before it runs.

@@ -314,6 +314,49 @@ describe('the card version: prefetch and an instant press [D130(5)]', () => {
     expect(puts(api.calls)).toHaveLength(1);
   });
 
+  it('Esc while it waits withdraws the press: the version arrives and nothing is written', async () => {
+    const gate = held(() => json(card()));
+    const api = stubApi({
+      [GET_CARD]: gate.route,
+      [PUT]: () => json(paused({ version: 4 })),
+    });
+    mount(card());
+    await openMenu();
+    const item = await screen.findByRole('menuitem', { name: t.hold });
+    await userEvent.click(item);
+    await waitFor(() => expect(item.getAttribute('aria-busy')).toBe('true'));
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByRole('menu')).toBeNull());
+    gate.release();
+    await waitFor(() =>
+      expect(api.calls.filter((call) => call.method === 'GET')).toHaveLength(1),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(puts(api.calls)).toHaveLength(0);
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alertdialog')).toBeNull();
+  });
+
+  it('pressing another item while one waits switches the wait to it: the last press runs, once', async () => {
+    const gate = held(() => json(card()));
+    const api = stubApi({
+      [GET_CARD]: gate.route,
+      [PUT]: () => json(paused({ version: 4 })),
+    });
+    mount(card());
+    await openMenu();
+    const hold = await screen.findByRole('menuitem', { name: t.hold });
+    await userEvent.click(hold);
+    await waitFor(() => expect(hold.getAttribute('aria-busy')).toBe('true'));
+    const cancel = screen.getByRole('menuitem', { name: t.cancel });
+    await userEvent.click(cancel);
+    await waitFor(() => expect(cancel.getAttribute('aria-busy')).toBe('true'));
+    expect(hold.hasAttribute('aria-busy')).toBe(false);
+    gate.release();
+    expect(await screen.findByRole('alertdialog')).toBeTruthy();
+    expect(puts(api.calls)).toHaveLength(0);
+  });
+
   it.each([
     [404, 'NOT_FOUND', tTeam.toast.gone],
     [403, 'FORBIDDEN', tTeam.toast.forbidden],

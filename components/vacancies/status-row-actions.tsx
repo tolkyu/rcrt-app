@@ -36,6 +36,7 @@ const LABELS = {
 const idle: RowMenuHandle = {
   keepOpen: () => undefined,
   close: () => undefined,
+  isOpen: () => true,
 };
 
 /** A row that leaves the list takes focus with it: while focus is in the row (or in its dialog), it moves to the next row, never to <body>. */
@@ -69,7 +70,11 @@ export default function StatusRowActions({
   const tTeam = useTranslations('vacancies.team.toast');
   const queryClient = useQueryClient();
   const { toggle } = useStatusToggle(vacancy.id, vacancy.number);
-  const { mountedRef, busyRef, tryLock } = useSubmissionLock();
+  const { mountedRef } = useSubmissionLock();
+  const wait = useRef<{
+    action: VacancyStatusAction;
+    menu: RowMenuHandle;
+  } | null>(null);
   const anchor = useRef<HTMLSpanElement>(null);
   const dialogOpen = useRef(false);
   const toTitle = useRef(false);
@@ -116,6 +121,13 @@ export default function StatusRowActions({
   };
 
   const choose = (action: VacancyStatusAction, menu: RowMenuHandle) => {
+    if (wait.current) {
+      // Last press wins: the read in flight serves the newest choice, and the newest menu decides whether it was dismissed.
+      menu.keepOpen();
+      wait.current = { action, menu };
+      setWaiting(action);
+      return;
+    }
     const card = readCard();
     if (card) {
       run(action, card);
@@ -123,8 +135,9 @@ export default function StatusRowActions({
     }
     // The version is still on its way: the menu stays open and the item waits instead of swallowing the press.
     menu.keepOpen();
-    if (!tryLock()) return;
+    wait.current = { action, menu };
     setWaiting(action);
+    let last = action;
     queryClient
       .fetchQuery({ ...vacancyDetailQuery(vacancy.id), retry: false })
       .then(
@@ -132,14 +145,32 @@ export default function StatusRowActions({
         (error: unknown) => ({ failure: classifyTeamFailure(error) }) as const,
       )
       .then((result) => {
-        busyRef.current = false;
-        if (!mountedRef.current) return;
+        const settled = wait.current;
+        wait.current = null;
+        if (!settled || !mountedRef.current) return;
+        last = settled.action;
         setWaiting(null);
-        menu.close();
-        if ('loaded' in result) run(action, result.loaded);
-        else announceLoadFailure(result.failure, () => choose(action, idle));
+        // Esc or an outside click while waiting withdraws the press; checked before our own close, which would also read as closed.
+        if (!settled.menu.isOpen()) return;
+        settled.menu.close();
+        if ('loaded' in result) run(settled.action, result.loaded);
+        else
+          announceLoadFailure(result.failure, () =>
+            choose(settled.action, idle),
+          );
       })
-      .catch(() => undefined);
+      .catch(() => {
+        wait.current = null;
+        if (mountedRef.current) setWaiting(null);
+        toast.error(t('toast.failed'), {
+          description: t('toast.failedDescription'),
+          id: `status:${vacancy.id}`,
+          action: {
+            label: t('toast.retry'),
+            onAction: () => choose(last, idle),
+          },
+        });
+      });
   };
 
   const items: RowAction[] = actions.map((action) => ({

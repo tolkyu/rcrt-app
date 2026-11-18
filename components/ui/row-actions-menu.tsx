@@ -9,6 +9,8 @@ import { DeferredMenu, useDeferredMenu } from './deferred-menu';
 export interface RowMenuHandle {
   keepOpen: () => void;
   close: () => void;
+  /** False once the user dismissed the menu (Esc, outside click) or the host closed it. */
+  isOpen: () => boolean;
 }
 
 export interface RowAction {
