@@ -2,21 +2,20 @@
 
 > **Rule:** this file holds only the latest checkpoint (≤ ~60 lines). On every checkpoint, move the old content to the top of `docs/archive/handoff-log.md` (newest first), then rewrite this file. Never append history here. Read the archive only when you need an old detail.
 
-## Checkpoint — 2026-11-18 (Codex, SHARE-FALLBACK)
+## Checkpoint — 2026-11-18 afternoon (Claude)
 
-- Branch `phase-2` @ `c712eb9`; V3 assignment/status/Team Lead APIs, team panel and API/review tests already merged. Old “merge slices 2–5” tasks are superseded.
-- Small slice **SHARE-FALLBACK / STORY-UI-09-1 complete, uncommitted**: full selected read-only URL, warning alert, Ukrainian label and «Закрити»; focus and rapid/stale clipboard outcomes covered. Card/preview share the fix; same-ID draft focus lifecycle retained.
-- Verification: 56 focused unit tests, scoped ESLint, typecheck, build, bundle checks and code review APPROVED. Desktop Playwright: 7 share cases + 11 session setup passed; mobile: 5 passed, 2 desktop-preview skips.
-- Initial JS gzip: card 160.32 kB; list/preview 169.19; edit 178.95; new 178.73; all ≤180. No PNG recaptures, full suites, commits or pushes. QA lock released; screenshots and tsconfig unchanged.
-- Codex optimization remains uncommitted too: Sol Medium defaults; High critical work; two subagents max; see `CLAUDE.md` §12. Preserve existing untracked `.agents/skills/`.
-- Detailed evidence/current gaps: `docs/PROGRESS.md`.
+- `phase-2` @ `b8d7709`, pushed. Merged: V3 slices 1–5, 7, API contracts/Newman (658 req / 3831 assertions / 0 fail), Codex share-fallback fix (verified, one stale test fixed), Codex config, story wording (D46/D130/D131/errata). Full unit+integration 5110 green at `c712eb9`.
+- Owner D131: no claim cap; removed last recruiter may reclaim.
+- V3 slice 6 (status menu card/preview) @ `4fb4814` in `D:/recruiting-wt/v3-status-ui`: two code reviews (s6a logic, s6b dialogs) + UX deviation review running. ~930 non-test lines.
+- Decision (orchestrator, tech only): list-row `[⋯]` status items = option A — server sends per-vertical status-grant mirror (like `selfAssignVerticals`), row menu reads card version on open.
 
-## Next (one small slice at a time)
+## Next (in order)
 
-1. Reconcile existing **dirty** status work at `D:/recruiting-wt/v3-status-ui`. HEAD `3899dee` is already merged; status code exists only as four modified tracked files plus nine new files (~1,566 new lines), including shared urgency cache changes. Inspected read-only, left intact. Do not blindly merge/copy or duplicate it.
-2. Finish bounded hold/resume request/cache work with urgency regressions, then dialogs/menu integration (STORY-VAC-02-1). Follow ADR-017 and its errata. Resolve Admin-without-2FA `needsMfa`/DisabledReason gap before status UI closure.
-3. V-block end: reconcile story wording (HR share access vs D46), E2E/API/Newman, updated PNG47/U1 and V2/V3 gallery, UX review. Existing audit/unit gap labels may already be covered by `9db162c`; verify before repeating work.
-4. Phase 7: retain D126 tech debt and remind owner about demo videos.
+1. Slice 6 review fixes → merge (typecheck, lint, full `pnpm test` under lock, build + perf:size) → push.
+2. Slice 6b: list-row status menu (option A).
+3. `needsMfa` DTO flag + DisabledReason for Admin without 2FA on team/status controls (PROGRESS gap).
+4. V-block end: E2E (assignment, status, share), Newman rerun, V2+V3 gallery PNGs (+ register PNG 47), UX gallery review, perf check. Then owner report (Ukrainian).
+5. Phase 7: demo videos reminder; tech debt (PROGRESS). Flaky under load: `tests/unit/auth/lazy-validation-forms.test.ts` MFA button, combobox listbox timeout.
 
 ## Run notes / open checks
 
