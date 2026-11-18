@@ -55,6 +55,7 @@ const detail = (overrides: Partial<VacancyDetail> = {}): VacancyDetail => ({
   canAssignRecruiters: false,
   canSetTeamLead: false,
   statusActions: [],
+  needsMfa: false,
   ...overrides,
 });
 

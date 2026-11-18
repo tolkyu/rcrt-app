@@ -62,6 +62,7 @@ const created = (): VacancyDetail => ({
   canAssignRecruiters: false,
   canSetTeamLead: false,
   statusActions: [],
+  needsMfa: false,
 });
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {

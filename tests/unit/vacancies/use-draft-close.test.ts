@@ -75,6 +75,7 @@ const detail = (changes: Partial<VacancyDetail> = {}): VacancyDetail => ({
   canAssignRecruiters: false,
   canSetTeamLead: false,
   statusActions: [],
+  needsMfa: false,
   ...changes,
 });
 const draft = (status: ClosableDraft['status'] = 'DRAFT'): ClosableDraft => ({

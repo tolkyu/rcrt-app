@@ -7,6 +7,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
 import { LazyClaimDialog, LazyDialog } from './lazy-dialog';
+import { StepUpAction } from './step-up-action';
 import type { TeamNext } from './use-team-write';
 
 const AssignRecruitersDialog = lazy(() => import('./assign-recruiters-dialog'));
@@ -83,6 +84,10 @@ export function TeamPanel({
   const Sub = preview ? 'h4' : 'h3';
   const { recruiters, teamLead, status } = vacancy;
   const closedVacancy = status === 'FILLED' || status === 'CANCELLED';
+  const stepUp =
+    vacancy.needsMfa && (status === 'OPEN' || status === 'ON_HOLD');
+  const stepUpAssign = stepUp && !vacancy.canAssignRecruiters;
+  const stepUpTeamLead = stepUp && !teamLead && !vacancy.canSetTeamLead;
   const shown = expanded ? recruiters : recruiters.slice(0, VISIBLE);
 
   const close = (next: TeamNext | null) => {
@@ -139,6 +144,13 @@ export function TeamPanel({
                 {t('setTeamLead')}
               </Button>
             )}
+            {stepUpTeamLead && (
+              <StepUpAction>
+                <Button variant="outline" className="h-11">
+                  {t('setTeamLead')}
+                </Button>
+              </StepUpAction>
+            )}
           </div>
         )}
       </div>
@@ -190,7 +202,9 @@ export function TeamPanel({
               {t(status === 'ON_HOLD' ? 'holdHelper' : 'freeHelper')}
             </p>
           )}
-        {(vacancy.canAssignRecruiters || vacancy.canSelfAssign) && (
+        {(vacancy.canAssignRecruiters ||
+          vacancy.canSelfAssign ||
+          stepUpAssign) && (
           <div className="mt-2 flex flex-wrap gap-2">
             {vacancy.canSelfAssign && (
               <Button
@@ -209,6 +223,14 @@ export function TeamPanel({
                 <UserPlus aria-hidden="true" />
                 {t('assign')}
               </Button>
+            )}
+            {stepUpAssign && (
+              <StepUpAction>
+                <Button variant="outline" className="h-11">
+                  <UserPlus aria-hidden="true" />
+                  {t('assign')}
+                </Button>
+              </StepUpAction>
             )}
           </div>
         )}

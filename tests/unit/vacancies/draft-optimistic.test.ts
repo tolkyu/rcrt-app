@@ -59,6 +59,7 @@ const detail = (
   canAssignRecruiters: false,
   canSetTeamLead: false,
   statusActions: [],
+  needsMfa: false,
 });
 const page = (...rows: [string, string][]): VacancyPage => ({
   items: rows.map(([id, number]) => summary(id, number)),

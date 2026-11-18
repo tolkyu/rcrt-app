@@ -1096,6 +1096,7 @@
               "enum": ["HOLD", "RESUME", "CANCEL", "REOPEN"]
             }
           },
+          "needsMfa": { "type": "boolean" },
           "cancelReason": { "type": "string" }
         },
         "required": [
@@ -1127,7 +1128,8 @@
           "canSelfAssign",
           "canAssignRecruiters",
           "canSetTeamLead",
-          "statusActions"
+          "statusActions",
+          "needsMfa"
         ]
       },
       "CancelVacancy": {

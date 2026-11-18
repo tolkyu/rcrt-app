@@ -79,6 +79,7 @@ const detail = {
   canAssignRecruiters: false,
   canSetTeamLead: false,
   statusActions: [],
+  needsMfa: false,
 };
 
 const body = {
