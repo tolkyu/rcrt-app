@@ -9,14 +9,13 @@ Current phase status, active boundaries and owner decisions. Historical checkpoi
 - Audit baseline: `phase-2` @ `c712eb9`; existing untracked `.agents/skills/` directories left untouched. Product checkpoints below and the shared handoff describe earlier commits; inspect actual Git state before resuming product work.
 - Verification: Python `tomllib` parsed the project config and all 11 role files; asserted model/effort support against the local catalog, routing and inherited permissions. Installed Codex `0.169.0-alpha.11.1` accepted `--strict-config app-server --print-startup-config`; current spawn tool reflects the ten existing role overrides. `git diff --check` passed; `.claude/`, PRD, AGENTS, shared handoff and application files unchanged. Product suites and Luna comparison not run for this configuration-only change; no commit/push.
 
-## Current checkpoint — 2026-11-18 (Codex, small slices)
+## Current checkpoint — 2026-11-18 afternoon (Claude)
 
-- Branch `phase-2` @ `c712eb9`: V3 assignment/status/Team Lead APIs, team panel and API/review test gaps are already merged. Earlier handoff instructions to build/merge these are stale.
-- **SHARE-FALLBACK / STORY-UI-09-1 complete, uncommitted:** blocked/unavailable clipboard shows a selected, read-only absolute URL (16 px, Ukrainian accessible label), warning alert and «Закрити» with focus restoration. Card and preview share the fix; synchronous double-press guard and per-vacancy lifecycle suppress stale outcomes. Same-ID draft publish/restore focus is preserved. Five implementation/test files changed; no API/authz/schema changes.
-- Evidence: failing-before missing-textbox and double-press regressions; **56 unit tests in four focused files**, scoped ESLint and typecheck PASS; code review **APPROVED**. Build and `perf:size` PASS; initial JS gzip: card **160.32 kB**, list/preview **169.19 kB** (limit 180; edit 178.95/new 178.73).
-- Focused share Playwright: desktop **7 cases + 11 session setup passed**; mobile **5 passed, 2 expected desktop-preview skips**. Denied/unavailable clipboard, successful retry, selection/focus/close, preview, no server writes, axe and 320 px containment covered. Existing “200% zoom” test uses a reduced viewport, not actual browser zoom. Physical phone and visual gallery review remain deferred.
-- Commands: `corepack pnpm build`, `corepack pnpm perf:size`; `corepack pnpm exec playwright test tests/e2e/vacancy-share.spec.ts --project=e2e-desktop --workers=1 --grep 'clipboard|fallback|inside the screen|preview'`, then mobile with `--no-deps`. Build/typecheck needed elevation for native-binding/cache access. No full suites, PNG captures, commits or pushes; QA lock released. Screenshots and `tsconfig.json` unchanged.
-- **Preserve existing status work:** `D:/recruiting-wt/v3-status-ui` HEAD `3899dee` is already an ancestor of `phase-2`; its status implementation exists only as substantial uncommitted work (four tracked files and nine new files, including shared urgency cache changes), not a finished branch to merge. Inspected read-only, left untouched.
+- `phase-2` @ `0f75409`, pushed up to `3c3388e`. V3 merged: slice 1 foundation, 2 assignment API, 3 status API, 4 Team Lead API, 5 team panel UI, 6 status menu (card/preview), 7 share evidence + Codex share-fallback fix, API contracts + Newman (658 req / 3831 assertions / 0 fail). Urgency V2 slices 1–4 merged.
+- Reviews: every slice code-review APPROVED (one round, D126); security PASS for slices 1–5 (`docs/security/v3-*.md`); UX deviations accepted into the wireframes. Full unit + integration **5166 green** at `cb3fca7`. Initial JS: create 178.75, edit 178.97, card 160.65, list 169.52 kB (≤ 180).
+- Owner D131 (2026-11-18): no claim cap; removed last recruiter may reclaim.
+- Running: slice 6b list-row status menu (`v3-row-menu`), `needsMfa` step-up reason (`v3-needs-mfa`).
+- Left for V-block end: E2E assignment/status/share, Newman rerun, V2+V3 gallery (+ PNG 47), UX gallery review, perf check, owner report.
 
 ## Next work and verification boundaries
 
