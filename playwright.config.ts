@@ -6,8 +6,13 @@ const DESKTOP = { width: 1440, height: 900 };
 const MOBILE = { width: 390, height: 844 };
 /** These rename the shared, undeletable demo verticals (D34): they run last, one worker, mobile after desktop. */
 const ADMIN_MUTATION_SPECS = 'e2e/settings-*.spec.ts';
-/** Opens real vacancies in the seeded lists of the Team Lead and the recruiters (soft-deleted afterwards), so it runs alone after every other spec. */
-const REQUEST_SPEC = 'e2e/vacancy-request.spec.ts';
+/** These open or change real vacancies in the seeded lists of the Team Lead and the recruiters (soft-deleted afterwards), so they run alone after every other spec. */
+const OPEN_LIST_SPECS = [
+  'e2e/vacancy-request.spec.ts',
+  'e2e/vacancy-assignment.spec.ts',
+  'e2e/vacancy-status.spec.ts',
+  'e2e/vacancy-team-screens.spec.ts',
+];
 
 export default defineConfig({
   testDir: './tests',
@@ -37,14 +42,14 @@ export default defineConfig({
     {
       name: 'e2e-desktop',
       testMatch: 'e2e/**/*.spec.ts',
-      testIgnore: [ADMIN_MUTATION_SPECS, REQUEST_SPEC],
+      testIgnore: [ADMIN_MUTATION_SPECS, ...OPEN_LIST_SPECS],
       dependencies: ['e2e-sessions'],
       use: { ...devices['Desktop Chrome'], viewport: DESKTOP },
     },
     {
       name: 'e2e-mobile',
       testMatch: 'e2e/**/*.spec.ts',
-      testIgnore: [ADMIN_MUTATION_SPECS, REQUEST_SPEC],
+      testIgnore: [ADMIN_MUTATION_SPECS, ...OPEN_LIST_SPECS],
       dependencies: ['e2e-sessions'],
       use: { ...devices['Pixel 7'], viewport: MOBILE },
     },
@@ -72,14 +77,14 @@ export default defineConfig({
     },
     {
       name: 'e2e-request-desktop',
-      testMatch: REQUEST_SPEC,
+      testMatch: OPEN_LIST_SPECS,
       workers: 1,
       dependencies: ['e2e-admin-mobile'],
       use: { ...devices['Desktop Chrome'], viewport: DESKTOP },
     },
     {
       name: 'e2e-request-mobile',
-      testMatch: REQUEST_SPEC,
+      testMatch: OPEN_LIST_SPECS,
       workers: 1,
       dependencies: ['e2e-request-desktop'],
       use: { ...devices['Pixel 7'], viewport: MOBILE },
