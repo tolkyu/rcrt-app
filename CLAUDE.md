@@ -179,11 +179,11 @@ Rules: motion respects `prefers-reduced-motion`; no animation on high-frequency/
 - Every assignment includes task ID/objective, PRD IDs (or n/a for tooling), exact file ownership, acceptance criteria, constraints/dependencies, required tests and expected output. Verify important completion claims against the diff, acceptance criteria and test evidence.
 - The `.claude/agents/*.md` files define responsibilities; their Claude model/effort frontmatter does not configure Codex. Read only relevant PRD/ADR sections even where a role says to read the PRD first. Shared handoffs remain the session entry point; compare branch/HEAD/tree with their checkpoint before continuing product work.
 
-| Codex role | Model | Effort |
-| ---------- | ----- | ------ |
+| Codex role                                                                                                                                                      | Model         | Effort   |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | -------- |
 | Orchestrator; business-analyst, ux-ui-designer, senior-fullstack-engineer, database-engineer, performance-engineer, qa-engineer, devops-engineer, code-reviewer | `gpt-6.1-sol` | `medium` |
-| solution-architect, security-engineer | `gpt-6.1-sol` | `high` |
-| critical-specialist (one assigned existing role for a critical implementation or review) | `gpt-6.1-sol` | `high` |
+| solution-architect, security-engineer                                                                                                                           | `gpt-6.1-sol` | `high`   |
+| critical-specialist (one assigned existing role for a critical implementation or review)                                                                        | `gpt-6.1-sol` | `high`   |
 
 - Classify **before** delegating: small = docs/tests-only or ≤ ~80 non-risk lines; standard = ordinary feature/query/migration; critical = authz/isolation, PII/files/auth, money, high-impact migrations, difficult concurrency/data integrity or complex architecture. Any small task touching those areas becomes critical. Use `critical-specialist` for critical work otherwise assigned to a Medium role; name the existing role definition in its assignment. Keep a separate security review where §1 requires it.
 - Small: orchestrator checks with focused validation (D129). Standard: engineer's unit/integration tests and one focused review. Critical: High implementation/review, positive/negative tests and relevant integration/E2E checks. Merge, V-block and release checks follow §6; required QA/security/perf and screenshots are never removed to save tokens. D126's one review round and deferred style findings still apply.
