@@ -151,7 +151,8 @@ describe('Settings → Вертикалі: create, rename, list [ROLE-03, STORY-
       const events = await ctx.db
         .select({ type: schema.entityEvent.type })
         .from(schema.entityEvent)
-        .where(eq(schema.entityEvent.subjectId, created.id));
+        .where(eq(schema.entityEvent.subjectId, created.id))
+        .orderBy(schema.entityEvent.id);
       expect(events.map((event) => event.type)).toEqual([
         'vertical.created',
         'vertical.renamed',

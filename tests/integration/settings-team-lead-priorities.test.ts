@@ -126,7 +126,8 @@ const priorityEvents = (ctx: RequestContext, userId: string) =>
         eq(schema.entityEvent.subjectId, userId),
         eq(schema.entityEvent.type, 'vertical.tl_priority_changed'),
       ),
-    );
+    )
+    .orderBy(schema.entityEvent.id);
 const save = (ctx: RequestContext, verticalId: string, changes: Change[]) =>
   updateTeamLeadPriorities(ctx, verticalId, { changes });
 
