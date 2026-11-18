@@ -16,6 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
 import { ThemeToggle } from '@/components/theme/theme-toggle';
 import { Button } from '@/components/ui/button';
+import { LoadBoundary } from '@/components/ui/load-boundary';
 import { mobileNav, navItemsByIds, type NavItemId } from '@/lib/nav';
 import { PREFERENCE_COOKIES, writePreference } from '@/lib/preference-cookie';
 import { cn } from '@/lib/utils';
@@ -25,12 +26,24 @@ import { BottomNav } from './bottom-nav';
 import { BrandMark } from './brand';
 import { Sidebar } from './sidebar';
 import { UserMenu } from './user-menu';
-import { VacanciesVerticalSwitcher } from './vacancies-vertical-switcher';
-import { VerticalSwitcher } from './vertical-switcher';
 
 const loadTabletMenu = () => import('./tablet-menu');
 const TabletMenu = lazy(() =>
   loadTabletMenu().then((module) => ({ default: module.TabletMenu })),
+);
+
+/** The switcher exists only on the dashboard and «Вакансії», so no other route carries it (PERF-04). */
+const VerticalSwitcher = lazy(() =>
+  import('./vertical-switcher').then((module) => ({
+    default: module.VerticalSwitcher,
+  })),
+);
+
+/** Only «Вакансії» mirrors the URL filter; the list filter code stays out of every other route's initial JavaScript (PERF-04). */
+const VacanciesVerticalSwitcher = lazy(() =>
+  import('./vacancies-vertical-switcher').then((module) => ({
+    default: module.VacanciesVerticalSwitcher,
+  })),
 );
 
 const MfaRecovery = lazy(() =>
@@ -173,21 +186,27 @@ export function AppShell({
           </Link>
           {verticals.length > 0 && pathname === '/' && (
             <div className="hidden md:block">
-              <VerticalSwitcher
-                verticals={verticals}
-                value={vertical}
-                onChange={changeVertical}
-              />
+              <LoadBoundary fallback={null}>
+                <Suspense fallback={null}>
+                  <VerticalSwitcher
+                    verticals={verticals}
+                    value={vertical}
+                    onChange={changeVertical}
+                  />
+                </Suspense>
+              </LoadBoundary>
             </div>
           )}
           {verticals.length > 0 && pathname === '/vacancies' && (
             <div className="hidden md:block">
-              <Suspense fallback={null}>
-                <VacanciesVerticalSwitcher
-                  verticals={verticals}
-                  onChange={changeVertical}
-                />
-              </Suspense>
+              <LoadBoundary fallback={null}>
+                <Suspense fallback={null}>
+                  <VacanciesVerticalSwitcher
+                    verticals={verticals}
+                    onChange={changeVertical}
+                  />
+                </Suspense>
+              </LoadBoundary>
             </div>
           )}
           <div className="ml-auto flex items-center gap-1 md:gap-2">

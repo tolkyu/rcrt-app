@@ -169,7 +169,7 @@ preview 360 (selected urgent OPEN row)
 └──────────────────────────────────┘
 ```
 
-**Filter** (`FilterBar`, new select after «Період»): label «Терміновість»; options «Усі» (default, not shown as a chip), «Термінова», «Звичайна»; active → chip «Терміновість: Термінова ×»; URL `urgency=URGENT|NORMAL`. «Термінова» keeps the selected status chip: with «Усі» it lists red rows (`DRAFT`/`OPEN`/`ON_HOLD`) and neutral rows (closed) together; with «Заповнені» every row is neutral. «Скинути фільтри» also clears it. The old «Пріоритет» label is removed everywhere (glossary).
+**Filter** (`FilterBar`, new select after «Період»): label «Терміновість»; options «Усі» (default, not shown as a chip), «Термінова», «Звичайна»; placed as a compact select (max 16 rem) on its own row above the status chips, like every filter of this bar an active value shows in the select and in «Скинути фільтри», without a separate chip; URL `urgency=URGENT|NORMAL`. «Термінова» keeps the selected status chip: with «Усі» it lists red rows (`DRAFT`/`OPEN`/`ON_HOLD`) and neutral rows (closed) together; with «Заповнені» every row is neutral. «Скинути фільтри» also clears it. The old «Пріоритет» label is removed everywhere (glossary).
 
 **Mobile 390 (Recruiter, light)** — card `li`, full-bleed in the list
 

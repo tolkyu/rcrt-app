@@ -49,6 +49,7 @@ import { CreateVacancyLink } from './create-vacancy-link';
 import { RequestVacancyLink } from './request-vacancy-link';
 import { DraftLeaveProvider } from './draft-leave';
 import { RowSkeleton } from './row-skeleton';
+import { UrgencyFilter } from './urgency-filter';
 import { useDraftLeaveHandlers } from './use-draft-leave';
 import { useStatusChips } from './use-status-chips';
 import { VacanciesList } from './vacancies-list';
@@ -146,6 +147,7 @@ export function VacanciesView({
           q: undefined,
           vertical: clearedVertical,
           status: undefined,
+          priority: undefined,
         }),
       'replaceState',
     );
@@ -332,6 +334,15 @@ export function VacanciesView({
             )
           }
           options={verticalOptions}
+        />
+        <UrgencyFilter
+          value={filters.priority}
+          onChange={(priority) =>
+            navigate(
+              (current) => withVacancyFilters(current, { priority }),
+              'replaceState',
+            )
+          }
         />
         <FilterChips
           className="md:col-span-2"
