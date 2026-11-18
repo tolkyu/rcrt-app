@@ -3,7 +3,14 @@
 import { ExternalLink, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { Button } from '@/components/ui/button';
 import { DetailHeader } from '@/components/ui/detail-header';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
@@ -12,6 +19,7 @@ import { toast } from '@/lib/toast';
 import { DraftHeaderActions } from './draft-header-actions';
 import { formatVacancyMoney } from './money';
 import { isUrgentHighlighted } from '@/lib/vacancy-urgency';
+import { UrgencySection } from './urgency-section';
 import { VacancyFlags, VacancyStatus } from './vacancy-badges';
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -62,6 +70,17 @@ export function VacancyOverview({
     else return;
     focusRequest.current = null;
   }, [vacancy.status]);
+  const teamHeadingRef = useRef<HTMLHeadingElement>(null);
+  const urgencyRemoved = useRef(false);
+  const markUrgencyRemoved = useCallback(() => {
+    urgencyRemoved.current = true;
+  }, []);
+  useEffect(() => {
+    // The section left with the focus inside (the vacancy closed under the user): the next heading takes it, never <body>.
+    if (vacancy.canChangeUrgency || !urgencyRemoved.current) return;
+    urgencyRemoved.current = false;
+    teamHeadingRef.current?.focus();
+  }, [vacancy.canChangeUrgency]);
   const privateDraft = isPrivateDraft(vacancy);
   const highlighted = isUrgentHighlighted(vacancy);
   const urgentClosed = vacancy.priority === 'URGENT' && !highlighted;
@@ -193,12 +212,23 @@ export function VacancyOverview({
           </p>
         </section>
       )}
+      {vacancy.canChangeUrgency && (
+        <UrgencySection
+          key={vacancy.id}
+          vacancy={vacancy}
+          preview={preview}
+          Heading={preview ? 'h3' : 'h2'}
+          onRemoved={markUrgencyRemoved}
+        />
+      )}
       <section
         aria-labelledby={`vacancy-team-${preview ? 'preview' : 'detail'}`}
       >
         <Heading
+          ref={teamHeadingRef}
+          tabIndex={-1}
           id={`vacancy-team-${preview ? 'preview' : 'detail'}`}
-          className="mb-2 text-sm font-semibold"
+          className="mb-2 text-sm font-semibold focus:outline-none"
         >
           {t('teamTitle')}
         </Heading>

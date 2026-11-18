@@ -50,7 +50,7 @@ Current first read increment: [`../phase-2-vacancies.md`](../phase-2-vacancies.m
 
 ## Role differences
 
-Same as `screens.md` S-04. Recruiter: unassigned rows show «Взяти в роботу» inline. TL: «Тімлід» column hidden, only own vacancies, «Запросити вакансію». HHR/HR: no checkboxes, no create, panel read-only.
+Same as `screens.md` S-04. Recruiter: unassigned `OPEN` rows show «Взяти» inline (V3, see «V3 — рядки без рекрутера» at the end of this file; the candidate action «Взяти в роботу» is a different thing and keeps its name). TL: «Тімлід» column hidden, only own vacancies, «Запросити вакансію». HHR/HR: no checkboxes, no create, panel read-only.
 
 ## Mobile 390
 
@@ -228,3 +228,41 @@ The whole card stays one tap target (existing `after:absolute after:inset-0` lin
 | L5 | Recruiter       | Same mobile list (one dark capture)                                                                                               | 390      | dark  |
 
 Everything else is an E2E assertion, not a PNG: hover/selected tint tokens via computed style, closed-neutral rule per status (5 statuses × urgent), long-title overflow at 320 px, 25-urgent list, forced-colours, no leak for foreign verticals, background refetch repaint, axe `color-contrast` on L1–L5. Seed per the story: one urgent `OPEN` per vertical, plus urgent `FILLED`, `CANCELLED`, `ON_HOLD`.
+
+## V3 — рядки без рекрутера (VAC-03-1, VAC-02-1, D130)
+
+Full behaviour, copy and dialogs: [`vacancy-card.md`](vacancy-card.md) → «V3 — призначення і статуси». Only list-level changes here.
+
+**Column «Рекрутери» (desktop table), by viewer and row**
+
+| Viewer / row                                              | Cell content                                                                                                         |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Any, row has recruiters                                   | Avatars (max 3) + «+N»; unchanged                                                                                    |
+| Recruiter, `OPEN`, no recruiters, vertical is his         | Outline button «Взяти» (`sm`, h 32, hit area 44 via padding) — opens the confirm dialog of the card file §3.3           |
+| Admin / Head Recruiter / Team Lead / HR / Head HR, `OPEN` or `ON_HOLD`, no recruiters | Text «Не призначено», `--warning-text` + `user-x` icon (`aria-hidden`); no button (assign from the card/preview)     |
+| Any, `FILLED` / `CANCELLED` / `DRAFT`, no recruiters      | «—» (muted)                                                                                                           |
+
+- Button `aria-label` = «Взяти вакансію V-0010 Медіабаєр — Facebook» (contains the visible word, WCAG 2.5.3); click does not select the row; Enter/Space on it does not open the card.
+- Pending: the button is disabled and shows a spinner after 150 ms (press feedback is instant); one request per row.
+- Success: the row stays (assigned scope), the cell shows the user's avatar; if the preview shows this row it refetches. No row animation (§8.3), no focus loss: focus moves to the avatar cell (`tabIndex=-1`, `aria-label` «Ви — рекрутер цієї вакансії»).
+- Conflict (someone claimed first): the row disappears after refetch, warning toast per card file §3.3; focus goes to the next row's title link (or to the list heading when it was the last row).
+- `ON_HOLD` unassigned rows are not in a Recruiter's list at all (D130-5); after «Призупинити» by a manager the row leaves a Recruiter's list on the next refetch, silently.
+- Row `[⋯]` menu per status (roles that may act): `OPEN` → Клонувати · Призупинити · Скасувати вакансію… · Видалити; `ON_HOLD` → Клонувати · Відновити · Скасувати вакансію… · Видалити; `FILLED` (Admin, Head Recruiter) → Клонувати · Відкрити знову · Видалити; `CANCELLED` → Клонувати · Видалити. «Скасувати вакансію…» and «Відкрити знову» open the same dialogs as on the card. «Призупинити»/«Відновити» act at once (toast), no dialog.
+
+**Mobile 390 (Recruiter), unassigned `OPEN` card** — footer button inside the card, outside the card link overlay (`relative z-10`):
+
+```
+┌──────────────────────────────┐
+│ Медіабаєр — Facebook         │
+│ V-0010 · Гемблінг            │
+│ (● Відкрита)                 │
+│ Тімлід  Василь Петренко      │
+│ ┌──────────────────────────┐ │
+│ │      Взяти вакансію      │ │  outline, h 44, full width, 16 px text
+│ └──────────────────────────┘ │
+└──────────────────────────────┘
+```
+
+Skeleton cards are unchanged; the button arrives with the data and adds one footer row to that card only (accepted shift of one card, no CLS inside the visible viewport because skeleton cards are replaced in place).
+
+Screenshots for this addition are listed in the card file §12 (V3 matrix), not here.

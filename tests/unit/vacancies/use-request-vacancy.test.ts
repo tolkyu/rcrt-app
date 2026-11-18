@@ -3,7 +3,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { createElement, useRef } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { useRequestVacancy } from '@/components/vacancies/use-request-vacancy';
 import type { LeaveGuardHandle } from '@/components/ui/use-leave-guard';
 import { queryKeys } from '@/lib/query-keys';
@@ -16,6 +24,8 @@ const { router, toast } = vi.hoisted(() => ({
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => router }));
 vi.mock('@/lib/toast', () => ({ toast }));
+
+beforeAll(() => import('@/lib/vacancy-request-submit'));
 
 const POSITION = '3f1e2d3c-4b5a-4968-8776-655443322110';
 const OTHER_POSITION = '4a2f3e4d-5c6b-4a79-9887-766554433221';

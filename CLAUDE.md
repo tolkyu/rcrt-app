@@ -26,7 +26,8 @@ At the start of every session read `docs/CLAUDE_HANDOFF.md` (short, current stat
 
 - Give each agent: PRD IDs, files/areas, expected output, Definition of Done.
 - Independent tasks run in parallel; tasks touching the same files run sequentially.
-- Every implementation task: engineer → `qa-engineer` (tests + screenshots) → `code-reviewer` → fixes → done.
+- Every implementation task: engineer (writes its unit + integration tests) → `code-reviewer` → fixes → done. Separate `qa-engineer` only for UI flows (E2E), authz/money/PII slices and V-block end (E2E, Newman, screenshots) — D129.
+- No `code-reviewer` for tests-only, docs-only or small non-risk diffs (≤ ~80 lines, no authz/PII/money/data write) — the orchestrator checks those (D129).
 - Authz, files, auth, money (bonuses), PII → also `security-engineer`. Lists, boards, statistics, heavy screens → also `performance-engineer`.
 - Never change product behaviour silently. Unclear → `business-analyst` adds it to `docs/OPEN_QUESTIONS.md` → **ask the owner**.
 
@@ -106,7 +107,7 @@ At the start of every session read `docs/CLAUDE_HANDOFF.md` (short, current stat
 4. **Test** — `qa-engineer`: unit + integration + E2E + Newman; **generates screenshots** (§7).
 5. **Perf check** — `performance-engineer` for anything with lists/boards/stats.
 6. **Review** — `code-reviewer` (+ `security-engineer` when required). Fix all blocking findings.
-7. **Verify** — `pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e && pnpm test:api && pnpm perf:check` all green.
+7. **Verify — three levels (D129):** (a) slice, by the agent: typecheck, lint, tests of changed files; (b) merge into `phase-N`, by the orchestrator: typecheck, lint, full unit; (c) V-block end and phase end: `pnpm test:e2e && pnpm test:api && pnpm perf:check` + screenshots. CI runs everything on every push; a red CI is fixed before the next slice.
 8. **Log** — update `docs/PROGRESS.md`; conventional commits with PRD IDs (`feat(pipeline): TL interview reschedule [RESCH-01..03]`, commit messages in English).
 9. **Phase PR** — orchestrator opens the `phase-N` → `main` PR with `.claude/skills/make-pr-easy-to-review/SKILL.md`, then keeps it green with `babysit` (`fix-ci`, `fix-merge-conflicts`).
 10. **Stop and report** to the owner in Ukrainian: what's done, path to the screenshot gallery (`screenshots/phase-N/index.html`), demo script (seeded user + clicks), open questions, next phase. Wait for "go phase N+1".
@@ -121,7 +122,7 @@ At the start of every session read `docs/CLAUDE_HANDOFF.md` (short, current stat
 - Loading/empty/error states; accessible; works on mobile for TL flows.
 - Timeline events emitted for every state change.
 - UI tasks: built and reviewed with the design skills (§11); `docs/ux/design-system.md` motion rules followed.
-- Tests green; **screenshots updated**; perf budgets met (PRD §13 PERF).
+- Tests green at the level of §6 step 7 (D129); screenshots and perf budgets checked at V-block end (PRD §13 PERF); a slice that grows a route bundle measures it.
 - No stubs, TODOs, mock data or redundant comments.
 - PROGRESS (and ADR/OpenAPI if relevant) updated.
 

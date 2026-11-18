@@ -4,7 +4,15 @@ import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { createElement, useRef, type RefObject } from 'react';
 import { useForm, type UseFormReturn } from 'react-hook-form';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import {
   FILLED_FIELDS,
   useEditVacancy,
@@ -26,6 +34,14 @@ const { router, toast } = vi.hoisted(() => ({
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => router }));
 vi.mock('@/lib/toast', () => ({ toast }));
+
+beforeAll(() =>
+  Promise.all([
+    import('@/lib/vacancy-edit-submit'),
+    import('@/lib/vacancy-form-submit'),
+    import('@/components/vacancies/edit-form-feedback'),
+  ]),
+);
 
 const VERTICAL = '8b1f5a0e-0c2d-4f6e-9d7a-2b3c4d5e6f70';
 const POSITION = '3f1e2d3c-4b5a-4968-8776-655443322110';

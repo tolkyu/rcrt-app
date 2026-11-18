@@ -4,7 +4,7 @@ import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { createElement, type ReactNode } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { useVacancyPickers } from '@/components/vacancies/use-vacancy-pickers';
 import { emptyVacancyForm, type VacancyFormValues } from '@/lib/vacancy-form';
 import messages from '@/messages/uk.json';
@@ -14,6 +14,8 @@ const CRYPTO = '9c2a6b1f-1d3e-4a7f-8e8b-3c4d5e6f7081';
 const POSITION = '3f1e2d3c-4b5a-4968-8776-655443322110';
 const VASYL = '5d2c7e90-1f3a-4b8c-9a6d-7e8f90a1b2c3';
 const TARAS = '6e3d8fa1-2a4b-4c9d-8b7e-8f90a1b2c3d4';
+
+beforeAll(() => import('@/lib/vacancy-form-submit'));
 
 afterEach(() => {
   cleanup();

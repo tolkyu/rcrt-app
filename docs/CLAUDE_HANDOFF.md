@@ -10,13 +10,14 @@
 - **S3.7 closed (D126):** part 1 `b48910d` (items 7, 8, BUG-S3-20), part 2 (items 1, 6: pure `planAttempt`/`settle` in `lib/vacancy-draft-retry.ts`). Both code-reviewer APPROVED. Rest of thermo items → Phase 7 tech debt (PROGRESS «Gaps»).
 - **D126 (owner, 2026-11-17):** one review round per slice; only bugs/security/authz/PII/PRD mismatch block; screenshots once per V-block.
 
-## Next (in order) — 2026-11-17 late, parallel run
+## Next (in order) — 2026-11-17 late, wave 2
 
-1. VAC-03-3 code committed `3a1b504` (pushed). QA agent finishes concurrency + E2E in main tree (uncommitted: `tests/e2e/vacancy-request.spec.ts`, `tests/integration/vacancies-request-concurrency.test.ts`, `tests/support/vacancy-request-db.ts`, `zz-measure.spec.ts` temp, `package.json`/`playwright.config.ts`) → commit `test(vacancies): …`.
-2. **Worktrees (manual; tool isolation fails on d:/D: case):** `D:/recruiting-wt/urgency-api` branch `vac-08-2-api` (ADR-016 slice 1 server) and `D:/recruiting-wt/urgency-ui` branch `vac-04-4-highlight` (slice 3 highlight). Agents commit there, no push. Merge into `phase-2` (api first; ui touches `vacancy-badges.tsx` styling only), then code-review + security (api), remove worktrees.
-3. Next ADR-016 slices: 2 (client control), 4 (list filter), 5 (E2E, Postman, PNGs, perf + security). BA expands V3 stories (VAC-03-1, 03-2, 02-1, UI-09-1).
-4. Perf: create 179.76 / edit 179.96 of 180 kB — perf-engineer before more UI on those routes.
-5. Phase 7: remind owner about demo videos.
+1. Done + pushed: VAC-03-3 (`3a1b504`, `95672ac`); urgency API slice 1 + highlight slice 3 merged `7d46438` (highlight code-review APPROVED).
+2. Running: security + code-review of urgency API (377c50c); slice 2 client control in `D:/recruiting-wt/urgency-client` (branch `vac-08-2-client`); slice 4 list filter in `D:/recruiting-wt/urgency-filter` (`vac-04-4-filter`); QA fixes flaky unit `waitFor` timeouts in main tree (uncommitted).
+3. Then merge slices 2+4 (uk.json may conflict trivially), review, slice 5 (E2E, Postman success/stale/locked, V2 gallery PNGs, perf + UX gallery review), remove worktrees. Worktrees are manual (tool isolation fails on d:/D: case).
+4. Owner questions open: Q-190..Q-194 (V3 defaults apply). Then V3 design (architect + UX) and build.
+5. Tech debt (Phase 7): private cancelled urgent draft shows only Lock note; record dark-hover 2.94:1 in UX contrast table; `change_feed` row for urgency not emitted (no consumer).
+6. Phase 7: remind owner about demo videos.
 
 ## Open, not blocking
 
