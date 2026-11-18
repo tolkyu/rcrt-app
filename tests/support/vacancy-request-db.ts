@@ -19,7 +19,7 @@ export type StoredRequest = {
 };
 
 /** The detail DTO and card do not show the comment yet, so the stored text is read through the loopback-guarded owner connection. */
-async function withOwner<T>(run: (sql: postgres.Sql) => Promise<T>) {
+export async function withOwner<T>(run: (sql: postgres.Sql) => Promise<T>) {
   const { migrationUrl } = parseLocalDatabaseTargets({
     ...(existsSync('.env') ? parseEnv(readFileSync('.env', 'utf8')) : {}),
     ...process.env,
