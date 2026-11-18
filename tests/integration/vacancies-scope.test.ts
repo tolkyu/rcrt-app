@@ -27,6 +27,12 @@ import {
 } from '../support/vacancy-world';
 import { connectTestDatabase, testDatabaseUrls } from './database';
 
+/** Detail flags such as `canChangeUrgency` depend on the viewer, so cross-role equality covers the vacancy data only. */
+const vacancyData = (detail: Record<string, unknown>) =>
+  Object.fromEntries(
+    Object.entries(detail).filter(([key]) => !/^can[A-Z]/.test(key)),
+  );
+
 const urls = testDatabaseUrls();
 const admin = connectTestDatabase(urls.migration);
 const client = postgres(urls.runtime, { max: 2, prepare: false });
@@ -328,9 +334,10 @@ describe('vacancy salary response snapshot by role [Q-161, DG-10, VIS-01..03]', 
       'assigned recruiter': named('recA'),
     };
     for (const [label, ctx] of Object.entries(readers))
-      expect(await getVacancyDetail(ctx, world.v.assignedOpen), label).toEqual(
-        baseline,
-      );
+      expect(
+        vacancyData(await getVacancyDetail(ctx, world.v.assignedOpen)),
+        label,
+      ).toEqual(vacancyData(baseline));
   });
 
   it('detail exposes the salary range to a recruiter who is not assigned to an OPEN unassigned vacancy', async () => {
@@ -351,9 +358,9 @@ describe('vacancy salary response snapshot by role [Q-161, DG-10, VIS-01..03]', 
     };
     for (const [label, ctx] of Object.entries(readers))
       expect(
-        await getVacancyDetail(ctx, world.v.unassignedOpen),
+        vacancyData(await getVacancyDetail(ctx, world.v.unassignedOpen)),
         label,
-      ).toEqual(baseline);
+      ).toEqual(vacancyData(baseline));
   });
 
   it('out-of-scope roles get 404 and never receive the salary range', async () => {

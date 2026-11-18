@@ -189,6 +189,19 @@ describe('vacancy list query plans on 30k rows [PERF-02, PERF-05]', () => {
     }
   });
 
+  it('serves the urgency filter [VAC-04-4] of every kind of page without scanning the table', async () => {
+    for (const run of [
+      list(admin_(), { priority: 'URGENT' }),
+      list(admin_(), { priority: 'NORMAL' }),
+      list(head(ids.v1), { priority: 'URGENT' }),
+      list(head(ids.v3, 'OPEN'), { priority: 'URGENT', status: 'OPEN' }),
+    ]) {
+      const result = await plan(run);
+      expect(result.seqScans).toEqual([]);
+      expect(result.time).toBeLessThan(100);
+    }
+  });
+
   it('uses a vertical or open-status index for a narrow vertical with a status filter', async () => {
     const result = await plan(list(head(ids.v3, 'OPEN'), { status: 'OPEN' }));
     // The partial OPEN index (V2b) may beat the vertical ordering index for a narrow vertical; either avoids a table scan.
