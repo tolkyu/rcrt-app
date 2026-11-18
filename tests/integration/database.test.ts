@@ -727,7 +727,7 @@ describe('Phase 1 PostgreSQL migrations [FND-1, ROLE-01, HIST-03, AUD]', () => {
       user_role: readWrite,
       user_session: noDelete,
       vacancy: ['INSERT', 'SELECT'],
-      vacancy_recruiter: ['INSERT', 'SELECT'],
+      vacancy_recruiter: ['DELETE', 'INSERT', 'SELECT'],
       vertical: noDelete,
     };
     const purgeTable: Partial<
