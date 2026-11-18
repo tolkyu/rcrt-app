@@ -1271,6 +1271,14 @@
           "renamed": "Перейменовано посаду",
           "deactivated": "Деактивовано посаду",
           "reactivated": "Відновлено посаду"
+        },
+        "vacancy": {
+          "created": "Створено вакансію",
+          "recruiter_assigned": "Призначено рекрутера на вакансію",
+          "recruiter_unassigned": "Знято рекрутера з вакансії",
+          "team_lead_assigned": "Призначено тімліда на вакансію",
+          "status_changed": "Змінено статус вакансії",
+          "urgency_changed": "Змінено терміновість вакансії"
         }
       },
       "actionUnknown": "Інша дія ({code})",
