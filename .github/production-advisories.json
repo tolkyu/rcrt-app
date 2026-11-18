@@ -1,0 +1,10 @@
+[
+  {
+    "ghsa": "GHSA-fc5q-39xc-vjpf",
+    "module": "picomatch",
+    "severity": "high",
+    "paths": [".>next-intl>@parcel/watcher>picomatch"],
+    "reason": "Fixed picomatch 4.0.8 not published on npm; @parcel/watcher is reached only by the next-intl dev-time message extractor, which this app does not enable, and only with fixed ignore globs. See docs/security/dependency-audit-picomatch.md.",
+    "until": "2026-12-18"
+  }
+]

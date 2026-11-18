@@ -44,4 +44,81 @@ describe('Dependency audit policy [SEC, T-S06]', () => {
       assessAudit({ error: 'unavailable' }, empty, policy),
     ).toThrow();
   });
+
+  describe('time-boxed production exemption', () => {
+    const prodAdvisory = {
+      ...advisory,
+      module_name: 'fixture-runtime',
+      findings: [{ paths: ['.>fixture-parent>fixture-runtime'] }],
+    };
+    const prodReport = { advisories: { one: prodAdvisory }, metadata };
+    const exemption = {
+      ghsa: 'GHSA-1111-2222-3333',
+      module: 'fixture-runtime',
+      severity: 'high',
+      paths: ['.>fixture-parent>fixture-runtime'],
+      reason: 'No fixed version published',
+      until: '2026-12-18',
+    };
+    const before = new Date('2026-11-18T00:00:00Z');
+
+    it('accepts the exact advisory, module, severity and path before the deadline', () => {
+      expect(assessAudit(prodReport, empty, policy, [exemption], before)).toBe(
+        0,
+      );
+    });
+    it('fails once the deadline has passed', () => {
+      expect(() =>
+        assessAudit(
+          prodReport,
+          empty,
+          policy,
+          [exemption],
+          new Date('2026-12-19T00:00:00Z'),
+        ),
+      ).toThrow('Production');
+    });
+    it.each([
+      {
+        ...prodAdvisory,
+        url: 'https://github.com/advisories/GHSA-new1-new2-new3',
+      },
+      { ...prodAdvisory, module_name: 'other-runtime' },
+      { ...prodAdvisory, severity: 'critical' },
+      {
+        ...prodAdvisory,
+        findings: [{ paths: ['.>other-parent>fixture-runtime'] }],
+      },
+      {
+        ...prodAdvisory,
+        findings: [
+          {
+            paths: [
+              '.>fixture-parent>fixture-runtime',
+              '.>app>fixture-runtime',
+            ],
+          },
+        ],
+      },
+      { ...prodAdvisory, findings: [] },
+    ])(
+      'still rejects a different or wider production advisory: %j',
+      (entry) => {
+        expect(() =>
+          assessAudit(
+            { advisories: { one: entry }, metadata },
+            empty,
+            policy,
+            [exemption],
+            before,
+          ),
+        ).toThrow('Production');
+      },
+    );
+    it('keeps zero tolerance without an exemption', () => {
+      expect(() => assessAudit(prodReport, empty, policy, [], before)).toThrow(
+        'Production',
+      );
+    });
+  });
 });

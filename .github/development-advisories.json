@@ -142,5 +142,30 @@
     "module": "node-forge",
     "severity": "high",
     "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-rhr8-3pm8-cq29",
+    "module": "node-forge",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-6qrw-m8cv-hcxf",
+    "module": "node-forge",
+    "severity": "high",
+    "pathPrefixes": [".>newman>"]
+  },
+  {
+    "ghsa": "GHSA-fc5q-39xc-vjpf",
+    "module": "picomatch",
+    "severity": "high",
+    "pathPrefixes": [
+      ".>vite>",
+      ".>vitest>",
+      ".>@vitest/",
+      ".>typescript-eslint>",
+      ".>@next/eslint-plugin-next>",
+      ".>next-intl>@parcel/watcher>"
+    ]
   }
 ]

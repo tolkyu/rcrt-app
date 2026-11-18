@@ -22,24 +22,69 @@ const policySchema = z.array(
     pathPrefixes: z.array(z.string()).min(1),
   }),
 );
+const productionPolicySchema = z.array(
+  z.object({
+    ghsa: z.string(),
+    module: z.string(),
+    severity: z.enum(['info', 'low', 'moderate', 'high', 'critical']),
+    paths: z.array(z.string()).min(1),
+    reason: z.string().min(1),
+    until: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  }),
+);
 type Report = z.infer<typeof reportSchema>;
+
+function ghsaOf(url: string) {
+  return url.match(/^https:\/\/github\.com\/advisories\/(GHSA-[\w-]+)$/)?.[1];
+}
+
+/** A production exemption names one advisory, module and exact dependency paths, and lapses on `until` so it cannot outlive its review. */
+function unacceptedProduction(
+  prod: Report,
+  accepted: z.infer<typeof productionPolicySchema>,
+  now: Date,
+) {
+  return Object.values(prod.advisories).filter((entry) => {
+    const ghsa = ghsaOf(entry.url);
+    const exemption = accepted.find(
+      (item) =>
+        item.ghsa === ghsa &&
+        item.module === entry.module_name &&
+        item.severity === entry.severity,
+    );
+    const paths = entry.findings.flatMap((finding) => finding.paths);
+    return (
+      !exemption ||
+      now.getTime() >= Date.parse(`${exemption.until}T23:59:59.999Z`) ||
+      paths.length === 0 ||
+      paths.some((path) => !exemption.paths.includes(path))
+    );
+  });
+}
 
 export function assessAudit(
   production: unknown,
   tooling: unknown,
   accepted: unknown,
+  productionAccepted: unknown = [],
+  now: Date = new Date(),
 ) {
   const prod = reportSchema.parse(production);
   const dev = reportSchema.parse(tooling);
   const policy = policySchema.parse(accepted);
-  if (Object.keys(prod.advisories).length)
-    throw new Error('Production dependency audit must have zero advisories');
+  const blockingProduction = unacceptedProduction(
+    prod,
+    productionPolicySchema.parse(productionAccepted),
+    now,
+  );
+  if (blockingProduction.length)
+    throw new Error(
+      `Production dependency audit must have zero unaccepted advisories: ${blockingProduction.map((entry) => `${entry.module_name} ${entry.url}`).join(', ')}`,
+    );
   const blocking = Object.values(dev.advisories).filter((entry) => {
     if (entry.severity !== 'high' && entry.severity !== 'critical')
       return false;
-    const ghsa = entry.url.match(
-      /^https:\/\/github\.com\/advisories\/(GHSA-[\w-]+)$/,
-    )?.[1];
+    const ghsa = ghsaOf(entry.url);
     const exemption = policy.find(
       (item) =>
         item.ghsa === ghsa &&
@@ -87,8 +132,16 @@ if (
   const accepted: unknown = JSON.parse(
     readFileSync('.github/development-advisories.json', 'utf8'),
   );
-  const count = assessAudit(audit(['--prod']), audit([]), accepted);
+  const productionAccepted: unknown = JSON.parse(
+    readFileSync('.github/production-advisories.json', 'utf8'),
+  );
+  const count = assessAudit(
+    audit(['--prod']),
+    audit([]),
+    accepted,
+    productionAccepted,
+  );
   console.info(
-    `Dependency audit passed: production zero; ${count} tooling advisories (known high/critical IDs explicitly scoped).`,
+    `Dependency audit passed: production has no unaccepted advisories (time-boxed exemptions only); ${count} tooling advisories (known high/critical IDs explicitly scoped).`,
   );
 }
