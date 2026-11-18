@@ -115,7 +115,7 @@ const wanted = (png: Capture['png'], info: TestInfo, theme: string) =>
     (viewportOf(info) === 'desktop' || png.mobile === true));
 
 /** An open menu is scanned with `main` only: the page behind it is inert. */
-async function scanState(page: Page, info: TestInfo) {
+export async function scanState(page: Page, info: TestInfo) {
   if (!(await page.getByRole('menu').count()))
     return checkAccessibility(page, info);
   const result = await new AxeBuilder({ page })
