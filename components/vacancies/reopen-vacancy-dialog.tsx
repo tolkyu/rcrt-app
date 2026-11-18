@@ -2,7 +2,7 @@
 
 import { Minus, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FormField } from '@/components/ui/form-field';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,7 @@ export default function ReopenVacancyDialog({
   const { pending, error, reopen, mountedRef } = useStatusWrite(vacancy);
   const [text, setText] = useState(String(vacancy.headcount));
   const [checked, setChecked] = useState(false);
+  const fieldRef = useRef<HTMLInputElement>(null);
   const count = parseHeadcount(text);
   const step = (by: number) => {
     setChecked(false);
@@ -51,6 +52,7 @@ export default function ReopenVacancyDialog({
       title={t('title')}
       vacancy={vacancy}
       pending={pending}
+      initialFocus={fieldRef}
       onClose={onClose}
       onCloseAutoFocus={onCloseAutoFocus}
       footer={
@@ -90,7 +92,7 @@ export default function ReopenVacancyDialog({
             </Button>
             <Input
               {...control}
-              autoFocus
+              ref={fieldRef}
               value={text}
               inputMode="numeric"
               autoComplete="off"

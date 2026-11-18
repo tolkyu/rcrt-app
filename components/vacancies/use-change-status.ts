@@ -18,6 +18,7 @@ import type { TeamOutcome } from '@/lib/vacancy-team';
 import { useSubmissionLock } from './use-submission-lock';
 import {
   refusalNext,
+  useFailureText,
   useSeenVersion,
   useTeamWrite,
   type TeamNext,
@@ -90,7 +91,7 @@ export function useToggleStatus(vacancy: StatusSubject) {
 /** Cancel and reopen: one request per dialog, the version is the one the dialog opened with, and every refusal has its place (inline text, or the shared toast that ends the dialog). */
 export function useStatusWrite(vacancy: StatusSubject) {
   const t = useTranslations('vacancies.statusMenu');
-  const tTeam = useTranslations('vacancies.team');
+  const failureText = useFailureText();
   const tConflict = useTranslations('vacancies.teamConflicts');
   const tStatus = useTranslations('vacancies.status');
   const tReason = useTranslations('vacancies.draft.close.error');
@@ -158,16 +159,16 @@ export function useStatusWrite(vacancy: StatusSubject) {
     });
   };
 
-  const { failure } = write;
   const error = badReason
     ? tReason('invalid')
-    : failure === 'stale'
-      ? t('stale')
-      : failure === 'statusInvalid'
-        ? tConflict('VACANCY_STATUS_INVALID')
-        : failure === 'network' || failure === 'failed'
-          ? tTeam('noConnection')
-          : undefined;
+    : failureText(
+        write.failure,
+        {
+          stale: t('stale'),
+          statusInvalid: tConflict('VACANCY_STATUS_INVALID'),
+        },
+        ['gone', 'forbidden', 'rateLimited'],
+      );
 
   return { ...write, error, cancel, reopen };
 }
