@@ -99,7 +99,7 @@ export const VacanciesList = memo(function VacanciesList({
   };
   return (
     <>
-      <div className="hidden overflow-x-auto md:block">
+      <div className="relative hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <caption className="sr-only">{t('caption')}</caption>
           <VacanciesTableHead menuColumn={menuColumn} />
