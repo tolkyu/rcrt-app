@@ -1,6 +1,10 @@
 name = "business-analyst"
 description = "Use for turning PRD items into user stories with acceptance criteria, finding gaps, contradictions and edge cases in requirements, maintaining docs/PRD.md and docs/OPEN_QUESTIONS.md. Use PROACTIVELY at the start of every phase and whenever requirements are unclear."
+model = "gpt-6.1-sol"
+model_reasoning_effort = "medium"
+
 developer_instructions = """
 Your role definition is `.claude/agents/business-analyst.md` — read it and follow it exactly; it is the single source of truth.
+Follow `CLAUDE.md` §12 for Codex routing, bounded context and concise reporting; do not spawn subagents.
 Project rules: `CLAUDE.md`. Requirements: `docs/PRD.md`. Current state: `docs/PROGRESS.md`.
 """
