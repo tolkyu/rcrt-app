@@ -39,7 +39,12 @@ describe('«Поділитися» clipboard failure [STORY-UI-09-1 L5]', () => 
   ])(
     'shows the alert with the message and the link for %s, no success toast, focus on the button',
     async (_name, writeText) => {
-      stubClipboard(writeText as () => Promise<void>);
+      if (_name === 'an insecure context without a clipboard') {
+        Object.defineProperty(navigator, 'clipboard', {
+          configurable: true,
+          value: undefined,
+        });
+      } else stubClipboard(writeText);
       mount(createElement(VacancyOverview, { vacancy: detail() }));
       const button = shareButton()!;
       await userEvent.click(button);
@@ -48,10 +53,21 @@ describe('«Поділитися» clipboard failure [STORY-UI-09-1 L5]', () => 
       expect(messages.vacancies.shareFailed).toBe(
         'Не вдалося скопіювати посилання. Скопіюйте його вручну:',
       );
-      const link = within(alert).getByRole('link');
-      expect(link.textContent).toBe(`/vacancies/${SHARE_ID}`);
-      expect(link.getAttribute('href')).toBe(`/vacancies/${SHARE_ID}`);
+      const input = within(alert).getByRole<HTMLInputElement>('textbox', {
+        name: 'Посилання на вакансію',
+      });
+      expect(input.value).toBe(
+        `${window.location.origin}/vacancies/${SHARE_ID}`,
+      );
+      expect(input.readOnly).toBe(true);
+      expect(input.selectionStart).toBe(0);
+      expect(input.selectionEnd).toBe(input.value.length);
       expect(toast.success).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(button);
+      await userEvent.click(
+        within(alert).getByRole('button', { name: messages.common.close }),
+      );
+      expect(screen.queryByRole('alert')).toBeNull();
       expect(document.activeElement).toBe(button);
     },
   );
@@ -62,8 +78,8 @@ describe('«Поділитися» clipboard failure [STORY-UI-09-1 L5]', () => 
     mount(createElement(VacancyOverview, { vacancy: detail() }));
     await userEvent.click(shareButton()!);
     const alert = await screen.findByRole('alert');
-    expect(within(alert).getByRole('link').textContent).toBe(
-      `/vacancies/${SHARE_ID}`,
+    expect(within(alert).getByRole<HTMLInputElement>('textbox').value).toBe(
+      `${window.location.origin}/vacancies/${SHARE_ID}`,
     );
   });
 });

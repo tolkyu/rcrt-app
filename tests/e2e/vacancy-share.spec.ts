@@ -18,7 +18,6 @@ import {
 import { openHydrated, waitForHydration } from '../support/hydration';
 import { demoVacancy } from '../support/vacancy-demo';
 import { vacancyRecordCounts } from '../support/vacancy-evidence-db';
-import { captureScreen, viewportOf } from './screens';
 
 const t = messages.vacancies;
 const target = demoVacancy(5);
@@ -208,6 +207,55 @@ test.describe('signed-out recipient [STORY-UI-09-1 L3, DG-15]', () => {
 test.describe('Admin presses «Поділитися» [STORY-UI-09-1]', () => {
   test.use({ storageState: sessionFile('admin@demo') });
 
+  test('unavailable clipboard fallback clears after a successful retry', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: undefined,
+      });
+    });
+    await openHydrated(page, path);
+    await shareButton(page).click();
+    await expect(
+      failureAlert(page).getByRole('textbox', { name: t.shareLinkLabel }),
+    ).toHaveValue(`${E2E_ORIGIN}${path}`);
+    await expect(shareButton(page)).toBeFocused();
+    await expect(copiedToast(page)).toHaveCount(0);
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: () => Promise.resolve() },
+      });
+    });
+    await shareButton(page).click();
+    await expect(copiedToast(page)).toBeVisible();
+    await expect(failureAlert(page)).toHaveCount(0);
+  });
+
+  test('blocked clipboard fallback also works in the preview', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, 'the preview panel exists on wide screens only');
+    await blockClipboard(page);
+    await openHydrated(page, `/vacancies?q=${target.number}`);
+    const preview = page.getByRole('complementary', { name: t.previewLabel });
+    const share = preview.getByRole('button', { name: t.share, exact: true });
+    await share.click();
+    const alert = preview.getByRole('alert');
+    await expect(
+      alert.getByRole('textbox', { name: t.shareLinkLabel }),
+    ).toHaveValue(`${E2E_ORIGIN}${path}`);
+    await expect(share).toBeFocused();
+    await alert
+      .getByRole('button', { name: messages.common.close, exact: true })
+      .click();
+    await expect(alert).toHaveCount(0);
+    await expect(share).toBeFocused();
+  });
+
   test('a press writes no audit row, timeline event or request, with the clipboard working or blocked', async ({
     page,
     context,
@@ -279,20 +327,27 @@ test.describe('Admin presses «Поділитися» [STORY-UI-09-1]', () => {
     await shareButton(page).click();
     const alert = failureAlert(page);
     await expect(alert).toBeVisible();
-    await expect(alert.getByRole('link')).toHaveText(path);
+    const input = alert.getByRole('textbox', { name: t.shareLinkLabel });
+    await expect(input).toHaveValue(`${E2E_ORIGIN}${path}`);
+    await expect(input).toHaveAttribute('readonly');
+    expect(
+      await input.evaluate((element: HTMLInputElement) => ({
+        start: element.selectionStart,
+        end: element.selectionEnd,
+        fontSize: Number.parseFloat(getComputedStyle(element).fontSize),
+      })),
+    ).toEqual({ start: 0, end: `${E2E_ORIGIN}${path}`.length, fontSize: 16 });
     await expect(shareButton(page)).toBeFocused();
     await expect(copiedToast(page)).toHaveCount(0);
     await shareButton(page).click();
     await expect(failureAlert(page)).toHaveCount(1);
     await expect(shareButton(page)).toBeFocused();
     await checkAccessibility(page, testInfo);
-    if (viewportOf(testInfo) === 'desktop')
-      await captureScreen(
-        page,
-        testInfo,
-        '47-admin-vacancy-share-clipboard-blocked-desktop-light.png',
-        'phase-2',
-      );
+    await alert
+      .getByRole('button', { name: messages.common.close, exact: true })
+      .click();
+    await expect(failureAlert(page)).toHaveCount(0);
+    await expect(shareButton(page)).toBeFocused();
   });
 
   for (const [name, size] of [
@@ -317,10 +372,10 @@ test.describe('Admin presses «Поділитися» [STORY-UI-09-1]', () => {
         return {
           page: document.documentElement.scrollWidth <= width,
           alert: within(document.querySelector('[role="alert"]')),
-          link: within(document.querySelector('[role="alert"] a')),
+          input: within(document.querySelector('[role="alert"] input')),
         };
       });
-      expect(inside).toEqual({ page: true, alert: true, link: true });
+      expect(inside).toEqual({ page: true, alert: true, input: true });
       await expect(shareButton(page)).toBeVisible();
     });
 });

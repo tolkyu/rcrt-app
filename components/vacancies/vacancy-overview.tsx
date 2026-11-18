@@ -9,10 +9,12 @@ import {
   useMemo,
   useRef,
   useState,
+  type ComponentProps,
   type ReactNode,
 } from 'react';
 import { Button } from '@/components/ui/button';
 import { DetailHeader } from '@/components/ui/detail-header';
+import { Input } from '@/components/ui/input';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
 import { isPrivateDraft, ownDraftActions } from '@/lib/vacancy-draft-actions';
 import { toast } from '@/lib/toast';
@@ -34,7 +36,18 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-export function VacancyOverview({
+export function VacancyOverview(
+  props: ComponentProps<typeof VacancyOverviewContent>,
+) {
+  return (
+    <VacancyOverviewContent
+      key={props.vacancy.id}
+      {...props}
+    />
+  );
+}
+
+function VacancyOverviewContent({
   vacancy,
   preview = false,
   canAuthorDrafts = false,
@@ -46,8 +59,18 @@ export function VacancyOverview({
   onClaimLost?: () => void;
 }) {
   const t = useTranslations('vacancies');
-  const [copyFailed, setCopyFailed] = useState(false);
+  const common = useTranslations('common');
+  const [failedUrl, setFailedUrl] = useState<string | null>(null);
   const [copying, setCopying] = useState(false);
+  const copyPending = useRef(false);
+  const mounted = useRef(false);
+  const shareRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const actionsRef = useRef<HTMLDivElement>(null);
   const publishRef = useRef<HTMLButtonElement>(null);
   const focusRequest = useRef<'header' | 'publish' | null>(null);
@@ -100,17 +123,19 @@ export function VacancyOverview({
   const path = `/vacancies/${vacancy.id}`;
   const Heading = preview ? 'h3' : 'h2';
   const copy = async () => {
+    if (copyPending.current) return;
+    copyPending.current = true;
     setCopying(true);
-    setCopyFailed(false);
+    setFailedUrl(null);
+    const url = new URL(path, window.location.origin).href;
     try {
-      await navigator.clipboard.writeText(
-        new URL(path, window.location.origin).href,
-      );
-      toast.success(t('shareCopied'));
+      await navigator.clipboard.writeText(url);
+      if (mounted.current) toast.success(t('shareCopied'));
     } catch {
-      setCopyFailed(true);
+      if (mounted.current) setFailedUrl(url);
     } finally {
-      setCopying(false);
+      copyPending.current = false;
+      if (mounted.current) setCopying(false);
     }
   };
   const absent = t('notSpecified');
@@ -168,11 +193,12 @@ export function VacancyOverview({
             )}
             {!privateDraft && (
               <Button
+                ref={shareRef}
                 size="sm"
                 variant="outline"
                 className="h-11"
                 onClick={() => void copy()}
-                disabled={copying}
+                aria-disabled={copying}
               >
                 <Share2 aria-hidden="true" />
                 {t('share')}
@@ -181,15 +207,35 @@ export function VacancyOverview({
           </>
         }
       />
-      {copyFailed && (
-        <div role="alert" className="bg-surface-muted rounded-lg p-3 text-sm">
+      {failedUrl && !privateDraft && (
+        <div
+          role="alert"
+          className="border-warning/30 bg-warning-subtle rounded-lg border p-3 text-sm"
+        >
           <p>{t('shareFailed')}</p>
-          <a
-            href={path}
-            className="text-link mt-1 inline-block min-h-11 py-2 break-all underline"
+          <Input
+            className="mt-2 text-base md:text-base"
+            aria-label={t('shareLinkLabel')}
+            readOnly
+            value={failedUrl}
+            ref={(input) => {
+              if (!input) return;
+              const focused = document.activeElement;
+              input.select();
+              if (focused instanceof HTMLElement)
+                focused.focus({ preventScroll: true });
+            }}
+          />
+          <Button
+            variant="ghost"
+            className="mt-2"
+            onClick={() => {
+              setFailedUrl(null);
+              shareRef.current?.focus();
+            }}
           >
-            {path}
-          </a>
+            {common('close')}
+          </Button>
         </div>
       )}
       {vacancy.cancelReason && (
