@@ -29,6 +29,12 @@ import {
   vacancyAuthorKind,
   type VacancyAuthorKind,
 } from '../authz/vacancy-author';
+import {
+  canAssignRecruiters,
+  canSelfAssign,
+  canSetTeamLead,
+} from '../authz/vacancy-assignment';
+import { permittedStatusActions } from '../authz/vacancy-status';
 import { canChangeUrgency } from '../authz/vacancy-urgency';
 import {
   findVisibleVacancyOrThrow,
@@ -48,6 +54,7 @@ import {
 } from '../http/errors';
 import { uuidOf } from '../http/params';
 import { claimIdempotencyKey } from '../repositories/idempotency';
+import { isEligibleRecruiterRow } from '../repositories/recruiter-eligibility';
 import { isEligibleTeamLeadRow } from '../repositories/team-lead-eligibility';
 import { listRoleAssignments, lockUsersShared } from '../repositories/user';
 import { verticalExists } from '../repositories/vertical';
@@ -138,6 +145,25 @@ export async function readVacancy(
     canChangeUrgency: canChangeUrgency(ctx.auth, {
       verticalId,
       status: detail.status,
+    }),
+    canSelfAssign: canSelfAssign(ctx.auth, {
+      verticalId,
+      status: detail.status,
+      recruiters: detail.recruiters,
+    }),
+    canAssignRecruiters: canAssignRecruiters(ctx.auth, {
+      verticalId,
+      status: detail.status,
+    }),
+    canSetTeamLead: canSetTeamLead(ctx.auth, {
+      verticalId,
+      status: detail.status,
+      teamLead: detail.teamLead,
+    }),
+    statusActions: permittedStatusActions(ctx.auth, {
+      verticalId,
+      status: detail.status,
+      teamLeadId: detail.teamLead?.id ?? null,
     }),
   };
 }
@@ -234,14 +260,9 @@ export async function lockAuthors(
   const roles = await listRoleAssignments(tx, involved);
   if (!locked.some((user) => user.id === ctx.auth.userId && user.isActive))
     throw new ForbiddenError();
-  return {
-    auth: buildAuthContext({
-      userId: ctx.auth.userId as UserId,
-      roles: roles.filter((role) => role.userId === ctx.auth.userId),
-      aal: ctx.auth.aal,
-      timezone: ctx.auth.timezone,
-    }),
-    isEligibleTeamLead: (userId: string, verticalId: VerticalId) => {
+  const eligibleIn =
+    (isEligibleRow: typeof isEligibleTeamLeadRow) =>
+    (userId: string, verticalId: VerticalId) => {
       const user = locked.find((row) => row.id === userId);
       return (
         user !== undefined &&
@@ -249,10 +270,19 @@ export async function lockAuthors(
           (role) =>
             role.userId === userId &&
             role.verticalId === verticalId &&
-            isEligibleTeamLeadRow(user, role),
+            isEligibleRow(user, role),
         )
       );
-    },
+    };
+  return {
+    auth: buildAuthContext({
+      userId: ctx.auth.userId as UserId,
+      roles: roles.filter((role) => role.userId === ctx.auth.userId),
+      aal: ctx.auth.aal,
+      timezone: ctx.auth.timezone,
+    }),
+    isEligibleTeamLead: eligibleIn(isEligibleTeamLeadRow),
+    isEligibleRecruiter: eligibleIn(isEligibleRecruiterRow),
   };
 }
 

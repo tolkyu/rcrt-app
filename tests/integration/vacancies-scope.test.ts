@@ -27,10 +27,12 @@ import {
 } from '../support/vacancy-world';
 import { connectTestDatabase, testDatabaseUrls } from './database';
 
-/** Detail flags such as `canChangeUrgency` depend on the viewer, so cross-role equality covers the vacancy data only. */
+/** Detail flags such as `canChangeUrgency` and `statusActions` depend on the viewer, so cross-role equality covers the vacancy data only. */
 const vacancyData = (detail: Record<string, unknown>) =>
   Object.fromEntries(
-    Object.entries(detail).filter(([key]) => !/^can[A-Z]/.test(key)),
+    Object.entries(detail).filter(
+      ([key]) => !/^can[A-Z]/.test(key) && key !== 'statusActions',
+    ),
   );
 
 const urls = testDatabaseUrls();

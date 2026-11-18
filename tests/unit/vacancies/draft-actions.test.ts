@@ -41,6 +41,10 @@ const draft = (changes: Partial<VacancyDetail> = {}): VacancyDetail => ({
   recruiterInitiated: true,
   version: 1,
   canChangeUrgency: false,
+  canSelfAssign: false,
+  canAssignRecruiters: false,
+  canSetTeamLead: false,
+  statusActions: [],
   ...changes,
 });
 

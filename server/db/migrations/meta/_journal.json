@@ -113,6 +113,13 @@
       "when": 1794255604079,
       "tag": "0015_vacancy_draft_lifecycle",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794984643294,
+      "tag": "0016_vacancy_recruiter_delete",
+      "breakpoints": true
     }
   ]
 }

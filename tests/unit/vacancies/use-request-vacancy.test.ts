@@ -58,6 +58,10 @@ const created = (): VacancyDetail => ({
   recruiterInitiated: false,
   version: 1,
   canChangeUrgency: false,
+  canSelfAssign: false,
+  canAssignRecruiters: false,
+  canSetTeamLead: false,
+  statusActions: [],
 });
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {

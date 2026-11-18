@@ -55,6 +55,10 @@ const detail = (
   recruiterInitiated: true,
   version: 3,
   canChangeUrgency: false,
+  canSelfAssign: false,
+  canAssignRecruiters: false,
+  canSetTeamLead: false,
+  statusActions: [],
 });
 const page = (...rows: [string, string][]): VacancyPage => ({
   items: rows.map(([id, number]) => summary(id, number)),
