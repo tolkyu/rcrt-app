@@ -67,7 +67,10 @@ import {
   listVacancies,
   type VacancySummaryRow,
 } from '../repositories/vacancy';
-import { findCancelReason } from '../repositories/vacancy-cancel-reason';
+import {
+  findCancelReason,
+  findCancelReasonOfVacancy,
+} from '../repositories/vacancy-cancel-reason';
 import { requestHash } from '../security/idempotency';
 import {
   consumeRateLimit,
@@ -176,14 +179,15 @@ export async function getVacancyDetail(
   const id = uuidOf(rawId);
   if (!id) throw new NotFoundError();
   const view = await readVacancy(ctx, ctx.db, id);
-  if (!isNeverOpenedCancelled(view.status, view.openedAt === null)) return view;
-  // D123: only the user who cancelled the draft reads the reason; the query is keyed on the caller, not on role.
-  const cancelReason = await findCancelReason(
-    ctx.db,
-    id,
-    ctx.auth.userId,
-    vacancyEventReadWhere(ctx.auth),
-  );
+  if (view.status !== 'CANCELLED') return view;
+  const visible = vacancyEventReadWhere(ctx.auth);
+  // D123 keeps a never-opened draft's reason author-only (keyed on the caller); a published vacancy's reason follows the vacancy read scope (D130-4).
+  const cancelReason = isNeverOpenedCancelled(
+    view.status,
+    view.openedAt === null,
+  )
+    ? await findCancelReason(ctx.db, id, ctx.auth.userId, visible)
+    : await findCancelReasonOfVacancy(ctx.db, id, visible);
   return cancelReason === null ? view : { ...view, cancelReason };
 }
 
