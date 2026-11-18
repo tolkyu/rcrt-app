@@ -254,7 +254,7 @@ export const createVacancySchema = z
 export type CreateVacancyInput = z.input<typeof createVacancySchema>;
 export type CreateVacancyBody = z.output<typeof createVacancySchema>;
 
-const expectedVersion = z.number().int().positive().meta({
+export const expectedVersion = z.number().int().positive().meta({
   description:
     'Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved.',
 });
