@@ -75,3 +75,4 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] A refactor that extracts a shared hook, helper or schema greps every consumer (`export *` chains included) and names them in the hand-back; a change to a shared invalidation list (e.g. `applyCreatedVacancy`) names each flow it affects.
 - [ ] A flag or ref set by a key-scoped component (`key={id}`) is reset when the key changes, not only on unmount.
 - [ ] A new viewer-dependent DTO field (`can*` flag) is checked against tests that compare one DTO across roles (`grep -rn "toEqual(baseline" tests/integration`); run those integration files.
+- [ ] A shared predicate extracted from an existing check keeps a test of the old entry point with the same inputs; its SQL fragment and row predicate are tested together in the same slice.
