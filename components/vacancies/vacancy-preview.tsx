@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl';
 import { SectionError } from '@/components/states/section-error';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api-client';
+import { withVacancySelection } from '@/lib/vacancy-filters';
+import { navigateVacancies } from '@/lib/vacancy-navigation';
 import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
 import { VacancyOverview } from './vacancy-overview';
 
@@ -24,6 +26,12 @@ export function VacancyPreview({
         vacancy={query.data}
         preview
         canAuthorDrafts={canAuthorDrafts}
+        onClaimLost={() =>
+          navigateVacancies(
+            (current) => withVacancySelection(current, undefined),
+            'replaceState',
+          )
+        }
       />
     );
   if (query.error instanceof ApiError && query.error.status === 404)

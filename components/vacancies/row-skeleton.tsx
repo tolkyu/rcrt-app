@@ -52,6 +52,9 @@ export function RowSkeleton({
                     <Line height="h-5" className="w-28" />
                   </td>
                   <td className="px-4 py-3">
+                    <Line height="h-5" className="w-20" />
+                  </td>
+                  <td className="px-4 py-3">
                     <Skeleton className="h-6.5 w-24 rounded-full" />
                   </td>
                   <td className="px-4 py-3 xl:max-2xl:hidden">

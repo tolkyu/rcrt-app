@@ -124,6 +124,7 @@ describe('VacanciesList [STORY-VAC-04-1, UI-04..07]', () => {
       onSelect: props.onSelect ?? vi.fn(),
       onPreviewIntent: props.onPreviewIntent ?? vi.fn(),
       canAuthorDrafts: false,
+      selfAssignVerticals: [],
     });
 
   it('links each title to the real card and shows number, badges and honest placeholders', () => {
@@ -141,7 +142,10 @@ describe('VacanciesList [STORY-VAC-04-1, UI-04..07]', () => {
     const draft = within(table)
       .getByRole('link', { name: second.title })
       .closest('tr')!;
-    expect(within(draft).getByText(messages.vacancies.unassigned)).toBeTruthy();
+    // Team Lead cell and the recruiters cell (an em dash with a screen-reader name) both say it.
+    expect(
+      within(draft).getAllByText(messages.vacancies.unassigned),
+    ).toHaveLength(2);
     expect(
       within(draft).getByText(messages.vacancies.notOpenedYet),
     ).toBeTruthy();
@@ -327,6 +331,7 @@ describe('urgent highlight [STORY-VAC-04-4, D97]', () => {
         onSelect: vi.fn(),
         onPreviewIntent: vi.fn(),
         canAuthorDrafts: false,
+        selfAssignVerticals: [],
       }),
     );
     const edge = 'var(--destructive)';
@@ -375,6 +380,7 @@ describe('urgent highlight [STORY-VAC-04-4, D97]', () => {
           onSelect: vi.fn(),
           onPreviewIntent: vi.fn(),
           canAuthorDrafts: false,
+          selfAssignVerticals: [],
         }),
       );
     const rows = () => within(screen.getByRole('table')).getAllByRole('row');
@@ -487,9 +493,9 @@ describe('VacancyOverview [STORY-VAC-04-2, UI-09]', () => {
     );
     expect(screen.getByText('V-0001')).toBeTruthy();
     expect(screen.getByText('Василь Петренко')).toBeTruthy();
-    expect(screen.getByText(/Оксана Кравець/).textContent).toContain(
-      messages.vacancies.inactive,
-    );
+    expect(
+      screen.getByText(messages.vacancies.team.recruiterInactive),
+    ).toBeTruthy();
     expect(screen.getByText(/1\s?500,00.*2\s?500,00/)).toBeTruthy();
     expect(screen.getByText('90 днів')).toBeTruthy();
     expect(screen.getByText('2 місця')).toBeTruthy();
@@ -507,7 +513,8 @@ describe('VacancyOverview [STORY-VAC-04-2, UI-09]', () => {
       }),
     );
     expect(screen.queryByText(messages.vacancies.fields.openedAt)).toBeNull();
-    expect(screen.getAllByText(messages.vacancies.unassigned)).toHaveLength(2);
+    expect(screen.getByText(messages.vacancies.team.noTeamLead)).toBeTruthy();
+    expect(screen.getByText(messages.vacancies.team.noRecruiters)).toBeTruthy();
     expect(
       screen
         .getByRole('link', { name: messages.vacancies.openCard })

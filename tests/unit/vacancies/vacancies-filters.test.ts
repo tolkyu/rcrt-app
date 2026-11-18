@@ -52,6 +52,7 @@ const view = (canAuthorDrafts = true, canRequestVacancy = false) =>
     children: createElement(VacanciesView, {
       canManagePositions: false,
       canAuthorDrafts,
+      selfAssignVerticals: [],
       canRequestVacancy,
     }),
   });

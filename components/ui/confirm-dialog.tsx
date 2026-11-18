@@ -2,7 +2,7 @@
 
 import { CircleAlert, LoaderCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useRef, useState, type ReactNode, type Ref } from 'react';
 import { hasVisibleChar } from '@/lib/visible-text';
 import { trimmedTextLength } from '@/lib/text-length';
 import { cn } from '@/lib/utils';
@@ -46,6 +46,8 @@ export interface ConfirmDialogProps {
   error?: ReactNode;
   onConfirm: (reason: string) => void;
   onCloseAutoFocus?: (event: Event) => void;
+  /** Opens on the primary button instead of Cancel, for a non-destructive action Enter should confirm. */
+  focusConfirm?: boolean;
 }
 
 /** The counter turns to a warning once this share of the limit is used (450 of 500). */
@@ -67,7 +69,11 @@ function ConfirmBody({
   pending = false,
   error,
   onConfirm,
-}: Omit<ConfirmDialogProps, 'open' | 'onOpenChange' | 'onCloseAutoFocus'>) {
+  confirmRef,
+}: Omit<
+  ConfirmDialogProps,
+  'open' | 'onOpenChange' | 'onCloseAutoFocus' | 'focusConfirm'
+> & { confirmRef: Ref<HTMLButtonElement> }) {
   const t = useTranslations('common');
   const fieldId = useId();
   const [text, setText] = useState('');
@@ -164,6 +170,7 @@ function ConfirmBody({
           className="max-md:w-full"
         >
           <Button
+            ref={confirmRef}
             variant={tone === 'destructive' ? 'destructive' : 'default'}
             aria-disabled={pending || undefined}
             aria-busy={pending || undefined}
@@ -205,8 +212,10 @@ export function ConfirmDialog({
   open,
   onOpenChange,
   onCloseAutoFocus,
+  focusConfirm = false,
   ...body
 }: ConfirmDialogProps) {
+  const confirmRef = useRef<HTMLButtonElement>(null);
   // A request in flight cannot be cancelled from here: closing would hide its outcome.
   const requestOpenChange = (next: boolean) => {
     if (!(body.pending && !next)) onOpenChange(next);
@@ -215,10 +224,18 @@ export function ConfirmDialog({
     <AlertDialog open={open} onOpenChange={requestOpenChange}>
       <AlertDialogContent
         onCloseAutoFocus={onCloseAutoFocus}
+        onOpenAutoFocus={
+          focusConfirm
+            ? (event) => {
+                event.preventDefault();
+                confirmRef.current?.focus();
+              }
+            : undefined
+        }
         onOverlayPress={() => requestOpenChange(false)}
         {...(body.description ? {} : { 'aria-describedby': undefined })}
       >
-        <ConfirmBody {...body} />
+        <ConfirmBody {...body} confirmRef={confirmRef} />
       </AlertDialogContent>
     </AlertDialog>
   );

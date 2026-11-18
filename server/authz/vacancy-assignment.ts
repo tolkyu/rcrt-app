@@ -1,7 +1,7 @@
 import type { AuthContext } from './context';
 import type { PermissionCode } from './permissions';
 import type { VacancyRef, VerticalId } from './types';
-import { grantCovers } from './vacancy-author';
+import { grantCovers, grantedVerticals } from './vacancy-author';
 
 type Facts = Pick<VacancyRef, 'verticalId' | 'status'>;
 
@@ -48,6 +48,12 @@ export const canSelfAssign = (
   grantCovers(ctx, 'vacancy.self_assign', vacancy.verticalId) &&
   vacancy.status === 'OPEN' &&
   vacancy.recruiters.length === 0;
+
+/** Verticals where the caller may claim a free vacancy, for the list page: a row carries no per-viewer flag, so the server sends this once and the row applies the same status and recruiter rule. */
+export function selfAssignVerticals(ctx: AuthContext): 'ALL' | string[] {
+  const set = grantedVerticals(ctx, 'vacancy.self_assign');
+  return set === 'ALL' ? 'ALL' : [...set];
+}
 
 export const canAssignRecruiters = (
   ctx: AuthContext,

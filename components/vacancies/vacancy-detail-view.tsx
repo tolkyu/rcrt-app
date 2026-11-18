@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, SearchX } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { PageHeader } from '@/components/shell/page-header';
 import { EmptyState } from '@/components/states/empty-state';
@@ -43,6 +44,8 @@ export function VacancyDetailView({
   canAuthorDrafts: boolean;
 }) {
   const t = useTranslations('vacancies');
+  const router = useRouter();
+  const listHref = useVacancyListHref();
   const query = useQuery(vacancyDetailQuery(id));
   const vacancy = query.data;
   return (
@@ -55,6 +58,7 @@ export function VacancyDetailView({
             <VacancyOverview
               vacancy={vacancy}
               canAuthorDrafts={canAuthorDrafts}
+              onClaimLost={() => router.replace(listHref)}
             />
           </Card>
         </>

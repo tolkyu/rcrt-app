@@ -22,6 +22,7 @@ import {
   withVacancyFilters,
 } from '@/lib/vacancy-filters';
 import { hasAnyGrant } from '@/server/authz/can';
+import { selfAssignVerticals } from '@/server/authz/vacancy-assignment';
 import { authorsAnywhere } from '@/server/authz/vacancy-author';
 import { requestsAnywhere } from '@/server/authz/vacancy-request';
 import { NotFoundError } from '@/server/http/errors';
@@ -133,6 +134,7 @@ async function VacanciesContent({ params }: { params: SearchParams }) {
         canManagePositions={hasAnyGrant(ctx.auth, 'position.manage')}
         canAuthorDrafts={canAuthorDrafts}
         canRequestVacancy={requestsAnywhere(ctx.auth)}
+        selfAssignVerticals={selfAssignVerticals(ctx.auth)}
       />
     </HydrationBoundary>
   );
