@@ -78,3 +78,4 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] A shared predicate extracted from an existing check keeps a test of the old entry point with the same inputs; its SQL fragment and row predicate are tested together in the same slice.
 - [ ] A deviation from a binding spec (ADR table, security pre-review) is recorded in that document (errata row) in the same slice.
 - [ ] A delete that feeds a live scope subquery (e.g. `vacancy_recruiter`) has a list-visibility test before and after; a read helper shared by a caller-keyed and a scope-keyed path keeps the key required on the restricted wrapper, with a test pinning the restricted path.
+- [ ] A new module that imports a guarded table or event reader (`vacancy`, `vacancyRecruiter`, `entity_event`) runs the architecture guards `tests/unit/authz/vacancy-author.test.ts` and adds itself to the allowlist with a reason.

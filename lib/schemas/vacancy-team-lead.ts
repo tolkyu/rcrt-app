@@ -1,8 +1,9 @@
 import { z } from 'zod';
+import { uuid } from './uuid';
 import { expectedVersion } from './vacancy';
 
 export const setVacancyTeamLeadSchema = z
-  .object({ teamLeadId: z.uuid(), expectedVersion })
+  .object({ teamLeadId: uuid, expectedVersion })
   .strict()
   .meta({
     id: 'SetVacancyTeamLead',

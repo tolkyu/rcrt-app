@@ -1,0 +1,68 @@
+# Security review: V3 slices 3 and 4 (status API, Team Lead API)
+
+- Date: 2026-11-18. Code read only (`git diff phase-2...v3-status`, `...v3-teamlead`); no code edited, no integration tests run.
+- Baseline: `docs/security/v3-adr-017-prereview.md` (binding), ADR-017 Errata E1-E6.
+
+| Slice | Verdict | Critical/High | Medium | Low/Info |
+| --- | --- | --- | --- | --- |
+| 3 Status API + published cancel reason | **PASS** | 0 | 0 | 3 |
+| 4 Team Lead API | **PASS** (one Low fix before merge) | 0 | 0 | 3 |
+
+## Slice 3: `PUT /vacancies/{id}/status`
+
+Checked and correct:
+
+| Item | Result | Evidence |
+| --- | --- | --- |
+| A1 order | Pass. Object-independent 403 (`holdsAnyStatusGrant`) → limiter → scoped read (404) → grant on detail → `lockAuthors` (users `FOR SHARE`) → `lockVacancy` → grant on fresh roles **and locked `team_lead_id`** (403) → repeat → legality (409 `VACANCY_STATUS_INVALID`) → version (409 `STALE_STATE`) → CAS update | `server/services/vacancy-status.ts:34-74` |
+| Repeat cannot mask a denial | Pass. TL `REOPEN` on `OPEN` is 403 because the grant check precedes `isRepeat` | `vacancy-status.ts:57-65`; test "own OPEN" |
+| Repeat with `headcount` | Pass. 409, not a silent 200 | `vacancy-status.ts:68`; test line 391 |
+| Headcount bound | Pass. `.int().min(1).max(VACANCY_HEADCOUNT_MAX)`; 0, -1, 1.5, 101, 40000, "3", null refused | `lib/schemas/vacancy-status.ts:30-37` |
+| DRAFT / never-opened CANCELLED | Pass. `transitionTarget` is null (DRAFT and CANCELLED are in no `from`), so 409 before any write; no event, no audit | `transitions.ts`; tests lines 379, 580 |
+| FILLED unreachable | Pass. No `to: FILLED`; `FILL`/`status` bodies are 400 (strict discriminated union); DB trigger blocks leaving CANCELLED | schema; test 597 |
+| A7 reason storage | Pass. `reason` only in `pii` of `appendEvent`; event payload schema is `{from,to}` strict; audit `before/after` hold status and headcount only | `vacancy-status.ts:91-117`, `server/events/index.ts` (`vacancy.status_changed`) |
+| A7 reader | Pass. Published: keyed on `vacancy_id`, `type`, `payload.to`, `visible = vacancyEventReadWhere(ctx.auth)`, latest (`orderBy desc id`); the author filter is dropped only on the published branch. Draft branch unchanged (keyed on caller, D123). Branch is selected by `isNeverOpenedCancelled` (`opened_at is null`) | `server/repositories/vacancy-cancel-reason.ts`, `server/services/vacancy.ts:182-191` |
+| Reason in the CANCEL response | Pass. Echoed only to the caller who just wrote it, after a successful scoped re-read | `vacancy-status.ts:121` |
+| Logs / Sentry | Pass. Service logs nothing; pino redacts `body`; no code path puts the reason in an error (Zod issue codes only) | `server/observability/logger.ts` |
+| Lock order | Pass. Users (caller, id order, one statement) → roles (next statement) → vacancy `FOR NO KEY UPDATE`; role removal serialises | `lockAuthors`, test "Team Lead whose role is removed while the request waits" |
+| D130-5 | Pass. Test "a paused unassigned vacancy leaves a Recruiter list until RESUME; an assigned Recruiter keeps seeing it" | `vacancies-status.test.ts:663` |
+
+Denied-test coverage against the pre-review table: 3.1 (Recruiter, HR, Head HR incl. repeats; Finance 404), 3.2, 3.3 (all four actions, plus no-TL vacancy), 3.4, 3.5 (other vertical Head, foreign draft Admin and Head), 3.6, 3.7, 3.8, 3.9, 3.11, 3.12 (everyone-who-reads / nobody-else matrix; audit and events searched for the reason), 3.13, 3.14 (429). Every denied case goes through `expectUntouched`: row, events, pii rows, audit all unchanged.
+
+### Findings
+
+| ID | Sev | File:line | Finding | Fix |
+| --- | --- | --- | --- | --- |
+| S3-1 | Low | `tests/integration/vacancies-status.test.ts:751` | 3.10 only has pause vs cancel. "Reopen vs urgency change" (stale CAS across two writers of different services) is not exercised, and the loser's code is accepted as either `STALE_STATE` or `VACANCY_STATUS_INVALID` | Add the reopen/urgency race; keep the either-code assertion only for pause/cancel (both are correct) |
+| S3-2 | Low | tests | 3.14 CSRF 403 on `PUT /status` is not asserted. Behaviour is generic (`define-route.ts:205`) and `PUT` is in `UNSAFE_METHODS`, so risk is nil | Cover in slice 8 Newman (missing Origin / `X-CSRF-Protection`) |
+| S3-3 | Info | `vacancy-status.ts:48-62` | Grant check on the locked row uses the **pre-read** `verticalId`. Safe: vertical is not editable after create (draft PATCH reads it from `current.vertical`). Mention in ADR-012 if a vertical move is ever added | none |
+
+Reminder already carried in PROGRESS (line 36): purge code for `entity_event_pii` (T-Z22) is Phase 5. UI must render `cancelReason` as text (it does: `components/vacancies/vacancy-overview.tsx:211`, JSX text node).
+
+## Slice 4: `PUT /vacancies/{id}/team-lead`
+
+| Item | Result | Evidence |
+| --- | --- | --- |
+| Gate order | Pass. 404 (Finance) → object-independent 403 → limiter → scoped read (404) → covering grant (403) → users `FOR SHARE` incl. target → fresh grant (403) → vacancy lock → `VACANCY_CLOSED` → same-TL no-op (E5) → `TEAM_LEAD_ALREADY_SET` → eligibility → version → CAS | `server/services/vacancy-team-lead-set.ts:27-70` |
+| D122 reuse | Pass. `authors.isEligibleTeamLead` = `isEligibleTeamLeadRow` (TEAM_LEAD role in this vertical, active, `activated_at` not null) evaluated on locked users and freshly read roles | `server/services/vacancy.ts:257-288` |
+| Identical 400 | Pass. One `ValidationError` path `body.teamLeadId`, code `invalid_team_lead`, no id, no reason. Test compares the whole body for inactive, unaccepted invite, other-vertical TL, Recruiter-only, Head-only, no role, unknown uuid | `vacancies-team-lead-set.test.ts:453-490` |
+| A4 | Pass. Race loser gets `TEAM_LEAD_ALREADY_SET`, writes nothing; same-user race gives two 200s and one event | tests 560, 587 |
+| Lock order | Pass. Users before vacancy; target user locked `FOR SHARE`, so a concurrent deactivation or role removal of the target serialises (test 607) | `vacancy-team-lead-set.ts:43` |
+| Ids only | Pass. Event `{teamLeadId, by}`, audit `{teamLeadId}` before/after; no names | `vacancy-team-lead-set.ts:72-86` |
+| D130-3 | Pass. `teamLeadId` must be a uuid (null and missing are 400); no clear path; draft PATCH cannot touch a published vacancy (test 385, assertion is loose, see S4-3) |
+| DRAFT / closed | Pass. `isTeamEditable` gives 409 `VACANCY_CLOSED`, no audit (test 416) |
+
+Denied coverage: 4.1 (Recruiter, TL, HR, Head HR; assigned Recruiter and the vacancy's own TL), 4.2 (other-vertical Head, foreign draft, unknown and malformed ids), 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.10, 429. All use `expectUntouched`.
+
+### Findings
+
+| ID | Sev | File:line | Finding | Fix |
+| --- | --- | --- | --- | --- |
+| S4-1 | Low | `lib/schemas/vacancy-team-lead.ts:5` | Uses `z.uuid()` instead of the shared lowercasing `uuid` helper (`lib/schemas/uuid.ts`; slice 2 uses it). An upper-case id of a valid Team Lead fails `locked.find(row.id === userId)` and answers 400 `invalid_team_lead`; the same Team Lead already set, sent in upper case, answers 409 `TEAM_LEAD_ALREADY_SET` instead of the 200 no-op (`row.teamLeadId === body.teamLeadId` is a string compare). Fail-closed, no leak, but breaks the E5 contract and the pre-review "uuid helper" rule | `teamLeadId: uuid` from `./uuid`; add a test with an upper-case valid id (assign and repeat) |
+| S4-2 | Low | tests | 4.10 CSRF case not asserted (generic, as S3-2) | Slice 8 Newman |
+| S4-3 | Low | `vacancies-team-lead-set.test.ts:393` | 4.9 asserts `[400,404,409]` for the draft PATCH; accepts a wrong refusal class. Row unchanged is asserted, which is the part that matters | Pin the actual status |
+
+## Missing mandatory tests (both slices)
+
+- S3: reopen vs urgency stale race (3.10); CSRF (3.14, slice 8).
+- S4: upper-case uuid case (S4-1); CSRF (4.10, slice 8); pin 4.9 status.

@@ -355,6 +355,7 @@ const VACANCY_TABLE_MODULES = [
   'server/authz/vacancy-scope.ts',
   'server/db/seed/vacancies.ts',
   'server/repositories/position.ts',
+  'server/repositories/vacancy-recruiter.ts',
   'server/repositories/vacancy-work.ts',
   'server/repositories/vacancy.ts',
 ];

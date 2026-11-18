@@ -190,6 +190,7 @@ No server change, no route, no audit/event. Work is evidence: unit tests of the 
 | E4 | Status: actor grant judged last | fresh-role grant (locked row's `team_lead_id`) → `isRepeat` → legality → version; REOPEN with `headcount` on `OPEN` → 409 `VACANCY_STATUS_INVALID`; reopen `headcount` ≤ `VACANCY_HEADCOUNT_MAX` (A1) |
 | E5 | Team Lead same user again | 200 no-op after the status check, before eligibility and version (a TL who lost eligibility gets a harmless no-op) |
 | E6 | DELETE of an id not in the set | identical 200 no-op for any uuid (A3) |
+| E7 | Last removal on `OPEN` → removed Recruiter gets 404 | the vacancy returns to the unassigned pool (D130-2), so the removed Recruiter of that vertical sees it again and may reclaim it; 404 only while other recruiters remain |
 
 ## Build slices
 
