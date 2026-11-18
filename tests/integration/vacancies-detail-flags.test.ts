@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import postgres from 'postgres';
 import type { VacancyDetail } from '../../lib/schemas/vacancy';
+import { NotFoundError } from '../../server/http/errors';
 import { getVacancyDetail } from '../../server/services/vacancy';
 import {
   createScenarioRunner,
@@ -180,6 +181,18 @@ describe('needsMfa on the detail [D63, STORY-VAC-02-1, VAC-03-2]', () => {
       });
       const detail = await getVacancyDetail(ctx, world.v.assignedOpen);
       expect(detail.needsMfa).toBe(expected);
+    });
+  });
+
+  it('a mixed-role user at aal1 gets 404 for a vacancy outside the vertical scope, not a step-up hint', async () => {
+    await scenario(async (s) => {
+      const ctx = await s.as(adminAnd(rolesOf(world).recruiter), {
+        aal: 'aal1',
+        userId: world.users.recA,
+      });
+      await expect(
+        getVacancyDetail(ctx, world.v.otherUnassigned),
+      ).rejects.toBeInstanceOf(NotFoundError);
     });
   });
 
