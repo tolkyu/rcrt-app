@@ -157,11 +157,16 @@ describe('sign-in form with its validation chunk missing (PERF-04, SEC F3)', () 
 
 describe('sign-in form while the validation resolver is still awaited', () => {
   let open: () => void;
-  beforeEach(() => {
+  /** Modules are reset per test, so the chunk is loaded here; under load its first import outlasts `waitFor` (the resolver stays held). */
+  beforeEach(async () => {
     chunk.mode = 'gated';
     chunk.wait = new Promise<void>((resolve) => {
       open = resolve;
     });
+    await Promise.all([
+      import('@/components/auth/login-validation'),
+      import('@/components/auth/totp-validation'),
+    ]);
   });
 
   it('the login button is disabled while the resolver is awaited and one submit sends one request', async () => {
