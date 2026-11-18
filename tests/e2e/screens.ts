@@ -12,7 +12,12 @@ export const viewportOf = (testInfo: TestInfo) =>
  * time once the suite runs after it, so the mocked API would never be asked and the live rows would be shown. Marking
  * the hydrated queries invalidated makes the browser refetch them on mount whatever day the suite runs.
  */
-export async function installFixedClock(page: Page) {
+export async function installFixedClock(
+  page: Page,
+  masks: readonly (readonly [real: string, fixed: string])[] = [],
+) {
+  const mask = (body: string) =>
+    masks.reduce((text, [real, fixed]) => text.replaceAll(real, fixed), body);
   await page.clock.install({ time: new Date(FIXED_CLOCK_ISO) });
   await page.route(
     (url) => !url.pathname.startsWith('/api/'),
@@ -25,9 +30,11 @@ export async function installFixedClock(page: Page) {
       }
       try {
         const response = await route.fetch();
-        const body = (await response.text()).replace(
-          /(isInvalidated\\?":)false/g,
-          '$1true',
+        const body = mask(
+          (await response.text()).replace(
+            /(isInvalidated\\?":)false/g,
+            '$1true',
+          ),
         );
         await route.fulfill({ response, body });
       } catch (error) {
@@ -37,6 +44,15 @@ export async function installFixedClock(page: Page) {
       }
     },
   );
+  /** A row a spec inserts gets the next identity number, which differs per database; the capture shows a fixed one. */
+  if (masks.length)
+    await page.route(
+      (url) => url.pathname.startsWith('/api/v1/vacancies'),
+      async (route) => {
+        const response = await route.fetch();
+        await route.fulfill({ response, body: mask(await response.text()) });
+      },
+    );
 }
 
 /** Runs `step` once per theme with the server-rendered theme cookie set (SHOT-01..03). */
