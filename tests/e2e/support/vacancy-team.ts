@@ -139,6 +139,20 @@ export async function openList(
   await expect(listRow(page, isMobile, fixture)).toBeVisible();
 }
 
+/** The card's `⋯`: a dropdown from 768 px, a bottom sheet with an icon button «Інші дії» below it (BUG-V3-3). */
+export const cardMenu = (page: Page, isMobile: boolean, title: string) =>
+  isMobile
+    ? {
+        trigger: button(page, ts.moreActions),
+        item: (name: string) =>
+          page.getByRole('dialog').getByRole('button', { name, exact: true }),
+      }
+    : {
+        trigger: button(page, fill(ts.menuLabel, { title })),
+        item: (name: string) =>
+          page.getByRole('menuitem', { name, exact: true }),
+      };
+
 export const rowMenu = (row: Locator, fixture: TeamFixture) =>
   button(row, fill(ts.menuLabel, { title: fixture.title }));
 

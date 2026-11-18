@@ -217,6 +217,7 @@
     },
     "statusMenu": {
       "menuLabel": "Дії: {title}",
+      "moreActions": "Інші дії",
       "hold": "Призупинити",
       "resume": "Відновити",
       "cancel": "Скасувати вакансію…",

@@ -23,6 +23,7 @@ import {
   alertDialogNamed,
   apiAs,
   button,
+  cardMenu,
   chip,
   detailOf,
   dialogNamed,
@@ -566,11 +567,11 @@ test.describe('status of the vacancy [STORY-VAC-02-1, SHOT-01..03, D125]', () =>
       await setTheme(page, 'light');
       await openCard(page, own);
       await expect(button(page, ts.hold)).toBeVisible();
-      const trigger = button(page, fill(ts.menuLabel, { title: own.title }));
-      await openMenu(trigger, menuItem(page, ts.cancel));
+      const menu = cardMenu(page, true, own.title);
+      await openMenu(menu.trigger, menu.item(ts.cancel));
       await snap(page, info, '50-team-lead-vacancy-status-menu', 'light');
 
-      await menuItem(page, ts.cancel).click();
+      await menu.item(ts.cancel).click();
       await expect(alertDialogNamed(page, ts.cancelDialog.title)).toBeVisible();
       await reasonBox(page).fill(REASON);
       await snap(

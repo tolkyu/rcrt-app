@@ -8,7 +8,9 @@ import {
   RowActionsMenu,
   type RowAction,
 } from '@/components/ui/row-actions-menu';
+import { RowActionsSheet } from '@/components/ui/row-actions-sheet';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
+import { useMobile } from '@/lib/use-mobile';
 import { actionsFrom } from '@/server/domain/vacancy-status/transitions';
 import { LazyDialog } from './lazy-dialog';
 import { StepUpAction } from './step-up-action';
@@ -20,7 +22,7 @@ const ReopenVacancyDialog = lazy(() => import('./reopen-vacancy-dialog'));
 
 type Kind = 'cancel' | 'reopen';
 
-const buttonClass = 'h-11 max-md:w-full max-md:basis-full';
+const buttonClass = 'h-11 max-md:min-w-0 max-md:flex-1';
 
 /**
  * Pause, resume, cancel and reopen of the card and the preview (STORY-VAC-02-1, D130): every control renders from the server's
@@ -36,6 +38,7 @@ export default function StatusActions({
 }) {
   const t = useTranslations('vacancies.statusMenu');
   const { pending, toggle } = useToggleStatus(vacancy);
+  const mobile = useMobile();
   const [dialog, setDialog] = useState<Kind | null>(null);
   const focusHeading = useRef(false);
   const { statusActions } = vacancy;
@@ -102,56 +105,67 @@ export default function StatusActions({
 
   return (
     <>
-      {!preview && switcher && (
-        <Button
-          size="sm"
-          variant="outline"
-          className={buttonClass}
-          aria-busy={pending || undefined}
-          onClick={() => toggle(switcher)}
-        >
-          {switcher === 'HOLD' ? (
-            <Pause aria-hidden="true" />
-          ) : (
-            <Play aria-hidden="true" />
-          )}
-          {label}
-        </Button>
-      )}
-      {!preview && reopen && (
-        <Button
-          size="sm"
-          className={buttonClass}
-          onClick={() => setDialog('reopen')}
-        >
-          <RotateCcw aria-hidden="true" />
-          {t('reopen')}
-        </Button>
-      )}
-      {lockedSwitcher && (
-        <StepUpAction>
-          <Button size="sm" variant="outline" className={buttonClass}>
-            {lockedSwitcher === 'HOLD' ? (
+      {/* Phone: the status action and the `⋯` share one row; from 768 px the wrapper vanishes and they join the header row. */}
+      <div className="flex basis-full gap-2 max-md:justify-end md:contents">
+        {!preview && switcher && (
+          <Button
+            size="sm"
+            variant="outline"
+            className={buttonClass}
+            aria-busy={pending || undefined}
+            onClick={() => toggle(switcher)}
+          >
+            {switcher === 'HOLD' ? (
               <Pause aria-hidden="true" />
             ) : (
               <Play aria-hidden="true" />
             )}
-            {t(lockedSwitcher === 'HOLD' ? 'hold' : 'resume')}
+            {label}
           </Button>
-        </StepUpAction>
-      )}
-      {lockedReopen && (
-        <StepUpAction>
-          <Button size="sm" className={buttonClass}>
+        )}
+        {!preview && reopen && (
+          <Button
+            size="sm"
+            className={buttonClass}
+            onClick={() => setDialog('reopen')}
+          >
             <RotateCcw aria-hidden="true" />
             {t('reopen')}
           </Button>
-        </StepUpAction>
-      )}
-      <RowActionsMenu
-        label={t('menuLabel', { title: vacancy.title })}
-        actions={items}
-      />
+        )}
+        {lockedSwitcher && (
+          <StepUpAction>
+            <Button size="sm" variant="outline" className={buttonClass}>
+              {lockedSwitcher === 'HOLD' ? (
+                <Pause aria-hidden="true" />
+              ) : (
+                <Play aria-hidden="true" />
+              )}
+              {t(lockedSwitcher === 'HOLD' ? 'hold' : 'resume')}
+            </Button>
+          </StepUpAction>
+        )}
+        {lockedReopen && (
+          <StepUpAction>
+            <Button size="sm" className={buttonClass}>
+              <RotateCcw aria-hidden="true" />
+              {t('reopen')}
+            </Button>
+          </StepUpAction>
+        )}
+        {mobile ? (
+          <RowActionsSheet
+            label={t('moreActions')}
+            title={t('menuLabel', { title: vacancy.title })}
+            actions={items}
+          />
+        ) : (
+          <RowActionsMenu
+            label={t('menuLabel', { title: vacancy.title })}
+            actions={items}
+          />
+        )}
+      </div>
       <LazyDialog open={dialog === 'cancel'} onFailed={dismiss}>
         <CancelVacancyDialog {...dialogProps} />
       </LazyDialog>

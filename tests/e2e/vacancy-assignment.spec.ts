@@ -364,6 +364,7 @@ test.describe('who gets no team controls [VAC-03-1, VAC-03-2, VAC-02-1, FIN-03]'
             name: fill(ts.menuLabel, { title: staffed.title }),
           }),
         ).toHaveCount(0);
+        await expect(button(page, ts.moreActions)).toHaveCount(0);
       });
     });
 

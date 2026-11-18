@@ -168,6 +168,62 @@ describe('status controls come from the server flags [STORY-VAC-02-1, D130]', ()
   });
 });
 
+/** The sheet's own close button is not an action. */
+const sheetItems = (sheet: HTMLElement) =>
+  within(sheet)
+    .getAllByRole('button')
+    .filter((item) => item.getAttribute('aria-label') !== messages.common.close)
+    .map((item) => item.textContent);
+
+describe('below 768 px the «⋯» is an icon button that opens a bottom sheet [BUG-V3-3, STORY-VAC-02-1]', () => {
+  beforeEach(() => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(max-width: 767px)',
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    }));
+  });
+
+  it('puts «Інші дії» in the row of the status button and lists cancel last, in a sheet', async () => {
+    stubApi({});
+    mount(open());
+    const more = await button(t.moreActions);
+    const hold = await button(t.hold);
+    expect(hold.parentElement).toBe(more.parentElement);
+    expect(more.classList.contains('size-11')).toBe(true);
+    expect(screen.queryByRole('button', { name: /^Дії:/ })).toBeNull();
+    await userEvent.click(more);
+    const sheet = await screen.findByRole('dialog');
+    expect(within(sheet).getByText(`Дії: ${open().title}`)).toBeTruthy();
+    expect(sheetItems(sheet)).toEqual([t.cancel]);
+    const cancel = within(sheet).getByRole('button', { name: t.cancel });
+    expect(cancel.className).toContain('min-h-12');
+    expect(cancel.className).toContain('text-error-text');
+  });
+
+  it('opens the cancel dialog from the sheet and closes the sheet', async () => {
+    stubApi({});
+    mount(open());
+    await userEvent.click(await button(t.moreActions));
+    const sheet = await screen.findByRole('dialog');
+    await userEvent.click(
+      within(sheet).getByRole('button', { name: t.cancel }),
+    );
+    expect(
+      await screen.findByRole('alertdialog', { name: t.cancelDialog.title }),
+    ).toBeTruthy();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('the preview has pause and cancel as sheet items', async () => {
+    stubApi({});
+    mount(open(), true);
+    await userEvent.click(await button(t.moreActions));
+    const sheet = await screen.findByRole('dialog');
+    expect(sheetItems(sheet)).toEqual([t.hold, t.cancel]);
+  });
+});
+
 describe('pause and resume: optimistic, with rollback [STORY-VAC-02-1, D130]', () => {
   /** A PUT that stays open until the test lets it answer, so the optimistic state can be looked at. */
   const held = (answer: () => Response) => {

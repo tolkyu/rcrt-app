@@ -9,12 +9,15 @@ const StatusActions = lazy(() => import('./status-actions'));
 
 /** The final blocks with the real layout classes, so the header keeps its height while the code arrives. */
 const Placeholder = ({ preview }: { preview: boolean }) => (
-  <>
+  <div className="flex basis-full gap-2 max-md:justify-end md:contents">
     {!preview && (
-      <span aria-hidden="true" className="h-11 max-md:basis-full md:w-32" />
+      <span
+        aria-hidden="true"
+        className="h-11 max-md:min-w-0 max-md:flex-1 md:w-32"
+      />
     )}
     <MenuPlaceholder />
-  </>
+  </div>
 );
 
 /**

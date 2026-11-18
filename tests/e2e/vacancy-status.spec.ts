@@ -6,6 +6,7 @@ import {
   SEEDED,
   apiAs,
   button,
+  cardMenu,
   cardTitle,
   chip,
   detailOf,
@@ -167,6 +168,7 @@ test.describe('a Team Lead acts on his own vacancy from the list row menu [STORY
     await expect(
       button(page, fill(ts.menuLabel, { title: fixture.title })),
     ).toHaveCount(0);
+    await expect(button(page, ts.moreActions)).toHaveCount(0);
     const answer = await statusOf(page.request, fixture.id, {
       action: 'REOPEN',
       expectedVersion: (await detailOf(page.request, fixture.id)).version,
@@ -180,6 +182,7 @@ test.describe('cancel and reopen [STORY-VAC-02-1, D130-4, D131]', () => {
 
   test('a cancel needs a reason; readers of the vacancy see it; a cancelled vacancy has no way back', async ({
     page,
+    isMobile,
     browser,
     playwright,
   }) => {
@@ -190,9 +193,9 @@ test.describe('cancel and reopen [STORY-VAC-02-1, D130-4, D131]', () => {
       recruiters: ['recruiter1.gambling@demo'],
     });
     await openCard(page, fixture);
-    const trigger = button(page, fill(ts.menuLabel, { title: fixture.title }));
-    await openMenu(trigger, menuItem(page, ts.cancel));
-    await menuItem(page, ts.cancel).click();
+    const menu = cardMenu(page, isMobile, fixture.title);
+    await openMenu(menu.trigger, menu.item(ts.cancel));
+    await menu.item(ts.cancel).click();
     const dialog = alertDialogNamed(page, ts.cancelDialog.title);
     await expect(dialog).toContainText(ts.cancelDialog.consequence);
     await expect(button(dialog, ts.cancelDialog.keep)).toBeFocused();
@@ -215,7 +218,7 @@ test.describe('cancel and reopen [STORY-VAC-02-1, D130-4, D131]', () => {
     await expect(cardTitle(page, fixture)).toBeFocused();
     for (const name of [ts.hold, ts.resume, ts.reopen, tt.assign])
       await expect(button(page, name)).toHaveCount(0);
-    await expect(trigger).toHaveCount(0);
+    await expect(menu.trigger).toHaveCount(0);
 
     for (const user of [
       'recruiter1.gambling@demo',
