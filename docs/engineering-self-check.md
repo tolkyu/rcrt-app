@@ -77,3 +77,4 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] A new viewer-dependent DTO field (`can*` flag) is checked against tests that compare one DTO across roles (`grep -rn "toEqual(baseline" tests/integration`); run those integration files.
 - [ ] A shared predicate extracted from an existing check keeps a test of the old entry point with the same inputs; its SQL fragment and row predicate are tested together in the same slice.
 - [ ] A deviation from a binding spec (ADR table, security pre-review) is recorded in that document (errata row) in the same slice.
+- [ ] A delete that feeds a live scope subquery (e.g. `vacancy_recruiter`) has a list-visibility test before and after; a read helper shared by a caller-keyed and a scope-keyed path keeps the key required on the restricted wrapper, with a test pinning the restricted path.
