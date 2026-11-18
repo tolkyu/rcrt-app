@@ -25,17 +25,17 @@ const percentile = (values: number[], percentile: number) =>
     Math.ceil((values.length * percentile) / 100) - 1
   ]!;
 
-/** The bounded-audit check pages 100 rows; a fresh CI database holds only the seed (~50), so it is topped up once with earlier copies of the oldest seeded row. */
+/** The audit screen lists the last 7 days but the seed history is dated in the past, so a fresh database holds only this run's login rows; the 100-row bound is topped up (idempotent) with copies of a seed row dated seconds ago. */
 async function ensureAuditVolume() {
   await withOwner(async (sql) => {
-    const [row] = await sql<
-      { count: number }[]
-    >`select count(*)::int as count from app.audit_log`;
+    const [row] = await sql<{ count: number }[]>`
+      select count(*)::int as count from app.audit_log
+      where occurred_at >= now() - interval '1 day'`;
     const missing = AUDIT_ROWS - (row?.count ?? 0);
     if (missing <= 0) return;
     await sql`
       insert into app.audit_log (occurred_at, actor_id, actor_kind, action, result, entity_type, entity_id, before, after, details)
-      select a.occurred_at - make_interval(mins => g), a.actor_id, a.actor_kind, a.action, a.result, a.entity_type, a.entity_id, a.before, a.after, a.details
+      select now() - make_interval(secs => g), a.actor_id, a.actor_kind, a.action, a.result, a.entity_type, a.entity_id, a.before, a.after, a.details
       from (select * from app.audit_log order by occurred_at, id limit 1) a, generate_series(1, ${missing}) g`;
   });
 }
