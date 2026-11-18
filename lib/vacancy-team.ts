@@ -9,12 +9,20 @@ export const detailSchema = async () =>
   (await import('@/lib/schemas/vacancy')).vacancyDetailSchema;
 const base = (id: string) => `/vacancies/${encodeURIComponent(id)}`;
 
-export const claimVacancyRequest = (id: string) =>
-  apiRequest(`${base(id)}/recruiters/claim`, {
-    method: 'POST',
-    body: {},
-    schema: detailSchema,
-  });
+/** A claim is sent from an open dialog, so a 404 means a rival claimed first and the vacancy left the unassigned scope (D132, ADR-017 E3): the same conflict as the row lock's 409. */
+export const claimVacancyRequest = async (id: string) => {
+  try {
+    return await apiRequest(`${base(id)}/recruiters/claim`, {
+      method: 'POST',
+      body: {},
+      schema: detailSchema,
+    });
+  } catch (error) {
+    throw error instanceof ApiError && error.status === 404
+      ? new ApiError(409, 'VACANCY_ALREADY_ASSIGNED')
+      : error;
+  }
+};
 
 export const assignRecruitersRequest = (
   id: string,

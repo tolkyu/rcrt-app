@@ -6,10 +6,17 @@ import type { VacancyDetail, VacancyPage } from '@/lib/schemas/vacancy';
 import { canClaimRow, grantsClaim } from '@/lib/vacancy-claim';
 import {
   attemptTeamWrite,
+  claimVacancyRequest,
   classifyTeamFailure,
   type TeamFailure,
 } from '@/lib/vacancy-team';
-import { ID, json, stubApi, vacancy } from '../../support/team-harness';
+import {
+  ID,
+  json,
+  problem,
+  stubApi,
+  vacancy,
+} from '../../support/team-harness';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -34,6 +41,37 @@ describe('classifyTeamFailure [ADR-017 errata E1-E3]', () => {
     [new TypeError('Failed to fetch'), 'network'],
   ])('%o → %s', (error, expected) => {
     expect(classifyTeamFailure(error)).toBe(expected);
+  });
+});
+
+describe('claimVacancyRequest [D132]', () => {
+  it.each<[number, string, TeamFailure]>([
+    [404, 'NOT_FOUND', 'taken'],
+    [409, 'VACANCY_ALREADY_ASSIGNED', 'taken'],
+    [403, 'FORBIDDEN', 'forbidden'],
+    [429, 'RATE_LIMITED', 'rateLimited'],
+    [500, 'INTERNAL', 'failed'],
+  ])('%s %s is classified %s', async (status, code, expected) => {
+    stubApi({
+      [`POST /vacancies/${ID}/recruiters/claim`]: () => problem(status, code),
+    });
+    const error = await claimVacancyRequest(ID).then(
+      () => null,
+      (caught: unknown) => caught,
+    );
+    expect(classifyTeamFailure(error)).toBe(expected);
+  });
+
+  it('keeps a lost connection a lost connection', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new TypeError('offline'))),
+    );
+    const error = await claimVacancyRequest(ID).then(
+      () => null,
+      (caught: unknown) => caught,
+    );
+    expect(classifyTeamFailure(error)).toBe('network');
   });
 });
 

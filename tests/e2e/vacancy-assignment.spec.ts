@@ -118,7 +118,7 @@ test.describe('a Recruiter takes a free vacancy [STORY-VAC-03-1, D130-2]', () =>
       'race',
     ],
     [
-      'a claim after the other one committed (404, out of scope): the «not found» toast, the dialog closes and the row leaves the list',
+      'a claim after the other one committed (404, out of scope): the same conflict toast, the dialog closes and the row leaves the list [D132]',
       'late',
     ],
   ] as const)
@@ -161,11 +161,10 @@ test.describe('a Recruiter takes a free vacancy [STORY-VAC-03-1, D130-2]', () =>
       await rival.dispose();
       await button(dialog, tt.claimDialog.confirm).click();
 
-      if (outcome === 'race')
-        await expect(toastWith(page, tt.claimDialog.lost)).toContainText(
-          fill(tt.claimDialog.lostDescription, { number: fixture.number }),
-        );
-      else await expect(toastWith(page, tt.toast.gone)).toBeVisible();
+      await expect(toastWith(page, tt.claimDialog.lost)).toContainText(
+        fill(tt.claimDialog.lostDescription, { number: fixture.number }),
+      );
+      await expect(toastWith(page, tt.toast.gone)).toHaveCount(0);
       await expect(dialog).toHaveCount(0);
       await expect(row).toHaveCount(0);
       expect(

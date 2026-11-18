@@ -35,7 +35,6 @@ export default function ClaimVacancyDialog({
         title: vacancy.title,
         number: vacancy.number,
       })}
-      clampDescription
       confirmLabel={t('claimDialog.confirm')}
       cancelLabel={t('claimDialog.cancel')}
       pending={pending}

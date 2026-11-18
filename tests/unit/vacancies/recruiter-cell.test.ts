@@ -207,6 +207,32 @@ describe('claim from a row', () => {
     );
   });
 
+  it('a 404 from the row dialog warns about the lost claim like a 409 and moves focus on [D132]', async () => {
+    const first = row({ title: 'Перша' });
+    const second = row({
+      id: crypto.randomUUID(),
+      title: 'Друга',
+      status: 'ON_HOLD',
+    });
+    stubApi({
+      [`POST /vacancies/${first.id}/recruiters/claim`]: () =>
+        problem(404, 'NOT_FOUND'),
+    });
+    list([first, second]);
+    await userEvent.click(claimRow(first));
+    await confirmClaim();
+    expect(toast.warning).toHaveBeenCalledWith(
+      t.claimDialog.lost,
+      expect.objectContaining({ id: `claim:${first.id}` }),
+    );
+    expect(toast.error).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        within(table()).getByRole('link', { name: 'Друга' }),
+      ),
+    );
+  });
+
   it('keeps focus on the next row when the list drops the claimed row before the dialog closes', async () => {
     const first = row({ title: 'Перша' });
     const second = row({

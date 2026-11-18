@@ -190,6 +190,38 @@ describe('claim [STORY-VAC-03-1, D130-2]', () => {
     expect(onLost).toHaveBeenCalledTimes(1);
   });
 
+  it('a 404 after the dialog opened means a rival claimed first: the conflict warning, never «not found» [D132, BUG-V3-1]', async () => {
+    stubApi({
+      [POST_CLAIM]: () => problem(404, 'NOT_FOUND'),
+      [GET_CARD]: () => problem(404, 'NOT_FOUND'),
+    });
+    const onLost = vi.fn();
+    mount(vacancy({ canSelfAssign: true }), onLost);
+    await press(t.claim);
+    await userEvent.click(await inDialog('alertdialog', t.claimDialog.confirm));
+    await gone();
+    expect(toast.warning).toHaveBeenCalledWith(
+      t.claimDialog.lost,
+      expect.objectContaining({ id: `claim:${ID}`, duration: 6000 }),
+    );
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(onLost).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the whole irreversibility notice, unclamped, so a phone sheet hides nothing [BUG-V3-2]', async () => {
+    stubApi({});
+    mount(vacancy({ canSelfAssign: true }));
+    await press(t.claim);
+    const dialog = await screen.findByRole('alertdialog');
+    const body = dialog.querySelector(
+      '[data-slot="alert-dialog-description"]',
+    )!;
+    expect(body.textContent).toContain(
+      'Відмовитися самостійно не вийде — це зможе зробити керівник рекрутингу.',
+    );
+    expect(body.classList.contains('line-clamp-3')).toBe(false);
+  });
+
   it('keeps the dialog on a lost connection, and the retry sends the same claim again', async () => {
     let attempt = 0;
     const api = stubApi({
@@ -214,7 +246,6 @@ describe('claim [STORY-VAC-03-1, D130-2]', () => {
   });
 
   it.each([
-    [404, 'NOT_FOUND', t.toast.gone, 'error', true],
     [403, 'FORBIDDEN', t.toast.forbidden, 'error', true],
     [429, 'RATE_LIMITED', t.toast.rateLimited, 'warning', false],
   ] as const)(
