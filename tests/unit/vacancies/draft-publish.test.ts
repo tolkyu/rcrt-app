@@ -54,6 +54,7 @@ const draft = (changes: Partial<VacancyDetail> = {}): VacancyDetail => ({
   canAssignRecruiters: false,
   canSetTeamLead: false,
   statusActions: [],
+  needsMfa: false,
   ...changes,
 });
 const summary = (id: string, number: string): VacancyPage['items'][number] => ({

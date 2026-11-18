@@ -18,7 +18,7 @@ const Placeholder = ({ preview }: { preview: boolean }) => (
 );
 
 /**
- * Header actions of a published vacancy. The chunk loads only for a viewer who has a status action, and stays mounted
+ * Header actions of a published vacancy. The chunk loads only for a viewer who has a status action or a step-up to one (D63), and stays mounted
  * afterwards: a cancelled vacancy has none, yet its dialog must outlive the button that opened it. Without the chunk the
  * card stays readable; the next load tries again.
  */
@@ -30,7 +30,8 @@ export function StatusHeaderActions({
   preview: boolean;
 }) {
   const [actionable, setActionable] = useState(false);
-  if (!actionable && vacancy.statusActions.length > 0) setActionable(true);
+  if (!actionable && (vacancy.statusActions.length > 0 || vacancy.needsMfa))
+    setActionable(true);
   if (!actionable) return null;
   return (
     <LoadBoundary fallback={null}>

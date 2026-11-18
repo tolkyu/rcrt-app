@@ -42,6 +42,7 @@ const holding = (
   aal: 'aal2',
   mfaRequired: false,
   mfaWithheld: new Set(),
+  mfaWithheldGrants: new Map(),
   timezone: 'Europe/Kyiv',
 });
 

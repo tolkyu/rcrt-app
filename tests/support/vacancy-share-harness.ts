@@ -38,6 +38,7 @@ export const shareVacancy = (
   canAssignRecruiters: false,
   canSetTeamLead: false,
   statusActions: [],
+  needsMfa: false,
   ...overrides,
 });
 

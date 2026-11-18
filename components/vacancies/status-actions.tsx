@@ -9,7 +9,9 @@ import {
   type RowAction,
 } from '@/components/ui/row-actions-menu';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
+import { actionsFrom } from '@/server/domain/vacancy-status/transitions';
 import { LazyDialog } from './lazy-dialog';
+import { StepUpAction } from './step-up-action';
 import { useToggleStatus } from './use-change-status';
 import type { TeamNext } from './use-team-write';
 
@@ -42,6 +44,13 @@ export default function StatusActions({
   );
   const reopen = statusActions.includes('REOPEN');
   const cancel = statusActions.includes('CANCEL');
+  // D63: the card button the viewer would get after 2FA; the preview's menu has no place for a reason, so only the card shows it.
+  const locked =
+    vacancy.needsMfa && !preview ? actionsFrom(vacancy.status) : [];
+  const lockedSwitcher = switcher
+    ? undefined
+    : locked.find((action) => action === 'HOLD' || action === 'RESUME');
+  const lockedReopen = !reopen && locked.includes('REOPEN');
 
   const close = (next: TeamNext | null) => {
     setDialog(null);
@@ -118,6 +127,26 @@ export default function StatusActions({
           <RotateCcw aria-hidden="true" />
           {t('reopen')}
         </Button>
+      )}
+      {lockedSwitcher && (
+        <StepUpAction>
+          <Button size="sm" variant="outline" className={buttonClass}>
+            {lockedSwitcher === 'HOLD' ? (
+              <Pause aria-hidden="true" />
+            ) : (
+              <Play aria-hidden="true" />
+            )}
+            {t(lockedSwitcher === 'HOLD' ? 'hold' : 'resume')}
+          </Button>
+        </StepUpAction>
+      )}
+      {lockedReopen && (
+        <StepUpAction>
+          <Button size="sm" className={buttonClass}>
+            <RotateCcw aria-hidden="true" />
+            {t('reopen')}
+          </Button>
+        </StepUpAction>
       )}
       <RowActionsMenu
         label={t('menuLabel', { title: vacancy.title })}
