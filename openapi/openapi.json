@@ -1141,103 +1141,27 @@
         "additionalProperties": false,
         "description": "Why the author closes the draft (D82). Kept only in the purgeable side row of the event, never in the audit log."
       },
-      "PublishDraft": {
+      "VacancyContent": {
         "type": "object",
         "properties": {
-          "expectedVersion": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "description": "Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved."
-          }
-        },
-        "required": ["expectedVersion"],
-        "additionalProperties": false,
-        "description": "Publishes exactly the draft the author last saw: when the stored version differs the answer is 409 STALE_STATE and the draft stays a draft."
-      },
-      "ClaimVacancy": {
-        "type": "object",
-        "properties": {},
-        "additionalProperties": false,
-        "description": "Empty body. A Recruiter takes an `OPEN` vacancy nobody works on yet; the first claim wins and the second answers 409 VACANCY_ALREADY_ASSIGNED."
-      },
-      "AssignVacancyRecruiters": {
-        "type": "object",
-        "properties": {
-          "recruiterIds": {
-            "type": "array",
-            "items": { "type": "string", "format": "uuid" },
-            "minItems": 1,
-            "maxItems": 20
-          },
-          "expectedVersion": {
-            "type": "integer",
-            "exclusiveMinimum": 0,
-            "description": "Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved."
-          }
-        },
-        "required": ["recruiterIds", "expectedVersion"],
-        "additionalProperties": false,
-        "description": "Adds 1 to 20 distinct recruiters (active, invite accepted, RECRUITER role in the vacancy vertical) to an `OPEN` or `ON_HOLD` vacancy; ids already assigned are skipped and a request that adds nobody writes nothing."
-      },
-      "PatchVacancy": {
-        "type": "object",
-        "properties": {
-          "expectedVersion": {
+          "id": { "type": "string", "format": "uuid" },
+          "version": {
             "type": "integer",
             "exclusiveMinimum": 0,
             "description": "Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved."
           },
-          "title": { "type": "string", "minLength": 2, "maxLength": 200 },
-          "positionId": { "type": ["string", "null"], "format": "uuid" },
-          "teamLeadId": { "type": ["string", "null"], "format": "uuid" },
-          "headcount": { "type": "integer", "minimum": 1, "maximum": 100 },
-          "seniority": {
-            "type": ["string", "null"],
-            "enum": ["Джуніор", "Мідл", "Сеніор", "Лід", null]
-          },
-          "workFormat": {
-            "type": ["string", "null"],
-            "enum": ["REMOTE", "OFFICE", "HYBRID", null]
-          },
-          "employmentType": {
-            "type": ["string", "null"],
-            "enum": [
-              "Повна зайнятість",
-              "Часткова зайнятість",
-              "Проєктна зайнятість",
-              null
-            ]
-          },
-          "location": {
-            "type": ["string", "null"],
-            "minLength": 1,
-            "maxLength": 200
-          },
-          "salaryMinMinor": {
-            "type": ["string", "null"],
-            "pattern": "^(?:0|[1-9]\\d{0,14})$"
-          },
-          "salaryMaxMinor": {
-            "type": ["string", "null"],
-            "pattern": "^(?:0|[1-9]\\d{0,14})$"
-          },
-          "salaryCurrency": {
-            "type": ["string", "null"],
-            "pattern": "^[A-Z]{3}$"
-          },
-          "priority": { "type": "string", "enum": ["NORMAL", "URGENT"] },
-          "probationDays": {
-            "type": "integer",
-            "minimum": 30,
-            "maximum": 90,
-            "description": "30..90 days (default 90). Refused with 403 unless the caller holds vacancy.probation_length.set in the vertical (Admin, Head HR; D78)."
-          },
+          "updatedAt": { "type": "string", "format": "date-time" },
           "descriptionDoc": { "$ref": "#/components/schemas/RichTextDoc" },
           "requirementsDoc": { "$ref": "#/components/schemas/RichTextDoc" }
         },
-        "required": ["expectedVersion"],
-        "additionalProperties": false,
-        "description": "Partial update of the author’s own DRAFT: a missing key keeps the stored value, `null` clears an optional field. The vertical, the status and the author cannot be changed (unknown keys answer 400). A change of `teamLeadId` needs vacancy.team_lead.set, a change of `probationDays` needs vacancy.probation_length.set (403). A salary bound needs the currency and min ≤ max once merged with the stored values."
+        "required": [
+          "id",
+          "version",
+          "updatedAt",
+          "descriptionDoc",
+          "requirementsDoc"
+        ],
+        "additionalProperties": false
       },
       "RichTextDoc": {
         "type": ["object", "null"],
@@ -1707,6 +1631,119 @@
         },
         "required": ["type", "content"],
         "additionalProperties": false
+      },
+      "UpdateVacancyContent": {
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "description": "Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved."
+          },
+          "descriptionDoc": { "$ref": "#/components/schemas/RichTextDoc" },
+          "requirementsDoc": { "$ref": "#/components/schemas/RichTextDoc" }
+        },
+        "required": ["expectedVersion"],
+        "additionalProperties": false,
+        "description": "OPEN/ON_HOLD content only: omission keeps, null clears, a document replaces. Unknown keys are rejected. expectedVersion must match even for a no-op."
+      },
+      "PublishDraft": {
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "description": "Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved."
+          }
+        },
+        "required": ["expectedVersion"],
+        "additionalProperties": false,
+        "description": "Publishes exactly the draft the author last saw: when the stored version differs the answer is 409 STALE_STATE and the draft stays a draft."
+      },
+      "ClaimVacancy": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false,
+        "description": "Empty body. A Recruiter takes an `OPEN` vacancy nobody works on yet; the first claim wins and the second answers 409 VACANCY_ALREADY_ASSIGNED."
+      },
+      "AssignVacancyRecruiters": {
+        "type": "object",
+        "properties": {
+          "recruiterIds": {
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" },
+            "minItems": 1,
+            "maxItems": 20
+          },
+          "expectedVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "description": "Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved."
+          }
+        },
+        "required": ["recruiterIds", "expectedVersion"],
+        "additionalProperties": false,
+        "description": "Adds 1 to 20 distinct recruiters (active, invite accepted, RECRUITER role in the vacancy vertical) to an `OPEN` or `ON_HOLD` vacancy; ids already assigned are skipped and a request that adds nobody writes nothing."
+      },
+      "PatchVacancy": {
+        "type": "object",
+        "properties": {
+          "expectedVersion": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "description": "Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved."
+          },
+          "title": { "type": "string", "minLength": 2, "maxLength": 200 },
+          "positionId": { "type": ["string", "null"], "format": "uuid" },
+          "teamLeadId": { "type": ["string", "null"], "format": "uuid" },
+          "headcount": { "type": "integer", "minimum": 1, "maximum": 100 },
+          "seniority": {
+            "type": ["string", "null"],
+            "enum": ["Джуніор", "Мідл", "Сеніор", "Лід", null]
+          },
+          "workFormat": {
+            "type": ["string", "null"],
+            "enum": ["REMOTE", "OFFICE", "HYBRID", null]
+          },
+          "employmentType": {
+            "type": ["string", "null"],
+            "enum": [
+              "Повна зайнятість",
+              "Часткова зайнятість",
+              "Проєктна зайнятість",
+              null
+            ]
+          },
+          "location": {
+            "type": ["string", "null"],
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "salaryMinMinor": {
+            "type": ["string", "null"],
+            "pattern": "^(?:0|[1-9]\\d{0,14})$"
+          },
+          "salaryMaxMinor": {
+            "type": ["string", "null"],
+            "pattern": "^(?:0|[1-9]\\d{0,14})$"
+          },
+          "salaryCurrency": {
+            "type": ["string", "null"],
+            "pattern": "^[A-Z]{3}$"
+          },
+          "priority": { "type": "string", "enum": ["NORMAL", "URGENT"] },
+          "probationDays": {
+            "type": "integer",
+            "minimum": 30,
+            "maximum": 90,
+            "description": "30..90 days (default 90). Refused with 403 unless the caller holds vacancy.probation_length.set in the vertical (Admin, Head HR; D78)."
+          },
+          "descriptionDoc": { "$ref": "#/components/schemas/RichTextDoc" },
+          "requirementsDoc": { "$ref": "#/components/schemas/RichTextDoc" }
+        },
+        "required": ["expectedVersion"],
+        "additionalProperties": false,
+        "description": "Partial update of the author’s own DRAFT: a missing key keeps the stored value, `null` clears an optional field. The vertical, the status and the author cannot be changed (unknown keys answer 400). A change of `teamLeadId` needs vacancy.team_lead.set, a change of `probationDays` needs vacancy.probation_length.set (403). A salary bound needs the currency and min ≤ max once merged with the stored values."
       },
       "VacancyDeleted": {
         "type": "object",
@@ -5347,6 +5384,109 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/VacancyDetail" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden (object visible, action not permitted, or CSRF check failed)",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds 1 MiB",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/vacancies/{vacancyId}/content": {
+      "patch": {
+        "operationId": "updateVacancyContent",
+        "summary": "Replace or clear description/requirements on OPEN or ON_HOLD vacancies. Requires vacancy.update or vacancy.content.update on the locked resource; visible action denial is 403 and unreadable/private drafts are 404. Authorized DRAFT/FILLED/CANCELLED requests answer 409 VACANCY_CONTENT_LOCKED. expectedVersion is checked before no-op (409 STALE_STATE). A current no-op writes no history. Draft PATCH is unchanged.",
+        "tags": ["Vacancies"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "format": "uuid" },
+            "required": true,
+            "name": "vacancyId",
+            "in": "path"
+          },
+          {
+            "schema": { "type": "string", "enum": ["1"] },
+            "required": true,
+            "name": "X-CSRF-Protection",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateVacancyContent" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VacancyContent" }
               }
             }
           },

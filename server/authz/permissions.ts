@@ -42,6 +42,7 @@ export const PERMISSIONS = {
   'vacancy.read': read(['vacancy'], [G, V, A, U, O]),
   'vacancy.create': write(['vertical'], [G, V]),
   'vacancy.update': write(['vacancy'], [G, V, O]),
+  'vacancy.content.update': write(['vacancy'], [G, V, O, A]),
   'vacancy.assign_recruiters': write(['vacancy'], [G, V]),
   'vacancy.self_assign': write(['vacancy'], [U]),
   'vacancy.team_lead.set': write(['vacancy'], [G, V]),

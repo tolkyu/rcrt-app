@@ -44,11 +44,12 @@ const detailScalar = z.union([
   z.boolean(),
   z.number().finite(),
   z.null(),
+  z.enum(['descriptionDoc', 'requirementsDoc']),
   z.uuid(),
   z.string().regex(/^[a-z][a-z0-9_.-]{0,63}$/),
   z.string().regex(/^[A-Z][A-Z0-9_]{0,63}$/),
 ]);
-const detailsSchema = z.record(
+export const detailsSchema = z.record(
   z
     .string()
     .regex(/^[a-z][a-zA-Z0-9]{0,39}$/)

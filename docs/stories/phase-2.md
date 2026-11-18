@@ -380,6 +380,8 @@ As **any user who can open a vacancy**, I want to copy its link, so that I can s
 | STORY-ARCH-03-1 | Soft-delete never abandons active applications; permitted resolution is required and atomic; unauthorized recruiter deletion is rejected per D13       | ARCH-03; Q-100; archive/restore user flows remain Phase 5                                                      |
 | STORY-UI-09-1   | Expanded in «V3 — expanded stories» above (vacancy card built; evidence and candidate card pending)                                                    | D58; candidate card share with the candidate increment                                                         |
 
+**STORY-VAC-01-2a (API implemented):** [content slice](phase-2-next-slice.md), ADR-018 and D133/Q-195 deliver description/requirements editing for published OPEN/ON_HOLD vacancies; the broader STORY-VAC-01-2 fields and UI remain unfinished. Evidence: `vacancy-content-schema.test.ts`, `authz/vacancy-content.test.ts`, `vacancies-content.test.ts`, `vacancies-content-race.test.ts`, independent `vacancies-content-qa.test.ts`, OpenAPI tests and 16 Postman content cases. Only field codes/versions enter history; no full content snapshots.
+
 Each subsequent write story is expanded into Given/When/Then, field validation, event/notification/statistics effects and edge cases before its implementation; this table is the delivery backlog rather than acceptance of unanswered policy.
 
 ## Queued tasks (owner: not started)

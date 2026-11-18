@@ -58,6 +58,7 @@ function baseRead(permission: PermissionCode): PermissionCode {
 function scopeToken(scopes: readonly Scope[]): string {
   const kinds = scopes.map((scope) => scope.kind).sort();
   if (kinds.join() === 'ASSIGNED,UNASSIGNED_OPEN') return 'asg+uo';
+  if (kinds.join() === 'ASSIGNED') return 'asg';
   if (kinds.length !== 1) return kinds.join('+');
   const [scope] = scopes;
   switch (scope!.kind) {

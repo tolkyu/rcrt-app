@@ -235,6 +235,15 @@ export function scopeCases(
         allowed: [fixture(type, 'own_new')],
         denied: [fixture(type, 'own_progressed')],
       };
+    case 'asg':
+      return {
+        allowed: [fixture(type, 'assigned')],
+        denied: [
+          fixture(type, 'base'),
+          fixture(type, 'unassigned_open'),
+          fixture(type, 'other_vertical'),
+        ],
+      };
     case 'asg+uo':
       return {
         allowed: [fixture(type, 'assigned'), fixture(type, 'unassigned_open')],

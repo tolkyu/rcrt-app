@@ -3,6 +3,7 @@ export const MATRIX = `
 001 | vacancy.read | G | V | asg+uo | V | V | own | 404
 002 | vacancy.create | G | V | V | 403 | 403 | V | 404
 003 | vacancy.update | G | V | 403 | 403 | 403 | own | 404
+094 | vacancy.content.update | G | 403 | asg | 403 | 403 | 403 | 404
 004 | vacancy.assign_recruiters | G | V | 403 | 403 | 403 | 403 | 404
 005 | vacancy.self_assign | 403 | 403 | uo | 403 | 403 | 403 | 404
 006 | vacancy.team_lead.set | G | V | 403 | 403 | 403 | 403 | 404

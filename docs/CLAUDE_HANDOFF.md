@@ -2,20 +2,21 @@
 
 > **Rule:** this file holds only the latest checkpoint (≤ ~60 lines). On every checkpoint, move the old content to the top of `docs/archive/handoff-log.md` (newest first), then rewrite this file. Never append history here. Read the archive only when you need an old detail.
 
-## Checkpoint — 2026-11-18 (Codex QA, VERIFY-V3)
+## Checkpoint — 2026-11-18 (Codex, published vacancy content API)
 
-- Assessed `phase-2` @ `1abc02a`. V2/V3 vacancy implementation, row status menu and `needsMfa` are merged; this is not full Phase 2 completion. V4 remains; candidates, files, deduplication, talent pool, dashboard and custom roles are outside this vacancy block.
-- BUG-V3-1/D132 and BUG-V3-2 fixed in `1fe09aa`; BUG-V3-3 mobile bottom action sheet fixed in `d9bfd0e`. Review `33b7524` APPROVED; records typecheck and 128 passing unit tests (`docs/review-phase-2-v3-bugs.md`). No new product tests run for this assessment.
-- Captures updated in `0530cf1` + `3edabbb`; all 41 changed phase-2 PNGs match `screenshots/latest/`. QA visually checked the corrected mobile claim notice and status sheet. This is QA acknowledgement, not UX designer approval; gallery review remains `docs/ux/review-phase-2-v3-gallery.md` with D126 nits.
-- Current-head CI run **44360353603 is incomplete**: secrets and all pre-E2E gates (including lint, format, typecheck, tests, perf, security and API contracts) passed; E2E hit the 45-minute job limit at passing test 1116/1193, with no failure/retry markers; screens/API skipped. DevOps prepared the focused `ci.yml` timeout change 45 → 60 minutes; no checks relaxed. Fix is local, pending commit/push and green CI; CI has not restarted. Earlier green run 44336031730 does not close the current head.
-- Latest local Playwright report is only 5 passing screenshot tests / 12 skipped in `vacancy-team-screens.spec.ts`; it is not a complete shared-screen regression result.
+- Following baseline `bc8f061`, STORY-VAC-01-2a implements `PATCH /api/v1/vacancies/{vacancyId}/content`: description/requirements only, strict shared rich-text schema, omission/null/replacement semantics, version/no-op checks and atomic metadata-only history. Existing draft PATCH is unchanged. No migration or UI change.
+- Owner D133/Q-195: published content editable only on OPEN/ON_HOLD; FILLED must reopen first, CANCELLED remains immutable. ADR-018 records the narrow permission union and fresh actor/vacancy/assignment authorization under ordered locks.
+- Code review APPROVED; security PASS; independent QA PASS. Reports: `docs/review-phase-2-vacancy-content.md`, `docs/security/vacancy-content-review.md`, `docs/qa-phase-2-vacancy-content.md`. One nonblocking race-harness synchronization nit deferred under D126.
+- Local verification: affected units 1667 passed; content integration/races 33 passed; affected draft/urgency/assignment/status regressions 319 passed; independent mixed-role aal1 QA 1 passed. Typecheck, lint, formatting and generated OpenAPI/Postman consistency passed. Shared integration lock released; test PostgreSQL remains running.
+- Hosted verification is authoritative at PR #1 latest checks: https://github.com/tolkyu/rcrt-app/pull/1/checks . Baseline CI 44382912511 on bc8f061 passed all gates; it is not evidence for the new content code. The orchestrator must verify the content commit's CI before the next implementation slice.
+- V3 mobile fixes/captures have focused UX approval (`docs/ux/review-phase-2-v3-fixed-captures.md`). Follow-on content form design: `docs/ux/wireframes/vacancy-content-edit.md`; initial authorized document/version/eligibility read and F10 editor/view remain unimplemented dependencies. Full Phase 2/V4 and candidates remain unfinished.
 
 ## Next (in order)
 
-1. Obtain owner authorization to commit/push the reviewed CI configuration change (CLAUDE.md §12), then obtain green current-head E2E, screenshots and Newman results. D129: do not duplicate full CI suites locally.
-2. Reconcile PR #1 description (stale BUG-V3-1..3/open-capture claims), then report the vacancy V-block in Ukrainian: gallery, demo, checks and open boundaries. Confirm remaining Phase 2/V4 scope with the owner; do not report full Phase 2 complete or advance automatically to Phase 3.
-3. Owner physical-phone selection/sticky-footer/toast check remains open; the existing 200% zoom test is a viewport surrogate.
-4. Phase 7: demo videos reminder; D126 gallery/style nits remain deferred.
+1. Verify the content commit's hosted CI, including 16 new Postman cases; fix any red gate before more implementation. Do not duplicate passing full suites locally (D129).
+2. Design the authorized initial content read and effective edit eligibility, then implement approved F10 editor/view and the two-field UI in bounded reviewed slices. Do not invent GET routes or use PATCH for reading. Keep D133 and draft isolation.
+3. PR #1 description has stale V3 bug/capture claims; reconcile for owner merge. Do not merge or advance to Phase 3 automatically.
+4. Owner physical-phone selection/sticky-footer/toast check remains open; the existing 200% zoom test is a viewport surrogate. Phase 7 demo videos reminder and D126 nits remain.
 
 ## Run notes
 

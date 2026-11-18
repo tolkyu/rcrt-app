@@ -93,7 +93,7 @@ export const BUILTIN_ROLES: Readonly<Record<BuiltinRole, readonly Grant[]>> = {
     'vertical.read',
   ),
   RECRUITER: [
-    ...grant(ASSIGNED, 'vacancy.read'),
+    ...grant(ASSIGNED, 'vacancy.read', 'vacancy.content.update'),
     ...grant(UNASSIGNED_OPEN, 'vacancy.read', 'vacancy.self_assign'),
     ...grant(
       VERTICAL,

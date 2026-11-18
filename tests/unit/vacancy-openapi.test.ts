@@ -27,6 +27,49 @@ const document = JSON.parse(readFileSync('openapi/openapi.json', 'utf8')) as {
   };
 };
 
+describe('content PATCH contract [ADR-018, VAC-08]', () => {
+  const operation = document.paths['/vacancies/{vacancyId}/content']?.patch;
+  it('preserves the separate draft operation and inherited guards', () => {
+    expect(operation?.operationId).toBe('updateVacancyContent');
+    expect(document.paths['/vacancies/{vacancyId}']?.patch?.operationId).toBe(
+      'updateVacancyDraft',
+    );
+    expect(
+      operation?.parameters
+        ?.filter((p) => p.in === 'header')
+        .map((p) => ({ name: p.name, required: p.required })),
+    ).toEqual([{ name: 'X-CSRF-Protection', required: true }]);
+    expect(Object.keys(operation?.responses ?? {}).sort()).toEqual([
+      '200',
+      '400',
+      '401',
+      '403',
+      '404',
+      '409',
+      '413',
+      '429',
+      '500',
+    ]);
+  });
+  it('exposes exactly the two content fields plus expectedVersion', () => {
+    expect(document.components.schemas.UpdateVacancyContent?.required).toEqual([
+      'expectedVersion',
+    ]);
+    expect(
+      Object.keys(
+        document.components.schemas.UpdateVacancyContent?.properties ?? {},
+      ),
+    ).toEqual(['expectedVersion', 'descriptionDoc', 'requirementsDoc']);
+    expect(document.components.schemas.VacancyContent?.required).toEqual([
+      'id',
+      'version',
+      'updatedAt',
+      'descriptionDoc',
+      'requirementsDoc',
+    ]);
+  });
+});
+
 describe('POST /vacancies contract [VAC-01, STORY-VAC-01-1]', () => {
   const operation = document.paths['/vacancies']!.post!;
 

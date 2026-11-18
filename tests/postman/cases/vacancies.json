@@ -3895,5 +3895,227 @@
     "body": "{\"action\":\"CANCEL\",\"reason\":\"Тест API {{vacancy_run}}\",\"expectedVersion\":{{team_c_version}}}",
     "status": 200,
     "script": "team-crypto-cancelled"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "create an isolated content-edit vacancy",
+    "as": "recruiter_crypto",
+    "freshRateWindow": true,
+    "headers": {
+      "Idempotency-Key": "newman-vacancy-content-{{vacancy_run}}"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_crypto_vertical_id}}",
+      "positionId": "{{vacancy_crypto_position_id}}",
+      "title": "Тест API — content {{vacancy_run}}"
+    },
+    "status": 201,
+    "script": "vacancy-content-created"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "assigned Recruiter replaces published description",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Content API replacement\"}]}]}}",
+    "status": 200,
+    "script": "vacancy-content-saved",
+    "snapshot": "vacancy_content_saved"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "canonical current-version no-op preserves the response",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Content API replacement\"}]}]}}",
+    "status": 200,
+    "sameAs": "vacancy_content_saved"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "stale same-value request is a conflict",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": {
+      "expectedVersion": 1,
+      "descriptionDoc": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Content API replacement"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "omission keeps description while null requirements stays clear",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"requirementsDoc\":null}",
+    "status": 200,
+    "sameAs": "vacancy_content_saved"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "null clears description",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 200,
+    "script": "vacancy-content-cleared"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "read-only HR cannot edit content",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "foreign vertical stays hidden",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "missing CSRF header",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 403,
+    "code": "CSRF_FORBIDDEN",
+    "headers": {
+      "X-CSRF-Protection": null
+    }
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "overposting rejects the whole content patch",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": {
+      "expectedVersion": 1,
+      "descriptionDoc": null,
+      "status": "CANCELLED"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "empty patch",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": {
+      "expectedVersion": 1
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "HTML content is rejected",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": {
+      "expectedVersion": 1,
+      "descriptionDoc": "<p>Unsafe raw content</p>"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "malformed vacancy id",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "published closed vacancy stays locked",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 409,
+    "code": "VACANCY_CONTENT_LOCKED"
   }
 ]

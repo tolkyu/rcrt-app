@@ -39587,6 +39587,1286 @@
               }
             }
           ]
+        },
+        {
+          "name": "createVacancy — create an isolated content-edit vacancy",
+          "request": {
+            "name": "createVacancy — create an isolated content-edit vacancy",
+            "description": {},
+            "url": {
+              "path": ["vacancies"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "newman-vacancy-content-{{vacancy_run}}"
+              },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "POST",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_recruiter_crypto}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"mode\":\"PUBLISH\",\"verticalId\":\"{{vacancy_crypto_vertical_id}}\",\"positionId\":\"{{vacancy_crypto_position_id}}\",\"title\":\"Тест API — content {{vacancy_run}}\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "setTimeout(() => {}, 60250 - (Date.now() % 60000));",
+                  "if ([\"vacancy_run\",\"vacancy_crypto_vertical_id\",\"vacancy_crypto_position_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"number\":{\"type\":\"string\",\"pattern\":\"^V-\\\\d{4,19}$\"},\"title\":{\"type\":\"string\"},\"vertical\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"position\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"name\":{\"type\":\"string\"}},\"required\":[\"id\",\"name\"]},\"teamLead\":{\"type\":[\"object\",\"null\"],\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]},\"recruiters\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"fullName\":{\"type\":\"string\"},\"isActive\":{\"type\":\"boolean\"}},\"required\":[\"id\",\"fullName\",\"isActive\"]}},\"status\":{\"type\":\"string\",\"enum\":[\"DRAFT\",\"OPEN\",\"ON_HOLD\",\"FILLED\",\"CANCELLED\"]},\"priority\":{\"type\":\"string\",\"enum\":[\"NORMAL\",\"URGENT\"]},\"source\":{\"type\":\"string\",\"enum\":[\"APP\",\"TELEGRAM_BOT\"]},\"openedAt\":{\"type\":[\"string\",\"null\"],\"format\":\"date-time\"},\"createdAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"headcount\":{\"type\":\"integer\",\"exclusiveMinimum\":0},\"seniority\":{\"type\":[\"string\",\"null\"]},\"workFormat\":{\"type\":[\"string\",\"null\"],\"enum\":[\"REMOTE\",\"OFFICE\",\"HYBRID\",null]},\"employmentType\":{\"type\":[\"string\",\"null\"]},\"location\":{\"type\":[\"string\",\"null\"]},\"salaryMinMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryMaxMinor\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^\\\\d{1,19}$\"},\"salaryCurrency\":{\"type\":[\"string\",\"null\"],\"pattern\":\"^[A-Z]{3}$\"},\"probationDays\":{\"type\":\"integer\",\"minimum\":30,\"maximum\":90},\"recruiterInitiated\":{\"type\":\"boolean\"},\"version\":{\"type\":\"integer\",\"exclusiveMinimum\":0},\"canChangeUrgency\":{\"type\":\"boolean\"},\"canSelfAssign\":{\"type\":\"boolean\"},\"canAssignRecruiters\":{\"type\":\"boolean\"},\"canSetTeamLead\":{\"type\":\"boolean\"},\"statusActions\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"enum\":[\"HOLD\",\"RESUME\",\"CANCEL\",\"REOPEN\"]}},\"needsMfa\":{\"type\":\"boolean\"},\"cancelReason\":{\"type\":\"string\"}},\"required\":[\"id\",\"number\",\"title\",\"vertical\",\"position\",\"teamLead\",\"recruiters\",\"status\",\"priority\",\"source\",\"openedAt\",\"createdAt\",\"updatedAt\",\"headcount\",\"seniority\",\"workFormat\",\"employmentType\",\"location\",\"salaryMinMinor\",\"salaryMaxMinor\",\"salaryCurrency\",\"probationDays\",\"recruiterInitiated\",\"version\",\"canChangeUrgency\",\"canSelfAssign\",\"canAssignRecruiters\",\"canSetTeamLead\",\"statusActions\",\"needsMfa\"]}));",
+                  "const vacancy = pm.response.json();",
+                  "pm.collectionVariables.set('vacancy_content_id', vacancy.id);",
+                  "pm.collectionVariables.set('vacancy_content_version', vacancy.version);",
+                  "pm.test('the content fixture is published', () => {",
+                  "  pm.expect(vacancy.status).to.equal('OPEN');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateVacancyContent — assigned Recruiter replaces published description",
+          "request": {
+            "name": "updateVacancyContent — assigned Recruiter replaces published description",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "content"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_content_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_recruiter_crypto}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Content API replacement\"}]}]}}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_content_id\",\"vacancy_content_version\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"version\":{\"type\":\"integer\",\"exclusiveMinimum\":0},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"descriptionDoc\":{\"type\":[\"object\",\"null\"],\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"doc\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"heading\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"level\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":3}},\"required\":[\"level\"],\"additionalProperties\":false},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bulletList\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"listItem\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":20}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":100}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"orderedList\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"start\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":9999}},\"required\":[\"start\"],\"additionalProperties\":false},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"listItem\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":20}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":100}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false}]},\"minItems\":1,\"maxItems\":200}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"requirementsDoc\":{\"type\":[\"object\",\"null\"],\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"doc\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"heading\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"level\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":3}},\"required\":[\"level\"],\"additionalProperties\":false},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bulletList\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"listItem\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":20}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":100}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"orderedList\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"start\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":9999}},\"required\":[\"start\"],\"additionalProperties\":false},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"listItem\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":20}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":100}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false}]},\"minItems\":1,\"maxItems\":200}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false}},\"required\":[\"id\",\"version\",\"updatedAt\",\"descriptionDoc\",\"requirementsDoc\"],\"additionalProperties\":false}));",
+                  "const content = pm.response.json();",
+                  "pm.test('only canonical content and revision metadata are returned', () => {",
+                  "  pm.expect(Object.keys(content).sort()).to.deep.equal([",
+                  "    'descriptionDoc',",
+                  "    'id',",
+                  "    'requirementsDoc',",
+                  "    'updatedAt',",
+                  "    'version',",
+                  "  ]);",
+                  "  pm.expect(content.version).to.equal(",
+                  "    Number(pm.collectionVariables.get('vacancy_content_version')) + 1,",
+                  "  );",
+                  "  pm.expect(content.descriptionDoc.content[0].content[0].text).to.equal(",
+                  "    'Content API replacement',",
+                  "  );",
+                  "  pm.expect(content.requirementsDoc).to.equal(null);",
+                  "});",
+                  "pm.collectionVariables.set('vacancy_content_version', content.version);",
+                  "pm.collectionVariables.set('vacancy_content_saved', JSON.stringify(pm.response.json()));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateVacancyContent — canonical current-version no-op preserves the response",
+          "request": {
+            "name": "updateVacancyContent — canonical current-version no-op preserves the response",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "content"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_content_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_recruiter_crypto}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Content API replacement\"}]}]}}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_content_id\",\"vacancy_content_version\",\"vacancy_content_saved\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"version\":{\"type\":\"integer\",\"exclusiveMinimum\":0},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"descriptionDoc\":{\"type\":[\"object\",\"null\"],\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"doc\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"heading\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"level\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":3}},\"required\":[\"level\"],\"additionalProperties\":false},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bulletList\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"listItem\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":20}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":100}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"orderedList\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"start\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":9999}},\"required\":[\"start\"],\"additionalProperties\":false},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"listItem\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":20}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":100}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false}]},\"minItems\":1,\"maxItems\":200}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"requirementsDoc\":{\"type\":[\"object\",\"null\"],\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"doc\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"heading\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"level\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":3}},\"required\":[\"level\"],\"additionalProperties\":false},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bulletList\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"listItem\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":20}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":100}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"orderedList\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"start\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":9999}},\"required\":[\"start\"],\"additionalProperties\":false},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"listItem\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":20}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":100}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false}]},\"minItems\":1,\"maxItems\":200}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false}},\"required\":[\"id\",\"version\",\"updatedAt\",\"descriptionDoc\",\"requirementsDoc\"],\"additionalProperties\":false}));",
+                  "pm.test(\"body identical to vacancy_content_saved\", () => pm.expect(pm.response.json()).to.deep.equal(JSON.parse(pm.collectionVariables.get('vacancy_content_saved'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateVacancyContent — stale same-value request is a conflict",
+          "request": {
+            "name": "updateVacancyContent — stale same-value request is a conflict",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "content"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_content_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_recruiter_crypto}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":1,\"descriptionDoc\":{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\",\"content\":[{\"type\":\"text\",\"text\":\"Content API replacement\"}]}]}}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_content_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem STALE_STATE\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:stale-state\",\"status\":409,\"code\":\"STALE_STATE\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateVacancyContent — omission keeps description while null requirements stays clear",
+          "request": {
+            "name": "updateVacancyContent — omission keeps description while null requirements stays clear",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "content"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_content_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_recruiter_crypto}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":{{vacancy_content_version}},\"requirementsDoc\":null}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_content_id\",\"vacancy_content_version\",\"vacancy_content_saved\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"version\":{\"type\":\"integer\",\"exclusiveMinimum\":0},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"descriptionDoc\":{\"type\":[\"object\",\"null\"],\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"doc\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"heading\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"level\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":3}},\"required\":[\"level\"],\"additionalProperties\":false},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bulletList\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"listItem\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":20}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":100}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"orderedList\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"start\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":9999}},\"required\":[\"start\"],\"additionalProperties\":false},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"listItem\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":20}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":100}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false}]},\"minItems\":1,\"maxItems\":200}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"requirementsDoc\":{\"type\":[\"object\",\"null\"],\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"doc\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"heading\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"level\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":3}},\"required\":[\"level\"],\"additionalProperties\":false},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bulletList\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"listItem\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":20}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":100}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"orderedList\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"start\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":9999}},\"required\":[\"start\"],\"additionalProperties\":false},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"listItem\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":20}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":100}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false}]},\"minItems\":1,\"maxItems\":200}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false}},\"required\":[\"id\",\"version\",\"updatedAt\",\"descriptionDoc\",\"requirementsDoc\"],\"additionalProperties\":false}));",
+                  "pm.test(\"body identical to vacancy_content_saved\", () => pm.expect(pm.response.json()).to.deep.equal(JSON.parse(pm.collectionVariables.get('vacancy_content_saved'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateVacancyContent — null clears description",
+          "request": {
+            "name": "updateVacancyContent — null clears description",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "content"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_content_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_recruiter_crypto}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_content_id\",\"vacancy_content_version\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"id\":{\"type\":\"string\",\"format\":\"uuid\"},\"version\":{\"type\":\"integer\",\"exclusiveMinimum\":0},\"updatedAt\":{\"type\":\"string\",\"format\":\"date-time\"},\"descriptionDoc\":{\"type\":[\"object\",\"null\"],\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"doc\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"heading\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"level\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":3}},\"required\":[\"level\"],\"additionalProperties\":false},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bulletList\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"listItem\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":20}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":100}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"orderedList\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"start\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":9999}},\"required\":[\"start\"],\"additionalProperties\":false},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"listItem\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":20}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":100}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false}]},\"minItems\":1,\"maxItems\":200}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"requirementsDoc\":{\"type\":[\"object\",\"null\"],\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"doc\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"heading\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"level\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":3}},\"required\":[\"level\"],\"additionalProperties\":false},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bulletList\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"listItem\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":20}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":100}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"orderedList\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"start\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":9999}},\"required\":[\"start\"],\"additionalProperties\":false},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"listItem\"]},\"content\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"paragraph\"]},\"content\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"text\"]},\"text\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":5000},\"marks\":{\"type\":\"array\",\"items\":{\"anyOf\":[{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"bold\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"italic\"]}},\"required\":[\"type\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"link\"]},\"attrs\":{\"type\":\"object\",\"properties\":{\"href\":{\"type\":\"string\",\"maxLength\":2048}},\"required\":[\"href\"]}},\"required\":[\"type\",\"attrs\"],\"additionalProperties\":false}]},\"maxItems\":3}},\"required\":[\"type\",\"text\"],\"additionalProperties\":false},{\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\",\"enum\":[\"hardBreak\"]}},\"required\":[\"type\"],\"additionalProperties\":false}]},\"maxItems\":500}},\"required\":[\"type\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":20}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false},\"minItems\":1,\"maxItems\":100}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false}]},\"minItems\":1,\"maxItems\":200}},\"required\":[\"type\",\"content\"],\"additionalProperties\":false}},\"required\":[\"id\",\"version\",\"updatedAt\",\"descriptionDoc\",\"requirementsDoc\"],\"additionalProperties\":false}));",
+                  "const content = pm.response.json();",
+                  "pm.test('null clears the description in one new revision', () => {",
+                  "  pm.expect(content.version).to.equal(",
+                  "    Number(pm.collectionVariables.get('vacancy_content_version')) + 1,",
+                  "  );",
+                  "  pm.expect(content.descriptionDoc).to.equal(null);",
+                  "  pm.expect(content.requirementsDoc).to.equal(null);",
+                  "});",
+                  "pm.collectionVariables.set('vacancy_content_version', content.version);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateVacancyContent — read-only HR cannot edit content",
+          "request": {
+            "name": "updateVacancyContent — read-only HR cannot edit content",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "content"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_content_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                { "key": "token", "value": "{{token_hr}}", "type": "string" }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_content_id\",\"vacancy_content_version\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem FORBIDDEN\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:forbidden\",\"status\":403,\"code\":\"FORBIDDEN\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateVacancyContent — foreign vertical stays hidden",
+          "request": {
+            "name": "updateVacancyContent — foreign vertical stays hidden",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "content"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_content_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_content_id\",\"vacancy_content_version\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateVacancyContent — Finance has no vacancy access",
+          "request": {
+            "name": "updateVacancyContent — Finance has no vacancy access",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "content"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_content_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_finance}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_content_id\",\"vacancy_content_version\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateVacancyContent — no token",
+          "request": {
+            "name": "updateVacancyContent — no token",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "content"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_content_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "PATCH",
+            "auth": { "type": "noauth" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_content_id\",\"vacancy_content_version\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem UNAUTHENTICATED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:unauthenticated\",\"status\":401,\"code\":\"UNAUTHENTICATED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateVacancyContent — Admin without TOTP",
+          "request": {
+            "name": "updateVacancyContent — Admin without TOTP",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "content"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_content_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_admin_aal1}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_content_id\",\"vacancy_content_version\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem MFA_REQUIRED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:mfa-required\",\"status\":401,\"code\":\"MFA_REQUIRED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateVacancyContent — missing CSRF header",
+          "request": {
+            "name": "updateVacancyContent — missing CSRF header",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "content"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_content_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" }
+            ],
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_recruiter_crypto}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_content_id\",\"vacancy_content_version\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 403', () => pm.response.to.have.status(403));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem CSRF_FORBIDDEN\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:csrf-forbidden\",\"status\":403,\"code\":\"CSRF_FORBIDDEN\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateVacancyContent — overposting rejects the whole content patch",
+          "request": {
+            "name": "updateVacancyContent — overposting rejects the whole content patch",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "content"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_content_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_recruiter_crypto}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":1,\"descriptionDoc\":null,\"status\":\"CANCELLED\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_content_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateVacancyContent — empty patch",
+          "request": {
+            "name": "updateVacancyContent — empty patch",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "content"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_content_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_recruiter_crypto}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":1}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_content_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateVacancyContent — HTML content is rejected",
+          "request": {
+            "name": "updateVacancyContent — HTML content is rejected",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "content"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{vacancy_content_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_recruiter_crypto}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":1,\"descriptionDoc\":\"<p>Unsafe raw content</p>\"}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_content_id\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VALIDATION_FAILED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:validation-failed\",\"status\":400,\"code\":\"VALIDATION_FAILED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"errors\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateVacancyContent — malformed vacancy id",
+          "request": {
+            "name": "updateVacancyContent — malformed vacancy id",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "content"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "not-a-uuid",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_recruiter_crypto}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"vacancy_content_version\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem NOT_FOUND\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:not-found\",\"status\":404,\"code\":\"NOT_FOUND\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "updateVacancyContent — published closed vacancy stays locked",
+          "request": {
+            "name": "updateVacancyContent — published closed vacancy stays locked",
+            "description": {},
+            "url": {
+              "path": ["vacancies", ":vacancyId", "content"],
+              "host": ["{{baseUrl}}"],
+              "query": [],
+              "variable": [
+                {
+                  "disabled": false,
+                  "type": "any",
+                  "value": "{{team_g_id}}",
+                  "key": "vacancyId",
+                  "description": "(Required) "
+                },
+                {
+                  "description": { "content": "", "type": "text/plain" },
+                  "type": "any",
+                  "value": "{{origin}}",
+                  "key": "origin"
+                }
+              ]
+            },
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Origin", "value": "{{origin}}" },
+              { "key": "X-CSRF-Protection", "value": "1" }
+            ],
+            "method": "PATCH",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_head_recruiter_gambling}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "protocolProfileBehavior": { "disableCookies": true },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if ([\"team_g_id\",\"vacancy_content_version\"].some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Cache-Control: private, no-store', () => pm.expect(pm.response.headers.get('Cache-Control')).to.equal('private, no-store'));",
+                  "pm.test('body matches the OpenAPI schema', () => pm.response.to.have.jsonSchema({\"type\":\"object\",\"properties\":{\"type\":{\"type\":\"string\"},\"status\":{\"type\":\"integer\"},\"code\":{\"type\":\"string\"},\"requestId\":{\"type\":\"string\",\"format\":\"uuid\"},\"errors\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"},\"code\":{\"type\":\"string\"}},\"required\":[\"path\",\"code\"]}},\"details\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}},\"required\":[\"type\",\"status\",\"code\",\"requestId\"]}));",
+                  "pm.test('application/problem+json', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('application/problem+json'));",
+                  "pm.test(\"problem VACANCY_CONTENT_LOCKED\", () => pm.expect(pm.response.json()).to.include({\"type\":\"urn:hris:problem:vacancy-content-locked\",\"status\":409,\"code\":\"VACANCY_CONTENT_LOCKED\"}));",
+                  "pm.test('problem carries no object data', () => pm.expect(Object.keys(pm.response.json()).sort()).to.deep.equal([\"code\",\"requestId\",\"status\",\"type\"]));"
+                ]
+              }
+            }
+          ]
         }
       ],
       "event": []
