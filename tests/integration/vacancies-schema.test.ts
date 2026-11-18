@@ -328,7 +328,7 @@ describe('vacancy numbers [VAC-07, STORY-VAC-07-1]', () => {
 });
 
 describe('vacancy privileges and event link [ADR-012]', () => {
-  it('lets the runtime role read and insert vacancies and assignments, update only the lifecycle columns, and never delete or reassign (S2)', async () => {
+  it('lets the runtime role read and insert vacancies and assignments, update only the lifecycle columns, remove assignments (ADR-017), and never delete a vacancy or reassign (S2)', async () => {
     const [countRow] =
       await runtime`select count(*)::int as count from app.vacancy where id = ${world.v.assignedOpen}`;
     const count = countRow!.count as number;
@@ -341,7 +341,6 @@ describe('vacancy privileges and event link [ADR-012]', () => {
       runtime`update app.vacancy set source = 'TELEGRAM_BOT' where id = ${world.v.assignedOpen}`,
       runtime`update app.vacancy set created_at = now() where id = ${world.v.assignedOpen}`,
       runtime`delete from app.vacancy where id = ${world.v.assignedOpen}`,
-      runtime`delete from app.vacancy_recruiter where vacancy_id = ${world.v.assignedOpen}`,
       runtime`update app.vacancy_recruiter set assigned_by = ${world.users.recA} where vacancy_id = ${world.v.assignedOpen}`,
     ])
       await expect(statement).rejects.toMatchObject({ code: '42501' });
@@ -349,6 +348,7 @@ describe('vacancy privileges and event link [ADR-012]', () => {
       await tx`set local role app_rw`;
       await tx`insert into app.vacancy ${tx(world.vacancyRow())}`;
       await tx`insert into app.vacancy_recruiter (vacancy_id, user_id, assigned_by) values (${world.v.draft}, ${world.users.recA}, ${world.users.admin})`;
+      await tx`delete from app.vacancy_recruiter where vacancy_id = ${world.v.draft} and user_id = ${world.users.recA}`;
       await tx`update app.vacancy set title = 'Зміна', version = version + 1, updated_at = now() where id = ${world.v.draft}`;
       await tx`select id from app.vacancy where id = ${world.v.draft} for update`;
     });
