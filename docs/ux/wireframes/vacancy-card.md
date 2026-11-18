@@ -376,7 +376,7 @@ CANCELLED   [Поділитися] [Клонувати]                [⋯]    
 ```
 Команда
 Тімлід
- (ВП) Василь Петренко                     ← assigned: avatar, name, caption «Тімлід · Гемблінг · П0»
+ (ВП) Василь Петренко                     ← assigned: avatar, name, caption «Тімлід · Гемблінг» (no priority: not in the DTO)
  — or, none (recruiter-initiated):
  Тімлід не призначений     [Призначити тімліда]   ← button: Admin / Head Recruiter, OPEN/ON_HOLD only
 Рекрутери
@@ -431,7 +431,7 @@ Header line of every dialog (muted): `V-0010 · Медіабаєр — Facebook 
 | Focus on open       | First enabled checkbox (search field if shown)                                                                                                                                                                        |
 | Pending             | Button pressed state at once; spinner after 150 ms; dialog waits for the server (no optimistic close: the version and eligibility are decided under lock)                                                              |
 | Success             | Dialog closes; list in «Команда» shows the new avatars (no animation); success toast; focus → the «Рекрутери» subheading (`tabIndex=-1`) so the reading position stays in the section                                     |
-| Empty (no eligible) | EmptyState inside the dialog: «У цій вертикалі немає рекрутерів, яких можна призначити» · «Рекрутер має бути активним, прийняти запрошення й мати роль «Рекрутер» у вертикалі.» · Admin also gets a link «Користувачі» (opens settings); button hidden, only «Закрити» |
+| Empty (no eligible) | EmptyState inside the dialog: «У цій вертикалі немає рекрутерів, яких можна призначити» · «Рекрутер має бути активним, прийняти запрошення й мати роль «Рекрутер» у вертикалі.» · no link (the client cannot tell Admin); button hidden, only «Закрити» |
 | Loading             | 4 skeleton rows h 48 (same boxes), buttons present, primary disabled                                                                                                                                                  |
 | Load error          | `SectionError` inside the dialog body: «Не вдалося завантажити рекрутерів» · «Спробувати ще раз»                                                                                                                      |
 
@@ -471,6 +471,7 @@ The claim cannot be undone by the recruiter (D130-2), so one short confirm stays
 | Body    | «Ви станете відповідальним рекрутером вакансії «Медіабаєр — Facebook» (V-0010). Відмовитися самостійно не вийде — це зможе зробити керівник рекрутингу.» |
 | Buttons | «Не зараз» · **«Взяти вакансію»** (primary, default focus: Enter confirms in one keystroke)                                                            |
 | Pending | Button disabled + spinner after 150 ms; dialog waits (the first commit wins)                                                                          |
+| Failure | Offline/5xx text stays inside the shared ConfirmDialog; pressing the confirm button again is the retry (no separate «Повторити», same for «Прибрати»). Dialogs are hosted by TeamPanel / list cell, not by the trigger |
 | Success | Dialog closes; toast **Вакансію взято** · V-0010 · Ви — рекрутер вакансії; button disappears; the user appears in «Рекрутери»; focus → «Рекрутери» subheading (card) / avatar cell (list) |
 | Double press / retry by the winner | Same success, no second toast                                                                                                |
 
@@ -478,7 +479,7 @@ The claim cannot be undone by the recruiter (D130-2), so one short confirm stays
 
 > **Вакансію вже взяв інший рекрутер** · V-0010 · Її більше немає у вашому списку.
 
-Then the client refetches: the loser's card becomes out-of-scope, so the route goes to `/vacancies` (list heading focused, `router.replace`, no 404 flash); in the preview the selection clears; in a list row the row disappears (list file V3). The winner's name is not shown to the loser (scope: he may no longer read the vacancy). Offline/5xx: dialog stays, `Alert` «Немає зʼєднання. Зміни не збережено.» + «Повторити». 404 (vertical lost): toast «Вакансію не знайдено або доступ обмежено».
+Then the client refetches: the loser's card becomes out-of-scope, so the route goes back to the saved list (link with the saved filters, else `/vacancies`; results region focused, `router.replace`, no 404 flash); in the preview the selection clears; in a list row the row disappears (list file V3). The winner's name is not shown to the loser (scope: he may no longer read the vacancy). Offline/5xx: dialog stays, `Alert` «Немає зʼєднання. Зміни не збережено.» + «Повторити». 404 (vertical lost): toast «Вакансію не знайдено або доступ обмежено».
 
 #### 3.4 Призначити тімліда (Admin, Head Recruiter; once)
 
@@ -572,6 +573,7 @@ One click, instant, reversible. Optimistic: chip, header button label and the ca
 - Admin has no «Взяти вакансію»: they use «Призначити рекрутера» (picking themselves is allowed only if they hold RECRUITER in the vertical, D35 — they appear in the list like any other).
 - Closed (`FILLED`/`CANCELLED`): no assign/remove/take/TL control renders for anyone.
 - `DRAFT`: none of these controls (author-only draft flows).
+- **V3 build status:** the aal2 disabled state is not built (the DTO has no flag); an Admin without 2FA gets the 403 toast. Gap for PROGRESS: add a `needsMfa` flag, then render the rule below.
 - **Disabled with a reason (the only cases):** Admin without aal2 (D63): every write button above is `aria-disabled` with `DisabledReason` «Підтвердьте вхід кодом 2FA, щоб змінювати вакансію.» + link «Підтвердити» (`/mfa/verify?next=…`, same pattern as the position catalog). Everything else the viewer cannot do is hidden, because the state machine (not the viewer's choice) removes it; a closed vacancy explains itself through the banner (§5).
 - A role/scope lost mid-session: the control disappears on the next refetch; an open dialog closes with the 403/404 toast (§3.1); focus → card `h1`.
 
@@ -681,6 +683,8 @@ Not PNGs (E2E): all toast wording (success, conflict «Вакансію вже �
 - Glossary additions: «Взяти вакансію», «Прибрати (рекрутера)», «Призупинити», «Відновити (призупинену)», «Відкрити знову», «Скасована», «Тімлід не призначений».
 
 ### 14. Open UX questions (also in the hand-off message)
+
+**Closed with defaults (owner did not object, 2026-11-18):** 1 «Відновити» kept; 2 confirm on self-claim kept; 3 no «Не призначено» filter option.
 
 1. **Word for resume.** «Відновити» (task wording) vs the glossary's «Відновити» = restore from Archive. Recommendation: keep «Відновити» (contexts never meet on one screen) or switch to «Поновити» if the owner wants zero overlap.
 2. **Confirm on self-claim.** Spec has a short confirm because the recruiter cannot release the vacancy (D130-2). Recommendation: keep; if the owner wants one click, drop the dialog and rely on the toast.

@@ -8,6 +8,7 @@ import { ApiError } from '@/lib/api-client';
 import { withVacancySelection } from '@/lib/vacancy-filters';
 import { navigateVacancies } from '@/lib/vacancy-navigation';
 import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
+import { TeamSkeleton } from './team-skeleton';
 import { VacancyOverview } from './vacancy-overview';
 
 /** Own request and error state, so a failing preview never takes the list down (VIS-01, UI-06). */
@@ -52,7 +53,7 @@ export function VacancyPreview({
       <span className="sr-only">{t('previewLoading')}</span>
       <Skeleton className="h-6 w-3/4" />
       <Skeleton className="h-6 w-24" />
-      <Skeleton className="h-28 w-full" />
+      <TeamSkeleton />
       <Skeleton className="h-48 w-full" />
     </div>
   );

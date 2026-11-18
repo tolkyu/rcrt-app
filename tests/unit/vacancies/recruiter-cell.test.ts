@@ -65,18 +65,21 @@ const row = (overrides: Partial<VacancySummary> = {}): VacancySummary => {
     ...overrides,
   };
 };
-const list = (items: VacancySummary[], verticals: string[] = [VERTICAL_ID]) =>
-  mountTeam(
-    createElement(VacanciesList, {
-      items,
-      selectedId: undefined,
-      wide: false,
-      onSelect: vi.fn(),
-      onPreviewIntent: vi.fn(),
-      canAuthorDrafts: false,
-      selfAssignVerticals: verticals,
-    }),
-  );
+const listNode = (
+  items: VacancySummary[],
+  verticals: string[] = [VERTICAL_ID],
+) =>
+  createElement(VacanciesList, {
+    items,
+    selectedId: undefined,
+    wide: false,
+    onSelect: vi.fn(),
+    onPreviewIntent: vi.fn(),
+    canAuthorDrafts: false,
+    selfAssignVerticals: verticals,
+  });
+const list = (items: VacancySummary[], verticals?: string[]) =>
+  mountTeam(listNode(items, verticals));
 const table = () =>
   screen.getByRole('table', { name: messages.vacancies.caption });
 const claimRow = (item: VacancySummary) =>
@@ -201,6 +204,41 @@ describe('claim from a row', () => {
         within(table()).getByRole('link', { name: 'Друга' }),
       ),
     );
+  });
+
+  it('keeps focus on the next row when the list drops the claimed row before the dialog closes', async () => {
+    const first = row({ title: 'Перша' });
+    const second = row({
+      id: crypto.randomUUID(),
+      title: 'Друга',
+      status: 'ON_HOLD',
+    });
+    const mounted: { view?: ReturnType<typeof list> } = {};
+    stubApi({
+      [`POST /vacancies/${first.id}/recruiters/claim`]: () => {
+        // The refetch the loss triggers lands before the answer is handled.
+        mounted.view?.update(listNode([second]));
+        return problem(409, 'VACANCY_ALREADY_ASSIGNED');
+      },
+    });
+    mounted.view = list([first, second]);
+    await userEvent.click(claimRow(first));
+    const dialog = await screen.findByRole('alertdialog');
+    await userEvent.click(
+      within(dialog).getByRole('button', { name: t.claimDialog.confirm }),
+    );
+    await waitFor(() =>
+      expect(document.activeElement).toBe(
+        within(table()).getByRole('link', { name: 'Друга' }),
+      ),
+    );
+  });
+
+  it('names the avatar cell of a staffed row for the recruiter who just took it', async () => {
+    const taken = row({ recruiters: [person] });
+    list([taken]);
+    const cell = within(table()).getByRole('group', { name: t.ownRow });
+    expect(cell.getAttribute('tabindex')).toBe('-1');
   });
 
   it('opens the same confirm from the mobile card button, and Esc leaves focus on it', async () => {

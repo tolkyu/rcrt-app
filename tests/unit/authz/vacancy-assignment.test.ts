@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { BuiltinRole } from '@/server/authz/types';
+import type { AuthContext } from '@/server/authz/context';
+import type { PermissionCode } from '@/server/authz/permissions';
+import type { BuiltinRole, Scope, VerticalId } from '@/server/authz/types';
 import {
   canAssignRecruiters,
   canSelfAssign,
@@ -7,6 +9,7 @@ import {
   hasGrantCovering,
   hasOwnGrant,
   isTeamEditable,
+  selfAssignVerticals,
 } from '@/server/authz/vacancy-assignment';
 import {
   contextFor,
@@ -20,6 +23,27 @@ import {
 
 const MANAGERS: readonly BuiltinRole[] = ['ADMIN', 'HEAD_RECRUITER'];
 const open = { verticalId: GAMBLING, status: 'OPEN' } as const;
+const NARROW_SCOPES = [
+  'OWN',
+  'OWN_INITIATED_NEW',
+  'ASSIGNED',
+  'UNASSIGNED_OPEN',
+  'SUBMITTED_TO_ME',
+] as const;
+
+/** A caller whose only grant is `permission` at `scope`, as a custom role would give it; the vertical is always covered, so only the scope kind can refuse. */
+const holding = (
+  permission: PermissionCode,
+  scope: Scope,
+  verticalIds: readonly VerticalId[] | 'ALL' = [GAMBLING],
+): AuthContext => ({
+  userId: ME,
+  grants: new Map([[permission, [{ scope, verticalIds }]]]),
+  aal: 'aal2',
+  mfaRequired: false,
+  mfaWithheld: new Set(),
+  timezone: 'Europe/Kyiv',
+});
 
 describe('team editing statuses [D130]', () => {
   it.each([
@@ -167,4 +191,138 @@ describe('canSelfAssign [D1, D130]', () => {
       canSelfAssign(roleContext('TEAM_LEAD'), { ...open, recruiters: [] }),
     ).toBe(false);
   });
+});
+
+describe('selfAssignVerticals: what the list page sends to the claim button [D130-2, security L-1]', () => {
+  it('Recruiter of one vertical gets that vertical', () => {
+    expect(selfAssignVerticals(roleContext('RECRUITER'))).toEqual([GAMBLING]);
+  });
+
+  it('Recruiter of two verticals gets both', () => {
+    const auth = contextFor([
+      { role: 'RECRUITER', verticalId: GAMBLING },
+      { role: 'RECRUITER', verticalId: CRYPTO },
+    ]);
+    expect(selfAssignVerticals(auth)).toEqual(
+      expect.arrayContaining([GAMBLING, CRYPTO]),
+    );
+    expect(selfAssignVerticals(auth)).toHaveLength(2);
+  });
+
+  it('Recruiter in one vertical and Team Lead in another gets only the Recruiter one', () => {
+    const auth = contextFor([
+      { role: 'RECRUITER', verticalId: GAMBLING },
+      { role: 'TEAM_LEAD', verticalId: CRYPTO },
+    ]);
+    expect(selfAssignVerticals(auth)).toEqual([GAMBLING]);
+  });
+
+  it.each([
+    ['Admin with aal2', roleContext('ADMIN')],
+    ['Admin with aal1', roleContext('ADMIN', 'aal1')],
+    ['Head Recruiter', roleContext('HEAD_RECRUITER')],
+    ['Team Lead', roleContext('TEAM_LEAD')],
+    ['HR', roleContext('HR')],
+    ['Finance', roleContext('FINANCE')],
+    ['a user with no assignments', contextFor([])],
+  ])(
+    '%s gets no vertical (they assign through a manager grant, not by claiming)',
+    (_name, auth) => {
+      expect(selfAssignVerticals(auth)).toEqual([]);
+    },
+  );
+});
+
+describe('only GLOBAL and VERTICAL grants cover, by scope kind and not by role name [S1-5, A1]', () => {
+  it.each(['GLOBAL', 'VERTICAL'] as const)(
+    'a %s grant covers the vertical and enables the team actions',
+    (kind) => {
+      expect(
+        hasGrantCovering(
+          holding('vacancy.hold', { kind }),
+          'vacancy.hold',
+          GAMBLING,
+        ),
+      ).toBe(true);
+      expect(
+        canAssignRecruiters(
+          holding('vacancy.assign_recruiters', { kind }),
+          open,
+        ),
+      ).toBe(true);
+      expect(
+        canSetTeamLead(holding('vacancy.team_lead.set', { kind }), {
+          ...open,
+          teamLead: null,
+        }),
+      ).toBe(true);
+    },
+  );
+
+  it.each(
+    NARROW_SCOPES.flatMap(
+      (kind) =>
+        [
+          [kind, [GAMBLING]],
+          [kind, 'ALL'],
+        ] as const,
+    ),
+  )(
+    'a %s grant covering %j never covers: hold, assign and Team Lead stay refused',
+    (kind, verticalIds) => {
+      const scope = { kind } as Scope;
+      expect(
+        hasGrantCovering(
+          holding('vacancy.hold', scope, verticalIds),
+          'vacancy.hold',
+          GAMBLING,
+        ),
+      ).toBe(false);
+      expect(
+        canAssignRecruiters(
+          holding('vacancy.assign_recruiters', scope, verticalIds),
+          open,
+        ),
+      ).toBe(false);
+      expect(
+        canSetTeamLead(holding('vacancy.team_lead.set', scope, verticalIds), {
+          ...open,
+          teamLead: null,
+        }),
+      ).toBe(false);
+    },
+  );
+
+  it('the OWN hold grant works through hasOwnGrant only, never through hasGrantCovering', () => {
+    const auth = holding('vacancy.hold', { kind: 'OWN' });
+    expect(hasGrantCovering(auth, 'vacancy.hold', GAMBLING)).toBe(false);
+    expect(hasOwnGrant(auth, 'vacancy.hold', GAMBLING, ME)).toBe(true);
+    expect(hasOwnGrant(auth, 'vacancy.hold', GAMBLING, OTHER)).toBe(false);
+  });
+
+  it('a covering grant of another vertical does not cover this one', () => {
+    expect(
+      hasGrantCovering(
+        holding('vacancy.hold', { kind: 'VERTICAL' }, [CRYPTO]),
+        'vacancy.hold',
+        GAMBLING,
+      ),
+    ).toBe(false);
+  });
+});
+
+describe('canSelfAssign never offers a claim outside OPEN, also with several roles [S1-5, D35]', () => {
+  const both = contextFor([
+    { role: 'RECRUITER', verticalId: GAMBLING },
+    { role: 'TEAM_LEAD', verticalId: GAMBLING },
+  ]);
+
+  it.each(['DRAFT', 'ON_HOLD', 'FILLED', 'CANCELLED'] as const)(
+    'a Recruiter who is also Team Lead on an unassigned %s vacancy',
+    (status) => {
+      expect(
+        canSelfAssign(both, { verticalId: GAMBLING, status, recruiters: [] }),
+      ).toBe(false);
+    },
+  );
 });

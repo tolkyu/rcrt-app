@@ -242,10 +242,11 @@ Full behaviour, copy and dialogs: [`vacancy-card.md`](vacancy-card.md) → «V3 
 | Admin / Head Recruiter / Team Lead / HR / Head HR, `OPEN` or `ON_HOLD`, no recruiters | Text «Не призначено», `--warning-text` + `user-x` icon (`aria-hidden`); no button (assign from the card/preview)     |
 | Any, `FILLED` / `CANCELLED` / `DRAFT`, no recruiters      | «—» (muted)                                                                                                           |
 
+- Visibility (build): no per-row flag; «Взяти» shows when `OPEN` + no recruiters + the row's vertical is in the viewer's self-assign set; the server re-checks. Column order: Назва · Вертикаль · Тімлід · Рекрутери · Статус (check width at 1440 with the preview open).
 - Button `aria-label` = «Взяти вакансію V-0010 Медіабаєр — Facebook» (contains the visible word, WCAG 2.5.3); click does not select the row; Enter/Space on it does not open the card.
 - Pending: the button is disabled and shows a spinner after 150 ms (press feedback is instant); one request per row.
 - Success: the row stays (assigned scope), the cell shows the user's avatar; if the preview shows this row it refetches. No row animation (§8.3), no focus loss: focus moves to the avatar cell (`tabIndex=-1`, `aria-label` «Ви — рекрутер цієї вакансії»).
-- Conflict (someone claimed first): the row disappears after refetch, warning toast per card file §3.3; focus goes to the next row's title link (or to the list heading when it was the last row).
+- Conflict (someone claimed first): the row disappears after refetch, warning toast per card file §3.3; focus goes to the next row's title link (or to the results region when it was the last row); an open preview clears its selection.
 - `ON_HOLD` unassigned rows are not in a Recruiter's list at all (D130-5); after «Призупинити» by a manager the row leaves a Recruiter's list on the next refetch, silently.
 - Row `[⋯]` menu per status (roles that may act): `OPEN` → Клонувати · Призупинити · Скасувати вакансію… · Видалити; `ON_HOLD` → Клонувати · Відновити · Скасувати вакансію… · Видалити; `FILLED` (Admin, Head Recruiter) → Клонувати · Відкрити знову · Видалити; `CANCELLED` → Клонувати · Видалити. «Скасувати вакансію…» and «Відкрити знову» open the same dialogs as on the card. «Призупинити»/«Відновити» act at once (toast), no dialog.
 

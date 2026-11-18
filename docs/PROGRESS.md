@@ -2,19 +2,27 @@
 
 Current phase status, active boundaries and owner decisions. Historical checkpoints: [through 2026-11-17](archive/progress-through-2026-11-17.md). Read [CLAUDE_HANDOFF.md](CLAUDE_HANDOFF.md) first for the latest handoff.
 
-## Current checkpoint — 2026-11-17 (Codex continuation)
+## Codex configuration — 2026-11-18
 
-- Branch `phase-2`, latest implementation `4efbf14`: S3.7 parts 1 and 2 complete; S3.5/S3.6 reviewed and closed per Claude handoff and D126. Earlier in-progress labels and push restrictions in the archived checkpoint are superseded by that handoff.
-- S3.7 fixed pure draft-close retry planning, toast chunk fallback, tooltip announcement duplication and BUG-S3-20. Remaining style/structure findings are Phase 7 debt (D126); see active gaps below and `docs/qa-phase-2-s3.md`.
-- S3.6 gallery follows the lean D125 matrix. Screenshots are updated once per V-block (D126), with no re-capture of unchanged screens.
-- Current work: STORY-VAC-03-3, Team Lead «Запросити вакансію» — Codex left the API, service, authz, integration test and form partly done (no uk.json keys, no page, lint errors); Claude finishes it.
-- Historical PROGRESS content moved intact to the archive above to reduce repeated context loading.
+- Owner's orchestration optimization: Sol Medium orchestrator and ordinary roles; Sol High architecture/security and critical specialist; at most two open subagents. Configuration: `.codex/config.toml`, `.codex/agents/*.toml`; operating contract: `CLAUDE.md` §12. Replaces only the former Codex Astra High default; Claude settings and D125/D126/D128/D129 are preserved.
+- Luna remains unevaluated and disabled as a default: present in the local catalog, absent from this session's spawn-model options. No measured savings claimed. New-session defaults do not change the active session or global preferences.
+- Audit baseline: `phase-2` @ `c712eb9`; existing untracked `.agents/skills/` directories left untouched. Product checkpoints below and the shared handoff describe earlier commits; inspect actual Git state before resuming product work.
+- Verification: Python `tomllib` parsed the project config and all 11 role files; asserted model/effort support against the local catalog, routing and inherited permissions. Installed Codex `0.169.0-alpha.11.1` accepted `--strict-config app-server --print-startup-config`; current spawn tool reflects the ten existing role overrides. `git diff --check` passed; `.claude/`, PRD, AGENTS, shared handoff and application files unchanged. Product suites and Luna comparison not run for this configuration-only change; no commit/push.
+
+## Current checkpoint — 2026-11-18 (Codex, small slices)
+
+- Branch `phase-2` @ `c712eb9`: V3 assignment/status/Team Lead APIs, team panel and API/review test gaps are already merged. Earlier handoff instructions to build/merge these are stale.
+- **SHARE-FALLBACK / STORY-UI-09-1 complete, uncommitted:** blocked/unavailable clipboard shows a selected, read-only absolute URL (16 px, Ukrainian accessible label), warning alert and «Закрити» with focus restoration. Card and preview share the fix; synchronous double-press guard and per-vacancy lifecycle suppress stale outcomes. Same-ID draft publish/restore focus is preserved. Five implementation/test files changed; no API/authz/schema changes.
+- Evidence: failing-before missing-textbox and double-press regressions; **56 unit tests in four focused files**, scoped ESLint and typecheck PASS; code review **APPROVED**. Build and `perf:size` PASS; initial JS gzip: card **160.32 kB**, list/preview **169.19 kB** (limit 180; edit 178.95/new 178.73).
+- Focused share Playwright: desktop **7 cases + 11 session setup passed**; mobile **5 passed, 2 expected desktop-preview skips**. Denied/unavailable clipboard, successful retry, selection/focus/close, preview, no server writes, axe and 320 px containment covered. Existing “200% zoom” test uses a reduced viewport, not actual browser zoom. Physical phone and visual gallery review remain deferred.
+- Commands: `corepack pnpm build`, `corepack pnpm perf:size`; `corepack pnpm exec playwright test tests/e2e/vacancy-share.spec.ts --project=e2e-desktop --workers=1 --grep 'clipboard|fallback|inside the screen|preview'`, then mobile with `--no-deps`. Build/typecheck needed elevation for native-binding/cache access. No full suites, PNG captures, commits or pushes; QA lock released. Screenshots and `tsconfig.json` unchanged.
+- **Preserve existing status work:** `D:/recruiting-wt/v3-status-ui` HEAD `3899dee` is already an ancestor of `phase-2`; its status implementation exists only as substantial uncommitted work (four tracked files and nine new files, including shared urgency cache changes), not a finished branch to merge. Inspected read-only, left untouched.
 
 ## Next work and verification boundaries
 
-- Finish STORY-VAC-03-3, then STORY-VAC-08-2 and remaining STORY-VAC-04-4 work; F10 rich text follows `docs/ux/ui-foundation.md`.
-- Initial JS last recorded in handoff: create 178.19 / edit 178.39 kB of the 180 kB limit. Re-measure after app changes.
-- Keep ten unrelated Phase-1 PNG changes and their `latest` copies out of feature commits; screenshot determinism triage is deferred.
+- Next small slice: reconcile existing dirty V3 status work, then finish its hold/resume request/cache layer with urgency regression coverage before dialogs/menu integration (STORY-VAC-02-1). Do not overwrite the worktree or duplicate its implementation.
+- Remaining V-block work: status UI (including the `needsMfa` gap below), focused E2E/API contracts/Newman and V2/V3 gallery/UX review. Reconcile old “not built” story labels against actual code before planning further work.
+- Screenshots only at V-block end (D125/D126); the share E2E no longer overwrites PNG47 on every regression run. Keep unrelated PNG changes out of feature commits; determinism triage remains deferred.
 - Owner's physical-phone check of the sticky footer/toast remains open. Desktop/mobile E2E projects run sequentially to avoid shared 30 writes/min limits; never overlap Playwright/integration/build runs.
 - Active historical implementation details and older per-slice gaps remain in [the archive](archive/progress-through-2026-11-17.md); consult relevant sections when touching that area.
 
@@ -24,7 +32,7 @@ Current phase status, active boundaries and owner decisions. Historical checkpoi
 | ----- | -------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | 0     | Discovery & design                                             | ✅ Done 2026-10-31 — owner approved Phase 1                               | —                                                                                               |
 | 1     | Foundation                                                     | ✅ Done locally 2026-11-06 (branch `phase-1`)                             | `screenshots/phase-1/index.html` (auth, settings, role profiles; 274 PNGs + 4 Foundation links) |
-| 2     | Vacancies & candidates                                         | 🔄 In progress — V1/V2a/V2b (drafts S3.5–S3.7) done locally; next V2: VAC-03-3, VAC-08-2, VAC-04-4 | `screenshots/phase-2/index.html` (vacancy list/detail, filters, empty/error, role denials)      |
+| 2     | Vacancies & candidates                                         | 🔄 In progress — V3 APIs/team panel merged; share fallback verified; status UI and V-block verification pending | `screenshots/phase-2/index.html` (vacancy list/detail, filters, empty/error, role denials)      |
 | 3     | Pipeline + routing                                             | ⏳                                                                        |                                                                                                 |
 | 4     | Bonuses & statistics                                           | ⏳                                                                        |                                                                                                 |
 | 5     | Archive & notifications                                        | ⏳                                                                        |                                                                                                 |
@@ -34,7 +42,8 @@ Current phase status, active boundaries and owner decisions. Historical checkpoi
 ## Gaps and later-phase boundaries
 
 - **V3 carry-over (security 2026-11-18, `docs/security/v3-adr-017-prereview.md`, `v3-s1-review.md`):** purge has no code for `entity_event_pii` (cancel reason, T-Z22) → Phase 5 purge; slice 8 adds audit labels for `recruiter_unassigned`/`team_lead_assigned` (S1-4), unit cases custom role at OWN/ASSIGNED refused + `canSelfAssign` false on DRAFT/unassigned ON_HOLD (S1-5), ADR-012 converse-lock rule (A6); optional parent-status trigger on `vacancy_recruiter` (S1-2). A5 closed by D131 (no claim cap). ADR-017 errata: ineligible user = 400 (no 422 class), TL race loser = `TEAM_LEAD_ALREADY_SET`, claim on another vacancy = 404.
-- **Share (UI-09-1) follow-ups, slice 7 QA:** fallback alert shows a relative `/vacancies/<id>` link and no «Закрити» (wireframe §11: read-only selected Input with absolute URL) → fix in V3 slice 5 with `useShareLink` + `ClipboardFallbackAlert`; story AC «HR gets 404» contradicts D46 (HR in both verticals) → story copy fix in slice 8; no Крипто Head Recruiter in seed; gallery entry for PNG 47 (U1) registered in slice 8.
+- **Share (UI-09-1) follow-ups:** fallback UI fixed and verified in the checkpoint above. Still open: story AC «HR gets 404» contradicts D46 (HR in both verticals) → story copy fix; no Крипто Head Recruiter in seed; update PNG47/U1 and gallery registration at V-block end.
+- **V3 UI gap (UX 2026-11-18):** Admin without 2FA sees team/status controls and gets a 403 toast; add a `needsMfa` DTO flag and render the §4 `DisabledReason` (D63).
 - **Tech debt → Phase 7 (D126):** S3.7 thermo items 2–5, 9–11 (`docs/qa-phase-2-s3.md`), preview scroll a11y, form-error link buttons, `clampDescription` non-string, shared actions-cell helper; tooltip clone strips the child's whole `aria-describedby`; toast fallback keeps only the latest notice.
 
 The final local closure above supersedes resolved Phase-1 labels in older checkpoints and reports. Active boundaries are listed below; hosted checks do not block the authorized local closure.

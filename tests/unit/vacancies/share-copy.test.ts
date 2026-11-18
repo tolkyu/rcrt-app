@@ -1,5 +1,13 @@
 // @vitest-environment jsdom
-import { cleanup, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
 import userEvent from '@testing-library/user-event';
 import { createElement, type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -101,11 +109,11 @@ describe('«Поділитися» double press [STORY-UI-09-1 edges]', () => {
     const button = shareButton();
     await userEvent.click(button);
     await userEvent.click(button);
-    expect(button.hasAttribute('disabled')).toBe(true);
+    expect(button.getAttribute('aria-disabled')).toBe('true');
     finish();
     await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
     expect(writeText).toHaveBeenCalledTimes(1);
-    expect(button.hasAttribute('disabled')).toBe(false);
+    expect(button.getAttribute('aria-disabled')).toBe('false');
   });
 
   it('two presses with a blocked clipboard show one alert and no toast', async () => {
@@ -126,4 +134,46 @@ describe('«Поділитися» double press [STORY-UI-09-1 edges]', () => {
     expect(writeText).toHaveBeenCalledTimes(1);
     expect(toast.success).not.toHaveBeenCalled();
   });
+});
+
+describe('«Поділитися» lifecycle [SHARE-FALLBACK]', () => {
+  it.each(['success', 'failure'] as const)(
+    'ignores a late %s after switching vacancy or unmounting',
+    async (outcome) => {
+      let finish = () => {};
+      const writeText = vi.fn(
+        () =>
+          new Promise<void>((resolve, reject) => {
+            finish = () =>
+              outcome === 'success' ? resolve() : reject(new Error('denied'));
+          }),
+      );
+      stubClipboard(writeText);
+      const view = (id: string) =>
+        createElement(NextIntlClientProvider, {
+          locale: 'uk',
+          timeZone: 'Europe/Kyiv',
+          messages,
+          children: createElement(VacancyOverview, { vacancy: detail({ id }) }),
+        });
+      const rendered = render(view(SHARE_ID));
+      const button = shareButton();
+      button.focus();
+      act(() => {
+        fireEvent.click(button);
+        fireEvent.click(button);
+      });
+      expect(writeText).toHaveBeenCalledTimes(1);
+      expect(document.activeElement).toBe(button);
+      rendered.rerender(view('5d1f3c1e-8b6b-4a54-9f0d-2f7c2d2b0b06'));
+      await act(async () => finish());
+      expect(screen.queryByRole('alert')).toBeNull();
+      expect(toast.success).not.toHaveBeenCalled();
+      expect(shareButton().getAttribute('aria-disabled')).toBe('false');
+      fireEvent.click(shareButton());
+      rendered.unmount();
+      await act(async () => finish());
+      expect(toast.success).not.toHaveBeenCalled();
+    },
+  );
 });

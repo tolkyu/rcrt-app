@@ -580,9 +580,11 @@ describe('VacancyOverview [STORY-VAC-04-2, UI-09]', () => {
     );
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain(messages.vacancies.shareFailed);
-    expect(within(alert).getByRole('link').getAttribute('href')).toBe(
-      `/vacancies/${vacancy.id}`,
-    );
+    expect(
+      within(alert).getByRole<HTMLInputElement>('textbox', {
+        name: messages.vacancies.shareLinkLabel,
+      }).value,
+    ).toBe(`${window.location.origin}/vacancies/${vacancy.id}`);
   });
 });
 
