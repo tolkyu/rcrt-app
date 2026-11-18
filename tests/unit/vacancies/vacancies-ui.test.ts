@@ -73,6 +73,10 @@ const detail = (overrides: Partial<VacancyDetail> = {}): VacancyDetail => ({
   recruiterInitiated: false,
   version: 1,
   canChangeUrgency: false,
+  canSelfAssign: false,
+  canAssignRecruiters: false,
+  canSetTeamLead: false,
+  statusActions: [],
   ...overrides,
 });
 

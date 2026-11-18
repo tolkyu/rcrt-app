@@ -95,7 +95,16 @@ export const EVENT_PAYLOADS = {
       recipientUserIds: z.array(id).max(500).optional(),
     })
     .strict(),
-  'vacancy.recruiter_assigned': z.object({ userId: id }).strict(),
+  /** `by` and `method` are optional only because the creation event and rows written before V3 carry `{userId}` alone; every V3 write sets both. */
+  'vacancy.recruiter_assigned': z
+    .object({
+      userId: id,
+      by: id.optional(),
+      method: z.enum(['SELF', 'MANAGER']).optional(),
+    })
+    .strict(),
+  'vacancy.recruiter_unassigned': z.object({ userId: id, by: id }).strict(),
+  'vacancy.team_lead_assigned': z.object({ teamLeadId: id, by: id }).strict(),
   'vacancy.updated': z
     .object({ fields: z.array(z.enum(VACANCY_EDIT_FIELDS)).min(1) })
     .strict(),

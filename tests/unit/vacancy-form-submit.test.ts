@@ -75,6 +75,10 @@ const detail = {
   recruiterInitiated: true,
   version: 1,
   canChangeUrgency: false,
+  canSelfAssign: false,
+  canAssignRecruiters: false,
+  canSetTeamLead: false,
+  statusActions: [],
 };
 
 const body = {

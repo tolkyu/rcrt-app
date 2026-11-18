@@ -16,6 +16,9 @@ export const queryKeys = {
   /** Under `['vacancies']` so every list invalidation (create, publish, cancel, delete) refreshes the chip count too. */
   vacancyDraftCount: () => ['vacancies', 'draft-count'] as const,
   vacancy: (id: string) => ['vacancy', id.toLowerCase()] as const,
+  /** Under `['vacancy', id]` so a write that refreshes the card refreshes the picker too. */
+  vacancyAssignableRecruiters: (id: string) =>
+    ['vacancy', id.toLowerCase(), 'assignable-recruiters'] as const,
   settingsVerticals: () => ['settings', 'verticals'] as const,
   settingsAudit: (filters: Readonly<Record<string, string | undefined>>) =>
     ['settings', 'audit', filters] as const,

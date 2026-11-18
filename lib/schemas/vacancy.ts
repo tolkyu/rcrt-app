@@ -16,6 +16,7 @@ import {
   VACANCY_SENIORITIES,
   VACANCY_WORK_FORMATS,
 } from '../vacancy-options';
+import { VACANCY_STATUS_ACTIONS } from '../../server/domain/vacancy-status/transitions';
 import { normalizePositionName } from '../position-name';
 import { hasOnlyVisibleChars } from '../visible-text';
 import {
@@ -109,6 +110,14 @@ export const vacancyDetailSchema = vacancySummarySchema
     version: z.number().int().positive(),
     /** Server decision for this viewer (broad `vacancy.update` in the vertical, status OPEN/ON_HOLD, D94, D127); the service re-checks on write. */
     canChangeUrgency: z.boolean(),
+    /** Server decision for this viewer: covering `vacancy.self_assign` grant, status OPEN, no recruiter yet (D1, D130); the service re-checks under the vacancy lock. */
+    canSelfAssign: z.boolean(),
+    /** Covering `vacancy.assign_recruiters` grant and status OPEN/ON_HOLD; also gates removal. */
+    canAssignRecruiters: z.boolean(),
+    /** Covering `vacancy.team_lead.set` grant, status OPEN/ON_HOLD and no Team Lead yet (D130-3). */
+    canSetTeamLead: z.boolean(),
+    /** Status actions legal from the stored status and granted to this viewer; empty for a DRAFT and a CANCELLED vacancy. */
+    statusActions: z.array(z.enum(VACANCY_STATUS_ACTIONS)),
     /** Only on the cancelled draft's own card, for the user who cancelled it (D123); absent for everyone else. */
     cancelReason: z.string().optional(),
   })

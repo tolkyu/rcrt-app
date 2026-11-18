@@ -24,6 +24,10 @@ export const isAdminAssignment = (assignment: { readonly role: string }) =>
 export const isTeamLeadAssignment = (assignment: { readonly role: string }) =>
   assignment.role === 'TEAM_LEAD';
 
+/** The role a vacancy recruiter must hold in the vacancy's vertical (D130-1). */
+export const isRecruiterAssignment = (assignment: { readonly role: string }) =>
+  assignment.role === 'RECRUITER';
+
 /** Ordinal order of pipeline stages; `max_stage_reached` comparisons use these positions. */
 export const STAGES = [
   'NEW',

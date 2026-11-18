@@ -50,6 +50,10 @@ const draft = (): VacancyDetail => ({
   recruiterInitiated: true,
   version: 1,
   canChangeUrgency: false,
+  canSelfAssign: false,
+  canAssignRecruiters: false,
+  canSetTeamLead: false,
+  statusActions: [],
 });
 
 const grant = (

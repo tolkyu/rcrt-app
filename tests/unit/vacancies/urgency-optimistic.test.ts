@@ -51,6 +51,10 @@ const detail = (
   recruiterInitiated: true,
   version: 3,
   canChangeUrgency: true,
+  canSelfAssign: false,
+  canAssignRecruiters: false,
+  canSetTeamLead: false,
+  statusActions: [],
 });
 const page = (...rows: VacancySummary[]): VacancyPage => ({
   items: rows,

@@ -1,18 +1,11 @@
 import { isUrgencyChangeable } from '../../lib/vacancy-urgency';
 import type { AuthContext } from './context';
+import { hasGrantCovering } from './vacancy-assignment';
 import type { VacancyRef, VerticalId } from './types';
 
 /** D94: the Team Lead's own `vacancy.update` grant (scope OWN) never counts; only a GLOBAL or VERTICAL grant covering the vertical does. */
-export function hasBroadUpdate(
-  ctx: AuthContext,
-  verticalId: VerticalId,
-): boolean {
-  return (ctx.grants.get('vacancy.update') ?? []).some(
-    (grant) =>
-      (grant.scope.kind === 'GLOBAL' || grant.scope.kind === 'VERTICAL') &&
-      (grant.verticalIds === 'ALL' || grant.verticalIds.includes(verticalId)),
-  );
-}
+export const hasBroadUpdate = (ctx: AuthContext, verticalId: VerticalId) =>
+  hasGrantCovering(ctx, 'vacancy.update', verticalId);
 
 export const canChangeUrgency = (
   ctx: AuthContext,
