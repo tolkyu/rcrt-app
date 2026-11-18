@@ -43,6 +43,7 @@ import {
   withVacancyPage,
   withVacancySelection,
 } from '@/lib/vacancy-filters';
+import type { StatusGrantMirror } from '@/lib/vacancy-status-menu';
 import { rememberVacancyList } from '@/lib/vacancy-list-memory';
 import { navigateVacancies as navigate } from '@/lib/vacancy-navigation';
 import { ALL_VERTICALS } from '@/lib/vertical-filter';
@@ -65,11 +66,13 @@ export function VacanciesView({
   canAuthorDrafts,
   canRequestVacancy,
   selfAssignVerticals,
+  statusGrants,
 }: {
   canManagePositions: boolean;
   canAuthorDrafts: boolean;
   canRequestVacancy: boolean;
   selfAssignVerticals: SelfAssignVerticals;
+  statusGrants: StatusGrantMirror | null;
 }) {
   const t = useTranslations('vacancies');
   const params = useSearchParams();
@@ -212,7 +215,7 @@ export function VacanciesView({
         retrying={query.isFetching}
       />
     ) : (
-      <RowSkeleton menuColumn={canAuthorDrafts} />
+      <RowSkeleton menuColumn={canAuthorDrafts || statusGrants !== null} />
     );
   } else if (items.length === 0 && draftsEmpty) {
     body = (
@@ -254,6 +257,7 @@ export function VacanciesView({
         onPreviewIntent={prefetchPreview}
         canAuthorDrafts={canAuthorDrafts}
         selfAssignVerticals={selfAssignVerticals}
+        statusGrants={statusGrants}
       />
     );
   }

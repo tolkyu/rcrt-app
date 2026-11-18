@@ -36,8 +36,10 @@ export type StatusSubject = Pick<
   | 'recruiters'
 >;
 
-/** One press = one request. The change reads the card's cache entry, which the optimistic update flips, so a retry after a rollback carries the version a refetch may have moved. */
-export function useToggleStatus(vacancy: StatusSubject) {
+type SeenCard = Pick<VacancyDetail, 'version' | 'recruiters'>;
+
+/** One press = one request. The change reads the card's cache entry, which the optimistic update flips, so a retry after a rollback carries the version a refetch may have moved; `seen` is the fallback when the cache has none. */
+export function useStatusToggle(id: string, number: string) {
   const t = useTranslations('vacancies.statusMenu.toast');
   const tTeam = useTranslations('vacancies.team.toast');
   const tStatus = useTranslations('vacancies.status');
@@ -45,13 +47,12 @@ export function useToggleStatus(vacancy: StatusSubject) {
   const { mountedRef, busyRef, tryLock } = useSubmissionLock();
   const [pending, setPending] = useState(false);
 
-  const latest = (action: ToggleAction): ToggleChange => {
+  const latest = (action: ToggleAction, seen: SeenCard): ToggleChange => {
     const card =
-      queryClient.getQueryData<VacancyDetail>(queryKeys.vacancy(vacancy.id)) ??
-      vacancy;
+      queryClient.getQueryData<VacancyDetail>(queryKeys.vacancy(id)) ?? seen;
     return {
-      id: vacancy.id,
-      number: vacancy.number,
+      id,
+      number,
       action,
       version: card.version,
       unassigned: card.recruiters.length === 0,
@@ -59,9 +60,9 @@ export function useToggleStatus(vacancy: StatusSubject) {
   };
 
   /** A rejected run (anything the outcome does not describe) ends in a toast whose button starts over. */
-  const start = (change: ToggleChange): Promise<void> => {
+  const start = (change: ToggleChange, seen: SeenCard): Promise<void> => {
     const retry = () => {
-      start(latest(change.action)).catch(() => undefined);
+      start(latest(change.action, seen), seen).catch(() => undefined);
     };
     const announce = (outcome: Parameters<typeof announceToggle>[4]) =>
       announceToggle(t, tTeam, tStatus, change, outcome, retry);
@@ -74,10 +75,10 @@ export function useToggleStatus(vacancy: StatusSubject) {
       );
   };
 
-  const toggle = (action: ToggleAction) => {
+  const toggle = (action: ToggleAction, seen: SeenCard) => {
     if (!tryLock()) return;
     setPending(true);
-    start(latest(action))
+    start(latest(action, seen), seen)
       .finally(() => {
         busyRef.current = false;
         if (mountedRef.current) setPending(false);
@@ -86,6 +87,14 @@ export function useToggleStatus(vacancy: StatusSubject) {
   };
 
   return { pending, toggle };
+}
+
+export function useToggleStatus(vacancy: StatusSubject) {
+  const { pending, toggle } = useStatusToggle(vacancy.id, vacancy.number);
+  return {
+    pending,
+    toggle: (action: ToggleAction) => toggle(action, vacancy),
+  };
 }
 
 /** Cancel and reopen: one request per dialog, the version is the one the dialog opened with, and every refusal has its place (inline text, or the shared toast that ends the dialog). */

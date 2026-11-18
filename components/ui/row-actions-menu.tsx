@@ -5,11 +5,21 @@ import { lazy, type ComponentProps } from 'react';
 import { Button } from './button';
 import { DeferredMenu, useDeferredMenu } from './deferred-menu';
 
+/** What an item may do with the open menu: a pending item keeps it open, then closes it when its work is ready. */
+export interface RowMenuHandle {
+  keepOpen: () => void;
+  close: () => void;
+  /** False once the user dismissed the menu (Esc, outside click) or the host closed it. */
+  isOpen: () => boolean;
+}
+
 export interface RowAction {
   id: string;
   label: string;
-  onSelect: () => void;
+  onSelect: (menu: RowMenuHandle) => void;
   destructive?: boolean;
+  /** Waiting for data: a spinner after 150 ms, so a press is never a dead click. */
+  pending?: boolean;
   /** Visible under the label because a disabled menu item cannot be focused and touch has no tooltip. */
   disabledReason?: string;
 }

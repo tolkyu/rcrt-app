@@ -25,6 +25,7 @@ import { hasAnyGrant } from '@/server/authz/can';
 import { selfAssignVerticals } from '@/server/authz/vacancy-assignment';
 import { authorsAnywhere } from '@/server/authz/vacancy-author';
 import { requestsAnywhere } from '@/server/authz/vacancy-request';
+import { statusGrantMirror } from '@/server/authz/vacancy-status';
 import { NotFoundError } from '@/server/http/errors';
 import { describeError, logger } from '@/server/observability/logger';
 import { getQueryClient } from '@/server/query/query-client';
@@ -135,6 +136,7 @@ async function VacanciesContent({ params }: { params: SearchParams }) {
         canAuthorDrafts={canAuthorDrafts}
         canRequestVacancy={requestsAnywhere(ctx.auth)}
         selfAssignVerticals={selfAssignVerticals(ctx.auth)}
+        statusGrants={statusGrantMirror(ctx.auth)}
       />
     </HydrationBoundary>
   );

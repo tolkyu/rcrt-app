@@ -77,6 +77,7 @@ const listNode = (
     onPreviewIntent: vi.fn(),
     canAuthorDrafts: false,
     selfAssignVerticals: verticals,
+    statusGrants: null,
   });
 const list = (items: VacancySummary[], verticals?: string[]) =>
   mountTeam(listNode(items, verticals));
