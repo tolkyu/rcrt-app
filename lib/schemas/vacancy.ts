@@ -118,7 +118,7 @@ export const vacancyDetailSchema = vacancySummarySchema
     canSetTeamLead: z.boolean(),
     /** Status actions legal from the stored status and granted to this viewer; empty for a DRAFT and a CANCELLED vacancy. */
     statusActions: z.array(z.enum(VACANCY_STATUS_ACTIONS)),
-    /** Only on the cancelled draft's own card, for the user who cancelled it (D123); absent for everyone else. */
+    /** A cancelled draft: only for the user who cancelled it (D123). A cancelled published vacancy: for everyone who reads it (D130-4). Absent otherwise. */
     cancelReason: z.string().optional(),
   })
   .meta({ id: 'VacancyDetail' });

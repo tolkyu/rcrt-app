@@ -2,12 +2,11 @@ import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
 import type { DbExecutor } from '../db';
 import { entityEvent, entityEventPii } from '../db/schema';
 
-/** Author-only (D123): keyed on the cancelling user and filtered by `visible` = `vacancyEventReadWhere` (D92). */
-export async function findCancelReason(
+async function latestCancelReason(
   db: DbExecutor,
   vacancyId: string,
-  cancelledBy: string,
   visible: SQL,
+  cancelledBy?: string,
 ): Promise<string | null> {
   const [row] = await db
     .select({ reason: sql<string | null>`${entityEventPii.data}->>'reason'` })
@@ -17,7 +16,9 @@ export async function findCancelReason(
       and(
         eq(entityEvent.vacancyId, vacancyId),
         eq(entityEvent.type, 'vacancy.status_changed'),
-        eq(entityEvent.actorId, cancelledBy),
+        cancelledBy === undefined
+          ? undefined
+          : eq(entityEvent.actorId, cancelledBy),
         visible,
         sql`${entityEvent.payload}->>'to' = 'CANCELLED'`,
       ),
@@ -26,3 +27,18 @@ export async function findCancelReason(
     .limit(1);
   return row?.reason ?? null;
 }
+
+/** Author-only (D123): keyed on the cancelling user and filtered by `visible` = `vacancyEventReadWhere` (D92). */
+export const findCancelReason = (
+  db: DbExecutor,
+  vacancyId: string,
+  cancelledBy: string,
+  visible: SQL,
+) => latestCancelReason(db, vacancyId, visible, cancelledBy);
+
+/** Published vacancy (D130-4): every reader of the vacancy sees the reason, so it is keyed on the vacancy and filtered only by `visible`. */
+export const findCancelReasonOfVacancy = (
+  db: DbExecutor,
+  vacancyId: string,
+  visible: SQL,
+) => latestCancelReason(db, vacancyId, visible);
