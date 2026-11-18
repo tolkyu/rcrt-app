@@ -434,7 +434,9 @@ test.describe('admin@demo states', () => {
       );
       await rowCount(page, false)
         .filter({ hasText: target.number })
-        .getByRole('button')
+        .getByRole('button', {
+          name: t.previewSelect.replace('{title}', ''),
+        })
         .click();
       await expect(
         page
@@ -463,7 +465,9 @@ test.describe('admin@demo states', () => {
       await openHydrated(page, '/vacancies');
       await rowCount(page, false)
         .filter({ hasText: target.number })
-        .getByRole('button')
+        .getByRole('button', {
+          name: t.previewSelect.replace('{title}', ''),
+        })
         .click();
       await expect(
         page
@@ -497,7 +501,9 @@ test.describe('admin@demo states', () => {
         await openHydrated(page, '/vacancies');
         await rowCount(page, false)
           .filter({ hasText: target.number })
-          .getByRole('button')
+          .getByRole('button', {
+            name: t.previewSelect.replace('{title}', ''),
+          })
           .click();
         const preview = page.getByRole('complementary', {
           name: t.previewLabel,

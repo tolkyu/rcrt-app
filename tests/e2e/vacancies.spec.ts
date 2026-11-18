@@ -49,8 +49,18 @@ async function listedNumbers(page: Page, isMobile: boolean) {
   return (await rows.allInnerTexts()).map((text) => NUMBER.exec(text)?.[0]);
 }
 
+/** A row also carries the actions menu «Дії: …», so the preview toggle is found by its own name. */
+const previewToggle = (row: Locator) =>
+  row.getByRole('button', { name: t.previewSelect.replace('{title}', '') });
+const rowMenu = (row: Locator) =>
+  row.getByRole('button', {
+    name: t.statusMenu.menuLabel.replace('{title}', ''),
+  });
+
 const search = (page: Page) =>
   page.getByRole('searchbox', { name: t.searchLabel, exact: true });
+const urgencyFilter = (page: Page) =>
+  page.getByLabel(t.filters.urgency, { exact: true });
 const statusFilter = (page: Page) =>
   page.getByRole('radiogroup', { name: t.filterStatus, exact: true });
 /** A chip with a count is announced «Чернетки, 4», so the name may carry a trailing count. */
@@ -72,6 +82,7 @@ const kyivDate = (iso: string) =>
     year: 'numeric',
   }).format(new Date(iso));
 
+/** Specs running in parallel open and remove vacancies numbered after the seeded ones, so only seeded rows are compared. */
 async function expectNumbers(
   page: Page,
   isMobile: boolean,
@@ -80,7 +91,11 @@ async function expectNumbers(
   await expect
     .poll(async () => {
       const rows = rowsOf(page, isMobile);
-      return (await rows.allInnerTexts()).map((text) => NUMBER.exec(text)?.[0]);
+      return (await rows.allInnerTexts())
+        .map((text) => NUMBER.exec(text)?.[0])
+        .filter(
+          (number) => number && Number(number.slice(2)) <= NEWEST_VISIBLE,
+        );
     })
     .toEqual(newestFirst(expected));
 }
@@ -435,7 +450,7 @@ test.describe('head.recruiter.gambling@demo', () => {
         .getByRole('heading', { level: 2, name: firstTitle, exact: true }),
     ).toBeVisible();
     expect(detailRequests).toEqual([]);
-    await rows.nth(1).getByRole('button').hover();
+    await previewToggle(rows.nth(1)).hover();
     await expect.poll(() => detailRequests.length).toBe(1);
   });
 
@@ -498,21 +513,21 @@ test.describe('head.recruiter.gambling@demo', () => {
     const main = page.getByRole('main');
     await expect(main.getByText(vacancy.number, { exact: true })).toBeVisible();
     await expect(main.getByText(t.status.OPEN, { exact: true })).toBeVisible();
-    await expect(main.getByText(t.urgent, { exact: true })).toHaveAttribute(
-      'data-urgent',
-      'true',
-    );
+    await expect(
+      main.locator('[data-slot="badge"]', { hasText: t.urgent }),
+    ).toHaveAttribute('data-urgent', 'true');
     const field = (label: string) =>
       main
         .locator('dt', { hasText: new RegExp(`^${label}$`) })
         .locator('xpath=following-sibling::dd[1]');
-    await expect(field(t.fields.teamLead)).toHaveText(
-      stored.teamLead!.fullName,
-    );
+    const team = main.getByRole('region', { name: t.teamTitle, exact: true });
+    await expect(
+      team.getByRole('listitem').filter({
+        hasText: tr('team.teamLeadCaption', { vertical: 'Гемблінг' }),
+      }),
+    ).toContainText(stored.teamLead!.fullName);
     for (const recruiter of stored.recruiters)
-      await expect(field(t.fields.recruiters)).toContainText(
-        recruiter.fullName,
-      );
+      await expect(team).toContainText(recruiter.fullName);
     await expect(field(t.fields.vertical)).toHaveText('Гемблінг');
     await expect(field(t.fields.position)).toHaveText(stored.position!.name);
     await expect(field(t.fields.headcount)).toHaveText(
@@ -548,7 +563,11 @@ test.describe('head.recruiter.gambling@demo', () => {
       main
         .locator('dt', { hasText: new RegExp(`^${label}$`) })
         .locator('xpath=following-sibling::dd[1]');
-    await expect(field(t.fields.teamLead)).toHaveText(t.unassigned);
+    await expect(
+      main
+        .getByRole('region', { name: t.teamTitle, exact: true })
+        .getByText(t.team.noTeamLead, { exact: true }),
+    ).toBeVisible();
     await expect(field(t.fields.origin)).toHaveText(t.recruiterInitiated);
 
     await openHydrated(page, `/vacancies/${demoVacancy(11).id}`);
@@ -966,7 +985,7 @@ test.describe('admin@demo', () => {
     ).toBeVisible();
 
     const secondRow = rowsOf(page, false).filter({ hasText: second.number });
-    const secondButton = secondRow.getByRole('button');
+    const secondButton = previewToggle(secondRow);
     await secondButton.click();
     await expect(page).toHaveURL(new RegExp(`[?&]vacancy=${second.id}(&|$)`));
     await expect(secondButton).toHaveAttribute('aria-pressed', 'true');
@@ -1060,10 +1079,9 @@ test.describe('admin@demo', () => {
     await page.route(failing, (route) =>
       route.fulfill({ status: 503, json: { code: 'INTERNAL_ERROR' } }),
     );
-    await rowsOf(page, false)
-      .filter({ hasText: target.number })
-      .getByRole('button')
-      .click();
+    await previewToggle(
+      rowsOf(page, false).filter({ hasText: target.number }),
+    ).click();
     const preview = page.getByRole('complementary', { name: t.previewLabel });
     await expect(
       preview.getByText(messages.states.errorTitle, { exact: true }),
@@ -1090,6 +1108,8 @@ test.describe('admin@demo', () => {
     await page.keyboard.press('Tab');
     await expect(verticalFilter(page)).toBeFocused();
     await page.keyboard.press('Tab');
+    await expect(urgencyFilter(page)).toBeFocused();
+    await page.keyboard.press('Tab');
     await expect(statusChip(page, t.all)).toBeFocused();
     await page.keyboard.press('Tab');
     const first = demoVacancy(NEWEST_VISIBLE);
@@ -1098,12 +1118,16 @@ test.describe('admin@demo', () => {
       .getByRole('link', { name: first.title });
     await expect(link).toBeFocused();
     if (!isMobile) {
+      const firstRow = rowsOf(page, false).first();
       await page.keyboard.press('Tab');
-      await expect(
-        rowsOf(page, false).first().getByRole('button'),
-      ).toBeFocused();
-      const nextToggle = rowsOf(page, false).nth(1).getByRole('button');
+      await expect(rowMenu(firstRow)).toBeFocused();
       await page.keyboard.press('Tab');
+      await expect(previewToggle(firstRow)).toBeFocused();
+      const nextRow = rowsOf(page, false).nth(1);
+      const nextToggle = previewToggle(nextRow);
+      await page.keyboard.press('Tab');
+      await page.keyboard.press('Tab');
+      await expect(rowMenu(nextRow)).toBeFocused();
       await page.keyboard.press('Tab');
       await expect(nextToggle).toBeFocused();
       await page.keyboard.press('Space');
@@ -1195,6 +1219,7 @@ test.describe('layouts', () => {
       t.columns.title,
       t.columns.vertical,
       t.columns.teamLead,
+      t.columns.recruiters,
       t.columns.status,
       t.columns.preview,
     ]);
@@ -1252,9 +1277,8 @@ test.describe('sharing', () => {
     await page.getByRole('button', { name: t.share }).click();
     const alert = page.getByRole('alert').filter({ hasText: t.shareFailed });
     await expect(alert).toBeVisible();
-    await expect(alert.getByRole('link')).toHaveAttribute(
-      'href',
-      `/vacancies/${vacancy.id}`,
-    );
+    await expect(
+      alert.getByRole('textbox', { name: t.shareLinkLabel }),
+    ).toHaveValue(new URL(`/vacancies/${vacancy.id}`, page.url()).href);
   });
 });

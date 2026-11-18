@@ -679,7 +679,11 @@ test.describe('create form, Recruiter [STORY-VAC-01-1, STORY-VAC-01-3]', () => {
       '{count}',
       '50',
     );
-    await expect(page.getByText(limit, { exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole('region', { name: messages.common.notifications })
+        .getByText(limit, { exact: true }),
+    ).toBeVisible();
     expect(sent).toHaveLength(1);
     await expect(page).toHaveURL(/\/vacancies\/new$/);
     await expect(heading(page)).toBeVisible();
