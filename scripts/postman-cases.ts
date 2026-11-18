@@ -77,6 +77,8 @@ const caseSchema = z
     snapshot: z.string().regex(/^\w+$/).optional(),
     /** The response body must deep-equal the snapshot taken earlier (proof a refused mutation wrote nothing). */
     sameAs: z.string().regex(/^\w+$/).optional(),
+    /** Starts the request in the next minute: the fixed one-minute write limit (30 per user) then counts only this block, not the cases before it. */
+    freshRateWindow: z.literal(true).optional(),
   })
   .strict()
   .refine((c) => c.status >= 400 === (c.code !== undefined), {
@@ -105,6 +107,8 @@ const RUNNER_VARIABLES = new Set([
   ),
 ]);
 const CAPTURE = /pm\.collectionVariables\.set\(\s*'(\w+)'/g;
+/** Rate windows are aligned to the wall-clock minute (server/security/rate-limit.ts); the margin covers clock rounding. */
+const NEXT_MINUTE = 'setTimeout(() => {}, 60250 - (Date.now() % 60000));';
 
 /** Inline `$ref`s (no cycles in our spec) and drop prose so the schema fits a Postman test line. */
 function inlineSchema(
@@ -272,14 +276,19 @@ function caseItem(
     /** Only explicit `Cookie` headers reach the app; Newman's jar never carries a session between requests. */
     protocolProfileBehavior: { disableCookies: true },
     event: [
-      ...(chained.length
+      ...(chained.length || c.freshRateWindow
         ? [
             {
               listen: 'prerequest',
               script: {
                 type: 'text/javascript',
                 exec: [
-                  `if (${JSON.stringify(chained)}.some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();`,
+                  ...(c.freshRateWindow ? [NEXT_MINUTE] : []),
+                  ...(chained.length
+                    ? [
+                        `if (${JSON.stringify(chained)}.some((key) => !pm.collectionVariables.get(key))) pm.execution.skipRequest();`,
+                      ]
+                    : []),
                 ],
               },
             },

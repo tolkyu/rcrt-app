@@ -802,6 +802,35 @@ describe('Remove a recruiter [STORY-VAC-03-2, D130(2), D130(5)]', () => {
       ).toMatchObject({ status: 404 });
     });
   });
+
+  it('Admin without aal2 is 401 and the set stays', async () => {
+    await scenario(async (s) => {
+      const id = world.v.assignedOpen;
+      const ctx = await s.as(roles().admin, { aal: 'aal1' });
+      expect(await problem(remove(ctx, id, world.users.recA))).toMatchObject({
+        status: 401,
+      });
+      await expectUntouched(s, id);
+    });
+  });
+
+  it.each([
+    ['Admin', 'admin'],
+    ['Head Recruiter of the vertical', 'head'],
+    ['Head Recruiter of another vertical', 'headOther'],
+  ] as const)(
+    'removing from someone else draft or a deleted vacancy is 404 for %s',
+    async (_n, who) => {
+      await scenario(async (s) => {
+        const ctx = await s.as(roles()[who]);
+        for (const id of [world.v.draft, world.v.deleted])
+          expect(
+            await problem(remove(ctx, id, world.users.recD)),
+          ).toMatchObject({ status: 404, code: 'NOT_FOUND' });
+        await expectUntouched(s, world.v.draft);
+      });
+    },
+  );
 });
 
 describe('Assignable recruiters [STORY-VAC-03-2, D79]', () => {
@@ -826,13 +855,11 @@ describe('Assignable recruiters [STORY-VAC-03-2, D79]', () => {
       const headOnly = await addUser(s.tx, {
         roles: [{ role: 'HEAD_RECRUITER', verticalId: v1() }],
       });
-      await s.tx
-        .insert(schema.userRole)
-        .values({
-          userId: world.users.recA,
-          role: 'RECRUITER',
-          verticalId: v1(),
-        });
+      await s.tx.insert(schema.userRole).values({
+        userId: world.users.recA,
+        role: 'RECRUITER',
+        verticalId: v1(),
+      });
       await s.tx
         .update(schema.appUser)
         .set({ isActive: false, deactivatedAt: NOW })
@@ -943,6 +970,19 @@ describe('Assignable recruiters [STORY-VAC-03-2, D79]', () => {
           listAssignableRecruiters(await s.as(roles().head), extra.filled),
         ),
       ).toEqual({ status: 409, code: 'VACANCY_CLOSED' });
+    });
+  });
+
+  it('Admin without aal2 is 401', async () => {
+    await scenario(async (s) => {
+      expect(
+        await problem(
+          listAssignableRecruiters(
+            await s.as(roles().admin, { aal: 'aal1' }),
+            world.v.assignedOpen,
+          ),
+        ),
+      ).toMatchObject({ status: 401 });
     });
   });
 });

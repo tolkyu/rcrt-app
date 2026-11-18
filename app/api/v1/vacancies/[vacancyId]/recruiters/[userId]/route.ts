@@ -17,7 +17,7 @@ export const DELETE = defineRoute(
     permission: 'vacancy.read',
     requireGrant: 'vacancy.assign_recruiters',
     summary:
-      'Removes a recruiter from an `OPEN` or `ON_HOLD` vacancy at the `expectedVersion` (query) the caller last saw (Admin with aal2, Head Recruiter of the vertical; a Recruiter cannot remove anyone, self included: 403). Any user id outside the recruiter set, existing or not, answers the same 200 without a write. 409 `VACANCY_CLOSED` / `STALE_STATE`',
+      'Removes a recruiter from an `OPEN` or `ON_HOLD` vacancy at the `expectedVersion` (query) the caller last saw (Admin with aal2, Head Recruiter of the vertical; a Recruiter cannot remove anyone, self included: 403). Any well-formed user id outside the recruiter set, existing or not, answers the same 200 without a write; a malformed id is 404. 409 `VACANCY_CLOSED` / `STALE_STATE`',
     tags: ['Vacancies'],
     params: vacancyRecruiterParamsSchema,
     query: unassignVacancyRecruiterQuerySchema,

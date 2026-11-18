@@ -14,6 +14,7 @@ import {
   listVacancyPage,
 } from '../../server/services/vacancy';
 import { changeVacancyStatus } from '../../server/services/vacancy-status';
+import { setVacancyUrgency } from '../../server/services/vacancy-urgency';
 import { createLockRace } from '../support/lock-race';
 import {
   contextFor,
@@ -763,6 +764,79 @@ describe('Status changes on committed rows [ADR-017 concurrency, PERF-02]', () =
     expect(await countOf(id)).toBe(1);
     const [row] = await admin`select version from app.vacancy where id = ${id}`;
     expect(row!.version).toBe(2);
+  });
+
+  const newFilled = async (createdBy: string) => {
+    const id = randomUUID();
+    await admin`insert into app.vacancy (id, vertical_id, position_id, title, recruiter_initiated, status, opened_at, closed_at, created_by)
+      values (${id}, ${fixture.verticalId}, ${fixture.positionId}, 'Гонка статусу', true, 'FILLED', ${WORLD_OPENED_AT}, ${WORLD_OPENED_AT}, ${createdBy})`;
+    return id;
+  };
+  const urgencyEvents = async (id: string) =>
+    (
+      await admin`select count(*)::int as n from app.entity_event where vacancy_id = ${id} and type = 'vacancy.urgency_changed'`
+    )[0]!.n as number;
+  const stateOf = async (id: string) =>
+    (
+      await admin`select status, version, priority_flag from app.vacancy where id = ${id}`
+    )[0]!;
+
+  it('reopen then an urgency change with the version read before it: 409 STALE_STATE, nothing written; the fresh version works', async () => {
+    const head = await newUser('HEAD_RECRUITER');
+    const id = await newFilled(head);
+    expect(await change(ctx(head), id, 'REOPEN')).toMatchObject({
+      status: 'OPEN',
+      version: 2,
+    });
+    expect(
+      await problem(
+        setVacancyUrgency(ctx(head), id, {
+          priority: 'URGENT',
+          expectedVersion: 1,
+        }),
+      ),
+    ).toMatchObject({ status: 409, code: 'STALE_STATE' });
+    expect(await stateOf(id)).toEqual({
+      status: 'OPEN',
+      version: 2,
+      priority_flag: 'NORMAL',
+    });
+    expect(await urgencyEvents(id)).toBe(0);
+    await setVacancyUrgency(ctx(head), id, {
+      priority: 'URGENT',
+      expectedVersion: 2,
+    });
+    expect(await stateOf(id)).toEqual({
+      status: 'OPEN',
+      version: 3,
+      priority_flag: 'URGENT',
+    });
+  });
+
+  it('reopen and an urgency change started together on a FILLED vacancy: reopen always wins, urgency never writes, whichever reaches the lock first', async () => {
+    const head = await newUser('HEAD_RECRUITER');
+    const id = await newFilled(head);
+    const [reopened, urgency] = await Promise.allSettled([
+      changeVacancyStatus(ctx(head), id, body('REOPEN')),
+      setVacancyUrgency(ctx(head), id, {
+        priority: 'URGENT',
+        expectedVersion: 1,
+      }),
+    ]);
+    expect(reopened.status).toBe('fulfilled');
+    expect(urgency.status).toBe('rejected');
+    const lost = await problem(
+      Promise.reject((urgency as PromiseRejectedResult).reason),
+    );
+    expect(lost.status).toBe(409);
+    expect(['STALE_STATE', 'VACANCY_URGENCY_LOCKED']).toContain(lost.code);
+    expect(await stateOf(id)).toEqual({
+      status: 'OPEN',
+      version: 2,
+      priority_flag: 'NORMAL',
+    });
+    expect(await urgencyEvents(id)).toBe(0);
+    expect(await countOf(id)).toBe(1);
   });
 
   it('a Team Lead whose role is removed while the request waits is 403 and nothing is written', async () => {
