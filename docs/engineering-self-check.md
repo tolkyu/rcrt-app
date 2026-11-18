@@ -74,3 +74,4 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] Token economy (D128, D129): run only the test files related to your change (`vitest run <files>`, one Playwright spec and one project); pipe long output through `tail -40`; never re-run a passing suite without a new change. Full unit runs at merge (orchestrator); E2E, Newman, perf and screenshots at V-block end; CI runs all on push.
 - [ ] A refactor that extracts a shared hook, helper or schema greps every consumer (`export *` chains included) and names them in the hand-back; a change to a shared invalidation list (e.g. `applyCreatedVacancy`) names each flow it affects.
 - [ ] A flag or ref set by a key-scoped component (`key={id}`) is reset when the key changes, not only on unmount.
+- [ ] A new viewer-dependent DTO field (`can*` flag) is checked against tests that compare one DTO across roles (`grep -rn "toEqual(baseline" tests/integration`); run those integration files.
