@@ -27,6 +27,7 @@ describe('audit viewer labels for vacancy actions [AUD, STORY-VAC-02-1, STORY-VA
       'vacancy.recruiter_unassigned',
       'vacancy.status_changed',
       'vacancy.team_lead_assigned',
+      'vacancy.updated',
       'vacancy.urgency_changed',
     ]);
   });

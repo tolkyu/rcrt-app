@@ -26,6 +26,7 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 
 ## Tests
 
+- [ ] Every emitted audit action has a Ukrainian viewer label; include its action-scan/label test when checking affected files.
 - [ ] Every failure branch has a test: validation, 400 field errors, 403, 404, 409, 429, 5xx, network failure, key reuse.
 - [ ] Pure helpers (mapping, planning, parsing) have table unit tests.
 - [ ] E2E cleans up its own data in `afterEach`, scoped to its own project or prefix, so desktop and mobile runs do not collide.
