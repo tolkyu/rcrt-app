@@ -1,0 +1,53 @@
+# S3.5 review checkpoint — 2026-11-17
+
+Scope: current cancel/delete UI, multi-line reason schema and HTTP/API coverage [STORY-VAC-01-1, STORY-VAC-01-3, D82, D92, D98, D112, D113].
+
+Independent code reviewer initially returned **CHANGES REQUESTED**. Coordinator fixes below are implemented and covered; the configured reviewer reached its usage limit before re-review. **Final independent approval is pending; S3.5/S3.6 remain in progress.**
+
+| Finding                                                               | Correction                                                                                                                                                                                                            | Evidence                                                                                                  |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| An older detail GET restores DRAFT after cancellation.                | `applyClosed` cancels list/count and exact detail reads before publishing the response.                                                                                                                               | Deferred-response regression in `draft-close.test.ts`.                                                    |
+| Changed reason after a lost answer can adopt an older cancellation.   | Reconcile only matching normalized uncertain requests. Different possible bodies or a known conflict disable status-only reconciliation for the current dialog; intervening 403/429 cannot erase earlier uncertainty. | Hook regressions for changed reason, multiple lost answers and intervening refusals.                      |
+| Internal blank lines disappear, contrary to D113.                     | Preserve every internal break, normalize CRLF/CR to LF, count with the same helper on both sides.                                                                                                                     | Reason/schema/counter units and service/HTTP event-PII assertions.                                        |
+| Reconciliation updates the active card before close/focus completion. | Read directly without committing to the query cache; normal completion publishes the result.                                                                                                                          | Regression checks the cached card remains unchanged while reconciliation returns the stored cancellation. |
+
+Security reviewer: initial **PASS / APPROVED**, no Critical/High/Medium findings; coordinator follow-ups and residual Low are recorded in `security/review-phase-2-s3-5.md`. Performance measurements are in `perf/report-phase-2-s3-5.md`; coordinator visual review and remaining S3.6 boundaries are in `ux/review-phase-2-s3.md`.
+
+Additional S3.6 fix: value edits dismiss the stale submit-error count in both vacancy forms without removing field errors. The real React Hook Form regression covers picker `setValue`, and gallery tests assert the banner is gone before capturing the filled form.
+
+Open verification issue: BUG-S3-14 can lose the forbidden toast during a 403/RSC refresh. It remains open even when focused repeats pass. No independent final verdict is inferred from coordinator test results.
+
+## Re-review (Claude, 2026-11-17)
+
+Range `42e41ac..ac0b63f` (screenshots excluded). Read: `lib/vacancy-draft-close.ts`, `components/vacancies/use-draft-close.tsx`, `draft-actions.tsx`, `draft-menu.tsx`, `draft-header-actions.tsx`, `vacancy-overview.tsx`, `use-field-summary.ts`, reason helpers and schemas, route/service diff, `confirm-dialog.tsx`, the security report. Ran only `vitest --project unit` on `reason-text`, `draft-close`, `use-draft-close`, `use-field-summary`, `draft-actions`: **5 files / 130 tests passed**. Full suite, E2E, lint and typecheck were not re-run (already run).
+
+**Verdict: APPROVED.** No blocking findings.
+
+### The four earlier findings
+
+| Finding                                       | Result | Evidence                                                                                                                                                                                                                                                                                                    |
+| --------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Old detail GET restores DRAFT                 | Holds  | `applyClosed` awaits `cancelQueries` for `['vacancies']` (lists and draft count share the prefix) and the exact card key before it writes; there is no `await` between the cancel and the writes. TanStack ignores a cancelled fetch's late result. Test `draft-close.test.ts:349` (deferred older answer). |
+| Changed reason adopts an older cancellation   | Holds  | `use-draft-close.tsx:130-141` compares the normalized body with the last attempt; any difference, 409 or STALE turns `reconciliationAllowed` off until `openDialog`. `unsure                                                                                                                                |     | =`cannot be erased by 403/429. I walked the cases (lost A then B, A-B-A, 429 between, delete): every path is conservative, never a false "done". Tests`use-draft-close.test.ts:324, 353, 399`. Residual: A lost, B refused 429, A again shows 409 although A was applied; safe. |
+| Internal breaks collapsed (D113)              | Holds  | `normalizeReason` keeps every `\n`, CRLF/CR become LF, one helper for schema, counter and dialog; idempotent. Matches PRD D113 and the single-line schemas are untouched.                                                                                                                                   |
+| Reconciliation publishes before close / focus | Holds  | `alreadyDone` reads with a bare `apiRequest(... background: true)`, never through the query cache; `finish` runs only after the dialog close event (or the 600 ms fallback or unmount) and writes the cache then. Test asserts the cached card stays unchanged during reconciliation.                       |
+
+### Rule checks
+
+- Layering and authz: server logic unchanged (only the schema import moved); denied cases (foreign, deleted, once-opened, HR/TL, cross-vertical, 429) are covered in integration and Postman sources. 404 for out-of-scope unchanged. Events (`vacancy.status_changed`, `vacancy.deleted`) and soft delete unchanged. Reason stays out of the audit payload.
+- Strings: all via `messages/uk.json`; no hard-coded copy, no TODO, `any` or mock data found in the touched files. Dialog has pending, error and 404 states; actions disabled with a reason.
+- Self-check: double-press lock before first await (checked), shared key factory (checked), rollback/refresh is per call (checked), no component over 400 lines.
+- «Виправте N полів» fix: the subscribe callback zeroes only `count`, keeps `attempt` and field errors, and does not touch `announce`. Real React Hook Form regression covers `setError` (kept) vs `setValue` (cleared), and E2E asserts the banner is visible after a real failed submit (`vacancies-create-basics.spec.ts:166`). Holds.
+
+### Non-blocking findings
+
+1. **Security L1 (Hangul fillers / U+2800 pass as "visible")**: agree it is Low and not a blocker. The reason has no reader yet, and titles and position names share the same `FORBIDDEN_CHARS` gap, so fixing it only for reasons would be inconsistent. Fix in one text-hardening change in `lib/position-name.ts:7` and `components/ui/confirm-dialog.tsx:49` (fixed set `[⠀ᅟᅠㅤﾠ]`, not `Default_Ignorable_Code_Point`, which would break emoji) with cases in `reason-text.test.ts` and the title/position tests. It is not recorded in `docs/PROGRESS.md` gaps yet: add it there (S3.5 gap list, entry at line 131).
+2. **Comments over the rule** (`CLAUDE.md` §4, self-check "one line, why only"): `components/vacancies/use-draft-close.tsx:66-70` is a five-line JSDoc; `components/vacancies/draft-actions.tsx` header JSDoc (about 700 characters, restates layout and spec); `lib/vacancy-draft-close.ts:1` and `lib/vacancy-draft-actions.ts:6` are long multi-sentence one-liners. Cut each to the single non-obvious reason (pessimistic on purpose; close event before the row leaves; one lock per draft).
+3. **Duplicate definition**: the «Відкрити картку» action (`id: 'open'`, `t('openCard')`, `router.push('/vacancies/${id}')`) is built in both `draft-menu.tsx` (CANCELLED branch) and `draft-actions.tsx` (preview branch). Move it next to `closeActions` in `use-draft-close.tsx` or into a shared helper. In `draft-menu.tsx` the `draft` constant is defined but the array repeats `plan.stage === 'DRAFT'`; use `draft` once.
+4. **`use-field-summary.ts:29-37`**: the inline `setSummary(... count: 0 ...)` repeats `clearSummary` defined below; declare `clearSummary` first and call it. The braces around the single `setAnnounce(true)` are noise.
+5. **`vacancy-draft-close.ts` `applyClosed`**: the count decrement and the page filter duplicate the shapes in `vacancy-draft-optimistic.ts` (`isPage`/`isCount` were exported for it). Acceptable now; if a third caller appears, extract `removeRowFromLists` and `stepDraftCount` there.
+6. **`finish` catch (`use-draft-close.tsx:113-115`)**: an error in `applyClosed` or `announceClosed` skips the success toast after the server already did the work, and nothing is logged. Move `announceClosed` out of the `try` (or call it in `finally`-safe position) so the user always hears the result.
+
+### Line for `docs/engineering-self-check.md`
+
+- [ ] A Low or deferred security finding is copied into the `docs/PROGRESS.md` gap list in the same change, and a shared-rule gap (here `FORBIDDEN_CHARS`) is fixed once for every field that uses the rule, not per feature.

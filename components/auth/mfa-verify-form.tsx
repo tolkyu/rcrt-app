@@ -1,0 +1,86 @@
+'use client';
+
+import { useTranslations } from 'next-intl';
+import Link from 'next/link';
+import { useState } from 'react';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { apiRequest } from '@/lib/api-client';
+import { AuthCard, FormMessage } from './auth-card';
+import { TotpCodeForm } from './totp-code-form';
+
+/** The response schema lives in a lazy chunk (zod, PERF-04). */
+const redirectSchema = async () =>
+  (await import('@/lib/schemas/auth')).redirectResponseSchema;
+
+export function MfaVerifyForm({
+  factors,
+  next,
+  canSkip,
+}: {
+  factors: { id: string; name: string | null }[];
+  next: string | null;
+  canSkip: boolean;
+}) {
+  const t = useTranslations('auth');
+  const [factorId, setFactorId] = useState(factors[0]!.id);
+  const [signingOut, setSigningOut] = useState(false);
+  const [logoutFailed, setLogoutFailed] = useState(false);
+  return (
+    <AuthCard title={t('mfa.verifyTitle')} description={t('mfa.verifyIntro')}>
+      <TotpCodeForm factorId={factorId} next={next}>
+        {factors.length > 1 ? (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="totp-factor">{t('mfa.factorLabel')}</Label>
+            <select
+              id="totp-factor"
+              value={factorId}
+              onChange={(event) => setFactorId(event.target.value)}
+              className="border-input bg-surface text-foreground h-11 rounded-lg border px-3 text-base md:h-10 md:text-sm"
+            >
+              {factors.map((factor, index) => (
+                <option key={factor.id} value={factor.id}>
+                  {factor.name ?? t('mfa.factorFallback', { index: index + 1 })}
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : null}
+      </TotpCodeForm>
+      <p className="text-muted-foreground text-xs">{t('mfa.lostDevice')}</p>
+      {canSkip ? (
+        <Link
+          href="/"
+          className="text-link inline-flex min-h-11 items-center text-sm font-medium underline-offset-4 hover:underline"
+        >
+          {t('mfa.skip')}
+        </Link>
+      ) : null}
+      {logoutFailed && (
+        <FormMessage tone="error">{t('mfa.signOutFailed')}</FormMessage>
+      )}
+      <Button
+        variant="ghost"
+        className="h-11 w-full"
+        disabled={signingOut}
+        onClick={async () => {
+          setSigningOut(true);
+          setLogoutFailed(false);
+          try {
+            const { redirectTo } = await apiRequest('/auth/logout', {
+              method: 'POST',
+              body: {},
+              schema: redirectSchema,
+            });
+            window.location.assign(redirectTo);
+          } catch {
+            setSigningOut(false);
+            setLogoutFailed(true);
+          }
+        }}
+      >
+        {t(signingOut ? 'mfa.signingOut' : 'mfa.signOut')}
+      </Button>
+    </AuthCard>
+  );
+}

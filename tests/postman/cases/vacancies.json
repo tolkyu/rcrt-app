@@ -1,0 +1,4121 @@
+[
+  {
+    "operation": "listVacancies",
+    "name": "no token",
+    "as": null,
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "listVacancies",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listVacancies",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "listVacancies",
+    "name": "Head Recruiter sees the Гемблінг vacancies newest first",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "limit": "25"
+    },
+    "status": 200,
+    "script": "vacancies-newest-page"
+  },
+  {
+    "operation": "listVacancies",
+    "name": "status and title search intersect",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "status": "OPEN",
+      "q": "медіабаєр",
+      "limit": "100"
+    },
+    "status": 200,
+    "script": "vacancies-open-search"
+  },
+  {
+    "operation": "listVacancies",
+    "name": "Recruiter in Крипто sees only its own vertical",
+    "as": "recruiter_crypto",
+    "status": 200,
+    "script": "vacancies-recruiter-crypto"
+  },
+  {
+    "operation": "listVacancies",
+    "name": "a foreign vertical filter reveals nothing",
+    "as": "recruiter_crypto",
+    "query": {
+      "vertical": "{{vacancy_gambling_vertical_id}}"
+    },
+    "status": 200,
+    "script": "vacancies-empty-page"
+  },
+  {
+    "operation": "listVacancies",
+    "name": "unknown status",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "status": "ARCHIVED"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.status",
+        "code": "invalid_value"
+      }
+    ]
+  },
+  {
+    "operation": "listVacancies",
+    "name": "direction=newer without cursor",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "direction": "newer"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.direction",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "listVacancies",
+    "name": "a cursor beyond every visible vacancy is only a position",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "cursor": "999999999",
+      "direction": "newer"
+    },
+    "status": 200,
+    "script": "vacancies-empty-page"
+  },
+  {
+    "operation": "listVacancies",
+    "name": "a NUL character in the search is a validation error",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "q": "ab\u0000cd"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.q",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "listVacancies",
+    "name": "a search shorter than three characters is a validation error",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "q": "ab"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.q",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "listVacancies",
+    "name": "a short vacancy number is still searchable",
+    "as": "head_recruiter_gambling",
+    "query": {
+      "q": "V-1"
+    },
+    "status": 200
+  },
+  {
+    "operation": "getVacancy",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Head Recruiter reads a visible vacancy",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "status": 200,
+    "script": "vacancy-detail"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Recruiter of another vertical gets 404",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Finance cannot probe a vacancy id",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Finance cannot probe id validation",
+    "as": "finance",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "no token",
+    "as": null,
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0001"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "Finance has no vacancy access, even with an empty body",
+    "as": "finance",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0002"
+    },
+    "body": {},
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0003"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "HR cannot create vacancies",
+    "as": "hr",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0004"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "Recruiter of another vertical gets 404",
+    "as": "recruiter_crypto",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0005"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "Head Recruiter of Гемблінг cannot create in Крипто",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0006"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_crypto_vertical_id}}",
+      "positionId": "{{vacancy_crypto_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "a missing Idempotency-Key is a validation error",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": null
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "header.Idempotency-Key",
+        "code": "invalid_key"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "a malformed Idempotency-Key is a validation error",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "short"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "header.Idempotency-Key",
+        "code": "invalid_key"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "unknown fields such as status or bonus are refused",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0007"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "status": "FILLED"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "a missing mode is refused",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0008"
+    },
+    "body": {
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.mode",
+        "code": "invalid_union"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "probation below 30 days",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0009"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "probationDays": 29
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.probationDays",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "probation above 90 days",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0010"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "probationDays": 91
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.probationDays",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "a title is required",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0011"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.title",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "an OPEN vacancy needs its position",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0012"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.positionId",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "a salary minimum above the maximum",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0013"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "salaryMinMinor": "500",
+      "salaryMaxMinor": "100",
+      "salaryCurrency": "USD"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.salaryMaxMinor",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "a salary needs a currency",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0014"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "salaryMinMinor": "500"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.salaryCurrency",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "a Head Recruiter may not set the probation length",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0015"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "probationDays": 60
+    },
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "createVacancy",
+    "as": "head_recruiter_gambling",
+    "name": "a seniority outside the closed list",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0018"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "seniority": "Стажер"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.seniority",
+        "code": "invalid_value"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "as": "head_recruiter_gambling",
+    "name": "an employment type outside the closed list on a draft",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0019"
+    },
+    "body": {
+      "mode": "DRAFT",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "title": "Тест API — чернетка не створюється",
+      "employmentType": "Сезонна зайнятість"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.employmentType",
+        "code": "invalid_value"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "as": "head_recruiter_gambling",
+    "name": "a location over 200 characters",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0020"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "location": "ККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККККК"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.location",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "as": "head_recruiter_gambling",
+    "name": "a salary currency in lower case",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0021"
+    },
+    "body": {
+      "mode": "DRAFT",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "title": "Тест API — чернетка не створюється",
+      "salaryMinMinor": "100",
+      "salaryCurrency": "usd"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.salaryCurrency",
+        "code": "invalid_format"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "as": "head_recruiter_gambling",
+    "name": "a Head Recruiter may not set the probation length on a draft either",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0022"
+    },
+    "body": {
+      "mode": "DRAFT",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "title": "Тест API — чернетка не створюється",
+      "probationDays": 60
+    },
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "a position of another vertical is a field error",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0016"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_crypto_position_id}}",
+      "title": "Тест API — вакансія не створюється"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.positionId",
+        "code": "invalid_position"
+      }
+    ]
+  },
+  {
+    "operation": "createVacancy",
+    "name": "an unknown Team Lead is a field error",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-create-vacancy-0017"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_gambling_vertical_id}}",
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "title": "Тест API — вакансія не створюється",
+      "teamLeadId": "00000000-0000-4000-8000-000000000000"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.teamLeadId",
+        "code": "invalid_team_lead"
+      }
+    ]
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "HR has no authoring role and gets the 404 of an unknown draft",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "Recruiter of another vertical gets 404",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "an opened vacancy is not a draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 409,
+    "code": "VACANCY_NOT_DRAFT"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "an unknown vacancy is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "a malformed id is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0009"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0010"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0011"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "HR has no authoring role and gets the 404 of an unknown draft",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0012"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "Recruiter of another vertical gets 404",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0013"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "an opened vacancy is not a draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0014"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 409,
+    "code": "VACANCY_NOT_DRAFT"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "an unknown vacancy is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0015"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "a malformed id is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0016"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "HR has no authoring role and gets the 404 of an unknown draft",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Recruiter of another vertical gets 404",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "an opened vacancy is not a draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 409,
+    "code": "VACANCY_NOT_DRAFT"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "an unknown vacancy is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a malformed id is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "HR has no authoring role and gets the 404 of an unknown draft",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Recruiter of another vertical gets 404",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "an opened vacancy is not a draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{}",
+    "status": 409,
+    "code": "VACANCY_NOT_DRAFT"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "an unknown vacancy is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "a malformed id is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "unknown fields such as status or vertical are refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\",\"status\":\"OPEN\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "an edit without any field is refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "the version is required",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"title\":\"Назва чернетки\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.expectedVersion",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "a missing Idempotency-Key is a validation error",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": null
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "header.Idempotency-Key",
+        "code": "invalid_key"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a blank reason is refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"reason\":\"   \"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "countOwnVacancyDrafts",
+    "name": "no token",
+    "as": null,
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "countOwnVacancyDrafts",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "countOwnVacancyDrafts",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "countOwnVacancyDrafts",
+    "name": "HR authors nowhere and gets 0, not an error",
+    "as": "hr",
+    "status": 200,
+    "script": "vacancy-draft-count-zero"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "Admin saves a throwaway draft with only vertical and title",
+    "as": "admin",
+    "headers": {
+      "Idempotency-Key": "newman-draft-{{vacancy_run}}"
+    },
+    "body": "{\"mode\":\"DRAFT\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\",\"title\":\"Тест API — чернетка {{vacancy_run}}\"}",
+    "status": 201,
+    "script": "vacancy-draft-created"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "the same key and body replays the same draft",
+    "as": "admin",
+    "headers": {
+      "Idempotency-Key": "newman-draft-{{vacancy_run}}"
+    },
+    "body": "{\"mode\":\"DRAFT\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\",\"title\":\"Тест API — чернетка {{vacancy_run}}\"}",
+    "status": 201,
+    "script": "vacancy-draft-replayed"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Head Recruiter cannot read the Admin draft (D92)",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Admin reads the own draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "status": 200,
+    "script": "vacancy-draft-read"
+  },
+  {
+    "operation": "countOwnVacancyDrafts",
+    "name": "Admin counts the own draft",
+    "as": "admin",
+    "status": 200,
+    "script": "vacancy-draft-count-author"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "Admin edits the own draft with the version it read",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_draft_version}},\"title\":\"Тест API — оновлена {{vacancy_run}}\",\"headcount\":2,\"location\":\"Київ\"}",
+    "status": 200,
+    "script": "vacancy-draft-updated"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "a stale version saves nothing",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Тест API — стара вкладка\"}",
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "a probation length above 90 days is a field error",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_draft_version}},\"probationDays\":91}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.probationDays",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "an unknown Team Lead is a field error",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_draft_version}},\"teamLeadId\":\"00000000-0000-4000-8000-000000000000\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.teamLeadId",
+        "code": "invalid_team_lead"
+      }
+    ]
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "null clears an optional field, the refusals above left the version alone",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_draft_version}},\"location\":null}",
+    "status": 200,
+    "script": "vacancy-draft-cleared"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "Head Recruiter gets 404 for the Admin draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "Head Recruiter gets 404 for the Admin draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0006"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "a stale version cannot be published",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0017"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "a draft without a position cannot be published",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-vacancy-0007"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_draft_version}}}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.positionId",
+        "code": "required"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Head Recruiter gets 404 for the Admin draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a reason is required",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Head Recruiter gets 404 for the Admin draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Admin soft-deletes the own throwaway draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{}",
+    "status": 200,
+    "script": "vacancy-draft-deleted"
+  },
+  {
+    "operation": "countOwnVacancyDrafts",
+    "name": "the deleted draft leaves the count",
+    "as": "admin",
+    "status": 200,
+    "script": "vacancy-draft-count-deleted"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "a deleted draft is gone even for its author",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "a deleted draft cannot be edited",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{\"expectedVersion\":1,\"title\":\"Назва чернетки\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "a deleted draft cannot be deleted again",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_draft_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "Admin saves a second throwaway draft for the cancel dialog",
+    "as": "admin",
+    "headers": {
+      "Idempotency-Key": "newman-cancel-{{vacancy_run}}"
+    },
+    "body": "{\"mode\":\"DRAFT\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\",\"title\":\"Тест API — скасування {{vacancy_run}}\"}",
+    "status": 201,
+    "script": "vacancy-cancel-created"
+  },
+  {
+    "operation": "countOwnVacancyDrafts",
+    "name": "Admin counts the drafts before the cancel",
+    "as": "admin",
+    "status": 200,
+    "script": "vacancy-cancel-count-created"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a reason with a NUL character is refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"Дубль\\u0000\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a reason with a vertical tab is refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"Дубль\\u000B\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a reason with a zero-width space is refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"Дубль\\u200B\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a reason with a bidi override is refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"Дубль\\u202E\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a reason of only blank lines is refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"  \\n \\n\\t\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "501 characters are refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"ааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааа\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a line break counts as a character: 250 + break + 250 is refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"аааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааааа\\nбббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббббб\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a reason that is not text is refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":[\"Дубль\"]}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "unknown fields next to the reason are refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"Дубль\",\"status\":\"OPEN\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "getVacancy",
+    "name": "the refused reasons left the draft a draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "status": 200,
+    "script": "vacancy-cancel-read-draft"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Admin cancels with a multi-line reason, extra spaces and blank lines",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"  Потреба зникла\\r\\n\\r\\n\\r\\n\\r\\n  Дубль   вакансії\\tV-0001\\n\"}",
+    "status": 200,
+    "script": "vacancy-cancel-cancelled"
+  },
+  {
+    "operation": "countOwnVacancyDrafts",
+    "name": "the cancelled draft leaves the count",
+    "as": "admin",
+    "status": 200,
+    "script": "vacancy-cancel-count-closed"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a second cancel is not a draft any more",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"Ще раз\"}",
+    "status": 409,
+    "code": "VACANCY_NOT_DRAFT"
+  },
+  {
+    "operation": "updateVacancyDraft",
+    "name": "a cancelled draft cannot be edited",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"expectedVersion\":2,\"title\":\"Назва чернетки\"}",
+    "status": 409,
+    "code": "VACANCY_NOT_DRAFT"
+  },
+  {
+    "operation": "publishVacancyDraft",
+    "name": "a cancelled draft cannot be published",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "headers": {
+      "Idempotency-Key": "newman-publish-cancelled-0004"
+    },
+    "body": "{\"expectedVersion\":2}",
+    "status": 409,
+    "code": "VACANCY_NOT_DRAFT"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Head Recruiter cannot read the cancelled Admin draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Head Recruiter gets 404, not 409, for the cancelled Admin draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Head Recruiter gets 404 for the cancelled Admin draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "HR gets 404 for the cancelled Admin draft",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "a Recruiter of another vertical gets 404 for the cancelled Admin draft",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Admin still reads the own cancelled draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "status": 200,
+    "script": "vacancy-cancel-read"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Admin deletes the own cancelled, never opened draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{}",
+    "status": 200,
+    "script": "vacancy-cancel-deleted"
+  },
+  {
+    "operation": "countOwnVacancyDrafts",
+    "name": "deleting the cancelled draft changes no count",
+    "as": "admin",
+    "status": 200,
+    "script": "vacancy-cancel-count-closed"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "the deleted cancelled draft is gone even for its author",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "a deleted draft cannot be cancelled",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_cancel_id}}"
+    },
+    "body": "{\"reason\":\"Пізно\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "Head Recruiter saves a throwaway draft",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-head-draft-{{vacancy_run}}"
+    },
+    "body": "{\"mode\":\"DRAFT\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\",\"title\":\"Тест API — чернетка керівника {{vacancy_run}}\"}",
+    "status": 201,
+    "script": "vacancy-head-draft-created",
+    "snapshot": "vacancy_head_draft_snapshot"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Admin gets 404 for the Head Recruiter draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_head_draft_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Admin gets 404 for the Head Recruiter draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_head_draft_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "the Head Recruiter draft is unchanged after the refusals",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_head_draft_id}}"
+    },
+    "status": 200,
+    "sameAs": "vacancy_head_draft_snapshot"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Head Recruiter cancels the own draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_head_draft_id}}"
+    },
+    "body": "{\"reason\":\"Тест API — дубль\"}",
+    "status": 200,
+    "script": "vacancy-head-cancelled"
+  },
+  {
+    "operation": "cancelVacancyDraft",
+    "name": "Admin gets 404, not 409, for the cancelled Head Recruiter draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_head_draft_id}}"
+    },
+    "body": "{\"reason\":\"Тест API\"}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Admin gets 404 for the cancelled Head Recruiter draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_head_draft_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Admin cannot read the cancelled Head Recruiter draft",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_head_draft_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "deleteVacancyDraft",
+    "name": "Head Recruiter deletes the own cancelled draft",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_head_draft_id}}"
+    },
+    "body": "{}",
+    "status": 200,
+    "script": "vacancy-head-deleted"
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "no token",
+    "as": null,
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0001"
+    },
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 1,
+      "priority": "NORMAL"
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "HR is not a Team Lead and the endpoint stays hidden",
+    "as": "hr",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0002"
+    },
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 1,
+      "priority": "NORMAL"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "Head Recruiter uses the full form, not the request",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0003"
+    },
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 1,
+      "priority": "NORMAL"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "Recruiter of another vertical gets 404",
+    "as": "recruiter_crypto",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0004"
+    },
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 1,
+      "priority": "NORMAL"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0005"
+    },
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 1,
+      "priority": "NORMAL"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0006"
+    },
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 1,
+      "priority": "NORMAL"
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "Team Lead of Гемблінг cannot request a position of Крипто",
+    "as": "tl_vasyl",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0007"
+    },
+    "body": {
+      "positionId": "{{vacancy_crypto_position_id}}",
+      "headcount": 1
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "a missing Idempotency-Key is a validation error",
+    "as": "tl_vasyl",
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 1,
+      "priority": "NORMAL"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "header.Idempotency-Key",
+        "code": "invalid_key"
+      }
+    ]
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "an empty body names the missing position",
+    "as": "tl_vasyl",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0008"
+    },
+    "body": {},
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.positionId",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "a client-chosen team lead is refused as an unknown key",
+    "as": "tl_vasyl",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0009"
+    },
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 1,
+      "priority": "NORMAL",
+      "teamLeadId": "{{vacancy_gambling_position_id}}"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "requestVacancy",
+    "name": "headcount above the limit is a field error",
+    "as": "tl_vasyl",
+    "headers": {
+      "Idempotency-Key": "newman-request-vacancy-0010"
+    },
+    "body": {
+      "positionId": "{{vacancy_gambling_position_id}}",
+      "headcount": 101,
+      "priority": "NORMAL"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.headcount",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "HR holds no vacancy update grant",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "Recruiter holds no vacancy update grant",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "Team Lead cannot probe an unknown vacancy",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "an unknown vacancy is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "a malformed id is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "setVacancyUrgency",
+    "name": "fields other than urgency are refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_gambling_id}}"
+    },
+    "body": "{\"priority\":\"URGENT\",\"expectedVersion\":1,\"status\":\"FILLED\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "listVacancies",
+    "name": "Admin reads the Team Leads of the demo vacancies",
+    "as": "admin",
+    "query": {
+      "limit": "100"
+    },
+    "status": 200,
+    "script": "team-ids",
+    "freshRateWindow": true
+  },
+  {
+    "operation": "createVacancy",
+    "name": "Admin publishes a throwaway Крипто vacancy for the team flows",
+    "as": "admin",
+    "headers": {
+      "Idempotency-Key": "newman-team-crypto-{{vacancy_run}}"
+    },
+    "body": "{\"mode\":\"PUBLISH\",\"verticalId\":\"{{vacancy_crypto_vertical_id}}\",\"positionId\":\"{{vacancy_crypto_position_id}}\",\"title\":\"Тест API — команда {{vacancy_run}}\"}",
+    "status": 201,
+    "script": "team-crypto-created"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "Head Recruiter publishes a throwaway Гемблінг vacancy with Василь as Team Lead",
+    "as": "head_recruiter_gambling",
+    "headers": {
+      "Idempotency-Key": "newman-team-gambling-{{vacancy_run}}"
+    },
+    "body": "{\"mode\":\"PUBLISH\",\"verticalId\":\"{{vacancy_gambling_vertical_id}}\",\"positionId\":\"{{vacancy_gambling_position_id}}\",\"title\":\"Тест API — команда {{vacancy_run}}\",\"teamLeadId\":\"{{team_vasyl_id}}\"}",
+    "status": 201,
+    "script": "team-gambling-created"
+  },
+  {
+    "operation": "claimVacancy",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "claimVacancy",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "claimVacancy",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "claimVacancy",
+    "name": "missing X-CSRF-Protection",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{}",
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "claimVacancy",
+    "name": "foreign Origin",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{}",
+    "headers": {
+      "Origin": "https://evil.example"
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "claimVacancy",
+    "name": "HR holds no self-assign grant",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "claimVacancy",
+    "name": "Team Lead holds no self-assign grant",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "claimVacancy",
+    "name": "Head Recruiter assigns others and never claims",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "claimVacancy",
+    "name": "Admin never claims",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "claimVacancy",
+    "name": "a Recruiter of Крипто cannot reach a Гемблінг vacancy",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "claimVacancy",
+    "name": "an unknown vacancy is 404",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "claimVacancy",
+    "name": "a malformed id is 404",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "claimVacancy",
+    "name": "a body with any key is refused",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "claimVacancy",
+    "name": "a Recruiter of Крипто takes the unassigned vacancy",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{}",
+    "status": 200,
+    "script": "team-claimed",
+    "snapshot": "team_c_claimed"
+  },
+  {
+    "operation": "claimVacancy",
+    "name": "the winner repeating the claim changes nothing",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{}",
+    "status": 200,
+    "sameAs": "team_c_claimed"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Head Recruiter of Гемблінг cannot read the claimed Крипто vacancy",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listAssignableRecruiters",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "listAssignableRecruiters",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listAssignableRecruiters",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "listAssignableRecruiters",
+    "name": "HR holds no assignment grant",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "listAssignableRecruiters",
+    "name": "the assigned Recruiter cannot list colleagues",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "listAssignableRecruiters",
+    "name": "Team Lead holds no assignment grant",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "listAssignableRecruiters",
+    "name": "Head Recruiter of another vertical gets 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listAssignableRecruiters",
+    "name": "an unknown vacancy is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listAssignableRecruiters",
+    "name": "a malformed id is 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "listAssignableRecruiters",
+    "name": "Admin lists the Крипто recruiters with the claimer assigned",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "status": 200,
+    "script": "team-assignable-crypto"
+  },
+  {
+    "operation": "listAssignableRecruiters",
+    "name": "Head Recruiter lists the Гемблінг recruiters",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "status": 200,
+    "script": "team-assignable-gambling"
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\"],\"expectedVersion\":1}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\"],\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\"],\"expectedVersion\":1}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "missing X-CSRF-Protection",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\"],\"expectedVersion\":1}",
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "HR holds no assignment grant",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\"],\"expectedVersion\":1}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "Recruiter holds no assignment grant",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\"],\"expectedVersion\":1}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "Team Lead holds no assignment grant",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\"],\"expectedVersion\":1}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "Head Recruiter of another vertical gets 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\"],\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "an unknown vacancy is 404",
+    "as": "admin",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\"],\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "a malformed id is 404",
+    "as": "admin",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\"],\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "unknown fields are refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\"],\"expectedVersion\":1,\"assignedBy\":\"x\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "an empty list is refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[],\"expectedVersion\":1}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.recruiterIds",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "a repeated id is refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\",\"{{team_g_recruiter_id}}\"],\"expectedVersion\":1}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.recruiterIds",
+        "code": "custom"
+      }
+    ]
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "a version below 1 is refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\"],\"expectedVersion\":0}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.expectedVersion",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "the version is required",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\"]}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.expectedVersion",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "Head Recruiter adds an eligible recruiter",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\"],\"expectedVersion\":{{team_g_version}}}",
+    "status": 200,
+    "script": "team-assigned",
+    "snapshot": "team_g_assigned"
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "adding the recruiter again changes nothing",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\"],\"expectedVersion\":{{team_g_version}}}",
+    "status": 200,
+    "sameAs": "team_g_assigned"
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "a version read before the change is stale",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\"],\"expectedVersion\":1}",
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "an unknown user is the one ineligible-recruiter error",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"00000000-0000-4000-8000-000000000000\"],\"expectedVersion\":{{team_g_version}}}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.recruiterIds",
+        "code": "invalid_recruiter"
+      }
+    ]
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "a Team Lead is not an eligible recruiter, same error",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_vasyl_id}}\"],\"expectedVersion\":{{team_g_version}}}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.recruiterIds",
+        "code": "invalid_recruiter"
+      }
+    ]
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "a recruiter of another vertical is the same error",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_c_recruiter_id}}\"],\"expectedVersion\":{{team_g_version}}}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.recruiterIds",
+        "code": "invalid_recruiter"
+      }
+    ]
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{team_g_id}}",
+      "userId": "{{team_g_recruiter_id}}"
+    },
+    "query": {
+      "expectedVersion": "1"
+    },
+    "body": "{}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{team_g_id}}",
+      "userId": "{{team_g_recruiter_id}}"
+    },
+    "query": {
+      "expectedVersion": "1"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{team_g_id}}",
+      "userId": "{{team_g_recruiter_id}}"
+    },
+    "query": {
+      "expectedVersion": "1"
+    },
+    "body": "{}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "missing X-CSRF-Protection",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}",
+      "userId": "{{team_g_recruiter_id}}"
+    },
+    "query": {
+      "expectedVersion": "1"
+    },
+    "body": "{}",
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "HR holds no assignment grant",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{team_g_id}}",
+      "userId": "{{team_g_recruiter_id}}"
+    },
+    "query": {
+      "expectedVersion": "1"
+    },
+    "body": "{}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "a Recruiter cannot remove anyone",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{team_g_id}}",
+      "userId": "{{team_g_recruiter_id}}"
+    },
+    "query": {
+      "expectedVersion": "1"
+    },
+    "body": "{}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "a Recruiter cannot remove self",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{team_c_id}}",
+      "userId": "{{team_c_recruiter_id}}"
+    },
+    "query": {
+      "expectedVersion": "1"
+    },
+    "body": "{}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "Team Lead holds no assignment grant",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "{{team_g_id}}",
+      "userId": "{{team_g_recruiter_id}}"
+    },
+    "query": {
+      "expectedVersion": "1"
+    },
+    "body": "{}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "Head Recruiter of another vertical gets 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_c_id}}",
+      "userId": "{{team_c_recruiter_id}}"
+    },
+    "query": {
+      "expectedVersion": "1"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "an unknown vacancy is 404",
+    "as": "admin",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000",
+      "userId": "{{team_g_recruiter_id}}"
+    },
+    "query": {
+      "expectedVersion": "1"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "a malformed vacancy id is 404",
+    "as": "admin",
+    "params": {
+      "vacancyId": "not-a-uuid",
+      "userId": "{{team_g_recruiter_id}}"
+    },
+    "query": {
+      "expectedVersion": "1"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "a malformed user id is 404",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_g_id}}",
+      "userId": "not-a-uuid"
+    },
+    "query": {
+      "expectedVersion": "{{team_g_version}}"
+    },
+    "body": "{}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "the version is required",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}",
+      "userId": "{{team_g_recruiter_id}}"
+    },
+    "body": "{}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.expectedVersion",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "a version below 1 is refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}",
+      "userId": "{{team_g_recruiter_id}}"
+    },
+    "query": {
+      "expectedVersion": "0"
+    },
+    "body": "{}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query.expectedVersion",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "unknown query keys are refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}",
+      "userId": "{{team_g_recruiter_id}}"
+    },
+    "query": {
+      "expectedVersion": "1",
+      "force": "true"
+    },
+    "body": "{}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "query",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "a version read before the change is stale",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}",
+      "userId": "{{team_g_recruiter_id}}"
+    },
+    "query": {
+      "expectedVersion": "1"
+    },
+    "body": "{}",
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "Head Recruiter removes the recruiter",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}",
+      "userId": "{{team_g_recruiter_id}}"
+    },
+    "query": {
+      "expectedVersion": "{{team_g_version}}"
+    },
+    "body": "{}",
+    "status": 200,
+    "script": "team-removed",
+    "snapshot": "team_g_removed"
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "a user outside the team is the same 200, nothing written",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}",
+      "userId": "00000000-0000-4000-8000-000000000000"
+    },
+    "query": {
+      "expectedVersion": "{{team_g_version}}"
+    },
+    "body": "{}",
+    "status": 200,
+    "sameAs": "team_g_removed"
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"teamLeadId\":\"{{team_tl_crypto_id}}\",\"expectedVersion\":1}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"teamLeadId\":\"{{team_tl_crypto_id}}\",\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"teamLeadId\":\"{{team_tl_crypto_id}}\",\"expectedVersion\":1}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "missing X-CSRF-Protection",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"teamLeadId\":\"{{team_tl_crypto_id}}\",\"expectedVersion\":1}",
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "HR holds no Team Lead grant",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"teamLeadId\":\"{{team_tl_crypto_id}}\",\"expectedVersion\":1}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "the assigned Recruiter holds no Team Lead grant",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"teamLeadId\":\"{{team_tl_crypto_id}}\",\"expectedVersion\":1}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "a Team Lead cannot set Team Leads",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"teamLeadId\":\"{{team_tl_crypto_id}}\",\"expectedVersion\":1}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "Head Recruiter of another vertical gets 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"teamLeadId\":\"{{team_tl_crypto_id}}\",\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "an unknown vacancy is 404",
+    "as": "admin",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": "{\"teamLeadId\":\"{{team_tl_crypto_id}}\",\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "a malformed id is 404",
+    "as": "admin",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "body": "{\"teamLeadId\":\"{{team_tl_crypto_id}}\",\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "there is no way to clear the Team Lead",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"teamLeadId\":null,\"expectedVersion\":1}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.teamLeadId",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "the Team Lead is required",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"expectedVersion\":1}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.teamLeadId",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "unknown fields are refused",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"teamLeadId\":\"{{team_tl_crypto_id}}\",\"expectedVersion\":1,\"recruiterInitiated\":false}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "a version read before the claim is stale",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"teamLeadId\":\"{{team_tl_crypto_id}}\",\"expectedVersion\":1}",
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "an unknown user is the one ineligible-Team-Lead error",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"teamLeadId\":\"00000000-0000-4000-8000-000000000000\",\"expectedVersion\":{{team_c_version}}}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.teamLeadId",
+        "code": "invalid_team_lead"
+      }
+    ]
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "a Team Lead of another vertical is the same error",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"teamLeadId\":\"{{team_vasyl_id}}\",\"expectedVersion\":{{team_c_version}}}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.teamLeadId",
+        "code": "invalid_team_lead"
+      }
+    ]
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "a Recruiter is not a Team Lead, same error",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"teamLeadId\":\"{{team_c_recruiter_id}}\",\"expectedVersion\":{{team_c_version}}}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.teamLeadId",
+        "code": "invalid_team_lead"
+      }
+    ]
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "Admin sets the first Team Lead",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"teamLeadId\":\"{{team_tl_crypto_id}}\",\"expectedVersion\":{{team_c_version}}}",
+    "status": 200,
+    "script": "team-lead-set",
+    "snapshot": "team_c_lead"
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "setting the same Team Lead again changes nothing",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"teamLeadId\":\"{{team_tl_crypto_id}}\",\"expectedVersion\":{{team_c_version}}}",
+    "status": 200,
+    "sameAs": "team_c_lead"
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "another Team Lead cannot replace the first",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"teamLeadId\":\"{{team_vasyl_id}}\",\"expectedVersion\":{{team_c_version}}}",
+    "status": 409,
+    "code": "TEAM_LEAD_ALREADY_SET"
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "Head Recruiter cannot replace the Team Lead given at creation",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"teamLeadId\":\"{{team_tl_crypto_id}}\",\"expectedVersion\":{{team_g_version}}}",
+    "status": 409,
+    "code": "TEAM_LEAD_ALREADY_SET"
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "Admin removes the only recruiter: the vacancy returns to the pool",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_c_id}}",
+      "userId": "{{team_c_recruiter_id}}"
+    },
+    "query": {
+      "expectedVersion": "{{team_c_version}}"
+    },
+    "body": "{}",
+    "status": 200,
+    "script": "team-crypto-released"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "the removed Recruiter reads the pooled vacancy again",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "status": 200,
+    "script": "team-crypto-pool"
+  },
+  {
+    "operation": "claimVacancy",
+    "name": "the Recruiter takes the pooled vacancy again",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{}",
+    "status": 200,
+    "script": "team-claimed"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"HOLD\",\"expectedVersion\":1}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"HOLD\",\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"HOLD\",\"expectedVersion\":1}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "missing X-CSRF-Protection",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"HOLD\",\"expectedVersion\":1}",
+    "headers": {
+      "X-CSRF-Protection": null
+    },
+    "status": 403,
+    "code": "CSRF_FORBIDDEN"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "HR holds no status grant",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"HOLD\",\"expectedVersion\":1}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "Recruiter holds no status grant",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"action\":\"HOLD\",\"expectedVersion\":1}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "Head Recruiter of another vertical gets 404",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"action\":\"HOLD\",\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "a Team Lead cannot reach the vacancy of another vertical",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"action\":\"HOLD\",\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "an unknown vacancy is 404",
+    "as": "admin",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "body": "{\"action\":\"HOLD\",\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "a malformed id is 404",
+    "as": "admin",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "body": "{\"action\":\"HOLD\",\"expectedVersion\":1}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "an unknown action is refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"FILL\",\"expectedVersion\":1}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.action",
+        "code": "invalid_union"
+      }
+    ]
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "an action in lower case is refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"hold\",\"expectedVersion\":1}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.action",
+        "code": "invalid_union"
+      }
+    ]
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "a pause carries no reason",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"HOLD\",\"reason\":\"Пауза\",\"expectedVersion\":1}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "a cancel needs its reason",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"CANCEL\",\"expectedVersion\":1}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "a blank reason is refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"CANCEL\",\"reason\":\"   \",\"expectedVersion\":1}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.reason",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "only a reopen carries a headcount",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"RESUME\",\"headcount\":3,\"expectedVersion\":1}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body",
+        "code": "unrecognized_keys"
+      }
+    ]
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "a headcount of 0 is refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"REOPEN\",\"headcount\":0,\"expectedVersion\":1}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.headcount",
+        "code": "too_small"
+      }
+    ]
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "a headcount above the limit is refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"REOPEN\",\"headcount\":101,\"expectedVersion\":1}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.headcount",
+        "code": "too_big"
+      }
+    ]
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "the version is required",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"HOLD\"}",
+    "status": 400,
+    "code": "VALIDATION_FAILED",
+    "errors": [
+      {
+        "path": "body.expectedVersion",
+        "code": "invalid_type"
+      }
+    ]
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Head Recruiter reads the Гемблінг vacancy before the status changes",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "status": 200,
+    "snapshot": "team_g_read"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "the Team Lead cannot reopen, even on an open vacancy",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"REOPEN\",\"expectedVersion\":{{team_g_version}}}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "reopening an open vacancy with a headcount is not a repeat",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"REOPEN\",\"headcount\":3,\"expectedVersion\":{{team_g_version}}}",
+    "status": 409,
+    "code": "VACANCY_STATUS_INVALID"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "reopening an open vacancy changes nothing",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"REOPEN\",\"expectedVersion\":{{team_g_version}}}",
+    "status": 200,
+    "sameAs": "team_g_read"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "the Team Lead pauses with a stale version",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"HOLD\",\"expectedVersion\":1}",
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "the Team Lead pauses the own vacancy",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"HOLD\",\"expectedVersion\":{{team_g_version}}}",
+    "status": 200,
+    "script": "team-held",
+    "snapshot": "team_g_held"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "pausing a paused vacancy changes nothing",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"HOLD\",\"expectedVersion\":{{team_g_version}}}",
+    "status": 200,
+    "sameAs": "team_g_held"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "the Team Lead cannot reopen a paused vacancy",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"REOPEN\",\"expectedVersion\":{{team_g_version}}}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "a stale reopen of a paused vacancy reports the illegal action, not the version",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"REOPEN\",\"expectedVersion\":1}",
+    "status": 409,
+    "code": "VACANCY_STATUS_INVALID"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "a stale resume is refused",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"RESUME\",\"expectedVersion\":1}",
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "listAssignableRecruiters",
+    "name": "a paused vacancy still lists its assignable recruiters",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "status": 200
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "the Team Lead resumes the own vacancy",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"RESUME\",\"expectedVersion\":{{team_g_version}}}",
+    "status": 200,
+    "script": "team-resumed"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "the Team Lead cancels the own vacancy with a reason",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"CANCEL\",\"reason\":\"Потреба закрита\\nТест API {{vacancy_run}}\",\"expectedVersion\":{{team_g_version}}}",
+    "status": 200,
+    "script": "team-cancelled"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "Head Recruiter reads the cancelled vacancy and its reason",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "status": 200,
+    "script": "team-cancelled-read"
+  },
+  {
+    "operation": "getVacancy",
+    "name": "the Team Lead reads the cancelled vacancy and its reason",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "status": 200,
+    "script": "team-cancelled-read"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "a cancelled vacancy cannot be paused, even with a stale version",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"HOLD\",\"expectedVersion\":1}",
+    "status": 409,
+    "code": "VACANCY_STATUS_INVALID"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "a cancelled vacancy cannot be cancelled again",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"CANCEL\",\"reason\":\"Ще раз\",\"expectedVersion\":1}",
+    "status": 409,
+    "code": "VACANCY_STATUS_INVALID"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "a cancelled vacancy never reopens",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"REOPEN\",\"expectedVersion\":1}",
+    "status": 409,
+    "code": "VACANCY_STATUS_INVALID"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "the Team Lead still cannot reopen it",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"action\":\"REOPEN\",\"expectedVersion\":1}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "assignVacancyRecruiters",
+    "name": "a cancelled vacancy takes no recruiters, even with a stale version",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"recruiterIds\":[\"{{team_g_recruiter_id}}\"],\"expectedVersion\":1}",
+    "status": 409,
+    "code": "VACANCY_CLOSED"
+  },
+  {
+    "operation": "unassignVacancyRecruiter",
+    "name": "a cancelled vacancy loses no recruiters, even with a stale version",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_g_id}}",
+      "userId": "{{team_g_recruiter_id}}"
+    },
+    "query": {
+      "expectedVersion": "1"
+    },
+    "body": "{}",
+    "status": 409,
+    "code": "VACANCY_CLOSED"
+  },
+  {
+    "operation": "setVacancyTeamLead",
+    "name": "a cancelled vacancy takes no Team Lead change",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"teamLeadId\":\"{{team_tl_crypto_id}}\",\"expectedVersion\":1}",
+    "status": 409,
+    "code": "VACANCY_CLOSED"
+  },
+  {
+    "operation": "listAssignableRecruiters",
+    "name": "a cancelled vacancy has no assignable recruiters",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "status": 409,
+    "code": "VACANCY_CLOSED"
+  },
+  {
+    "operation": "changeVacancyStatus",
+    "name": "Admin cancels the throwaway Крипто vacancy",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{team_c_id}}"
+    },
+    "body": "{\"action\":\"CANCEL\",\"reason\":\"Тест API {{vacancy_run}}\",\"expectedVersion\":{{team_c_version}}}",
+    "status": 200,
+    "script": "team-crypto-cancelled"
+  },
+  {
+    "operation": "createVacancy",
+    "name": "create an isolated content-edit vacancy",
+    "as": "recruiter_crypto",
+    "freshRateWindow": true,
+    "headers": {
+      "Idempotency-Key": "newman-vacancy-content-{{vacancy_run}}"
+    },
+    "body": {
+      "mode": "PUBLISH",
+      "verticalId": "{{vacancy_crypto_vertical_id}}",
+      "positionId": "{{vacancy_crypto_position_id}}",
+      "title": "Тест API — content {{vacancy_run}}"
+    },
+    "status": 201,
+    "script": "vacancy-content-created"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "assigned Recruiter replaces published description",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Content API replacement\"}]}]}}",
+    "status": 200,
+    "script": "vacancy-content-saved",
+    "snapshot": "vacancy_content_saved"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "canonical current-version no-op preserves the response",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":{\"type\": \"doc\", \"content\": [{\"type\": \"paragraph\", \"content\": [{\"type\": \"text\", \"text\": \"Content API replacement\"}]}]}}",
+    "status": 200,
+    "sameAs": "vacancy_content_saved"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "stale same-value request is a conflict",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": {
+      "expectedVersion": 1,
+      "descriptionDoc": {
+        "type": "doc",
+        "content": [
+          {
+            "type": "paragraph",
+            "content": [
+              {
+                "type": "text",
+                "text": "Content API replacement"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "status": 409,
+    "code": "STALE_STATE"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "omission keeps description while null requirements stays clear",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"requirementsDoc\":null}",
+    "status": 200,
+    "sameAs": "vacancy_content_saved"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "null clears description",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 200,
+    "script": "vacancy-content-cleared"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "read-only HR cannot edit content",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 403,
+    "code": "FORBIDDEN"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "foreign vertical stays hidden",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "Finance has no vacancy access",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "no token",
+    "as": null,
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "Admin without TOTP",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "missing CSRF header",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 403,
+    "code": "CSRF_FORBIDDEN",
+    "headers": {
+      "X-CSRF-Protection": null
+    }
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "overposting rejects the whole content patch",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": {
+      "expectedVersion": 1,
+      "descriptionDoc": null,
+      "status": "CANCELLED"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "empty patch",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": {
+      "expectedVersion": 1
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "HTML content is rejected",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "body": {
+      "expectedVersion": 1,
+      "descriptionDoc": "<p>Unsafe raw content</p>"
+    },
+    "status": 400,
+    "code": "VALIDATION_FAILED"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "malformed vacancy id",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "updateVacancyContent",
+    "name": "published closed vacancy stays locked",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
+    "status": 409,
+    "code": "VACANCY_CONTENT_LOCKED"
+  }
+]

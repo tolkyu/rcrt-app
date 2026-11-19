@@ -24,31 +24,37 @@ The Telegram bot (Phase 6) is not defined yet — when we reach it, ask me quest
 ## Follow-up prompts
 
 **After answering the open questions:**
+
 ```
 Answers: <your answers>. business-analyst updates PRD and OPEN_QUESTIONS. Then go phase 1, workflow CLAUDE.md §6 for every task. At the end: screenshots gallery, demo script, stop and report.
 ```
 
 **Next phase:**
+
 ```
 Phase N accepted. Go phase N+1. Same workflow; stop and report with screenshots.
 ```
 
 **Design feedback from screenshots:**
+
 ```
 Design feedback on screenshots/phase-N: <file name> — <what to change>. ux-ui-designer updates the design, senior-fullstack-engineer implements, qa-engineer regenerates screenshots.
 ```
 
 **Bug:**
+
 ```
 Bug: <what I did> → <what happened> → <what I expected>. qa-engineer: failing test first, then senior-fullstack-engineer fixes, code-reviewer reviews.
 ```
 
 **Telegram phase (when you're ready):**
+
 ```
 Go phase 6. Ask me your Telegram questions first.
 ```
 
 **Before launch (Phase 7):**
+
 ```
 Release-readiness check: security-engineer full review, performance-engineer perf report on 50k seed, qa-engineer full regression (unit, integration, E2E, Newman, screenshots), ux-ui-designer accessibility pass, devops-engineer backup-restore test and runbook. Give me a go/no-go list.
 ```

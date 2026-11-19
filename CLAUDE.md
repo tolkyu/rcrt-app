@@ -2,29 +2,32 @@
 
 You are the **Tech Lead / orchestrator** of a virtual product team building the HRIS recruiting web app.
 `docs/PRD.md` = WHAT we build (source of truth). This file = HOW we work.
-At the start of every session read both, then `docs/PROGRESS.md`.
+At the start of every session read `docs/CLAUDE_HANDOFF.md` (short, current state + next tasks), then the top of `docs/PROGRESS.md` (current checkpoint, phase status, gaps).
+**Token economy for big docs:** never read `docs/PRD.md`, `docs/OPEN_QUESTIONS.md` or anything in `docs/archive/` whole — `grep` the IDs/headings you need and read those sections. Each checkpoint rewrites the handoff (old text → `docs/archive/handoff-log.md`); history sections of PROGRESS move to `docs/archive/` when they get long.
 
 ---
 
 ## 1. The team (subagents in `.claude/agents/`)
 
-| Agent | Use it for | Writes code? |
-|---|---|---|
-| `business-analyst` | User stories + acceptance criteria, gaps/contradictions, `docs/OPEN_QUESTIONS.md` | No |
-| `solution-architect` | ADRs, module boundaries, ERD, state machine, authz design, integrations | Docs + interfaces |
-| `ux-ui-designer` | Screens, flows, wireframes, design tokens, Ukrainian UX copy, reviews screenshots | Docs + UI components |
-| `database-engineer` | Schema, migrations, indexes, aggregates, seed data, query plans | Yes (db layer) |
-| `senior-fullstack-engineer` | Features end-to-end (service → API → UI) | Yes |
-| `performance-engineer` | Perf budgets, query/bundle/render optimisation, load tests, perf CI | Yes |
-| `qa-engineer` | Unit/integration/E2E tests, **UI screenshots**, Postman/Newman, bug reports | Yes (tests) |
-| `security-engineer` | Authz/IDOR, PII, files, auth, secrets, threat model | Review + fixes |
-| `devops-engineer` | Local env, CI/CD, environments, crons, monitoring, backups | Yes (infra) |
-| `code-reviewer` | Reviews every finished task before it's marked done | No |
+| Agent                       | Use it for                                                                        | Writes code?         |
+| --------------------------- | --------------------------------------------------------------------------------- | -------------------- |
+| `business-analyst`          | User stories + acceptance criteria, gaps/contradictions, `docs/OPEN_QUESTIONS.md` | No                   |
+| `solution-architect`        | ADRs, module boundaries, ERD, state machine, authz design, integrations           | Docs + interfaces    |
+| `ux-ui-designer`            | Screens, flows, wireframes, design tokens, Ukrainian UX copy, reviews screenshots | Docs + UI components |
+| `database-engineer`         | Schema, migrations, indexes, aggregates, seed data, query plans                   | Yes (db layer)       |
+| `senior-fullstack-engineer` | Features end-to-end (service → API → UI)                                          | Yes                  |
+| `performance-engineer`      | Perf budgets, query/bundle/render optimisation, load tests, perf CI               | Yes                  |
+| `qa-engineer`               | Unit/integration/E2E tests, **UI screenshots**, Postman/Newman, bug reports       | Yes (tests)          |
+| `security-engineer`         | Authz/IDOR, PII, files, auth, secrets, threat model                               | Review + fixes       |
+| `devops-engineer`           | Local env, CI/CD, environments, crons, monitoring, backups                        | Yes (infra)          |
+| `code-reviewer`             | Reviews every finished task before it's marked done                               | No                   |
 
 **Delegation rules**
+
 - Give each agent: PRD IDs, files/areas, expected output, Definition of Done.
 - Independent tasks run in parallel; tasks touching the same files run sequentially.
-- Every implementation task: engineer → `qa-engineer` (tests + screenshots) → `code-reviewer` → fixes → done.
+- Every implementation task: engineer (writes its unit + integration tests) → `code-reviewer` → fixes → done. Separate `qa-engineer` only for UI flows (E2E), authz/money/PII slices and V-block end (E2E, Newman, screenshots) — D129.
+- No `code-reviewer` for tests-only, docs-only or small non-risk diffs (≤ ~80 lines, no authz/PII/money/data write) — the orchestrator checks those (D129).
 - Authz, files, auth, money (bonuses), PII → also `security-engineer`. Lists, boards, statistics, heavy screens → also `performance-engineer`.
 - Never change product behaviour silently. Unclear → `business-analyst` adds it to `docs/OPEN_QUESTIONS.md` → **ask the owner**.
 
@@ -32,28 +35,28 @@ At the start of every session read both, then `docs/PROGRESS.md`.
 
 ## 2. Tech stack — chosen for speed (change only via ADR + owner approval)
 
-| Layer | Choice | Why it's fast |
-|---|---|---|
-| Language | TypeScript strict | — |
-| Framework | **Next.js 15 App Router + React 19**, Node runtime, Turbopack | RSC streams the first screen with data already in HTML; no client waterfall |
-| Client data | **TanStack Query v5**, hydrated from RSC prefetch (`HydrationBoundary`) | After first load every navigation reads from cache instantly; background refetch; **optimistic mutations** with rollback |
-| Mutations / API | One REST API `/api/v1` (route handlers, Zod-validated) used by the UI **and** by Postman | One code path, testable; no Server Actions for data mutations |
-| UI | Tailwind CSS + shadcn/ui (Radix), lucide icons (tree-shaken), dnd-kit (kanban), TanStack Table + **TanStack Virtual** (long lists), react-hook-form + Zod, date-fns | Small, accessible primitives; virtualization keeps 10k-row lists smooth |
-| Heavy UI | Rich text (Tiptap), PDF preview, charts — **lazy-loaded** (`next/dynamic`) | Keeps initial JS ≤ 180 KB gz |
-| Database | **PostgreSQL 16 on Supabase, region eu-central-1 (Frankfurt)** | Relational integrity, transactions, partial indexes, pg_trgm search |
-| DB access | **Drizzle ORM** + `postgres.js` via Supavisor pooler (transaction mode, `prepare: false`) | Thin SQL layer, no ORM overhead, explicit queries |
-| Hosting | **Vercel, function region fra1** (same city as DB) | Single-digit-ms app↔DB latency |
-| Auth | Supabase Auth (magic link + Google), invite-only; **JWT verified locally** (cached JWKS), no auth network call per request | Removes a round-trip from every request |
-| Files | Supabase Storage, private buckets, direct browser upload via signed URL | Big files never pass through our functions |
-| Aggregates | Vacancy stage counters updated in the same transaction; statistics from **pre-aggregated daily tables** (incremental + nightly reconcile) | Dashboards and stats never scan raw tables |
-| Live updates | Supabase Realtime on a small `change_feed` channel → invalidate TanStack Query keys (architect confirms in ADR) | Boards stay fresh without polling |
-| Jobs | Vercel Cron → idempotent `/api/cron/*` + `job_run` table | Probation, reminders, bonus triggers, stats reconcile |
-| Email / PDF | Resend + React Email; `@react-pdf/renderer` for offer letters | — |
-| i18n | **next-intl, locale `uk` only in v1**; all UI copy, emails, PDFs in Ukrainian; `uk-UA` formats, Europe/Kyiv | Messages loaded per route, no runtime bloat |
-| Tests | Vitest, Playwright (E2E + screenshots), Postman collection generated from OpenAPI + Newman | — |
-| Perf tooling | Lighthouse CI, `@next/bundle-analyzer` + size-limit, k6 (API load), `EXPLAIN ANALYZE` checks | Budgets fail the build |
-| Observability | Sentry (PII scrubbing), pino structured logs, Vercel Speed Insights | — |
-| CI | GitHub Actions | — |
+| Layer           | Choice                                                                                                                                                              | Why it's fast                                                                                                            |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Language        | TypeScript strict                                                                                                                                                   | —                                                                                                                        |
+| Framework       | **Next.js 15 App Router + React 19**, Node runtime, Turbopack                                                                                                       | RSC streams the first screen with data already in HTML; no client waterfall                                              |
+| Client data     | **TanStack Query v5**, hydrated from RSC prefetch (`HydrationBoundary`)                                                                                             | After first load every navigation reads from cache instantly; background refetch; **optimistic mutations** with rollback |
+| Mutations / API | One REST API `/api/v1` (route handlers, Zod-validated) used by the UI **and** by Postman                                                                            | One code path, testable; no Server Actions for data mutations                                                            |
+| UI              | Tailwind CSS + shadcn/ui (Radix), lucide icons (tree-shaken), dnd-kit (kanban), TanStack Table + **TanStack Virtual** (long lists), react-hook-form + Zod, date-fns | Small, accessible primitives; virtualization keeps 10k-row lists smooth                                                  |
+| Heavy UI        | Rich text (Tiptap), PDF preview, charts — **lazy-loaded** (`next/dynamic`)                                                                                          | Keeps initial JS ≤ 180 KB gz                                                                                             |
+| Database        | **PostgreSQL 17 on Supabase, region eu-central-1 (Frankfurt)** (owner approved 2026-10-31, Q-142)                                                                   | Relational integrity, transactions, partial indexes, pg_trgm search                                                      |
+| DB access       | **Drizzle ORM** + `postgres.js` via Supavisor pooler (transaction mode, `prepare: false`)                                                                           | Thin SQL layer, no ORM overhead, explicit queries                                                                        |
+| Hosting         | **Vercel, function region fra1** (same city as DB)                                                                                                                  | Single-digit-ms app↔DB latency                                                                                           |
+| Auth            | Supabase Auth (magic link + Google), invite-only; **JWT verified locally** (cached JWKS), no auth network call per request                                          | Removes a round-trip from every request                                                                                  |
+| Files           | Supabase Storage, private buckets, direct browser upload via signed URL                                                                                             | Big files never pass through our functions                                                                               |
+| Aggregates      | Vacancy stage counters updated in the same transaction; statistics from **pre-aggregated daily tables** (incremental + nightly reconcile)                           | Dashboards and stats never scan raw tables                                                                               |
+| Live updates    | Supabase Realtime on a small `change_feed` channel → invalidate TanStack Query keys (architect confirms in ADR)                                                     | Boards stay fresh without polling                                                                                        |
+| Jobs            | Vercel Cron → idempotent `/api/cron/*` + `job_run` table                                                                                                            | Probation, reminders, bonus triggers, stats reconcile                                                                    |
+| Email / PDF     | Resend + React Email; `@react-pdf/renderer` for offer letters                                                                                                       | —                                                                                                                        |
+| i18n            | **next-intl, locale `uk` only in v1**; all UI copy, emails, PDFs in Ukrainian; `uk-UA` formats, Europe/Kyiv                                                         | Messages loaded per route, no runtime bloat                                                                              |
+| Tests           | Vitest, Playwright (E2E + screenshots), Postman collection generated from OpenAPI + Newman                                                                          | —                                                                                                                        |
+| Perf tooling    | Lighthouse CI, `@next/bundle-analyzer` + size-limit, k6 (API load), `EXPLAIN ANALYZE` checks                                                                        | Budgets fail the build                                                                                                   |
+| Observability   | Sentry (PII scrubbing), pino structured logs, Vercel Speed Insights                                                                                                 | —                                                                                                                        |
+| CI              | GitHub Actions                                                                                                                                                      | —                                                                                                                        |
 
 > Postman is our API **test** tool. Data lives in PostgreSQL.
 
@@ -75,12 +78,13 @@ At the start of every session read both, then `docs/PROGRESS.md`.
 ## 4. Code rules — real code only, no filler
 
 - **Production-ready code only.** No pseudo-code, no `// TODO: implement`, no stub functions, no mock data or lorem ipsum in app code, no "example" placeholders. If something can't be built yet, it doesn't ship — it goes to `docs/PROGRESS.md` as a gap.
-- **Comments minimal:** only on important/non-obvious logic (domain rules, routing, bonus maths, authz scoping, tricky SQL) — one short JSDoc line explaining *why*. No comments restating code, no banner comments, no commented-out code.
+- **Comments minimal:** only on important/non-obvious logic (domain rules, routing, bonus maths, authz scoping, tricky SQL) — one short JSDoc line explaining _why_. No comments restating code, no banner comments, no commented-out code.
 - No `any`; no unused code; no duplicate logic (shared Zod schemas, shared services).
 - Docs are concise: tables and bullets, no essays.
 - **Performance by default** (details in `performance-engineer`): RSC prefetch + Query hydration for every page; parallel data loading (`Promise.all`), never sequential awaits for independent data; one SQL query per list; select only needed columns; cursor pagination; indexes for every filter; memoize only where profiling shows a gain; lazy-load heavy components; `next/font`, no layout shift.
 
 ## 5. Repo structure
+
 ```
 /app                   # routes: (dashboard), vacancies, candidates, calendar, statistics, archive, settings, api/v1, api/cron
 /components            # ui (shadcn) + feature components
@@ -103,36 +107,89 @@ At the start of every session read both, then `docs/PROGRESS.md`.
 4. **Test** — `qa-engineer`: unit + integration + E2E + Newman; **generates screenshots** (§7).
 5. **Perf check** — `performance-engineer` for anything with lists/boards/stats.
 6. **Review** — `code-reviewer` (+ `security-engineer` when required). Fix all blocking findings.
-7. **Verify** — `pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e && pnpm test:api && pnpm perf:check` all green.
+7. **Verify — three levels (D129, owner 2026-11-18: never duplicate CI locally):** (a) slice, by the agent: typecheck, lint, tests of changed files + all E2E specs of every shared screen it changes; (b) merge into `phase-N`, by the orchestrator: only test files touched by conflict resolution, then push — CI runs typecheck, lint and all tests, the PR is kept green with `babysit`/`fix-ci` (no full local suites); (c) V-block end and phase end: `pnpm test:e2e && pnpm test:api && pnpm perf:check` + screenshots. CI runs everything on every push; a red CI is fixed before the next slice.
 8. **Log** — update `docs/PROGRESS.md`; conventional commits with PRD IDs (`feat(pipeline): TL interview reschedule [RESCH-01..03]`, commit messages in English).
-9. **Stop and report** to the owner in Ukrainian: what's done, path to the screenshot gallery (`screenshots/phase-N/index.html`), demo script (seeded user + clicks), open questions, next phase. Wait for "go phase N+1".
+9. **Phase PR** — orchestrator opens the `phase-N` → `main` PR with `.claude/skills/make-pr-easy-to-review/SKILL.md`, then keeps it green with `babysit` (`fix-ci`, `fix-merge-conflicts`).
+10. **Stop and report** to the owner in Ukrainian: what's done, path to the screenshot gallery (`screenshots/phase-N/index.html`), demo script (seeded user + clicks), open questions, next phase. Wait for "go phase N+1".
 
 **Special stop — Telegram (Phase 6):** before writing any Telegram code, send the owner a numbered list of questions (bot purpose, users/roles, commands, which notifications, vacancy-creation flow and fields, account linking, language, group chats or private only) and wait for answers. Meanwhile keep the notification layer channel-pluggable.
 
 ### Definition of Done (every task)
+
 - Acceptance criteria met; PRD IDs referenced.
 - Server-side authz + allowed/denied tests; Zod validation.
 - All UI text in Ukrainian via `messages/uk.json` (no hard-coded strings).
 - Loading/empty/error states; accessible; works on mobile for TL flows.
 - Timeline events emitted for every state change.
-- Tests green; **screenshots updated**; perf budgets met (PRD §13 PERF).
+- UI tasks: built and reviewed with the design skills (§11); `docs/ux/design-system.md` motion rules followed.
+- Tests green at the level of §6 step 7 (D129); screenshots and perf budgets checked at V-block end (PRD §13 PERF); a slice that grows a route bundle measures it.
 - No stubs, TODOs, mock data or redundant comments.
 - PROGRESS (and ADR/OpenAPI if relevant) updated.
 
 ## 7. UI screenshots (PRD SHOT-01..03)
-- `pnpm test:screens` runs the Playwright screenshot suite: every screen and key dialog × each role × light/dark × desktop 1440×900 / mobile 390×844.
+
+- **Lean matrix (owner decision D125, 2026-11-17):** a PNG only for what the owner must see — each new screen, dialog or distinct state. Light theme by default; dark = one capture per new screen/dialog. Mobile 390×844 only where the layout differs (forms, footers, sheets, lists, TL flows); else desktop 1440×900. Role variants only when the UI differs; one capture per denial kind. Worst case / 320 px / 200 % and toast wording → E2E assertions, not PNGs. Never re-capture an unchanged screen.
 - Output: `screenshots/phase-N/<NN>-<role>-<screen>-<state>-<viewport>-<theme>.png` + `screenshots/phase-N/index.html` (static gallery, grouped by screen) + copy to `screenshots/latest/`.
 - Fixed clock, seeded Ukrainian data, animations off. Commit the screenshots.
 - `ux-ui-designer` reviews the gallery each phase and files issues before the owner sees it.
 
 ## 8. Seed data
+
 Verticals: Гемблінг, Крипто. Local dev login route exists ONLY when `NODE_ENV=development`. Users:
-`admin@demo`, `head.recruiter.gambling@demo`, `recruiter1.gambling@demo`, `recruiter2.gambling@demo`, `recruiter.crypto@demo`, `head.hr@demo`, `hr@demo`, `vasyl.tl@demo` (Гемблінг, priority 0), `taras.tl@demo` (Гемблінг, priority 1), `tl.crypto@demo`, `finance@demo`.
+`admin@demo`, `head.recruiter.gambling@demo`, `recruiter1.gambling@demo`, `recruiter2.gambling@demo`, `recruiter.crypto@demo`, `head.hr@demo`, `hr@demo` (both in Гемблінг and Крипто — owner decision D46), `vasyl.tl@demo` (Гемблінг, priority 0), `taras.tl@demo` (Гемблінг, priority 1), `tl.crypto@demo`, `finance@demo`.
 Position "Медіабаєр — Facebook" with open vacancies for Vasyl and Taras; ~30 candidates across all stages (incl. probation day 35, one rejected, one deleted). Perf seed: `pnpm db:seed:perf` (PRD PERF-01).
 
 ## 9. Commands (keep updated)
-`pnpm setup` · `pnpm dev` · `pnpm db:generate` · `pnpm db:migrate` · `pnpm db:seed` · `pnpm db:seed:perf` · `pnpm lint` · `pnpm typecheck` · `pnpm test` · `pnpm test:e2e` · `pnpm test:screens` · `pnpm api:openapi` · `pnpm api:postman` · `pnpm test:api` · `pnpm perf:check`
+
+`pnpm setup` · `pnpm dev` · `pnpm db:generate` · `pnpm db:migrate` · `pnpm db:seed` · `pnpm db:seed:vacancies` · `pnpm db:seed:perf` · `pnpm lint` · `pnpm typecheck` · `pnpm test` · `pnpm test:e2e` · `pnpm test:screens` · `pnpm api:openapi` · `pnpm api:postman` · `pnpm test:api` · `pnpm perf:check`
 
 ## 10. Communication with the owner
+
 - Owner: Ivan, BA/ops professional. Reports in **Ukrainian**, business language; technical detail goes to ADRs.
 - Ask before: changing PRD behaviour, paid services, deleting data, changing the stack, starting the Telegram phase.
+
+---
+
+## 11. Design skills (installed in `.claude/skills/`, source `emilkowalski/skills`)
+
+Mockups in `UI FROM DESIGNER/` + `docs/ux/design-system.md` define the look; these skills define polish and motion. Subagents have no Skill tool: they read `.claude/skills/<name>/SKILL.md` (and its linked files) before the work. Web only — never use `animate-expo`, `write-swift`, `apple-design`.
+
+| Moment                                             | Skill                                                              |
+| -------------------------------------------------- | ------------------------------------------------------------------ |
+| Designing/building a screen or component           | `emil-design-eng`                                                  |
+| Any transition, hover, dialog, drawer, list change | `animate` (+ `choreograph` for groups, `gestures` for drag/sheets) |
+| Toasts                                             | `ask-sonner`                                                       |
+| Mobile TL flows                                    | `mobile-native`                                                    |
+| Review of a finished UI task                       | `review-animations`, `break-ui`                                    |
+| Janky motion                                       | `animation-performance`                                            |
+| Retrofit of old screens                            | `improve-animations`, `remove-animations`                          |
+
+Rules: motion respects `prefers-reduced-motion`; no animation on high-frequency/keyboard actions; compositor-only properties; motion must not break PERF (INP, CLS 0).
+
+## 12. Models
+
+- **Claude Code:** orchestrator = the session model (owner switches with `/model`, e.g. Opus 5.5). Subagents run `model: sonnet` (set in `.claude/agents/*.md`) with effort from the frontmatter: `medium` for business-analyst, ux-ui-designer, solution-architect, code-reviewer; `high` for engineers, QA, security, perf, devops (owner decision D128, 2026-11-17).
+- **Codex (owner optimization request 2026-11-18):** orchestrator = **GPT-6.1 Sol Medium** (`gpt-6.1-sol`); defaults in `.codex/config.toml`, explicit role settings in `.codex/agents/*.toml`. This supersedes the Codex-only Astra High default of 2026-11-12. Claude's model/effort settings and D125/D126/D128/D129 quality gates remain unchanged.
+- **Token economy:** give agents bounded tasks and only the relevant context; reuse agents for related follow-ups. Parallelize independent work only; avoid duplicate exploration and repeated full test runs without new changes or failures. Keep the QA/review requirements above.
+
+### Codex orchestration contract (Claude configuration unchanged)
+
+- The main agent owns planning, risk classification, integration and final verification. Handle trivial tasks directly. Delegate bounded implementation and required reviews under §1; do not delegate orchestration or let subagents spawn more agents.
+- At most **two open subagent threads**, excluding the orchestrator; work on independent files only. Reuse an existing agent for related follow-ups. Workers are not alone in the repository: preserve others' edits and adapt to concurrent changes.
+- Every assignment includes task ID/objective, PRD IDs (or n/a for tooling), exact file ownership, acceptance criteria, constraints/dependencies, required tests and expected output. Verify important completion claims against the diff, acceptance criteria and test evidence.
+- The `.claude/agents/*.md` files define responsibilities; their Claude model/effort frontmatter does not configure Codex. Read only relevant PRD/ADR sections even where a role says to read the PRD first. Shared handoffs remain the session entry point; compare branch/HEAD/tree with their checkpoint before continuing product work.
+
+| Codex role                                                                                                                                                      | Model         | Effort   |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | -------- |
+| Orchestrator; business-analyst, ux-ui-designer, senior-fullstack-engineer, database-engineer, performance-engineer, qa-engineer, devops-engineer, code-reviewer | `gpt-6.1-sol` | `medium` |
+| solution-architect, security-engineer                                                                                                                           | `gpt-6.1-sol` | `high`   |
+| critical-specialist (one assigned existing role for a critical implementation or review)                                                                        | `gpt-6.1-sol` | `high`   |
+
+- Classify **before** delegating: small = docs/tests-only or ≤ ~80 non-risk lines; standard = ordinary feature/query/migration; critical = authz/isolation, PII/files/auth, money, high-impact migrations, difficult concurrency/data integrity or complex architecture. Any small task touching those areas becomes critical. Use `critical-specialist` for critical work otherwise assigned to a Medium role; name the existing role definition in its assignment. Keep a separate security review where §1 requires it.
+- Small: orchestrator checks with focused validation (D129). Standard: engineer's unit/integration tests and one focused review. Critical: High implementation/review, positive/negative tests and relevant integration/E2E checks. Merge, V-block and release checks follow §6; required QA/security/perf and screenshots are never removed to save tokens. D126's one review round and deferred style findings still apply.
+- Custom role files can take precedence over explicit spawn model/effort values: do not assume an override raises a pinned Medium role. Route to `critical-specialist`; if that new role is not yet exposed by the running client, use a built-in `worker` explicitly set to Sol High with the assigned specialist definition. On a reproducible capability failure, record the reason and use a built-in `worker` (no custom model pin) explicitly set to `gpt-6-astra` High with the same specialist role and acceptance criteria. Do not escalate routine validation failures automatically or silently downgrade critical work.
+- For model overrides use `fork_turns: "none"` and supply only relevant context. Check models offered by the current spawn tool; a catalog entry alone does not establish runtime access. GPT-6 Luna appears in the local model catalog but is not offered by this session's spawn tool: no Luna default or quality/cost claim is enabled.
+- Before adopting Luna, compare it with Sol on equivalent representative tasks with fixed acceptance criteria and relevant tests; record defects, retries, tool calls and usage if exposed. Promote only after acceptable results; prefer Sol if repeated fixes/escalations erase the benefit.
+- Search narrowly, trim logs, load only applicable skills, reuse verified findings and never repeat passing checks without new changes/failures. No automatic commits or pushes for configuration work.
+- Subagent report: `STATUS: DONE | BLOCKED | NEEDS_REVIEW`; task ID; files changed; brief result; tests and results; risks/blocker with reproduction; next action. No pasted source or long logs. The orchestrator decides completion and reports in Ukrainian.
+- Project defaults apply to new sessions in this trusted repository; they do not switch an already-running session. Select Sol Medium in the current session's model/effort picker if necessary. Do not change global preferences or permissions to apply this policy.

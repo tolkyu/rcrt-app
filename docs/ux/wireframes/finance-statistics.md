@@ -1,12 +1,12 @@
 # Wireframe — Статистика для фінансиста (finance@demo) [STAT-01..08, BONUS-13, D12]
 
-Finance sees **only** Статистика: single nav item, no search, no bell ⚠ OPEN-S2, no dashboard. Every number is plain text (no drill-down links into candidates/vacancies). All other routes → redirect `/statistics`; object URLs → 404.
+Visual style and Огляд layout = `statistics.md` (`reference/07-statistics.webp`); shell per `app-shell.md` with brand «Hiring». Finance sees **only** Статистика: single nav item, no search, no bell (D41), no dashboard. Every number is plain text (no drill-down links into candidates/vacancies). All other routes → redirect `/statistics`; object URLs → 404.
 
 ## Desktop 1440 — Огляд
 
 ```
 ┌──────────────┬────────────────────────────────────────────────────────────────────────────────────┐
-│ HRIS         │ Статистика  [Лише перегляд]                                           (ФН ▾)      │
+│ [H] Hiring   │ Статистика  [Лише перегляд]                                           (ФН ▾)      │
 │ ▣ Статистика │ [Огляд] [Воронка] [Час] [Джерела] [Тімліди] [Рекрутери] [Бонуси] [Виплати]         │
 │              │ Період [Жовтень 2026 ▾]  Вертикаль [Усі ▾]  Посада [▾]  Рекрутер [▾]  Тімлід [▾]    │
 │              │                                              Оновлено сьогодні о 06:00 · [Експорт ▾] │
@@ -21,6 +21,7 @@ Finance sees **only** Статистика: single nav item, no search, no bell 
 │              │ ...                                      │ ...                                     │
 └──────────────┴────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
 - KPI deltas: text + arrow + colour (never colour alone).
 
 ## Бонуси tab (STAT-06)
@@ -36,6 +37,7 @@ Finance sees **only** Статистика: single nav item, no search, no bell 
 │ Найближчі виплати                                                                                 │
 │ Лист. 2026 ▓▓▓ 1 625 $ │ Груд. 2026 ▓▓ 875 $ │ Січ. 2027 ▓ 375 $   (expected-date calendar strip)  │
 ```
+
 - Mixed currencies: one column group per currency, never auto-summed across currencies ⚠ OPEN-FN2 (reporting currency for totals?).
 
 ## Виплати tab (BONUS-13) — payout report
@@ -52,18 +54,22 @@ Finance sees **only** Статистика: single nav item, no search, no bell 
 │ │ Разом до виплати                                               │ 1 100 $│           │           │ │
 │ └────────────────────────────────────────────────────────────────┴────────┴───────────┴───────────┘ │
 ```
+
 - No checkboxes, no «Позначити виплаченими» (Admin-only action is hidden, not disabled).
 - Candidate cell is plain text (no link). Purged candidates show «Кандидат #1234 (видалено)».
 - Export filename: `vyplaty-2026-11.xlsx`; export respects current filters; columns = table columns + currency + payout period.
 
 ## Mobile 390
+
 - Tabs scroll horizontally; KPI tiles 2 per row; tables become stacked rows (recruiter + amount + status), horizontal scroll fallback for payout report; export in `[⋯]`.
 
 ## States
+
 - Loading: tab bar real, KPI tiles skeleton, table 8 rows skeleton.
 - No data: «За обраний період даних немає».
 - Export in progress: button spinner → toast «Файл готовий» (download starts); error «Не вдалося сформувати файл» [Спробувати ще раз].
 - Error per widget, others keep rendering.
 
 ## ⚠ OPEN
+
 FN1 does Finance see candidate full names in payout report / "who brought whom" (PII minimisation) or only IDs? · FN2 totals across currencies (convert to reporting currency or per-currency subtotals).

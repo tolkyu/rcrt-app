@@ -1,0 +1,7 @@
+* text=auto eol=lf
+*.sql text eol=lf
+*.png binary
+*.webp binary
+*.jpg binary
+*.ico binary
+*.woff2 binary
