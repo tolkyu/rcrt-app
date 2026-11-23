@@ -159,15 +159,10 @@ export function useVacancyContentAccess(vacancyId: string) {
         queryClient.clear();
         router.refresh();
       } else {
-        // The unreadable card must not keep its metadata in the client cache either.
-        for (const queryKey of [
-          queryKeys.vacancyContent(id),
-          queryKeys.vacancy(id),
-        ]) {
-          const filter = { queryKey, exact: true };
-          void queryClient.cancelQueries(filter).catch(() => undefined);
-          queryClient.removeQueries(filter);
-        }
+        // The prefix also covers the card's metadata and recruiter picker.
+        const filter = { queryKey: queryKeys.vacancy(id) };
+        void queryClient.cancelQueries(filter).catch(() => undefined);
+        queryClient.removeQueries(filter);
       }
     },
     [id, queryClient, router, scope],

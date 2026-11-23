@@ -177,7 +177,7 @@ export async function findVacancyContent(
       teamLeadId: vacancy.teamLeadId,
       openedAt: vacancy.openedAt,
       recruiterInitiated: vacancy.recruiterInitiated,
-      assignedRecruiterIds: sql<unknown>`coalesce((select jsonb_agg(${vacancyRecruiter.userId} order by ${vacancyRecruiter.userId}) from ${vacancyRecruiter} where ${vacancyRecruiter.vacancyId} = ${vacancy.id}), '[]'::jsonb)`,
+      assignedRecruiterIds: sql<unknown>`coalesce((select jsonb_agg(${vacancyRecruiter.userId} order by ${vacancyRecruiter.userId}) from ${vacancyRecruiter} where ${vacancyRecruiter}.${sql.identifier(vacancyRecruiter.vacancyId.name)} = ${vacancy}.${sql.identifier(vacancy.id.name)}), '[]'::jsonb)`,
     })
     .from(vacancy)
     .where(and(eq(vacancy.id, id), isNull(vacancy.deletedAt), scope))

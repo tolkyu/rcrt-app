@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useVacancyContentAccess } from '@/components/vacancies/use-vacancy-content-access';
 import { ApiError } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
+import { assignableRecruitersQuery } from '@/lib/queries/vacancy-assignable';
 import { vacancyContentQuery } from '@/lib/queries/vacancy-content';
 import {
   vacancyContentReadSchema,
@@ -223,6 +224,60 @@ describe('terminal denials remove protected state [ADR-020]', () => {
       expect(client.getQueryData(queryKeys.vacancy(OTHER))).toEqual({
         id: OTHER,
       });
+    },
+  );
+  it.each([404, 403])(
+    'GET %i removes every entry of this vacancy, drops its late answer and starts no new read',
+    async (status) => {
+      const view = mount();
+      await waitFor(() =>
+        expect(view.result.current.state.kind).toBe('readable'),
+      );
+      const picker = queryKeys.vacancyAssignableRecruiters(ID);
+      const otherPicker = queryKeys.vacancyAssignableRecruiters(OTHER);
+      const list = queryKeys.vacancies({ status: 'OPEN' });
+      client.setQueryData(queryKeys.vacancy(OTHER), { id: OTHER });
+      client.setQueryData(queryKeys.vacancyContent(OTHER), { id: OTHER });
+      client.setQueryData(otherPicker, { items: [] });
+      client.setQueryData(list, { items: [] });
+      const late = deferred();
+      fetcher.mockImplementation((url) =>
+        String(url).endsWith('/assignable-recruiters')
+          ? late.promise
+          : Promise.resolve(problem(status, 'DENIED')),
+      );
+      const lateRead = client
+        .fetchQuery(assignableRecruitersQuery(ID))
+        .catch(() => null);
+      await act(async () => {
+        await view.result.current.revalidate();
+      });
+      expect(view.result.current.state.kind).toBe('unavailable');
+      expect(client.getQueryCache().find({ queryKey: picker })).toBeUndefined();
+      // A cancelled read may still reach fetch after its lazy schema loads, but already aborted.
+      const liveReads = () =>
+        fetcher.mock.calls.filter(([, init]) => !init?.signal?.aborted).length;
+      const readsAfterDenial = liveReads();
+      late.resolve(Response.json({ items: [] }));
+      await lateRead;
+      await act(async () => {
+        await client.invalidateQueries({ queryKey: queryKeys.vacancy(ID) });
+        focusManager.setFocused(false);
+        focusManager.setFocused(true);
+      });
+      expect(client.getQueryCache().find({ queryKey: picker })).toBeUndefined();
+      expect(client.getQueryData(queryKeys.vacancy(ID))).toBeUndefined();
+      expect(client.getQueryData(queryKeys.vacancyContent(ID))).toBeUndefined();
+      expect(liveReads()).toBe(readsAfterDenial);
+      expect(client.getQueryData(queryKeys.vacancy(OTHER))).toEqual({
+        id: OTHER,
+      });
+      expect(client.getQueryData(queryKeys.vacancyContent(OTHER))).toEqual({
+        id: OTHER,
+      });
+      expect(client.getQueryData(otherPicker)).toEqual({ items: [] });
+      expect(client.getQueryData(list)).toEqual({ items: [] });
+      expect(router.refresh).not.toHaveBeenCalled();
     },
   );
   it('401 cancels and clears the old client before refreshing the server session guard', async () => {

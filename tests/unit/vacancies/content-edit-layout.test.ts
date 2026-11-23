@@ -4,6 +4,8 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query';
 import type * as QueryModule from '@tanstack/react-query';
+import type * as NavigationModule from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -15,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   session: vi.fn<() => Promise<unknown>>(),
   vacancy: vi.fn<(id: string) => Promise<unknown>>(),
   content: vi.fn<(id: string) => Promise<unknown>>(),
+  logError: vi.fn(),
 }));
 vi.mock('@/app/(app)/_lib/session', () => ({
   requireSession: mocks.session,
@@ -25,7 +28,14 @@ vi.mock('@/app/(app)/vacancies/_lib/vacancy', () => ({
 vi.mock('@/app/(app)/vacancies/_lib/vacancy-content', () => ({
   loadVacancyContent: mocks.content,
 }));
-vi.mock('next/navigation', () => ({
+vi.mock('@/server/observability/logger', () => ({
+  logger: { error: mocks.logError },
+  describeError: (error: unknown) => ({
+    name: error instanceof Error ? error.name : typeof error,
+  }),
+}));
+vi.mock('next/navigation', async (original) => ({
+  ...(await original<typeof NavigationModule>()),
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
   },
@@ -107,6 +117,41 @@ describe('content edit layout [ADR-020]', () => {
       expect(html).not.toContain('PAGE');
       expect(html).toContain(messages.states.errorTitle);
       expect(dehydrate).not.toHaveBeenCalled();
+    },
+  );
+  it.each([
+    ['vacancy', 'vacancy content edit: card read failed'],
+    ['content', 'vacancy content edit: content read failed'],
+  ] as const)(
+    'a failed %s read is logged without its message',
+    async (name, message) => {
+      mocks[name].mockRejectedValue(new Error('secret@example.com failed'));
+      await render();
+      expect(mocks.logError).toHaveBeenCalledExactlyOnceWith(
+        { err: { name: 'Error' } },
+        message,
+      );
+    },
+  );
+  it.each(['vacancy', 'content'] as const)(
+    'rethrows a Next redirect from the %s read without logging it',
+    async (name) => {
+      mocks[name].mockImplementation(async () => redirect('/login'));
+      await expect(render()).rejects.toMatchObject({
+        digest: expect.stringContaining('NEXT_REDIRECT'),
+      });
+      expect(mocks.logError).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['vacancy', 'content'] as const)(
+    'rethrows a Next not-found from the %s read without logging it',
+    async (name) => {
+      const digest = 'NEXT_HTTP_ERROR_FALLBACK;404';
+      mocks[name].mockRejectedValue(
+        Object.assign(new Error(digest), { digest }),
+      );
+      await expect(render()).rejects.toMatchObject({ digest });
+      expect(mocks.logError).not.toHaveBeenCalled();
     },
   );
   it('a session failure is rethrown, not turned into a retry state', async () => {

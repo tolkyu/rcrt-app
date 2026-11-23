@@ -85,7 +85,11 @@ export async function toggleStatus(
     // A refetch landing after the optimistic write would put the old status back.
     await Promise.all([
       queryClient.cancelQueries({ queryKey: queryKeys.vacanciesAll() }),
-      queryClient.cancelQueries({ queryKey: queryKeys.vacancy(id) }),
+      // Exact: a cancelled first content read would stay idle if this write fails.
+      queryClient.cancelQueries({
+        queryKey: queryKeys.vacancy(id),
+        exact: true,
+      }),
     ]);
     const optimistic = applyOptimisticFlip(queryClient, id, statusFlip(action));
     try {

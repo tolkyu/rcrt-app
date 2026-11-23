@@ -1,11 +1,12 @@
 import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
-import { notFound } from 'next/navigation';
+import { notFound, unstable_rethrow } from 'next/navigation';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { ContentLoadRetry } from '@/components/vacancies/vacancy-content-feedback';
 import { vacancyContentClientMessages } from '@/lib/i18n/vacancy-content-messages';
 import { queryKeys } from '@/lib/query-keys';
+import { describeError, logger } from '@/server/observability/logger';
 import { getQueryClient } from '@/server/query/query-client';
 import { requireSession } from '../../../../_lib/session';
 import { loadVacancyContent } from '../../../_lib/vacancy-content';
@@ -13,10 +14,14 @@ import { loadVacancy } from '../../../_lib/vacancy';
 
 type Attempt<T> = { ok: true; value: T } | { ok: false };
 
-const attempt = <T,>(read: Promise<T>): Promise<Attempt<T>> =>
+const attempt = <T,>(read: Promise<T>, label: string): Promise<Attempt<T>> =>
   read.then(
     (value) => ({ ok: true, value }),
-    () => ({ ok: false }),
+    (error: unknown) => {
+      unstable_rethrow(error);
+      logger.error({ err: describeError(error) }, label);
+      return { ok: false };
+    },
   );
 
 /** Decided above the loading boundary so a hidden or missing vacancy is an actual HTTP 404 (VIS-02); a transient failure becomes a retry state, never a writable empty document (ADR-020). */
@@ -30,8 +35,11 @@ export default async function ContentEditLayout({
   const { vacancyId } = await params;
   const [, vacancy, content, messages] = await Promise.all([
     requireSession(),
-    attempt(loadVacancy(vacancyId)),
-    attempt(loadVacancyContent(vacancyId)),
+    attempt(loadVacancy(vacancyId), 'vacancy content edit: card read failed'),
+    attempt(
+      loadVacancyContent(vacancyId),
+      'vacancy content edit: content read failed',
+    ),
     getMessages(),
   ]);
   if (

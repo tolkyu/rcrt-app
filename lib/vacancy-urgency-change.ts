@@ -69,7 +69,11 @@ export async function changeUrgency(
     // A refetch landing after the optimistic write would put the old flag back.
     await Promise.all([
       queryClient.cancelQueries({ queryKey: queryKeys.vacanciesAll() }),
-      queryClient.cancelQueries({ queryKey: queryKeys.vacancy(id) }),
+      // Exact: a cancelled first content read would stay idle if this write fails.
+      queryClient.cancelQueries({
+        queryKey: queryKeys.vacancy(id),
+        exact: true,
+      }),
     ]);
     const optimistic = applyOptimisticUrgency(queryClient, id, from, to);
     try {
