@@ -1,28 +1,29 @@
-# Handoff — current state only
+# Handoff ? current state only
 
-> **Rule:** this file holds only the latest checkpoint (≤ ~60 lines). On every checkpoint, move the old content to the top of `docs/archive/handoff-log.md` (newest first), then rewrite this file. Never append history here. Read the archive only when you need an old detail.
+> **Rule:** latest checkpoint only (? ~60 lines). Move the old checkpoint to the top of `docs/archive/handoff-log.md` before rewriting.
 
-## Checkpoint — 2026-11-19 (Codex, content API CI follow-up)
+## Checkpoint ? 2026-11-21 (Codex, CONTENT-E2E-MFA/RUNTIME)
 
-- Following baseline `bc8f061`, STORY-VAC-01-2a implements `PATCH /api/v1/vacancies/{vacancyId}/content`: description/requirements only, strict shared rich-text schema, omission/null/replacement semantics, version/no-op checks and atomic metadata-only history. Existing draft PATCH is unchanged. No migration or UI change.
-- Owner D133/Q-195: published content editable only on OPEN/ON_HOLD; FILLED must reopen first, CANCELLED remains immutable. ADR-018 records the narrow permission union and fresh actor/vacancy/assignment authorization under ordered locks.
-- Code review APPROVED; security PASS; independent QA PASS. Reports: `docs/review-phase-2-vacancy-content.md`, `docs/security/vacancy-content-review.md`, `docs/qa-phase-2-vacancy-content.md`. One nonblocking race-harness synchronization nit deferred under D126.
-- Local verification: affected units 1667 passed; content integration/races 33 passed; affected draft/urgency/assignment/status regressions 319 passed; independent mixed-role aal1 QA 1 passed. Typecheck, lint, formatting and generated OpenAPI/Postman consistency passed. Shared integration lock released; test PostgreSQL remains running.
-- Content code committed/pushed as `fea6edd`. CI 44396538695 passed lint/format/types/secrets but failed three `audit-vacancy-labels` assertions: new `vacancy.updated` lacked its Ukrainian viewer label. Minimal follow-up adds the label and expected emitted action; targeted suite reproduced 3 failures before and passed 9/9 afterwards. Existing scan/unused-label checks remain intact; verify the follow-up commit's CI before implementation continues.
-- Hosted verification is authoritative at PR #1 latest checks: https://github.com/tolkyu/rcrt-app/pull/1/checks . Baseline CI 44382912511 on bc8f061 passed all gates; it is not evidence for the new content code. The orchestrator must verify the content commit's CI before the next implementation slice.
-- V3 mobile fixes/captures have focused UX approval (`docs/ux/review-phase-2-v3-fixed-captures.md`). Follow-on form: `docs/ux/wireframes/vacancy-content-edit.md`; ADR-019 designs the narrow authorized content GET and eligibility flag, pending security review. GET and F10 editor/view remain unimplemented. Full Phase 2/V4 and candidates remain unfinished.
+- Branch `phase-2`, HEAD/pushed baseline `b0e7c3e` unchanged. Hosted CI 44474819422 covers committed PATCH/audit labels only; later GET/editor/harness work remains local. No commit/push/merge/deploy; owner merges.
+- Latest tests-only slice: `tests/e2e/vacancy-content-mfa.spec.ts` and `vacancy-content-runtime.spec.ts`, six new scenarios. Desktop6/6 and mobile6/6 PASS, typecheck/focused lint/format/diff-check PASS. Two High QA workers independently cross-reviewed as security; both PASS. No browser assertion repairs. Detailed limits/evidence: `docs/qa-phase-2-content-browser.md` latest follow-up.
+- MFA: isolated real local actors, Admin plus Head Recruiter/assigned Recruiter/owning TL at aal1 retain lower grants; foreign/private404, then pure-Admin401 MFA_REQUIRED/redirect/immutability/no replay. No actual TOTP step-up in these new cases; existing provider/MFA evidence remains separate.
+- Runtime: actual Tiptap chunk failure and each-field retry keep Save gated until both ready; delayed real GET is canceled across actor change; committed PATCH response cannot adopt old version+1 after HR remount/newer canonical version+2. Same document identity and immediate post-release assertions exclude reload/fresh-read masking. Chunk discovery depends on current build signature.
+- Initial runtime-only run failed fixture setup because Docker/local Supabase were off; restarted existing services without installs/schema/seed changes, then both successful browser runs reused existing build/sessions. Final DB check: live content fixtures0, active/linked MFA actors0, remaining fixture Auth actors0. Inactive audit-referenced app identities retained.
+- Total content scenarios28. Earlier session1, status3, unassignment2 and original editor16 retain desktop/mobile passing evidence; do not repeat passing full suites. Existing shared auth/MFA/profile/draft regression desktop81+setup11/mobile80+one existing skip remains attributed to prior checkpoint.
+- All previous READ/F10-A/ACCESS/STATE/F10-B/PAGE/CARD code/security reviews and terminal fix evidence retained. Prior checkpoint archived. Tiptap3.34.0, Next15.5.28 pinned. D133 OPEN/ON_HOLD only; FILLED needs existing reopen, CANCELLED immutable.
+- BUG-CONTENT-SESSION-01 locally fixed/reviewed: dirty guard layout teardown releases history guard before terminal refresh; 28/28 form units and actual login redirect browser PASS. Shared guard unchanged.
+- Existing fresh-build/bundle evidence remains valid (no product edits this slice): content/edit164.35, card165.27, draft179.85, create179.64 kB gz. Runtime/Lighthouse still pending; card extra post-mount GET is perf follow-up.
+- Owner explicitly authorized recovery of stale lease `codex-content-mfa-20261121`; new session lease `codex-content-resume-20261121b` used. Shared checkout/integration locks released after checkpoint. No whole-feature publishing approval claimed.
 
 ## Next (in order)
 
-1. Verify the content commit's hosted CI, including 16 new Postman cases; fix any red gate before more implementation. Do not duplicate passing full suites locally (D129).
-2. After green CI/security contract review, implement ADR-019's narrow initial content GET/query in a bounded critical slice, then approved F10 editor/view and two-field UI. Keep D133 and draft isolation; PATCH is never a read path.
-3. PR #1 description has stale V3 bug/capture claims; reconcile for owner merge. Do not merge or advance to Phase 3 automatically.
-4. Owner physical-phone selection/sticky-footer/toast check remains open; the existing 200% zoom test is a viewport surrogate. Phase 7 demo videos reminder and D126 nits remain.
+1. Consolidated browser gaps in the prior handoff are closed within documented scope. Complete V-block UX/new-state screenshots (D125), runtime performance and final independent feature QA. Preserve earlier passing slice evidence; no duplicate full local suites as a substitute.
+2. Reconcile PR description with actual local feature batch, then authorized commit/push/hosted CI. No automatic owner merge.
+3. D117 create/draft adoption is explicit following work. Phase2/V4/candidates/files/dedup/talent pool/dashboard/custom roles remain unfinished; never advance automatically to Phase3.
+4. Owner physical-phone keyboard/selection/sticky-footer/toast checks remain open; 200% zoom is a viewport surrogate. Retain D126 deferred nits and Phase7 demo-video reminder.
 
 ## Run notes
 
-- `corepack pnpm …`; Vitest from PowerShell. Typecheck/build may need elevation for native bindings/cache.
-- Shared integration lock = `D:/recruiting-wt/.integration.lock`; acquire exclusively before integration/Playwright and release only your lock. Never overlap build, integration or Playwright runs.
-- Desktop then mobile E2E sequentially (429 on concurrent sign-ins/writes). First run with session dependency; repeats may use `--no-deps`.
-- Screenshots only at V-block end (D125/D126); do not recapture unchanged screens. CI triggers on PRs; push branches are main/phase-1.
-- Never print `.env`/full `supabase status`; never delete local rate-limit rows. Dependency audit exemption expires 2026-12-18 (`docs/security/dependency-audit-picomatch.md`).
+- `corepack pnpm ...`; Vitest from PowerShell. Acquire checkout lease via `scripts/ai-edit-lease.mjs` before edits.
+- Shared heavy-test lock `D:/recruiting-wt/.integration.lock`: acquire exclusively; never overlap build/integration/Playwright. Desktop then mobile sequentially. Sessions already valid; use `--no-deps` for focused repeats.
+- Docker Desktop/local Supabase are running after this session. Existing approved dependencies/build reused. Never print `.env`/full Supabase status, delete rate-limit rows or reinstall without cause. Audit exemption expires2026-12-18.

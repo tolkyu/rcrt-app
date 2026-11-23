@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { VACANCY_STATUSES } from '../vacancy-filters';
 import { richTextDocSchema } from './rich-text';
 import { expectedVersion } from './vacancy';
 
@@ -36,3 +37,11 @@ export const vacancyContentSchema = z
   .strict()
   .meta({ id: 'VacancyContent' });
 export type VacancyContent = z.output<typeof vacancyContentSchema>;
+
+export const vacancyContentReadSchema = vacancyContentSchema
+  .extend({
+    status: z.enum(VACANCY_STATUSES),
+    canEditContent: z.boolean(),
+  })
+  .meta({ id: 'VacancyContentRead' });
+export type VacancyContentRead = z.output<typeof vacancyContentReadSchema>;

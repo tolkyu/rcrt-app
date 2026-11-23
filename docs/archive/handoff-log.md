@@ -2,6 +2,161 @@
 
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
+## Checkpoint — 2026-11-21 (Codex, CONTENT-E2E-SESSION with agents)
+
+- Branch `phase-2`, HEAD/pushed baseline `b0e7c3e` unchanged. Prior hosted CI 44474819422 passed for the committed PATCH/audit-label slice only; all later GET/editor and harness work remains local. No commit/push/merge/deploy this session; owner merges.
+- Latest tests-only slice: `tests/e2e/vacancy-content-session.spec.ts`, paired same-session refresh preservation versus real same-actor/new-session editor remount, Clear/Undo/cache/buffer reset and canonical GET without document reload. Desktop1/1 and mobile1/1 PASS, lint/format/tsc and security PASS; one test-only streaming-wait repair. Two reused agents, existing build/sessions, no production change. Framework global adapter is pinned Next15.5.28; fixture-only title commit marker guards cleanup. Total content scenarios22; evidence `docs/qa-phase-2-content-browser.md` session follow-up.
+- Latest tests-only slice with two reused agents: `tests/e2e/vacancy-content-status.spec.ts`, real HOLD stale/confirmed reload/deliberate save, real CANCEL locked/readable buffer/no replay, fixture-only FILLED background gate/discard guard. Explicit browser GET/codes/server immutability/no reopen. Desktop3/3, mobile3/3 PASS without repair; focused lint/format/tsc PASS, security PASS. Existing build/sessions reused; total content scenarios21. Evidence `docs/qa-phase-2-content-browser.md` status follow-up.
+- New small tests-only slice: two real-API recruiter-removal cases, desktop2/2 + setup11 PASS and mobile2/2 PASS; explicit browser GET200/canEditContent:false or GET404 after denied PATCH, retained disabled text versus full removal, no replay/persistence. TypeScript/lint/format PASS; focused security PASS after browser-GET coverage finding fixed. Existing verified build reused; no full checks repeated. Total content scenarios now18; evidence `docs/qa-phase-2-content-browser.md` follow-up.
+- Earlier local READ/F10-A/ACCESS/STATE/F10-B/PAGE/CARD slices retain their individual APPROVED/security PASS evidence (see reports and archived 2026-11-19 handoff). Do not reinstall dependencies or duplicate completed checks. Fifteen Tiptap packages pinned 3.34.0. D133 remains OPEN/ON_HOLD only; FILLED requires existing reopen, CANCELLED immutable.
+- CONTENT-E2E added `tests/e2e/vacancy-content-edit.spec.ts` and `support/vacancy-content.ts`: 16 real-Tiptap scenarios; real persistence/stale/roles, safe paste/link and WCAG, NULL/empty/Clear/undo, keyboard/IME/discard, denial cleanup, actor switch, closed states and owning TL on ON_HOLD. Fixtures clean up by exact ID/title, never mutable description.
+- Fresh fixed build: desktop 16/16 PASS. Mobile 15 PASS, then keyboard case PASS after test-only Ctrl/Meta+End/collapsed-selection correction; corrected case also PASS desktop. All 16 scenarios verified both viewports. Details and remaining gaps: `docs/qa-phase-2-content-browser.md`.
+- BUG-CONTENT-SESSION-01 fixed: dirty editor teardown's history.back cancelled router.refresh's login redirect. ContentEditor captures existing guardRef and releases in layout cleanup before passive teardown; shared guard unchanged. Three regressions failed before (back called once); 28/28 form units PASS after (engineer). Actual PATCH401 login destination PASS both viewports. Code APPROVED `docs/review-phase-2-content-terminal.md`; integrated security/focused fix PASS `docs/security/content-integrated-browser-review.md`.
+- Shared auth/mfa/profile/draft edit/access regression: desktop 81 + 11 session setup PASS; mobile 80 PASS/one existing desktop-only skip. `captures` cases intentionally excluded for D125; no PNGs regenerated. Earlier CARD evidence: vacancies desktop63/mobile44, share/assignment/status desktop37/mobile35 PASS; not repeated for editor-only fix.
+- Fresh build/typecheck/focused lint/format/diff-check PASS. Typecheck/build/Playwright require elevation for existing native cache/browser access, not a reinstall. perf:size all routes PASS: content/edit164.35, card165.27, draft edit179.85, create179.64 kB gz. Runtime/Lighthouse performance not rerun. Card's extra post-mount GET remains V-block perf follow-up.
+- Existing harness changes preserved without publishing. Shared edit lease and integration lock released after checkpoint; acquire your own before edits/heavy runs. Source-level reviews do not approve whole-feature publishing.
+
+## Next (in order)
+
+1. Finish remaining consolidated browser gates: mixed-role MFA and delayed completions/chunk failures; see ADR-020 and QA checkpoint. Terminal, actor-switch, same-user/new-session, real recruiter-removal and status-during-edit cases are done; do not duplicate passing full suites.
+2. V-block UX/new-state screenshots (D125), runtime/bundle perf and final independent feature QA before publish; update PR description for actual feature batch, then authorized commit/push/hosted CI. No automatic owner merge.
+3. D117 create/draft adoption is explicit following work. Phase 2/V4/candidates/files/dedup/talent pool/dashboard/custom roles remain unfinished; never advance automatically to Phase 3.
+4. Owner physical-phone keyboard/selection/sticky-footer/toast checks remain open. 200% zoom is a viewport surrogate. Retain D126 deferred nits and Phase 7 demo-video reminder.
+
+## Run notes
+
+- `corepack pnpm ...`; Vitest from PowerShell. One checkout edit lease via `scripts/ai-edit-lease.mjs`; latest session owner was `codex-content-session-20261121`.
+- Shared heavy-test lock `D:/recruiting-wt/.integration.lock`: acquire exclusively; never overlap build/integration/Playwright. Desktop then mobile sequentially. Initial sessions dependency once, repeats `--no-deps`.
+- Never print `.env`/full Supabase status, delete rate-limit rows or reinstall approved dependencies without cause. Existing audit exemption expires 2026-12-18.
+
+## Checkpoint — 2026-11-21 (Codex, CONTENT-E2E-STATUS with agents)
+
+- Branch `phase-2`, HEAD/pushed baseline `b0e7c3e` unchanged. Prior hosted CI 44474819422 passed for the committed PATCH/audit-label slice only; all later GET/editor and harness work remains local. No commit/push/merge/deploy this session; owner merges.
+- Latest tests-only slice with two reused agents: `tests/e2e/vacancy-content-status.spec.ts`, real HOLD stale/confirmed reload/deliberate save, real CANCEL locked/readable buffer/no replay, fixture-only FILLED background gate/discard guard. Explicit browser GET/codes/server immutability/no reopen. Desktop3/3, mobile3/3 PASS without repair; focused lint/format/tsc PASS, security PASS. Existing build/sessions reused; total content scenarios21. Evidence `docs/qa-phase-2-content-browser.md` status follow-up.
+- New small tests-only slice: two real-API recruiter-removal cases, desktop2/2 + setup11 PASS and mobile2/2 PASS; explicit browser GET200/canEditContent:false or GET404 after denied PATCH, retained disabled text versus full removal, no replay/persistence. TypeScript/lint/format PASS; focused security PASS after browser-GET coverage finding fixed. Existing verified build reused; no full checks repeated. Total content scenarios now18; evidence `docs/qa-phase-2-content-browser.md` follow-up.
+- Earlier local READ/F10-A/ACCESS/STATE/F10-B/PAGE/CARD slices retain their individual APPROVED/security PASS evidence (see reports and archived 2026-11-19 handoff). Do not reinstall dependencies or duplicate completed checks. Fifteen Tiptap packages pinned 3.34.0. D133 remains OPEN/ON_HOLD only; FILLED requires existing reopen, CANCELLED immutable.
+- CONTENT-E2E added `tests/e2e/vacancy-content-edit.spec.ts` and `support/vacancy-content.ts`: 16 real-Tiptap scenarios; real persistence/stale/roles, safe paste/link and WCAG, NULL/empty/Clear/undo, keyboard/IME/discard, denial cleanup, actor switch, closed states and owning TL on ON_HOLD. Fixtures clean up by exact ID/title, never mutable description.
+- Fresh fixed build: desktop 16/16 PASS. Mobile 15 PASS, then keyboard case PASS after test-only Ctrl/Meta+End/collapsed-selection correction; corrected case also PASS desktop. All 16 scenarios verified both viewports. Details and remaining gaps: `docs/qa-phase-2-content-browser.md`.
+- BUG-CONTENT-SESSION-01 fixed: dirty editor teardown's history.back cancelled router.refresh's login redirect. ContentEditor captures existing guardRef and releases in layout cleanup before passive teardown; shared guard unchanged. Three regressions failed before (back called once); 28/28 form units PASS after (engineer). Actual PATCH401 login destination PASS both viewports. Code APPROVED `docs/review-phase-2-content-terminal.md`; integrated security/focused fix PASS `docs/security/content-integrated-browser-review.md`.
+- Shared auth/mfa/profile/draft edit/access regression: desktop 81 + 11 session setup PASS; mobile 80 PASS/one existing desktop-only skip. `captures` cases intentionally excluded for D125; no PNGs regenerated. Earlier CARD evidence: vacancies desktop63/mobile44, share/assignment/status desktop37/mobile35 PASS; not repeated for editor-only fix.
+- Fresh build/typecheck/focused lint/format/diff-check PASS. Typecheck/build/Playwright require elevation for existing native cache/browser access, not a reinstall. perf:size all routes PASS: content/edit164.35, card165.27, draft edit179.85, create179.64 kB gz. Runtime/Lighthouse performance not rerun. Card's extra post-mount GET remains V-block perf follow-up.
+- Existing harness changes preserved without publishing. Shared edit lease and integration lock released after checkpoint; acquire your own before edits/heavy runs. Source-level reviews do not approve whole-feature publishing.
+
+## Next (in order)
+
+1. Finish remaining consolidated browser gates: mixed-role MFA/same-user new-session and delayed completions/chunk failures; see ADR-020 and QA checkpoint. Terminal, actor-switch, real recruiter-removal and status-during-edit cases are done; do not duplicate passing full suites.
+2. V-block UX/new-state screenshots (D125), runtime/bundle perf and final independent feature QA before publish; update PR description for actual feature batch, then authorized commit/push/hosted CI. No automatic owner merge.
+3. D117 create/draft adoption is explicit following work. Phase 2/V4/candidates/files/dedup/talent pool/dashboard/custom roles remain unfinished; never advance automatically to Phase 3.
+4. Owner physical-phone keyboard/selection/sticky-footer/toast checks remain open. 200% zoom is a viewport surrogate. Retain D126 deferred nits and Phase 7 demo-video reminder.
+
+## Run notes
+
+- `corepack pnpm ...`; Vitest from PowerShell. One checkout edit lease via `scripts/ai-edit-lease.mjs`; latest session owner was `codex-content-status-20261121`.
+- Shared heavy-test lock `D:/recruiting-wt/.integration.lock`: acquire exclusively; never overlap build/integration/Playwright. Desktop then mobile sequentially. Initial sessions dependency once, repeats `--no-deps`.
+- Never print `.env`/full Supabase status, delete rate-limit rows or reinstall approved dependencies without cause. Existing audit exemption expires 2026-12-18.
+
+## Checkpoint — 2026-11-21 (Codex, CONTENT-E2E-UNASSIGN small follow-up)
+
+- Branch `phase-2`, HEAD/pushed baseline `b0e7c3e` unchanged. Prior hosted CI 44474819422 passed for the committed PATCH/audit-label slice only; all later GET/editor and harness work remains local. No commit/push/merge/deploy this session; owner merges.
+- New small tests-only slice: two real-API recruiter-removal cases, desktop2/2 + setup11 PASS and mobile2/2 PASS; explicit browser GET200/canEditContent:false or GET404 after denied PATCH, retained disabled text versus full removal, no replay/persistence. TypeScript/lint/format PASS; focused security PASS after browser-GET coverage finding fixed. Existing verified build reused; no full checks repeated. Total content scenarios now18; evidence `docs/qa-phase-2-content-browser.md` follow-up.
+- Earlier local READ/F10-A/ACCESS/STATE/F10-B/PAGE/CARD slices retain their individual APPROVED/security PASS evidence (see reports and archived 2026-11-19 handoff). Do not reinstall dependencies or duplicate completed checks. Fifteen Tiptap packages pinned 3.34.0. D133 remains OPEN/ON_HOLD only; FILLED requires existing reopen, CANCELLED immutable.
+- CONTENT-E2E added `tests/e2e/vacancy-content-edit.spec.ts` and `support/vacancy-content.ts`: 16 real-Tiptap scenarios; real persistence/stale/roles, safe paste/link and WCAG, NULL/empty/Clear/undo, keyboard/IME/discard, denial cleanup, actor switch, closed states and owning TL on ON_HOLD. Fixtures clean up by exact ID/title, never mutable description.
+- Fresh fixed build: desktop 16/16 PASS. Mobile 15 PASS, then keyboard case PASS after test-only Ctrl/Meta+End/collapsed-selection correction; corrected case also PASS desktop. All 16 scenarios verified both viewports. Details and remaining gaps: `docs/qa-phase-2-content-browser.md`.
+- BUG-CONTENT-SESSION-01 fixed: dirty editor teardown's history.back cancelled router.refresh's login redirect. ContentEditor captures existing guardRef and releases in layout cleanup before passive teardown; shared guard unchanged. Three regressions failed before (back called once); 28/28 form units PASS after (engineer). Actual PATCH401 login destination PASS both viewports. Code APPROVED `docs/review-phase-2-content-terminal.md`; integrated security/focused fix PASS `docs/security/content-integrated-browser-review.md`.
+- Shared auth/mfa/profile/draft edit/access regression: desktop 81 + 11 session setup PASS; mobile 80 PASS/one existing desktop-only skip. `captures` cases intentionally excluded for D125; no PNGs regenerated. Earlier CARD evidence: vacancies desktop63/mobile44, share/assignment/status desktop37/mobile35 PASS; not repeated for editor-only fix.
+- Fresh build/typecheck/focused lint/format/diff-check PASS. Typecheck/build/Playwright require elevation for existing native cache/browser access, not a reinstall. perf:size all routes PASS: content/edit164.35, card165.27, draft edit179.85, create179.64 kB gz. Runtime/Lighthouse performance not rerun. Card's extra post-mount GET remains V-block perf follow-up.
+- Existing harness changes preserved without publishing. Shared edit lease and integration lock released after checkpoint; acquire your own before edits/heavy runs. Source-level reviews do not approve whole-feature publishing.
+
+## Next (in order)
+
+1. Finish remaining consolidated browser gates: mixed-role MFA/same-user new-session, delayed completions/chunk failures and status changes during editing; see ADR-020 and QA checkpoint. Terminal, actor-switch and real recruiter-removal cases are done; do not duplicate passing full suites.
+2. V-block UX/new-state screenshots (D125), runtime/bundle perf and final independent feature QA before publish; update PR description for actual feature batch, then authorized commit/push/hosted CI. No automatic owner merge.
+3. D117 create/draft adoption is explicit following work. Phase 2/V4/candidates/files/dedup/talent pool/dashboard/custom roles remain unfinished; never advance automatically to Phase 3.
+4. Owner physical-phone keyboard/selection/sticky-footer/toast checks remain open. 200% zoom is a viewport surrogate. Retain D126 deferred nits and Phase 7 demo-video reminder.
+
+## Run notes
+
+- `corepack pnpm ...`; Vitest from PowerShell. One checkout edit lease via `scripts/ai-edit-lease.mjs`; latest session owner was `codex-content-unassign-20261121`.
+- Shared heavy-test lock `D:/recruiting-wt/.integration.lock`: acquire exclusively; never overlap build/integration/Playwright. Desktop then mobile sequentially. Initial sessions dependency once, repeats `--no-deps`.
+- Never print `.env`/full Supabase status, delete rate-limit rows or reinstall approved dependencies without cause. Existing audit exemption expires 2026-12-18.
+
+## Checkpoint — 2026-11-21 (Codex, CONTENT-E2E + session teardown fix)
+
+- Branch `phase-2`, HEAD/pushed baseline `b0e7c3e` unchanged. Prior hosted CI 44474819422 passed for the committed PATCH/audit-label slice only; all later GET/editor and harness work remains local. No commit/push/merge/deploy this session; owner merges.
+- Earlier local READ/F10-A/ACCESS/STATE/F10-B/PAGE/CARD slices retain their individual APPROVED/security PASS evidence (see reports and archived 2026-11-19 handoff). Do not reinstall dependencies or duplicate completed checks. Fifteen Tiptap packages pinned 3.34.0. D133 remains OPEN/ON_HOLD only; FILLED requires existing reopen, CANCELLED immutable.
+- CONTENT-E2E added `tests/e2e/vacancy-content-edit.spec.ts` and `support/vacancy-content.ts`: 16 real-Tiptap scenarios; real persistence/stale/roles, safe paste/link and WCAG, NULL/empty/Clear/undo, keyboard/IME/discard, denial cleanup, actor switch, closed states and owning TL on ON_HOLD. Fixtures clean up by exact ID/title, never mutable description.
+- Fresh fixed build: desktop 16/16 PASS. Mobile 15 PASS, then keyboard case PASS after test-only Ctrl/Meta+End/collapsed-selection correction; corrected case also PASS desktop. All 16 scenarios verified both viewports. Details and remaining gaps: `docs/qa-phase-2-content-browser.md`.
+- BUG-CONTENT-SESSION-01 fixed: dirty editor teardown's history.back cancelled router.refresh's login redirect. ContentEditor captures existing guardRef and releases in layout cleanup before passive teardown; shared guard unchanged. Three regressions failed before (back called once); 28/28 form units PASS after (engineer). Actual PATCH401 login destination PASS both viewports. Code APPROVED `docs/review-phase-2-content-terminal.md`; integrated security/focused fix PASS `docs/security/content-integrated-browser-review.md`.
+- Shared auth/mfa/profile/draft edit/access regression: desktop 81 + 11 session setup PASS; mobile 80 PASS/one existing desktop-only skip. `captures` cases intentionally excluded for D125; no PNGs regenerated. Earlier CARD evidence: vacancies desktop63/mobile44, share/assignment/status desktop37/mobile35 PASS; not repeated for editor-only fix.
+- Fresh build/typecheck/focused lint/format/diff-check PASS. Typecheck/build/Playwright require elevation for existing native cache/browser access, not a reinstall. perf:size all routes PASS: content/edit164.35, card165.27, draft edit179.85, create179.64 kB gz. Runtime/Lighthouse performance not rerun. Card's extra post-mount GET remains V-block perf follow-up.
+- Existing harness changes preserved without publishing. Shared edit lease and integration lock released after checkpoint; acquire your own before edits/heavy runs. Source-level reviews do not approve whole-feature publishing.
+
+## Next (in order)
+
+1. Finish remaining consolidated browser gates: mixed-role MFA/same-user new-session, delayed completions/chunk failures, assignment/status changes during editing; see ADR-020 and QA checkpoint. Current terminal and actor-switch cases are done; do not duplicate passing full suites.
+2. V-block UX/new-state screenshots (D125), runtime/bundle perf and final independent feature QA before publish; update PR description for actual feature batch, then authorized commit/push/hosted CI. No automatic owner merge.
+3. D117 create/draft adoption is explicit following work. Phase 2/V4/candidates/files/dedup/talent pool/dashboard/custom roles remain unfinished; never advance automatically to Phase 3.
+4. Owner physical-phone keyboard/selection/sticky-footer/toast checks remain open. 200% zoom is a viewport surrogate. Retain D126 deferred nits and Phase 7 demo-video reminder.
+
+## Run notes
+
+- `corepack pnpm ...`; Vitest from PowerShell. One checkout edit lease via `scripts/ai-edit-lease.mjs`; current session owner was `codex-content-e2e-20261121`.
+- Shared heavy-test lock `D:/recruiting-wt/.integration.lock`: acquire exclusively; never overlap build/integration/Playwright. Desktop then mobile sequentially. Initial sessions dependency once, repeats `--no-deps`.
+- Never print `.env`/full Supabase status, delete rate-limit rows or reinstall approved dependencies without cause. Existing audit exemption expires 2026-12-18.
+
+## Checkpoint — 2026-11-19 (Codex, content editor in progress)
+
+- `phase-2` HEAD/pushed `b0e7c3e`; PR #1 OPEN/CLEAN at verification. **CI 44474819422 fully SUCCESS**: all tests, performance, E2E, screenshots, Newman and secrets. The previous watchers exited. This verifies the committed content PATCH/audit-label fix, not later local changes.
+- Owner D133/Q-195: published content editable only on OPEN/ON_HOLD; FILLED must reopen first, CANCELLED remains immutable. ADR-018 records the narrow permission union and fresh actor/vacancy/assignment authorization under ordered locks.
+- Committed PATCH: code APPROVED/security/QA PASS in the content reports; narrow permission union, fresh locked authorization and metadata-only history. Draft PATCH unchanged. Earlier label failure fixed with 3 failing-before assertions and 9/9 passing afterwards.
+- Local ADR-019 GET/query/loader (153 production lines): coherent scoped document/version/status/assignment snapshot, advisory edit flag and no writes/throttle. Units 145 passed; read plus write/race integration 58 passed; 12 new GET Postman cases. F10-A viewer/adapter (181 lines), 14 Tiptap packages pinned 3.34.0 and 17 units passed. Combined code APPROVED (`docs/review-phase-2-content-read-f10.md`), security PASS (`docs/security/content-read-f10-review.md`); dependency audit passed. Independent feature/browser QA remains.
+- ADR-020/content-edit wireframe are security/UX-contract approved. Planned route `/vacancies/[vacancyId]/content/edit`; full-card viewer only, preview/list stay small. Contract approval is not a runtime UI approval.
+- CONTENT-ACCESS complete locally: 238 lines, 18 React/provider tests, typecheck/lint/format passed; code APPROVED and security PASS. Whole-feature browser gates remain. CONTENT-STATE complete locally: 39 tests/3 files; code APPROVED (`docs/review-phase-2-content-state.md`), security PASS (`docs/security/content-state-review.md`).
+- F10-B shell/runtime/toolbar/link-dialog code APPROVED and security PASS before small keyboard follow-ups. Root-inspected Mod+Enter fix and standard UndoRedo addition: latest 12 actual-runtime tests passed, earlier 3 shell tests passed, final types/lint/format passed. Fifteen Tiptap packages now pinned 3.34.0 (UndoRedo runtime-only). Explicit resetKey adoption clears old undo history without moving an equal document's selection; normal equal-save keeps resetKey/history. Final integrated security/browser/perf remains. `richText.*` messages ownership released; never edit/format messages concurrently.
+- CONTENT-PAGE complete locally (Claude, 2026-11-19): route `/vacancies/[id]/content/edit` layout/page/loading, `vacancy-content-{edit-form,feedback,field}.tsx`, messages selector, `vacancies.contentEdit.*`; ~880 prod + 733 test lines; 47 new units, vacancies unit set 957 passed, typecheck/lint/format clean. Code APPROVED (`docs/review-phase-2-content-page.md`), security PASS; Low F1 (GET 403 not terminal) FIXED: GET 403 → terminal notFound, PATCH 403 unchanged, failing-before 2, after 72/72, security verified, ADR-020 §Access loss updated. Not linked from card yet; no E2E/bundle measured.
+- CONTENT-CARD complete locally (Claude, 2026-11-19): `vacancy-content-panel.tsx`, card layout/detail-view/overview slots, `vacancies.contentCard.*`, shared `isEditableStatus` in `lib/vacancy-content-form.ts`. Code APPROVED (`docs/review-phase-2-content-card.md`), security PASS (`docs/security/content-card-review.md`); fix round done (layout `unstable_rethrow` + log, retry feedback, detail-view denial test + no refetch after eviction, notFound evicts detail cache, lazy ConfirmDialog). Units 998 passed; E2E vacancies desktop 63/mobile 44, share/assignment/status desktop 37/mobile 35, 0 failures. perf:size: content/edit 164.31, edit 179.85 (0.15 headroom), card 165.27 kB. Deferred to V-block perf: card panel waits for post-mount revalidation (extra GET per visit).
+- Both engineers resumed successfully after a usage-limit interruption; preserve saved work. Do not reinstall dependencies or rerun completed GET/F10-A checks without new cause. Local ACCESS/editor work is not approved for push yet. Full Phase 2/V4 and candidates remain unfinished.
+
+## Next (in order)
+
+1. ACCESS, F10-B and STATE are APPROVED/PASS. Next: feature is visible end-to-end; remaining before publish: `vacancy-content-edit.spec.ts` E2E + browser QA (real Tiptap, 390px, keyboard, 401/404 eviction, identity switch), UX/screenshots at V-block end; then commit/push; D117 create/draft adoption remains explicit follow-on work.
+2. Consolidated browser/auth/mfa/profile/shared-screen, bundle/performance, UX/screenshots and independent QA gates precede publishing the visible feature. Do not duplicate passing full CI locally (D129).
+3. PR description is reconciled with the committed API and fixed V3 captures; update for the next feature batch when ready. Owner merges; do not advance to Phase 3 automatically.
+4. Owner physical-phone selection/sticky-footer/toast check remains open; 200% zoom test is a viewport surrogate. Phase 7 demo videos reminder and D126 nits remain.
+
+## Run notes
+
+- `corepack pnpm …`; Vitest from PowerShell. Typecheck/build may need elevation for native bindings/cache.
+- Shared integration lock = `D:/recruiting-wt/.integration.lock`; acquire exclusively before integration/Playwright and release only your lock. Never overlap build, integration or Playwright runs.
+- Desktop then mobile E2E sequentially (429 on concurrent sign-ins/writes). First run with session dependency; repeats may use `--no-deps`.
+- Screenshots only at V-block end (D125/D126); do not recapture unchanged screens. CI triggers on PRs; push branches are main/phase-1.
+- Never print `.env`/full `supabase status`; never delete local rate-limit rows. Dependency audit exemption expires 2026-12-18 (`docs/security/dependency-audit-picomatch.md`).
+
+## Checkpoint — 2026-11-19 (Codex, content API CI follow-up)
+
+- Following baseline `bc8f061`, STORY-VAC-01-2a implements `PATCH /api/v1/vacancies/{vacancyId}/content`: description/requirements only, strict shared rich-text schema, omission/null/replacement semantics, version/no-op checks and atomic metadata-only history. Existing draft PATCH is unchanged. No migration or UI change.
+- Owner D133/Q-195: published content editable only on OPEN/ON_HOLD; FILLED must reopen first, CANCELLED remains immutable. ADR-018 records the narrow permission union and fresh actor/vacancy/assignment authorization under ordered locks.
+- Code review APPROVED; security PASS; independent QA PASS. Reports: `docs/review-phase-2-vacancy-content.md`, `docs/security/vacancy-content-review.md`, `docs/qa-phase-2-vacancy-content.md`. One nonblocking race-harness synchronization nit deferred under D126.
+- Local verification: affected units 1667 passed; content integration/races 33 passed; affected draft/urgency/assignment/status regressions 319 passed; independent mixed-role aal1 QA 1 passed. Typecheck, lint, formatting and generated OpenAPI/Postman consistency passed. Shared integration lock released; test PostgreSQL remains running.
+- Content code committed/pushed as `fea6edd`. CI 44396538695 passed lint/format/types/secrets but failed three `audit-vacancy-labels` assertions: new `vacancy.updated` lacked its Ukrainian viewer label. Minimal follow-up adds the label and expected emitted action; targeted suite reproduced 3 failures before and passed 9/9 afterwards. Existing scan/unused-label checks remain intact; verify the follow-up commit's CI before implementation continues.
+- Hosted verification is authoritative at PR #1 latest checks: https://github.com/tolkyu/rcrt-app/pull/1/checks . Baseline CI 44382912511 on bc8f061 passed all gates; it is not evidence for the new content code. The orchestrator must verify the content commit's CI before the next implementation slice.
+- V3 mobile fixes/captures have focused UX approval (`docs/ux/review-phase-2-v3-fixed-captures.md`). Follow-on form: `docs/ux/wireframes/vacancy-content-edit.md`; ADR-019 designs the narrow authorized content GET and eligibility flag, pending security review. GET and F10 editor/view remain unimplemented. Full Phase 2/V4 and candidates remain unfinished.
+
+## Next (in order)
+
+1. Verify the content commit's hosted CI, including 16 new Postman cases; fix any red gate before more implementation. Do not duplicate passing full suites locally (D129).
+2. After green CI/security contract review, implement ADR-019's narrow initial content GET/query in a bounded critical slice, then approved F10 editor/view and two-field UI. Keep D133 and draft isolation; PATCH is never a read path.
+3. PR #1 description has stale V3 bug/capture claims; reconcile for owner merge. Do not merge or advance to Phase 3 automatically.
+4. Owner physical-phone selection/sticky-footer/toast check remains open; the existing 200% zoom test is a viewport surrogate. Phase 7 demo videos reminder and D126 nits remain.
+
+## Run notes
+
+- `corepack pnpm …`; Vitest from PowerShell. Typecheck/build may need elevation for native bindings/cache.
+- Shared integration lock = `D:/recruiting-wt/.integration.lock`; acquire exclusively before integration/Playwright and release only your lock. Never overlap build, integration or Playwright runs.
+- Desktop then mobile E2E sequentially (429 on concurrent sign-ins/writes). First run with session dependency; repeats may use `--no-deps`.
+- Screenshots only at V-block end (D125/D126); do not recapture unchanged screens. CI triggers on PRs; push branches are main/phase-1.
+- Never print `.env`/full `supabase status`; never delete local rate-limit rows. Dependency audit exemption expires 2026-12-18 (`docs/security/dependency-audit-picomatch.md`).
+
 ## Checkpoint — 2026-11-18 (Codex, published vacancy content API)
 
 - Following baseline `bc8f061`, STORY-VAC-01-2a implements `PATCH /api/v1/vacancies/{vacancyId}/content`: description/requirements only, strict shared rich-text schema, omission/null/replacement semantics, version/no-op checks and atomic metadata-only history. Existing draft PATCH is unchanged. No migration or UI change.

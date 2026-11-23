@@ -2,6 +2,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { richTextDocSchema } from '../../lib/schemas/rich-text';
 import {
   updateVacancyContentSchema,
+  type VacancyContentRead,
   type UpdateVacancyContentInput,
   type VacancyContent,
 } from '../../lib/schemas/vacancy-content';
@@ -9,13 +10,47 @@ import { writeAudit } from '../audit';
 import { requirePermission } from '../authz/can';
 import type { UserId, VerticalId } from '../authz/types';
 import { canEditVacancyContent } from '../authz/vacancy-content';
+import { findVisibleVacancyOrThrow } from '../authz/vacancy-scope';
 import type { RequestContext } from '../context/request-context';
 import { appendEvent, VACANCY_EDIT_FIELDS } from '../events';
 import { ConflictError, ForbiddenError, NotFoundError } from '../http/errors';
 import { uuidOf } from '../http/params';
-import { lockVacancy, updateVacancy } from '../repositories/vacancy';
+import {
+  findVacancyContent,
+  lockVacancy,
+  updateVacancy,
+} from '../repositories/vacancy';
 import { listRecruiterIds } from '../repositories/vacancy-recruiter';
 import { consumeVacancyWriteLimit, lockAuthors, readVacancy } from './vacancy';
+
+export async function getVacancyContent(
+  ctx: RequestContext,
+  rawId: string,
+): Promise<VacancyContentRead> {
+  requirePermission(ctx.auth, 'vacancy.read');
+  const id = uuidOf(rawId);
+  if (!id) throw new NotFoundError();
+  const row = await findVisibleVacancyOrThrow(ctx.auth, (scope) =>
+    findVacancyContent(ctx.db, scope, id),
+  );
+  const canEditContent =
+    (row.status === 'OPEN' || row.status === 'ON_HOLD') &&
+    canEditVacancyContent(ctx.auth, {
+      ...row,
+      type: 'vacancy',
+      neverOpened: row.openedAt === null,
+      maxApplicationStage: null,
+    });
+  return {
+    id: row.id,
+    version: row.version,
+    updatedAt: row.updatedAt.toISOString(),
+    descriptionDoc: row.descriptionDoc,
+    requirementsDoc: row.requirementsDoc,
+    status: row.status,
+    canEditContent,
+  };
+}
 
 export async function updateVacancyContent(
   ctx: RequestContext,

@@ -2,6 +2,31 @@ import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it } from 'vitest';
 import { vacanciesQuery } from '@/lib/queries/vacancies';
 import { queryKeys } from '@/lib/query-keys';
+import { refreshVacancy } from '@/lib/vacancy-refresh';
+
+describe('content key inherits vacancy refresh [ADR-019]', () => {
+  it('normalizes ids and refreshes content through the existing detail prefix', async () => {
+    const client = new QueryClient();
+    try {
+      expect(queryKeys.vacancyContent('ABC')).toEqual([
+        'vacancy',
+        'abc',
+        'content',
+      ]);
+      client.setQueryData(queryKeys.vacancy('ABC'), { id: 'abc' });
+      client.setQueryData(queryKeys.vacancyContent('ABC'), { version: 1 });
+      await refreshVacancy(client, 'ABC');
+      expect(
+        client.getQueryState(queryKeys.vacancyContent('abc'))?.isInvalidated,
+      ).toBe(true);
+      expect(
+        client.getQueryState(queryKeys.vacancy('abc'))?.isInvalidated,
+      ).toBe(true);
+    } finally {
+      client.clear();
+    }
+  });
+});
 
 describe('vacancy query keys [STORY-VAC-01-3 AC1]', () => {
   it('a list invalidation also refreshes the own-drafts chip count', async () => {

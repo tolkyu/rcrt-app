@@ -5,7 +5,8 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 ## Submit and mutation paths
 
 - [ ] Double press, Enter and Ctrl+Enter send exactly one request. A synchronous lock is set before the first `await`.
-- [ ] A success keeps the form locked until navigation or unmount. Unlock only on failure.
+- [ ] Third-party editor keymaps pass the form save shortcut through without changing document content; also test composing input.
+- [ ] Navigating forms stay locked after success until navigation/unmount. Stay-on-page forms unlock only after adopting the canonical result and required refresh barriers; failures unlock for retry.
 - [ ] A retry reuses the same Idempotency-Key. A changed body gets a new key.
 - [ ] Every rejected promise is handled. No bare `void promise` without `.catch`.
 - [ ] A late success after unmount still updates the caches. Toast and navigation run only while mounted.
@@ -29,6 +30,7 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] Every emitted audit action has a Ukrainian viewer label; include its action-scan/label test when checking affected files.
 - [ ] Every failure branch has a test: validation, 400 field errors, 403, 404, 409, 429, 5xx, network failure, key reuse.
 - [ ] Pure helpers (mapping, planning, parsing) have table unit tests.
+- [ ] A controlled rich-text baseline change clears prior undo history; equal-document adoption preserves selection and ordinary renders retain history.
 - [ ] E2E cleans up its own data in `afterEach`, scoped to its own project or prefix, so desktop and mobile runs do not collide.
 - [ ] No reliance on real time of day, row order without a tie-breaker, or shared mutable seed data.
 
@@ -72,7 +74,7 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] A bug fix follows `.claude/skills/tdd/SKILL.md`: failing-before test output quoted in the hand-back (or why no cheap test exists).
 - [ ] A wrapper that strips or overrides a prop on a cloned child (e.g. `aria-describedby: undefined`) removes only what the wrapper added, or documents that it replaces the caller's value.
 - [ ] Review rounds (D126): one round per slice. Only bugs, security, authz/data isolation, PII and PRD mismatches block; style/structure findings go to the Phase 7 tech-debt list in PROGRESS. Screenshots only at the end of a V-block.
-- [ ] Token economy (D128, D129): run only the test files related to your change (`vitest run <files>`, one Playwright spec and one project); pipe long output through `tail -40`; never re-run a passing suite without a new change. Full unit runs at merge (orchestrator); E2E, Newman, perf and screenshots at V-block end; CI runs all on push.
+- [ ] Token economy (D128, D129): run only the test files related to your change (`vitest run <files>`, one Playwright spec and one project); pipe long output through `tail -40`; never re-run a passing suite without a new change. At merge, validate only conflict-resolution test files, then let CI run the full suite (CLAUDE.md §6/D129); E2E, Newman, perf and screenshots at V-block end.
 - [ ] A refactor that extracts a shared hook, helper or schema greps every consumer (`export *` chains included) and names them in the hand-back; a change to a shared invalidation list (e.g. `applyCreatedVacancy`) names each flow it affects.
 - [ ] A flag or ref set by a key-scoped component (`key={id}`) is reset when the key changes, not only on unmount.
 - [ ] A new viewer-dependent DTO field (`can*` flag) is checked against tests that compare one DTO across roles (`grep -rn "toEqual(baseline" tests/integration`); run those integration files.
@@ -86,3 +88,5 @@ Run this list before you hand work to QA or review. Every item comes from a revi
 - [ ] A test that compares several DB rows in order (events, audit) has an explicit `orderBy` (e.g. `entityEvent.id`); Postgres row order differs between local and CI.
 - [ ] A slice that changes a shared screen (list, card, preview, shell, forms) runs ALL E2E specs of that screen (`grep -l` the route/component name in `tests/e2e`), not only its new specs (owner 2026-11-18: ~20 pre-V3 specs broke unseen).
 - [ ] A component that picks its variant with `useMobile` renders the desktop variant on the server; size both triggers the same or reserve the slot (no horizontal shift after hydration).
+- [ ] Never `.catch(() => undefined)` on a server load: rethrow Next control-flow errors (redirect/notFound) and log the rest PII-free with `describeError`.
+- [ ] A slice that adds a static import to a route runs `build` + `perf:size` for that route; heavy dialogs (`ConfirmDialog`) load via `React.lazy` + `LoadBoundary` (content/edit hit 181.35/180 kB).

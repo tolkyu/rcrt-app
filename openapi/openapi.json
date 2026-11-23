@@ -1141,7 +1141,7 @@
         "additionalProperties": false,
         "description": "Why the author closes the draft (D82). Kept only in the purgeable side row of the event, never in the audit log."
       },
-      "VacancyContent": {
+      "VacancyContentRead": {
         "type": "object",
         "properties": {
           "id": { "type": "string", "format": "uuid" },
@@ -1152,14 +1152,21 @@
           },
           "updatedAt": { "type": "string", "format": "date-time" },
           "descriptionDoc": { "$ref": "#/components/schemas/RichTextDoc" },
-          "requirementsDoc": { "$ref": "#/components/schemas/RichTextDoc" }
+          "requirementsDoc": { "$ref": "#/components/schemas/RichTextDoc" },
+          "status": {
+            "type": "string",
+            "enum": ["DRAFT", "OPEN", "ON_HOLD", "FILLED", "CANCELLED"]
+          },
+          "canEditContent": { "type": "boolean" }
         },
         "required": [
           "id",
           "version",
           "updatedAt",
           "descriptionDoc",
-          "requirementsDoc"
+          "requirementsDoc",
+          "status",
+          "canEditContent"
         ],
         "additionalProperties": false
       },
@@ -1630,6 +1637,28 @@
           }
         },
         "required": ["type", "content"],
+        "additionalProperties": false
+      },
+      "VacancyContent": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "version": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "description": "Version the client last read; a different current version answers 409 STALE_STATE and nothing is saved."
+          },
+          "updatedAt": { "type": "string", "format": "date-time" },
+          "descriptionDoc": { "$ref": "#/components/schemas/RichTextDoc" },
+          "requirementsDoc": { "$ref": "#/components/schemas/RichTextDoc" }
+        },
+        "required": [
+          "id",
+          "version",
+          "updatedAt",
+          "descriptionDoc",
+          "requirementsDoc"
+        ],
         "additionalProperties": false
       },
       "UpdateVacancyContent": {
@@ -5455,6 +5484,61 @@
       }
     },
     "/vacancies/{vacancyId}/content": {
+      "get": {
+        "operationId": "getVacancyContent",
+        "summary": "Read canonical vacancy documents, revision and advisory content-edit eligibility from one scoped snapshot. Existing vacancy visibility includes read-only and visible closed rows; private drafts remain author-only. This read consumes no vacancy write limit or history. PATCH rechecks authorization independently.",
+        "tags": ["Vacancies"],
+        "parameters": [
+          {
+            "schema": { "type": "string", "format": "uuid" },
+            "required": true,
+            "name": "vacancyId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/VacancyContentRead" }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated, session expired, user deactivated or MFA required",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or out of scope",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected error",
+            "content": {
+              "application/problem+json": {
+                "schema": { "$ref": "#/components/schemas/Problem" }
+              }
+            }
+          }
+        }
+      },
       "patch": {
         "operationId": "updateVacancyContent",
         "summary": "Replace or clear description/requirements on OPEN or ON_HOLD vacancies. Requires vacancy.update or vacancy.content.update on the locked resource; visible action denial is 403 and unreadable/private drafts are 404. Authorized DRAFT/FILLED/CANCELLED requests answer 409 VACANCY_CONTENT_LOCKED. expectedVersion is checked before no-op (409 STALE_STATE). A current no-op writes no history. Draft PATCH is unchanged.",

@@ -2,7 +2,9 @@ import { and, eq, getTableColumns, isNull, sql, type SQL } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 import type { ResolvedVacancyListQuery } from '../../lib/schemas/vacancy';
-import type { VacancyStatus } from '../authz/types';
+import { vacancyContentSchema } from '../../lib/schemas/vacancy-content';
+import { VACANCY_STATUSES } from '../../lib/vacancy-filters';
+import type { UserId, VacancyStatus, VerticalId } from '../authz/types';
 import type { DbExecutor } from '../db';
 import {
   appUser,
@@ -142,6 +144,45 @@ export async function findVacancy(db: DbExecutor, scope: SQL, id: string) {
     limit 1
   `);
   return rows[0] ? detailRowSchema.parse(rows[0]) : null;
+}
+
+const storedUserId = z.uuid().transform((id) => id as UserId);
+const contentRowSchema = vacancyContentSchema.omit({ updatedAt: true }).extend({
+  updatedAt: z.date(),
+  status: z.enum(VACANCY_STATUSES),
+  verticalId: z.uuid().transform((id) => id as VerticalId),
+  createdBy: storedUserId,
+  teamLeadId: storedUserId.nullable(),
+  openedAt: z.date().nullable(),
+  recruiterInitiated: z.boolean(),
+  assignedRecruiterIds: z.array(storedUserId),
+});
+
+/** ADR-019: revision, documents and relationship facts share the statement snapshot. */
+export async function findVacancyContent(
+  db: DbExecutor,
+  scope: SQL,
+  id: string,
+) {
+  const [row] = await db
+    .select({
+      id: vacancy.id,
+      version: vacancy.version,
+      updatedAt: vacancy.updatedAt,
+      descriptionDoc: vacancy.descriptionDoc,
+      requirementsDoc: vacancy.requirementsDoc,
+      status: vacancy.status,
+      verticalId: vacancy.verticalId,
+      createdBy: vacancy.createdBy,
+      teamLeadId: vacancy.teamLeadId,
+      openedAt: vacancy.openedAt,
+      recruiterInitiated: vacancy.recruiterInitiated,
+      assignedRecruiterIds: sql<unknown>`coalesce((select jsonb_agg(${vacancyRecruiter.userId} order by ${vacancyRecruiter.userId}) from ${vacancyRecruiter} where ${vacancyRecruiter.vacancyId} = ${vacancy.id}), '[]'::jsonb)`,
+    })
+    .from(vacancy)
+    .where(and(eq(vacancy.id, id), isNull(vacancy.deletedAt), scope))
+    .limit(1);
+  return row ? contentRowSchema.parse(row) : null;
 }
 
 export type NewVacancy = Omit<

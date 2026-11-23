@@ -2,6 +2,10 @@
 
 Format: ID · severity · PRD/story · steps · expected · actual. Fixed items stay listed with their fix.
 
+## Fixed locally — 2026-11-21
+
+- **BUG-CONTENT-SESSION-01 · Major · VAC-08 / ADR-020:** dirty content editor → session lost during save → server returns a login redirect, but the browser stays on the loading skeleton because leave-guard cleanup traverses history and cancels the refresh. Fixed by releasing the existing guard during editor layout teardown. Three failing-before terminal unit cases; 28/28 units after; real desktop redirect verified. Full evidence and remaining browser gates: [CONTENT-E2E](qa-phase-2-content-browser.md).
+
 ## Open
 
 | ID        | Severity | PRD / story                                       | Steps                                                                                                                                                                                                                                                                                                                                                                                                                                         | Expected                                     | Actual                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |

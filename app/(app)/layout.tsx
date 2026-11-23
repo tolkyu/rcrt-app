@@ -57,6 +57,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       messages={clientMessages}
     >
       <AppProviders
+        key={`${ctx.auth.userId}:${ctx.identity.sessionId}`}
         theme={parseTheme(cookieStore.get(PREFERENCE_COOKIES.theme)?.value)}
       >
         <HydrationBoundary state={dehydrate(queryClient)}>

@@ -2,11 +2,30 @@ import { vacancyIdParamsSchema } from '@/lib/schemas/vacancy';
 import {
   updateVacancyContentSchema,
   vacancyContentSchema,
+  vacancyContentReadSchema,
 } from '@/lib/schemas/vacancy-content';
 import { defineRoute } from '@/server/http/route';
-import { updateVacancyContent } from '@/server/services/vacancy-content';
+import {
+  getVacancyContent,
+  updateVacancyContent,
+} from '@/server/services/vacancy-content';
 
 export const dynamic = 'force-dynamic';
+export const GET = defineRoute(
+  {
+    method: 'GET',
+    path: '/vacancies/{vacancyId}/content',
+    operationId: 'getVacancyContent',
+    permission: 'vacancy.read',
+    summary:
+      'Read canonical vacancy documents, revision and advisory content-edit eligibility from one scoped snapshot. Existing vacancy visibility includes read-only and visible closed rows; private drafts remain author-only. This read consumes no vacancy write limit or history. PATCH rechecks authorization independently.',
+    tags: ['Vacancies'],
+    params: vacancyIdParamsSchema,
+    response: vacancyContentReadSchema,
+    errors: [404],
+  },
+  (ctx, { params }) => getVacancyContent(ctx, params.vacancyId),
+);
 export const PATCH = defineRoute(
   {
     method: 'PATCH',

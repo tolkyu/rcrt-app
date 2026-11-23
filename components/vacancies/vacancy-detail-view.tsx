@@ -16,6 +16,11 @@ import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
 import { useVacancyListHref } from '@/lib/vacancy-list-memory';
 import { cn } from '@/lib/utils';
 import { TeamSkeleton } from './team-skeleton';
+import { useVacancyContentAccess } from './use-vacancy-content-access';
+import {
+  VacancyContentEditLink,
+  VacancyContentPanel,
+} from './vacancy-content-panel';
 import { VacancyOverview } from './vacancy-overview';
 
 function BackLink({ className }: { className?: string }) {
@@ -47,8 +52,15 @@ export function VacancyDetailView({
   const t = useTranslations('vacancies');
   const router = useRouter();
   const listHref = useVacancyListHref();
-  const query = useQuery(vacancyDetailQuery(id));
-  const vacancy = query.data;
+  const access = useVacancyContentAccess(id);
+  const { state } = access;
+  // A content 404/403 proves the whole card unreadable: no stale metadata or actions stay behind it (ADR-020).
+  const denied = state.kind === 'unavailable' ? state.reason : null;
+  const query = useQuery({ ...vacancyDetailQuery(id), enabled: !denied });
+  const vacancy = denied ? undefined : query.data;
+  const missing =
+    denied === 'notFound' ||
+    (!vacancy && query.error instanceof ApiError && query.error.status === 404);
   return (
     <>
       <BackLink className="mb-2 -ml-3" />
@@ -60,32 +72,38 @@ export function VacancyDetailView({
               vacancy={vacancy}
               canAuthorDrafts={canAuthorDrafts}
               onClaimLost={() => router.replace(listHref)}
+              headerAction={<VacancyContentEditLink id={id} state={state} />}
+              content={
+                <VacancyContentPanel
+                  id={id}
+                  state={state}
+                  onRetry={() => {
+                    access.revalidate().catch(() => undefined);
+                  }}
+                />
+              }
             />
           </Card>
         </>
       )}
-      {!vacancy &&
-        query.error instanceof ApiError &&
-        query.error.status === 404 && (
-          <Card>
-            <EmptyState
-              icon={SearchX}
-              title={t('detail.notFoundTitle')}
-              description={t('detail.notFoundDescription')}
-            />
-          </Card>
-        )}
-      {!vacancy &&
-        query.isError &&
-        !(query.error instanceof ApiError && query.error.status === 404) && (
-          <Card>
-            <SectionError
-              onRetry={() => void query.refetch()}
-              retrying={query.isFetching}
-            />
-          </Card>
-        )}
-      {!vacancy && query.isPending && (
+      {missing && (
+        <Card>
+          <EmptyState
+            icon={SearchX}
+            title={t('detail.notFoundTitle')}
+            description={t('detail.notFoundDescription')}
+          />
+        </Card>
+      )}
+      {!vacancy && !denied && !missing && query.isError && (
+        <Card>
+          <SectionError
+            onRetry={() => void query.refetch()}
+            retrying={query.isFetching}
+          />
+        </Card>
+      )}
+      {(denied === 'session' || (!denied && !vacancy && query.isPending)) && (
         <div role="status" className="skeleton-delayed">
           <span className="sr-only">{t('previewLoading')}</span>
           <Skeleton className="h-8 w-64" />

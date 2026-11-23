@@ -3926,6 +3926,107 @@
     "snapshot": "vacancy_content_saved"
   },
   {
+    "operation": "getVacancyContent",
+    "name": "assigned Recruiter reads canonical documents and current eligibility",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "status": 200,
+    "script": "vacancy-content-read-editable",
+    "snapshot": "vacancy_content_read_saved"
+  },
+  {
+    "operation": "getVacancyContent",
+    "name": "Admin aal2 has the same authorized document snapshot",
+    "as": "admin",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "status": 200,
+    "sameAs": "vacancy_content_read_saved"
+  },
+  {
+    "operation": "getVacancyContent",
+    "name": "HR reads documents without receiving edit eligibility",
+    "as": "hr",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "status": 200,
+    "script": "vacancy-content-read-only"
+  },
+  {
+    "operation": "getVacancyContent",
+    "name": "foreign vertical cannot read documents",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVacancyContent",
+    "name": "another Team Lead cannot read documents",
+    "as": "tl_vasyl",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVacancyContent",
+    "name": "Finance cannot read documents",
+    "as": "finance",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVacancyContent",
+    "name": "no token for content read",
+    "as": null,
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "status": 401,
+    "code": "UNAUTHENTICATED"
+  },
+  {
+    "operation": "getVacancyContent",
+    "name": "Admin aal1 still requires MFA",
+    "as": "admin_aal1",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "status": 401,
+    "code": "MFA_REQUIRED"
+  },
+  {
+    "operation": "getVacancyContent",
+    "name": "malformed id is a content-read 404",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "not-a-uuid"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
+    "operation": "getVacancyContent",
+    "name": "unknown id is a content-read 404",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "00000000-0000-4000-8000-000000000000"
+    },
+    "status": 404,
+    "code": "NOT_FOUND"
+  },
+  {
     "operation": "updateVacancyContent",
     "name": "canonical current-version no-op preserves the response",
     "as": "recruiter_crypto",
@@ -3984,6 +4085,16 @@
     "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
     "status": 200,
     "script": "vacancy-content-cleared"
+  },
+  {
+    "operation": "getVacancyContent",
+    "name": "null stays absent in content read",
+    "as": "recruiter_crypto",
+    "params": {
+      "vacancyId": "{{vacancy_content_id}}"
+    },
+    "status": 200,
+    "script": "vacancy-content-read-cleared"
   },
   {
     "operation": "updateVacancyContent",
@@ -4117,5 +4228,15 @@
     "body": "{\"expectedVersion\":{{vacancy_content_version}},\"descriptionDoc\":null}",
     "status": 409,
     "code": "VACANCY_CONTENT_LOCKED"
+  },
+  {
+    "operation": "getVacancyContent",
+    "name": "published closed content remains readable and locked",
+    "as": "head_recruiter_gambling",
+    "params": {
+      "vacancyId": "{{team_g_id}}"
+    },
+    "status": 200,
+    "script": "vacancy-content-read-closed"
   }
 ]

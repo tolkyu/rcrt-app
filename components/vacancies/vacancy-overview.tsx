@@ -49,11 +49,15 @@ function VacancyOverviewContent({
   preview = false,
   canAuthorDrafts = false,
   onClaimLost,
+  headerAction,
+  content,
 }: {
   vacancy: VacancyDetail;
   preview?: boolean;
   canAuthorDrafts?: boolean;
   onClaimLost?: () => void;
+  headerAction?: ReactNode;
+  content?: ReactNode;
 }) {
   const t = useTranslations('vacancies');
   const common = useTranslations('common');
@@ -202,6 +206,7 @@ function VacancyOverviewContent({
                 {t('share')}
               </Button>
             )}
+            {!privateDraft && headerAction}
             {!privateDraft && (
               <StatusHeaderActions
                 key={vacancy.id}
@@ -338,6 +343,7 @@ function VacancyOverviewContent({
           </Field>
         </dl>
       </section>
+      {!privateDraft && content}
     </div>
   );
 }

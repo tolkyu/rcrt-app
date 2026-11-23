@@ -1,7 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { updateVacancyContentSchema } from '@/lib/schemas/vacancy-content';
+import {
+  updateVacancyContentSchema,
+  vacancyContentReadSchema,
+  vacancyContentSchema,
+} from '@/lib/schemas/vacancy-content';
 
 const doc = { type: 'doc', content: [{ type: 'paragraph' }] };
+describe('distinct content read contract [ADR-019]', () => {
+  const patchResponse = {
+    id: '0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d',
+    version: 1,
+    updatedAt: '2026-11-19T08:00:00Z',
+    descriptionDoc: null,
+    requirementsDoc: doc,
+  };
+  it('requires both documents, status and eligibility without widening PATCH', () => {
+    const read = { ...patchResponse, status: 'FILLED', canEditContent: false };
+    expect(vacancyContentReadSchema.parse(read)).toEqual(read);
+    expect(vacancyContentReadSchema.safeParse(patchResponse).success).toBe(
+      false,
+    );
+    expect(vacancyContentSchema.safeParse(read).success).toBe(false);
+    expect(vacancyContentSchema.parse(patchResponse)).toEqual(patchResponse);
+    expect(
+      vacancyContentReadSchema.safeParse({ ...read, descriptionDoc: undefined })
+        .success,
+    ).toBe(false);
+  });
+});
 describe('content patch contract [ADR-018]', () => {
   it.each([
     { descriptionDoc: null },

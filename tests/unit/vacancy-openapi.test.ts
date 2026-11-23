@@ -70,6 +70,49 @@ describe('content PATCH contract [ADR-018, VAC-08]', () => {
   });
 });
 
+describe('content GET contract [ADR-019]', () => {
+  const operation = document.paths['/vacancies/{vacancyId}/content']?.get;
+  it('is a separate read operation with inherited errors and no mutation transport', () => {
+    expect(operation?.operationId).toBe('getVacancyContent');
+    expect(operation?.requestBody).toBeUndefined();
+    expect(operation?.parameters?.filter((p) => p.in === 'header')).toEqual([]);
+    expect(Object.keys(operation?.responses ?? {}).sort()).toEqual([
+      '200',
+      '400',
+      '401',
+      '404',
+      '500',
+    ]);
+  });
+  it('returns revision, documents, status and eligibility without internal authorization facts', () => {
+    expect(document.components.schemas.VacancyContentRead?.required).toEqual([
+      'id',
+      'version',
+      'updatedAt',
+      'descriptionDoc',
+      'requirementsDoc',
+      'status',
+      'canEditContent',
+    ]);
+    expect(
+      Object.keys(
+        document.components.schemas.VacancyContentRead?.properties ?? {},
+      ),
+    ).toEqual([
+      'id',
+      'version',
+      'updatedAt',
+      'descriptionDoc',
+      'requirementsDoc',
+      'status',
+      'canEditContent',
+    ]);
+    expect(
+      document.components.schemas.VacancyDetail?.properties,
+    ).not.toHaveProperty('descriptionDoc');
+  });
+});
+
 describe('POST /vacancies contract [VAC-01, STORY-VAC-01-1]', () => {
   const operation = document.paths['/vacancies']!.post!;
 

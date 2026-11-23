@@ -1,6 +1,6 @@
 # ADR-019 — Authorized vacancy content read
 
-- **Status:** Design ready for focused security review; implementation waits for green CI on `fea6edd`.
+- **Status:** Security contract approved; implementation based on green CI `44474819422` at `b0e7c3e`, pending final implementation reviews.
 - **Date / scope:** 2026-11-18; VAC-01/VAC-08, D75/D92/D98/D133; follow-on to [ADR-018](018-vacancy-content-editing.md).
 
 ## Context and decision
@@ -61,4 +61,4 @@ Target ≤400 implementation lines (tests/generated contracts excluded). Start o
 
 ## Dependencies
 
-No material owner question remains: inherited visibility governs reads; D133 governs the separate edit flag. Security review and green `fea6edd` CI precede API implementation. F10 and UI remain unimplemented; the cache-eviction/dirty-state behaviors above become mandatory acceptance criteria when those consumers are built.
+No material owner question remains: inherited visibility governs reads; D133 governs the separate edit flag. Security contract review and baseline CI `44474819422` at `b0e7c3e` passed before API implementation. F10 and UI remain separate work; the cache-eviction/dirty-state behaviors above become mandatory acceptance criteria when those consumers are built.
