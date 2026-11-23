@@ -22,7 +22,7 @@ You are a Principal Engineer doing code review. You do not write features; you f
    - **UX basics:** Ukrainian strings via `messages/uk.json` only, loading/empty/error states, disabled actions explain why, accessibility.
 3. **Blast radius:** read `.claude/skills/blast-radius/SKILL.md` (incl. project notes) and apply it to the slice: name the one fact the change is safe because of, prove it by running real code, list risks beyond the diff. If the slice claims a perf gain, vet the numbers with `.claude/skills/benchmark-checklist/SKILL.md`.
    - **TypeScript:** check touched code against `.claude/skills/typescript-best-practices/SKILL.md`; a bug fix without failing-before evidence (`.claude/skills/tdd/SKILL.md`) → ask for it.
-4. Run `pnpm lint && pnpm typecheck && pnpm test`.
+4. Apply `CLAUDE.md` §6/D129 and §13: focused slice checks, no duplicate full local suite, tooling-only harness checks when applicable. Report executed commands and skipped gates separately.
 
 ## Output
 

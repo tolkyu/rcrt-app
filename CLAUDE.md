@@ -168,7 +168,7 @@ Rules: motion respects `prefers-reduced-motion`; no animation on high-frequency/
 
 ## 12. Models
 
-- **Claude Code:** orchestrator = the session model (owner switches with `/model`, e.g. Opus 5.5). Subagents run `model: sonnet` (set in `.claude/agents/*.md`) with effort from the frontmatter: `medium` for business-analyst, ux-ui-designer, solution-architect, code-reviewer; `high` for engineers, QA, security, perf, devops (owner decision D128, 2026-11-17).
+- **Claude Code:** orchestrator = the session model (owner switches with `/model`, e.g. Opus 5.5). Subagents run `model: sonnet` (set in `.claude/agents/*.md`) with effort from the frontmatter: `medium` for business-analyst, ux-ui-designer, solution-architect, code-reviewer; `high` for engineers, QA, security, perf, devops (owner decision D128, 2026-11-17). Exception: read-only `repository-explorer` runs `model: haiku` (HARNESS-02, live smoke 2026-11-19); never for implementation, review or critical work.
 - **Codex (owner optimization request 2026-11-18):** orchestrator = **GPT-6.1 Sol Medium** (`gpt-6.1-sol`); defaults in `.codex/config.toml`, explicit role settings in `.codex/agents/*.toml`. This supersedes the Codex-only Astra High default of 2026-11-12. Claude's model/effort settings and D125/D126/D128/D129 quality gates remain unchanged.
 - **Token economy:** give agents bounded tasks and only the relevant context; reuse agents for related follow-ups. Parallelize independent work only; avoid duplicate exploration and repeated full test runs without new changes or failures. Keep the QA/review requirements above.
 
@@ -193,3 +193,31 @@ Rules: motion respects `prefers-reduced-motion`; no animation on high-frequency/
 - Search narrowly, trim logs, load only applicable skills, reuse verified findings and never repeat passing checks without new changes/failures. No automatic commits or pushes for configuration work.
 - Subagent report: `STATUS: DONE | BLOCKED | NEEDS_REVIEW`; task ID; files changed; brief result; tests and results; risks/blocker with reproduction; next action. No pasted source or long logs. The orchestrator decides completion and reports in Ukrainian.
 - Project defaults apply to new sessions in this trusted repository; they do not switch an already-running session. Select Sol Medium in the current session's model/effort picker if necessary. Do not change global preferences or permissions to apply this policy.
+
+## 13. Shared AI engineering harness (Codex and Claude Code)
+
+Both tools are independent orchestrators following this file. `AGENTS.md` is the shared entry point; this file remains the engineering source of truth. Tool adapters only select models/tools and point here. Usage and validation evidence: `docs/ai-harness.md`.
+
+### Scope, ownership and delegation
+
+- Start with the requested outcome, current handoff, top of PROGRESS and actual branch/HEAD/dirty files. Discover with targeted `rg`; read only relevant PRD/ADR sections. Write a short plan with acceptance criteria, complexity, risk, owned files and required gates.
+- Complexity: **SIMPLE** = one bounded change, handled directly; **MEDIUM** = limited feature/fix, implementation and focused review as needed; **COMPLEX** = cross-module/architecture, analyst/architect/engineer/QA/reviewer only where each has a concrete output. This does not replace §12's independent small/standard/critical risk classification or §1/§6 quality gates.
+- Before edits, run `node scripts/ai-edit-lease.mjs acquire <unique-session-id>`. One lease covers this orchestrator and its explicitly assigned workers. Reserve disjoint files; workers do not acquire another lease. Another orchestrator may read, wait, or use an isolated worktree; never edit the same checkout concurrently. Release with the same ID after the handoff. Never steal or automatically expire a lease; inspect stale ownership and obtain explicit owner recovery. This is cooperative protection, not an OS security boundary.
+- At most two open worker threads per orchestrator for either tool; no nested delegation. Reuse workers. Every assignment includes ID/objective, PRD IDs (or tooling n/a), exact files, acceptance criteria, dependencies, constraints, tests and expected compact output. Preserve others' edits; a review assignment is read-only.
+- Isolated worktrees do not remove shared-resource hazards: serialize integration and retain the existing shared build/integration/Playwright lock documented in the handoff. Before integration, recheck HEAD and the diff; validate conflict resolutions under §6.
+
+### Capability routing and context budget
+
+- **Strong reasoning:** architecture, complex debugging, security-sensitive choices and final technical decisions. Codex uses existing High roles / critical-specialist; Claude uses its capable session model for final decisions and existing D128 specialist efforts. Request a verified stronger tier if the active model cannot resolve the task.
+- **Balanced:** ordinary implementation, integration and substantial reviews; retain §12 model settings and Claude's existing Sonnet role frontmatter.
+- **Fast:** direct CLI searches and routine checks first, without a model call. For a useful bounded read-only exploration, Codex may use `repository-explorer` (Sol Low); Claude uses Haiku `repository-explorer` or its built-in Explore when exposed by that runtime. Otherwise use the existing verified balanced role or handle it directly. No fast tier for critical implementation or final approval. Low effort is not evidence of a lower price or measured savings.
+- Verify installed CLI help/config acceptance and the active runtime's model/role list before using a new identifier. A local catalog or successful syntax parse alone does not prove live model access. Do not invent IDs, change global preferences, or silently downgrade critical work. Existing §12 capability-failure fallback still applies within the retry cap below.
+- Pass only relevant sections and known findings; do not send full history by default. Return file references, decisions, test counts and blockers instead of source/log dumps. Reuse successful checks unless code, failures or acceptance criteria changed.
+- For the same failure, allow **at most two automatic repair attempts**, counted across workers/models. Record each change and focused result. After the second unsuccessful repair, stop dependent work and escalate evidence for rescoping or owner guidance; no third automatic fix, hidden failure or weakened gate. Unaffected work may continue. D126's single general review round remains; verifying a blocking fix is focused validation.
+
+### Gates and handoff
+
+- Apply §6/D129 at slice, merge and V-block levels; use the actual scripts in `package.json` and `docs/ai-harness.md`. Tooling-only changes run harness syntax/tests; product changes retain typecheck, lint, relevant unit/integration/shared-screen E2E and risk-specific QA/security/perf. Report executed results separately from skipped/unavailable checks.
+- Do not automatically deploy, merge, change production data or run destructive operations. Configuration work has no automatic commit/push. Product publishing still follows the owner's existing authorization and §6.
+- Every worker report uses §12's STATUS contract plus decisions and unresolved risks. Every checkpoint handoff includes task/objective, implementation, files, decisions, actual validation, unresolved risks and next step. Reuse `docs/CLAUDE_HANDOFF.md` and its archive procedure; never rewrite unrelated historical handoffs. During concurrent product work, put a clearly scoped tooling checkpoint in PROGRESS and link its full evidence rather than replacing the active product handoff.
+- Record a baseline per comparable task: tool/CLI/model/effort, complexity/risk, HEAD/dirty scope, agents spawned, input/output/cached tokens and cost if exposed, tool calls, elapsed time, repair attempts and acceptance outcome. Mark unavailable metrics unknown. Compare equivalent accepted tasks; no token/cost saving claim without measurements.

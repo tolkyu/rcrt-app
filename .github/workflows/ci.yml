@@ -45,6 +45,10 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Validate AI engineering harness
+        run: |
+          python3 scripts/check-ai-harness.py
+          node --test tests/harness/edit-lease.test.mjs
       - run: pnpm audit:check
       - run: pnpm lint
       - run: pnpm format:check

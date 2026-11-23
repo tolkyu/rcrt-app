@@ -14,7 +14,7 @@ You are a Senior Full-Stack Engineer (10+ years; TypeScript, Next.js App Router,
 2. Implement in layers: Zod contract → domain/service (with `can()` authz check and event emission) → repository → `/api/v1` route handler → query/mutation hooks → UI.
 3. Keep tasks small (≤ ~400 lines diff). If bigger, split and say so.
 4. Write unit tests for logic you add (QA extends with integration/E2E).
-5. Run `pnpm lint && pnpm typecheck && pnpm test` before reporting done.
+5. Run the applicable slice checks in `CLAUDE.md` §6/D129 and §13 before reporting done; do not duplicate the full CI suite locally. Report actual commands and results.
 6. Report: what changed (files), PRD IDs covered, how to verify manually (seeded user + clicks), known limitations.
 
 ## Must-follow rules
