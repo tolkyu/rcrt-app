@@ -2,7 +2,7 @@
 import type { QueryClient, QueryKey } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import type { VacancyDetail, VacancyPage } from '@/lib/schemas/vacancy';
-import { isPage } from '@/lib/vacancy-draft-optimistic';
+import { isPage, isVacancyDetailKey } from '@/lib/vacancy-draft-optimistic';
 
 type Item = VacancyDetail | VacancyPage['items'][number];
 type Side = 'from' | 'to';
@@ -82,7 +82,8 @@ export function applyOptimisticFlip(
       return;
     const { queryKey: key, state } = event.query;
     if (key[0] === 'vacancy') {
-      if (key[1] === detailKey[1] && isDetail(state.data)) flipCard(state.data);
+      if (isVacancyDetailKey(key, id) && isDetail(state.data))
+        flipCard(state.data);
     } else if (key[0] === 'vacancies' && isPage(state.data))
       flipRows(key, state.data);
   });

@@ -84,7 +84,11 @@ export async function publishFromList(
     // A refetch landing after the optimistic write would put the row back.
     await Promise.all([
       queryClient.cancelQueries({ queryKey: queryKeys.vacanciesAll() }),
-      queryClient.cancelQueries({ queryKey: queryKeys.vacancy(id) }),
+      // Exact: a cancelled first content read would stay idle if this write fails.
+      queryClient.cancelQueries({
+        queryKey: queryKeys.vacancy(id),
+        exact: true,
+      }),
     ]);
     const optimistic = applyOptimisticPublish(queryClient, id);
     let outcome: Awaited<ReturnType<typeof submitEdit>>;

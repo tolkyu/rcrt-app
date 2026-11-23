@@ -36,6 +36,9 @@ export const isPage = (data: unknown): data is VacancyPage =>
   data !== null &&
   'items' in data &&
   Array.isArray(data.items);
+/** Content and picker entries share the `['vacancy', id]` prefix, and a content DTO also carries `status` and `version`. */
+export const isVacancyDetailKey = (key: QueryKey, id: string) =>
+  hashKey(key) === hashKey(queryKeys.vacancy(id));
 const isDetail = (data: unknown): data is VacancyDetail =>
   typeof data === 'object' && data !== null && 'status' in data;
 export const isCount = (data: unknown): data is VacancyDraftCount =>
@@ -133,7 +136,7 @@ export function applyOptimisticPublish(
       return;
     const { queryKey: key, state } = event.query;
     if (key[0] === 'vacancy') {
-      if (key[1] === detailKey[1] && isDetail(state.data)) open(state.data);
+      if (isVacancyDetailKey(key, id) && isDetail(state.data)) open(state.data);
     } else if (key[0] === 'vacancies') {
       if (key[1] === countKey[1]) {
         if (isCount(state.data)) decrement(state.data);

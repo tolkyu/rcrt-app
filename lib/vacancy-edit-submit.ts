@@ -3,6 +3,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import type { useTranslations } from 'next-intl';
 import { apiRequest } from '@/lib/api-client';
 import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
+import { queryKeys } from '@/lib/query-keys';
 import {
   vacancyDetailSchema,
   type CreateVacancyBody,
@@ -172,6 +173,15 @@ export type EditOutcome =
       readonly saved: VacancyDetail | null;
     };
 
+/** Cancel first: an inactive in-flight DRAFT read is not replaced by invalidation alone. */
+const refreshPublishedContent = (queryClient: QueryClient, id: string) => {
+  const filter = { queryKey: queryKeys.vacancyContent(id), exact: true };
+  queryClient
+    .cancelQueries(filter)
+    .then(() => queryClient.invalidateQueries(filter))
+    .catch(() => undefined);
+};
+
 /** The caches are updated here, before the page may have gone away: a saved or published draft must reach the lists even if the form unmounted meanwhile. */
 export async function submitEdit(
   queryClient: QueryClient,
@@ -203,6 +213,7 @@ export async function submitEdit(
         attempts.keyFor({ id, expectedVersion }),
       );
       applyCreatedVacancy(queryClient, published);
+      refreshPublishedContent(queryClient, id);
       return { status: 'published', vacancy: published };
     } catch (error) {
       const effect = planEditFailure(error, retried, context);
