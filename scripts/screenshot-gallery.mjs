@@ -1348,6 +1348,217 @@ groups2.push({
   ],
 });
 
+groups2.push(
+  ...[
+    {
+      screen: 'Картка вакансії: опис і вимоги',
+      role: 'Рекрутер, Тімлід, Керівник рекрутингу, Адміністратор, HR',
+      roles: [
+        'Рекрутер',
+        'Тімлід',
+        'Керівник рекрутингу',
+        'Адміністратор',
+        'HR',
+      ],
+      states: [
+        {
+          file: '51-recruiter-vacancy-content-card-editable',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Можна редагувати: є кнопка «Редагувати опис і вимоги»',
+        },
+        {
+          file: '51-team-lead-vacancy-content-card-editable',
+          label: 'Тімлід',
+          dir: VAC,
+          heading: 'Можна редагувати: тімлід своєї вакансії',
+        },
+        {
+          file: '51-head-recruiter-vacancy-content-card-editable',
+          label: 'Керівник рекрутингу',
+          dir: VAC,
+          heading: 'Можна редагувати: керівник рекрутингу',
+        },
+        {
+          file: '51-admin-vacancy-content-card-editable',
+          label: 'Адміністратор',
+          dir: VAC,
+          heading: 'Можна редагувати: адміністратор',
+        },
+        {
+          file: '51-hr-vacancy-content-card-readonly',
+          label: 'HR',
+          dir: VAC,
+          heading: 'Лише перегляд: без кнопки редагування',
+        },
+        {
+          file: '51-recruiter-vacancy-content-card-empty',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Опис і вимоги ще не додано',
+        },
+        {
+          file: '51-recruiter-vacancy-content-card-loading',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Завантаження блока',
+        },
+        {
+          file: '51-recruiter-vacancy-content-card-error',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Помилка завантаження блока з повтором',
+        },
+        {
+          file: '51-recruiter-vacancy-content-card-filled',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Заповнена вакансія: без кнопки редагування',
+        },
+      ],
+    },
+    {
+      screen: 'Редагування опису і вимог',
+      role: 'Рекрутер, Тімлід, Керівник рекрутингу, Адміністратор, HR',
+      roles: [
+        'Рекрутер',
+        'Тімлід',
+        'Керівник рекрутингу',
+        'Адміністратор',
+        'HR',
+      ],
+      states: [
+        {
+          file: '52-recruiter-vacancy-content-edit-loaded',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Форма редагування',
+        },
+        {
+          file: '52-team-lead-vacancy-content-edit-loaded',
+          label: 'Тімлід',
+          dir: VAC,
+          heading: 'Форма редагування: тімлід',
+        },
+        {
+          file: '52-head-recruiter-vacancy-content-edit-loaded',
+          label: 'Керівник рекрутингу',
+          dir: VAC,
+          heading: 'Форма редагування: керівник рекрутингу',
+        },
+        {
+          file: '52-admin-vacancy-content-edit-loaded',
+          label: 'Адміністратор',
+          dir: VAC,
+          heading: 'Форма редагування: адміністратор',
+        },
+        {
+          file: '52-hr-vacancy-content-edit-readonly',
+          label: 'HR',
+          dir: VAC,
+          heading: 'Немає права редагувати: лише текст',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-loading',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Завантаження форми',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-cleared',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Поле позначено до очищення',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-saving',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Збереження',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-saved',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Зміни збережено',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-validation',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Помилка перевірки поля',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-stale',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Конфлікт версій: дані вже змінив інший користувач',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-stale-dialog',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Підтвердження завантаження актуальної версії',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-closed-while-editing',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Вакансію закрили під час редагування',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-permission-lost',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Право редагування змінилося',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-save-failed',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Не вдалося зберегти',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-chunk-failed',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Редактор не завантажився: повтор у кожному полі',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-leave-guard',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Вихід із незбереженими змінами',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-filled',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Заповнена вакансія: редагування закрито',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-cancelled',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Скасована вакансія: редагування закрито',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-unavailable',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Вакансія недоступна',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-read-error',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Помилка завантаження з повтором',
+        },
+      ],
+    },
+  ],
+);
+
 mkdirSync('screenshots/latest', { recursive: true });
 const listed = {
   'phase-1': new Set(),
