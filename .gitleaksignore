@@ -5,3 +5,6 @@ b0ca655e2f3369b32962334c6e89e91fce58b902:tests/unit/auth/mfa-setup-exit.test.ts:
 26dee021aaf60a586a3e7fa133e2d2ff788f6921:tests/screens/auth.spec.ts:generic-api-key:77
 10ca37b6ee4e15b16bf72d9594203b3e2116081c:docs/security/review-phase-1-auth-identity.md:generic-api-key:32
 10ca37b6ee4e15b16bf72d9594203b3e2116081c:tests/integration/auth-mfa.test.ts:generic-api-key:196
+# Reviewed 2026-11-23: fixture UUID in a unit test and prose about resetKey in a review doc.
+6a95add26a663fb4680dc64e6bc8fb7ce25969a4:docs/security/content-state-review.md:generic-api-key:18
+6a95add26a663fb4680dc64e6bc8fb7ce25969a4:tests/unit/app-session-identity.test.ts:generic-api-key:49
