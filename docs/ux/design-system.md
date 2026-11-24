@@ -144,6 +144,7 @@ Chip = pill, tinted bg + stage text + lucide icon + label. **Colour is never the
 | `display-2xl` | 32 / 40     | 700             | −0.02em  | Candidate name in card header (desktop)                                                                            |
 | `display-xl`  | 24 / 32     | 700             | −0.01em  | Page titles («Головна», «Вакансії»), KPI values, candidate name (mobile)                                           |
 | `heading-lg`  | 20 / 28     | 600             | −0.01em  | Section/card titles («Мої задачі», «Історія взаємодій», «Наступна подія»), dialog/sheet titles, mobile page titles |
+| `text-lg`     | 18 / 28     | 600             | 0        | Rich-text H2 only (editor and `RichTextView`); not for other UI                                                    |
 | `text-base`   | 16 / 24     | 400 / 500       | 0        | Long text (comments, notes, descriptions), mobile body, **all inputs on mobile** (no iOS zoom)                     |
 | `text-sm`     | 14 / 20     | 400 / 500 / 600 | 0        | Default desktop UI: tables, cards, nav, buttons, inputs, filters, tabs                                             |
 | `text-xs`     | 12 / 16     | 400 / 500       | 0        | Chips, captions, timestamps, filter labels, table headers, KPI footnotes                                           |

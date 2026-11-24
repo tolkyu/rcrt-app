@@ -298,7 +298,7 @@ As a **Head Recruiter or Admin**, I want to attach a Team Lead to a vacancy crea
 
 **Acceptance criteria**
 
-- Given V-0012 «Медіабаєр — Facebook» `OPEN`, Гемблінг, created by `recruiter1.gambling`, no Team Lead (card shows «Тімлід не призначений», _proposed copy_), Then it is visible to the vertical's recruiters per D1 and to Head Recruiter/Admin; no control or API path offers «submission to Team Lead» or routing (not built in Phase 2; the rule is the invariant for Phase 3: no Team Lead ⇒ not eligible, ROUTE-07).
+- Given V-0012 «Медіабаєр — Facebook» `OPEN`, Гемблінг, created by `recruiter1.gambling`, no Team Lead (card shows «Тімліда ще не призначено», _proposed copy_), Then it is visible to the vertical's recruiters per D1 and to Head Recruiter/Admin; no control or API path offers «submission to Team Lead» or routing (not built in Phase 2; the rule is the invariant for Phase 3: no Team Lead ⇒ not eligible, ROUTE-07).
 - Given Head Recruiter of Гемблінг, When he opens «Призначити тімліда», picks Vasyl (active, accepted invite, TEAM_LEAD in Гемблінг) and confirms with `expectedVersion`, Then `team_lead_id = Vasyl`, version +1; `recruiter_initiated` stays `true` (origin kept, badge «Ініційовано рекрутером» stays); the vacancy appears in Vasyl's own list from now (D67); audit before `null` → after Vasyl; event `vacancy.team_lead_assigned {teamLeadId, by}`.
 - Given the vacancy is `OPEN` or `ON_HOLD`, Then assignment is allowed; `FILLED`/`CANCELLED` → 409 `VACANCY_CLOSED`; `DRAFT` → not applicable (the author sets the Team Lead in his own draft edit, built).
 - Given a Team Lead is already set (any origin), Then this action is not offered and the API refuses with 409 `TEAM_LEAD_ALREADY_SET`; change/clear is a Phase 3 decision (Q-192).

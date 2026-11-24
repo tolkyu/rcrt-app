@@ -105,10 +105,10 @@ V1 routing-group panel visibility · V2 days-open with ON_HOLD · V3 per-candida
 
 `VacancyOverview` (card and preview share it), directly under the header actions and above «Команда», so the control sits next to the badge it changes:
 
-| Section (heading, `text-sm` 600)      | Content                                                                      | Rendered when                                                                                                  |
-| ------------------------------------- | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Терміновість**                      | row «Терміновість вакансії»: `UrgencyControl` (segmented look) + helper line | `vacancy.canChangeUrgency` (server decision: Head Recruiter of the vertical or Admin, status `OPEN`/`ON_HOLD`) |
-| ~~Розподіл кандидатів між тімлідами~~ | **Phase 3 (D127), not built in Phase 2**                                     | never in Phase 2                                                                                               |
+| Section (heading, `text-sm` 600)      | Content                                                                       | Rendered when                                                                                                  |
+| ------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Терміновість**                      | visible heading; `UrgencyControl` (segmented look, group name below) + helper | `vacancy.canChangeUrgency` (server decision: Head Recruiter of the vertical or Admin, status `OPEN`/`ON_HOLD`) |
+| ~~Розподіл кандидатів між тімлідами~~ | **Phase 3 (D127), not built in Phase 2**                                      | never in Phase 2                                                                                               |
 
 Everyone else gets **no section and no read-only row**: the header badge «Термінова» is the display (story VAC-08-2: not rendered, not disabled). The section «Умови» keeps no urgency row (one place only).
 
@@ -125,20 +125,20 @@ A closed urgent vacancy shows only the header note (§3) and the neutral badge; 
 
 ### 3. Copy (keys proposed under `vacancies.urgency.*`; engineer adds to `messages/uk.json`)
 
-| Place                                                                 | Ukrainian                                                                                                                   |
-| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Section heading                                                       | Терміновість                                                                                                                |
-| Row label / radiogroup `aria-label`                                   | Терміновість вакансії                                                                                                       |
-| Options                                                               | Звичайна · Термінова                                                                                                        |
-| Helper, editable                                                      | Термінові вакансії виділяються червоним у списках. Порядок розподілу кандидатів між тімлідами не змінюється.                |
-| Header note under a closed urgent badge (visible text, also on touch) | Вакансію закрито — червоне виділення вимкнено. (same string is the badge `title` in lists)                                  |
-| Success toast (4 s, id `urgency:{id}`)                                | **Терміновість змінено** · V-0007 · Звичайна → Термінова (or «Термінова → Звичайна»)                                        |
-| Rollback toast (error, action)                                        | **Зміну не збережено** · Повернули як було. · action «Повторити» (foundation §4.1)                                          |
-| Conflict toast (warning, id `stale:vacancy:{id}`)                     | **Дані вже змінилися** · Терміновість уже змінено: тепер «Термінова». Якщо потрібно, змініть ще раз. (value = server state) |
-| No connection (error, action)                                         | **Немає зʼєднання** · Зміни не збережено. Перевірте мережу й спробуйте ще раз. · «Повторити»                                |
-| 403 (role/scope lost)                                                 | error toast «Недостатньо прав для цієї дії.»; detail refetch, the section disappears                                        |
-| 404                                                                   | card: S-18; preview: selection clears, list refetches, toast «Вакансію не знайдено або доступ обмежено»                     |
-| History event `vacancy.urgency_changed` (actor in its own column)     | Терміновість змінено: Звичайна → Термінова                                                                                  |
+| Place                                                             | Ukrainian                                                                                                                   |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Section heading                                                   | Терміновість                                                                                                                |
+| Radiogroup accessible name (`sr-only`, not visible)               | Терміновість вакансії                                                                                                       |
+| Options                                                           | Звичайна · Термінова                                                                                                        |
+| Helper, editable                                                  | Термінові вакансії виділяються червоним у списках. Порядок розподілу кандидатів між тімлідами не змінюється.                |
+| `title` of the neutral closed urgent badge (no visible line)      | Вакансію закрито — червоне виділення вимкнено. The visible closing notice is the date banner (V3 §5)                        |
+| Success toast (4 s, id `urgency:{id}`)                            | **Терміновість змінено** · V-0007 · Звичайна → Термінова (or «Термінова → Звичайна»)                                        |
+| Rollback toast (error, action)                                    | **Зміну не збережено** · Повернули як було. · action «Повторити» (foundation §4.1)                                          |
+| Conflict toast (warning, id `stale:vacancy:{id}`)                 | **Дані вже змінилися** · Терміновість уже змінено: тепер «Термінова». Якщо потрібно, змініть ще раз. (value = server state) |
+| No connection (error, action)                                     | **Немає зʼєднання** · Зміни не збережено. Перевірте мережу й спробуйте ще раз. · «Повторити»                                |
+| 403 (role/scope lost)                                             | error toast «Недостатньо прав для цієї дії.»; detail refetch, the section disappears                                        |
+| 404                                                               | card: S-18; preview: selection clears, list refetches, toast «Вакансію не знайдено або доступ обмежено»                     |
+| History event `vacancy.urgency_changed` (actor in its own column) | Терміновість змінено: Звичайна → Термінова                                                                                  |
 
 Copy added in the build (keys under `vacancies.urgency.*`):
 
@@ -164,7 +164,6 @@ Why no «змінила/змінив»: the actor's gender is unknown and the ac
 │                                                              [Поділитися] [Редагувати] [⋯]        │  ← actions outside the tint
 ├───────────────────────────────────────────────────────────────┬───────────────────────────────────┤
 │ …funnel, candidates…                                          │ Терміновість                       │
-│                                                               │ Терміновість вакансії              │
 │                                                               │ ┌──────────┬──────────┐            │
 │                                                               │ │ Звичайна │▐Термінова▌│  h 40     │
 │                                                               │ └──────────┴──────────┘            │
@@ -194,7 +193,6 @@ Why no «змінила/змінив»: the actor's gender is unknown and the ac
 
 ```
 │ Терміновість                 │
-│ Терміновість вакансії        │
 │ [ Звичайна | ▐Термінова▌ ]   │  full width, 2 equal segments, h 44, 16 px text
 │ Термінові вакансії виділяються│
 │ червоним у списках. Порядок  │
@@ -207,14 +205,14 @@ Why no «змінила/змінив»: the actor's gender is unknown and the ac
 ```
 │   V-0003 · Гемблінг                      │  header block: NO tint, NO edge
 │   Медіабаєр — TikTok  [Заповнена] [🔥 Термінова]   │  neutral badge
-│   Вакансію закрито — червоне виділення вимкнено.   │  muted line under the badges (info); no section, no control
+│   Вакансію закрито 13.11.2026 — Заповнена          │  date banner, the only closing notice; badge keeps `title`; no section, no control
 ```
 
 The `ON_HOLD` header is tinted, shows the amber «Призупинена» chip and the editable section; `DRAFT` (own) is tinted with the dashed «Чернетка» badge and the lock note, and has no section (the draft edit form carries urgency, D127).
 
 ### 5. Header highlight (card and preview)
 
-`DetailHeader` gets `tone?: 'urgent'` (derived from `isUrgentHighlighted`, never passed by hand): the block holding eyebrow, title and badges becomes `rounded-lg bg-destructive-subtle p-4` with the 3 px inset `--destructive` edge; eyebrow switches to `--muted-foreground-strong`; title stays `--foreground`; buttons stay outside the tint, so outline buttons keep their normal surface. Tokens and contrast are those of the list file §2–§3 (header block row). The badge is the same `VacancyFlags` component, so list, preview and card cannot drift. `note` (closed hint, private-draft note) renders under the badges in the existing note slot; a closed urgent vacancy uses `Info` instead of `Lock`.
+`DetailHeader` gets `tone?: 'urgent'` (derived from `isUrgentHighlighted`, never passed by hand): the block holding eyebrow, title and badges becomes `rounded-lg bg-destructive-subtle p-4` with the 3 px inset `--destructive` edge; eyebrow switches to `--muted-foreground-strong`; title stays `--foreground`; buttons stay outside the tint, so outline buttons keep their normal surface. Tokens and contrast are those of the list file §2–§3 (header block row). The badge is the same `VacancyFlags` component, so list, preview and card cannot drift. `note` (pause hint, private-draft note) renders under the badges in the existing note slot; a closed urgent vacancy has no note, its date banner says it.
 
 ### 6. The urgency control (interaction)
 
@@ -368,7 +366,8 @@ CANCELLED   [Поділитися] [Клонувати]                [⋯]    
 
 - «Призупинити»/«Відновити» = outline button with `pause` / `play` icon (`aria-hidden`), h 40. «Відкрити знову» = primary button (`rotate-ccw`). «Скасувати вакансію…» sits in `[⋯]`, red, separated, above «Видалити»; it is never a one-click button next to a harmless one.
 - Team Lead (own vacancy): `[Поділитися] [Призупинити/Відновити] [⋯: Скасувати вакансію…]` — no «Редагувати» change here, no «Відкрити знову».
-- Mobile 390: header shows title, badges, then a full-width row: **«Призупинити»/«Відновити»** (outline, h 44) for roles that may; «Поділитися» stays a text button (h 44) next to the status row (build decision, accepted: a text label is clearer than an icon). At 320 px the row wraps, nothing truncates. `[⋯]` opens a bottom action sheet (items h 48, destructive item separated, 8 px gap above the safe area). On `FILLED` the full-width row is «Відкрити знову» (primary, h 48).
+- Preview panel (360): «Поділитися» is a 44 px icon button with `aria-label` and tooltip, so `[⋯]` stays in the action row.
+- Mobile 390: header shows title, badges, then row 1: «Поділитися» (icon + text, h 44, takes the free width) + `[⋯]` 44 px; row 2: full-width **«Призупинити»/«Відновити»** (outline, h 44) for roles that may. At 320 px nothing truncates. `[⋯]` opens a bottom action sheet (items h 48, destructive item separated, 8 px gap above the safe area). On `FILLED` the full-width row is «Відкрити знову» (primary, h 48).
 - Preview panel (360): status actions only in the panel `[⋯]` (same items); «Призупинити»/«Відновити» are items, not buttons.
 
 **Section «Команда»** (right column; same order in preview and mobile stack). Two sub-blocks: «Тімлід» then «Рекрутери».
@@ -378,7 +377,7 @@ CANCELLED   [Поділитися] [Клонувати]                [⋯]    
 Тімлід
  (ВП) Василь Петренко                     ← assigned: avatar, name, caption «Тімлід · Гемблінг» (no priority: not in the DTO)
  — or, none (recruiter-initiated):
- Тімлід не призначений     [Призначити тімліда]   ← button: Admin / Head Recruiter, OPEN/ON_HOLD only
+ Тімліда ще не призначено  [Призначити тімліда]   ← button: Admin / Head Recruiter, OPEN/ON_HOLD only
 Рекрутери
  (ОК) Оксана Кравець   Рекрутер                       [Прибрати]   ← manager only; icon button `x`, 44 px target
  (ДЛ) Дмитро Лисенко   Рекрутер · неактивний          [Прибрати]
@@ -515,8 +514,7 @@ Mirrors the draft cancel dialog (`vacancy-form.md`); the difference is who reads
 │ Причина скасування *                                  0/500   │
 │ [                                                         ]   │
 │ Причину бачитимуть усі, хто має доступ до вакансії. Можна     │
-│ писати в кілька рядків.                                       │
-│ Вкажіть причину                                               │  reserved line, visible text
+│ писати в кілька рядків. Вкажіть причину                       │  blocker inline in the hint slot; slot height reserved
 │                       [Залишити вакансію] [Скасувати вакансію]│
 └───────────────────────────────────────────────────────────────┘
 ```
@@ -525,7 +523,7 @@ Mirrors the draft cancel dialog (`vacancy-form.md`); the difference is who reads
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Focus              | «Залишити вакансію» (safe default), like the draft dialog; Tab → reason → destructive                                                                                                                                                                                                                                                                                               |
 | Reason             | 1–500 after trim, counter warns from 450, «ліміт досягнуто» at 500 (same component as draft); textarea 16 px on mobile                                                                                                                                                                                                                                                              |
-| Destructive button | Filled `--destructive`, disabled until a visible character exists; `aria-describedby` → «Вкажіть причину»                                                                                                                                                                                                                                                                           |
+| Destructive button | Filled `--destructive`, disabled until a visible character exists; `aria-describedby` → «Вкажіть причину», shown after the hint in the reason field (no line under the buttons; the slot keeps the height of the longest message)                                                                                                                                                   |
 | Pending            | Waits for the server (not optimistic: terminal, destructive); spinner after 150 ms; reason kept on error                                                                                                                                                                                                                                                                            |
 | Success            | Dialog closes; card/preview refetch: chip «Скасована», banner §5, actions replaced per §2; toast **Вакансію скасовано** · V-0007 · Причину збережено в історії · action **«Клонувати»** (build: no action until the clone feature ships, then add it); focus → card `h1` (`tabIndex=-1`) because the `[⋯]` item is gone                                                             |
 | Errors             | 409 stale «Дані вже змінилися. Ми оновили картку — перевірте статус і повторіть.» and `VACANCY_STATUS_INVALID` (generic text, no status name; the server sends none): both show inline in the open dialog (`role="alert"`), the typed reason is kept, the card refetches behind it; the user closes or retries. 403 / 404 / offline as §3.1. Same rule for the reopen dialog (§3.6) |
@@ -584,7 +582,7 @@ One click, instant, reversible. Optimistic: chip, header button label and the ca
 | `ON_HOLD`, all roles           | Note (info, header slot): «Вакансію призупинено. Відновіть її, щоб працювати далі.» for roles that can resume; others: «Вакансію призупинено.»; unassigned adds: «Вільні вакансії на паузі не бачать рекрутери.»                                                                                                                                                                                                                                                                                                                                                                             |
 | `FILLED`                       | Banner: «Вакансію закрито 20.11.2026 — Заповнена» · actions «Відкрити знову» (Admin, Head Recruiter), «Клонувати»                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `CANCELLED`                    | Banner: «Вакансію скасовано 20.11.2026.» + «Скасовану вакансію не можна відкрити знову — створіть копію.» · action **«Клонувати»** (the clone hint; build omits the second sentence and the action until the clone feature ships: never promise a missing action). Banner date = `updatedAt` for FILLED/CANCELLED (no `closedAt` in the DTO; closed cards are not editable, so it matches; gap: add `closedAt`). Paused note and urgent-closed note join into one line when both apply. Below it a muted box «Причина скасування» (`whitespace-pre-line`, ≤ 500 chars, absent after a purge) |
-| No Team Lead, `OPEN`/`ON_HOLD` | Team block text «Тімлід не призначений»; for Head Recruiter/Admin plus the button; no header banner                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| No Team Lead, `OPEN`/`ON_HOLD` | Team block text «Тімліда ще не призначено»; for Head Recruiter/Admin plus the button; no header banner                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 Banners are static text (`role` none; read in order). The closed urgent note of the urgency section stays under the badges and is not repeated in the banner.
 
@@ -650,7 +648,7 @@ Banners are static text (`role` none; read in order). The closed urgent note of 
 
 ### 11. Share («Поділитися», STORY-UI-09-1) — only the missing state
 
-Button and success toast are built and unchanged («Посилання скопійовано. Доступ перевіряється для кожного окремо.»). Missing spec: **clipboard blocked.** An `Alert` (`role="alert"`, warning) appears directly under the header action row (mobile: under the badges), full width, with the text «Не вдалося скопіювати посилання. Скопіюйте його вручну:» and a read-only `Input` (16 px, full link, `aria-label` «Посилання на вакансію») that is selected on render (`select()`); a ghost «Закрити» button dismisses it. Focus stays on «Поділитися» (the alert is announced by `role="alert"`; the field is reachable by Tab, never auto-focused so the announcement is not cut). No success toast. Double press: one alert. Hidden for a private `DRAFT`. The same pattern is reused on the candidate card later. No other share state is missing.
+Button and success toast are built and unchanged («Посилання скопійовано. Доступ перевіряється для кожного окремо.»). Missing spec: **clipboard blocked.** An `Alert` (`role="alert"`, warning) appears directly under the header action row (mobile: under the badges), full width, with the text «Не вдалося скопіювати посилання. Скопіюйте його вручну:» and a read-only `Input` (16 px, full link, `aria-label` «Посилання на вакансію») that is selected on render (`select()`); a ghost «Закрити» button, its text aligned with the panel text, dismisses it. Focus stays on «Поділитися» (the alert is announced by `role="alert"`; the field is reachable by Tab, never auto-focused so the announcement is not cut). No success toast. Double press: one alert. Hidden for a private `DRAFT`. The same pattern is reused on the candidate card later. No other share state is missing.
 
 ### 12. Screenshots (D125 lean matrix; `screenshots/phase-2/NN-<role>-vacancy-<topic>-<state>-<viewport>-<theme>.png`; topics `team`, `status`)
 

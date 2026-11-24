@@ -5,7 +5,7 @@ Preparation only · 2026-11-18 · VAC-08, D75/D78/D92/D133 · STORY-VAC-01-2a ·
 ## Smallest surface and entry
 
 - One dedicated page for two fields, using `FormPageLayout`, `FormPageHeading`, `FormPageFooter`, `FormField`, `Button`, `FormAlert`, `VacancyFormError`, `SectionError` and the existing leave guard. Single form column, max 720 px; no readiness rail, publish controls or operational fields. [ADR-020](../../adr/020-vacancy-content-ui.md) chooses `/vacancies/[vacancyId]/content/edit`; author-only draft `/edit` remains separate.
-- Detail card header: outline «Редагувати опис і вимоги» after «Поділитися», before status actions, only when the authoritative content capability and `OPEN`/`ON_HOLD` permit it. Do not infer eligibility from role names, creator identity, read access or urgency controls. No new list/preview entry in this smallest UI slice.
+- Detail card, «Опис і вимоги» heading row: outline «Редагувати опис і вимоги» at the row end (44 px target; the row reserves 44 px in every state, so the card does not shift), only when the authoritative content capability and `OPEN`/`ON_HOLD` permit it. Do not infer eligibility from role names, creator identity, read access or urgency controls. No new list/preview entry in this smallest UI slice.
 - Effective allowed actors: assigned Recruiter, own Team Lead, scoped Head Recruiter/Admin, and applicable custom/mixed grants per ADR-018. HR/Head HR reading rights alone do not qualify. Existing Admin MFA behavior remains authoritative.
 - `FILLED`/`CANCELLED`: no content-edit entry. Reopening remains an existing authorized `FILLED` action, never an editor action; `CANCELLED` cannot reopen. Draft links retain the current draft flow, including immutable cancelled drafts.
 
@@ -40,6 +40,12 @@ Preparation only · 2026-11-18 · VAC-08, D75/D78/D92/D133 · STORY-VAC-01-2a ·
 | `409 VACANCY_CONTENT_LOCKED` / status closes | Stop saving, announce locked state; keep local typed text selectable while read access remains valid, offer «До картки вакансії». If `FILLED`, explain existing reopen requirement; if `CANCELLED`, explain no further editing. Never reopen automatically or replay edits after reopen; a fresh authorized read is required.              |
 | Assignment/grant removed                     | Authoritative denial hides edit controls and stops submission. Independent mixed-role grant may still permit editing; rely on fresh capability, not “removed recruiter” alone. On 403, show «Право редагування змінилося» and refresh approved access state. Do not keep displaying protected documents if read permission is lost.        |
 | Deactivated / session / MFA                  | Use existing session/MFA flow; no automatic write replay after reauthentication. Hide protected form when access ends. Unknown/deleted/out-of-scope 404 follows existing unavailable screen; no details about the hidden vacancy.                                                                                                          |
+
+- Read failure keeps the static heading and back link, without vacancy number or title. The 404/denied state stays unchanged.
+- «Очистити» is unavailable only while that field's editor chunk has failed, with the reason «Очистити можна після завантаження редактора.»; a successful retry restores it. It stays available for an invalid stored document, because it is the way out of that state.
+- A pristine «Зберегти зміни» shows «Немає змін для збереження»: tooltip with hover, visible text on touch.
+- Toolbar, typography and save-result placement follow [the gallery review](../review-phase-2-content-gallery.md) (B1–B4, D1, D2). The save status sits in the sticky footer; a failed save scrolls the alerts into view without moving focus.
+- Rich-text H2 is `text-lg` (18/28, 600), documented in design system §2 (P12).
 
 ## 390 px, keyboard and motion
 

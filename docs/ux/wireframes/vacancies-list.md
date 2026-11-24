@@ -137,7 +137,7 @@ All pass. QA repeats the numbers with axe `color-contrast` on the screenshot sta
 2. Shape cues: 3 px edge on the row (decorative duplicate of the badge, so forced-colours mode losing the `box-shadow` costs nothing; the badge border is kept by forced colours).
 3. Screen readers read «Термінова» in reading order after the title link; no extra `aria-label`, no `role="img"` on the flame (`aria-hidden`).
 4. Hover, selected and urgent are three different signals: hover = whole row one step darker (same hue), selected = indigo fill + indigo bar, urgent = red tint + red edge. Selected-and-urgent shows both bars.
-5. The closed neutral badge carries `title` «Вакансію закрито — червоне виділення вимкнено.» (desktop hover/focus on the badge; on touch the card header shows the same sentence as a muted line, see card file §3).
+5. The closed neutral badge carries `title` «Вакансію закрито — червоне виділення вимкнено.» (desktop hover/focus on the badge; on touch the closing notice is the date banner of the card, see card file V3 §5).
 
 ### 5. Wireframes
 
