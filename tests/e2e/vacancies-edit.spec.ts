@@ -365,7 +365,7 @@ test.describe('editing an own draft [STORY-VAC-01-1, VAC-01, D92]', () => {
     await expect(page).toHaveURL(new RegExp(`${draft.id}/edit$`));
   });
 
-  test('a draft deleted elsewhere says so and returns to the list [ux §5]', async ({
+  test('a PATCH 404 while the draft still reads refuses only the action: the forbidden toast, and the page stays [ADR-020]', async ({
     page,
   }) => {
     await page.route(detailUrl(draft.id), async (route) =>
@@ -374,6 +374,22 @@ test.describe('editing an own draft [STORY-VAC-01-1, VAC-01, D92]', () => {
         : route.fallback(),
     );
     await open(page);
+    await field(page, t.location.label).fill('Харків');
+    await saveEdit(page).click();
+    await expect(toastWith(page, t.toast.forbidden)).toBeVisible();
+    await expect(toastWith(page, te.toast.gone)).toHaveCount(0);
+    await expect(page).toHaveURL(new RegExp(`${draft.id}/edit$`));
+  });
+
+  test('a draft deleted elsewhere says so and returns to the list [ux §5]', async ({
+    page,
+  }) => {
+    await open(page);
+    await page.route(detailUrl(draft.id), async (route) =>
+      route.request().method() === 'PATCH' || route.request().method() === 'GET'
+        ? route.fulfill(await problemFulfill(404, 'NOT_FOUND'))
+        : route.fallback(),
+    );
     await field(page, t.location.label).fill('Харків');
     await saveEdit(page).click();
     await expect(toastWith(page, te.toast.gone)).toBeVisible();

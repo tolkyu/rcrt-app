@@ -591,9 +591,9 @@ test.describe('list and identity changes with isolated users [VAC-08, D63, ADR-0
 test.describe('a lost action is not a lost card [VAC-08, ADR-020]', () => {
   test.use({ storageState: sessionFile('head.recruiter.gambling@demo') });
 
-  for (const [status, code] of [
-    [403, 'FORBIDDEN'],
-    [404, 'NOT_FOUND'],
+  for (const [status, code, refusal] of [
+    [403, 'FORBIDDEN', tv.urgency.toast.forbidden],
+    [404, 'NOT_FOUND', tv.urgency.toast.forbidden],
   ] as const)
     test(`a write ${status} keeps the card and does not reload while reads still succeed`, async ({
       page,
@@ -612,16 +612,36 @@ test.describe('a lost action is not a lost card [VAC-08, ADR-020]', () => {
       const title = cardHeading(page, vacancy);
       await expect(title).toBeVisible();
       const loads = documentLoads(page, cardPath(vacancy));
+      // A write 404 makes the card re-read itself; the card must survive that answer, not just the moment before it.
+      const recheck =
+        status === 404
+          ? page.waitForResponse(
+              (response) =>
+                writes === 1 &&
+                response.request().method() === 'GET' &&
+                new URL(response.url()).pathname ===
+                  `/api/v1/vacancies/${vacancy.id}`,
+            )
+          : undefined;
       // The radio itself is visually hidden; a person presses its label.
       await page
         .getByRole('radiogroup', { name: tv.urgency.label })
         .locator('label', { hasText: tv.urgency.URGENT })
         .click();
       await expect.poll(() => writes).toBe(1);
+      // A refused action is told by a toast; the unavailable card state lives inside `main`.
+      await expect(
+        page
+          .getByRole('region', { name: messages.common.notifications })
+          .getByText(refusal, { exact: true }),
+      ).toBeVisible();
+      if (recheck) expect((await recheck).status()).toBe(200);
       await expectNoRepeats(page, loads);
       expect(loads).toHaveLength(0);
       await expect(title).toBeVisible();
-      await expect(page.getByText(UNAVAILABLE)).toHaveCount(0);
+      await expect(page.getByRole('main').getByText(UNAVAILABLE)).toHaveCount(
+        0,
+      );
       const read = await page.request.get(`/api/v1/vacancies/${vacancy.id}`);
       expect(read.status()).toBe(200);
     });

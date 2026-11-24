@@ -29,7 +29,12 @@ export async function installFixedClock(
         return;
       }
       try {
-        const response = await route.fetch();
+        const response = await route.fetch().catch((error: unknown) => {
+          // A kept-alive socket the server closes as it is reused resets once; a GET is safe to send again, a second reset is real.
+          if (request.method() !== 'GET' || !/ECONNRESET/.test(String(error)))
+            throw error;
+          return route.fetch();
+        });
         const body = mask(
           (await response.text()).replace(
             /(isInvalidated\\?":)false/g,

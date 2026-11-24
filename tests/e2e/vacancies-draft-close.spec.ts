@@ -4,6 +4,7 @@ import messages from '../../messages/uk.json' with { type: 'json' };
 import { checkAccessibility } from '../support/accessibility';
 import { E2E_ORIGIN, sessionFile } from '../support/e2e-session';
 import { openHydrated } from '../support/hydration';
+import { problemFulfill } from '../support/problem';
 import { notFound, sweepDrafts } from './support/vacancy-create';
 import {
   cancelDialog,
@@ -454,7 +455,7 @@ test.describe('cancel and delete dialogs of own drafts [STORY-VAC-01-1, VAC-01, 
     });
   }
 
-  test('404: the dialog closes, the toast says the draft is gone [ux §6.3]', async ({
+  test('404 while the card still reads: only the action was refused, so the dialog stays with the forbidden text [ADR-020]', async ({
     page,
   }) => {
     await stubClose(
@@ -469,6 +470,37 @@ test.describe('cancel and delete dialogs of own drafts [STORY-VAC-01-1, VAC-01, 
     await menuButton(page, spare.title).click();
     await menuItem(page, ta.cancel).click();
     await reasonBox(page).fill('Дубль');
+    await confirmCancel(page).click();
+    await expect(cancelDialog(page).getByRole('alert')).toContainText(
+      ta.toast.forbidden,
+    );
+    await expect(reasonBox(page)).toHaveValue('Дубль');
+    await expect(toastWith(page, ta.toast.gone)).toHaveCount(0);
+  });
+
+  test('404 and the card read is 404 too: the dialog closes, the toast says the draft is gone [ux §6.3]', async ({
+    page,
+  }) => {
+    await stubClose(
+      page,
+      api,
+      spare.id,
+      'cancel',
+      { status: 404, code: 'NOT_FOUND' },
+      { gated: false },
+    );
+    await openHydrated(page, draftListPath());
+    await menuButton(page, spare.title).click();
+    await menuItem(page, ta.cancel).click();
+    await reasonBox(page).fill('Дубль');
+    // The card read turns 404 only now: the open menu reads the draft itself.
+    await page.route(
+      (url) => url.pathname === `/api/v1/vacancies/${spare.id}`,
+      async (route) =>
+        route.request().method() === 'GET'
+          ? route.fulfill(await problemFulfill(404, 'NOT_FOUND'))
+          : route.fallback(),
+    );
     await confirmCancel(page).click();
     await expect(toastWith(page, ta.toast.gone)).toBeVisible();
     await expect(cancelDialog(page)).toHaveCount(0);
