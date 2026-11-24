@@ -15,6 +15,7 @@ import { checkAccessibility } from '../support/accessibility';
 import { openHydrated } from '../support/hydration';
 import { problemFulfill } from '../support/problem';
 import { DRAFT_VACANCY, demoVacancy } from '../support/vacancy-demo';
+import { removeSeededDraft } from '../support/vacancy-draft-db';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import type { VacancyDetail } from '../../lib/schemas/vacancy';
 import {
@@ -604,13 +605,8 @@ test.describe('a vacancy that is not a draft [ux §5]', () => {
   test('an own cancelled draft opens the same state, not a form [ux §5, D82]', async ({
     page,
   }) => {
-    const cancelled = await createDraft(page.request);
+    const cancelled = await createDraft(page.request, 'CANCELLED');
     try {
-      const answer = await page.request.post(
-        `/api/v1/vacancies/${cancelled.id}/cancel`,
-        { headers: MUTATION_HEADERS, data: { reason: 'Тест E2E' } },
-      );
-      expect(answer.status(), await answer.text()).toBe(200);
       const response = await page.goto(editPath(cancelled.id));
       expect(response?.status()).toBe(200);
       await expect(
@@ -624,11 +620,7 @@ test.describe('a vacancy that is not a draft [ux §5]', () => {
       await expect(saveEdit(page)).toHaveCount(0);
       await expect(publishEdit(page)).toHaveCount(0);
     } finally {
-      const removed = await page.request.delete(
-        `/api/v1/vacancies/${cancelled.id}`,
-        { headers: MUTATION_HEADERS, data: {} },
-      );
-      expect([200, 404], await removed.text()).toContain(removed.status());
+      await removeSeededDraft(cancelled.id, cancelled.title);
     }
   });
 });

@@ -1,5 +1,3 @@
-import { readFile, readdir } from 'node:fs/promises';
-import { join } from 'node:path';
 import { expect, type Page } from '@playwright/test';
 import {
   updateVacancyContentSchema,
@@ -15,6 +13,7 @@ import {
   contentUrl,
   contentWrites,
   editor,
+  editorRuntimePath,
   openContent,
   readContent,
   RECRUITER,
@@ -33,26 +32,6 @@ function gate() {
     release = resolve;
   });
   return { promise, open: () => release() };
-}
-
-async function editorRuntimePath() {
-  const directory = join(process.cwd(), '.next/static/chunks');
-  const matches = (
-    await Promise.all(
-      (await readdir(directory))
-        .filter((name) => name.endsWith('.js'))
-        .map(async (name) => ({
-          name,
-          source: await readFile(join(directory, name), 'utf8'),
-        })),
-    )
-  ).filter(({ source }) =>
-    source.includes('immediatelyRender:!1,shouldRerenderOnTransaction:!1'),
-  );
-  expect(matches).toHaveLength(1);
-  const match = matches[0];
-  if (!match) throw new Error('Expected the production Tiptap runtime chunk');
-  return `/_next/static/chunks/${match.name}`;
 }
 
 async function refreshRoute(page: Page, path: string) {

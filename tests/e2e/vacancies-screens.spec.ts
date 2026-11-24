@@ -512,7 +512,9 @@ test.describe('admin@demo states', () => {
           preview.getByRole('heading', { level: 2, name: target.title }),
         ).toBeVisible();
         await expect(
-          preview.getByText(t.urgent, { exact: true }),
+          preview
+            .getByText(t.urgent, { exact: true })
+            .and(page.locator('[data-urgent]')),
         ).toHaveAttribute('data-urgent', String(red));
         await checkAccessibility(page, testInfo);
         await captureScreen(

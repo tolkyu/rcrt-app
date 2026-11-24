@@ -44,7 +44,8 @@ const LIST_OF = (id: string) =>
 const LONG_TITLE =
   'Медіабаєр-арбітражник-наставник-крос-платформений-спеціаліст-закупівлі-трафіку — міжнародна команда, розвиток рекламних напрямів Facebook та партнерських мереж. '
     .repeat(2)
-    .slice(0, 200);
+    .slice(0, 201)
+    .replace(/\s+\S*$/, '');
 const MISSING_ID = '5f3c9a1e-8d2b-4e6f-9a7c-1b2d3e4f5a6b';
 const draftsOf = messages.vacancies;
 
@@ -395,7 +396,11 @@ for (const { user, role } of AUTHORS) {
           const narrow = isMobile ? PHONE_320 : ZOOM_200;
           await page.setViewportSize(narrow);
           const dialog = cancelDialog(page);
-          await reasonBox(page).fill('a'.repeat(450));
+          await reasonBox(page).fill(
+            'Перенесено найм до затвердження бюджету. '
+              .repeat(12)
+              .slice(0, 450),
+          );
           for (const name of [tc.cancel.keep, tc.cancel.confirm]) {
             const box = await dialog
               .getByRole('button', { name })

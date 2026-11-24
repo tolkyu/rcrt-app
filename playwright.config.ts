@@ -10,8 +10,11 @@ const ADMIN_MUTATION_SPECS = 'e2e/settings-*.spec.ts';
  * These open or change real vacancies in the seeded lists of the Team Lead and the recruiters (soft-deleted afterwards),
  * and `vacancy-share` completes a real Admin TOTP sign-in, which ends the shared aal1 Admin session that the 2FA-page
  * specs read (a verified code ends the user's other aal1 sessions). They run alone after every other spec.
+ * The content specs also write as the shared recruiter, so desktop and mobile must not spend one 30-per-minute limit together.
  */
 const OPEN_LIST_SPECS = [
+  'e2e/vacancy-content-*.spec.ts',
+  'e2e/vacancies-denial-back.spec.ts',
   'e2e/vacancy-request.spec.ts',
   'e2e/vacancy-assignment.spec.ts',
   'e2e/vacancy-status.spec.ts',

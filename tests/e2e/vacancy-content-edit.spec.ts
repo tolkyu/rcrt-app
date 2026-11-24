@@ -94,17 +94,21 @@ test.describe('published vacancy content [VAC-01, VAC-08, D133, ADR-020]', () =>
             vacancyContentReadSchema.parse(await access.json()).canEditContent,
           ).toBe(false);
         if (otherAssigned) {
+          // A confirmed read denial reloads the document, so the server's real 404 page answers.
           await expect(
-            page.getByText(tc.unavailableTitle, { exact: true }),
+            page.getByRole('heading', {
+              level: 1,
+              name: messages.errors.notFoundTitle,
+            }),
           ).toBeVisible();
           await expect(page.getByRole('textbox')).toHaveCount(0);
           await expect(page.getByText('Правки знятого рекрутера')).toHaveCount(
             0,
           );
           await page
-            .getByRole('link', { name: tc.toList, exact: true })
+            .getByRole('link', { name: messages.states.toStart, exact: true })
             .click();
-          await expect(page).toHaveURL(/\/vacancies$/);
+          await expect(page).not.toHaveURL(/\/content\/edit$/);
           await expect(page.getByRole('alertdialog')).toHaveCount(0);
         } else {
           await expect(
@@ -470,7 +474,9 @@ test.describe('published vacancy content [VAC-01, VAC-08, D133, ADR-020]', () =>
           ),
         );
       });
+      await page.evaluate(() => Reflect.set(window, 'e2eBeforeDenial', true));
       expect((await revalidateContent(page, vacancy.id)).status()).toBe(status);
+      await page.waitForFunction(() => !Reflect.get(window, 'e2eBeforeDenial'));
       await expect(
         page.getByText(tc.unavailableTitle, { exact: true }),
       ).toBeVisible();
@@ -487,7 +493,8 @@ test.describe('published vacancy content [VAC-01, VAC-08, D133, ADR-020]', () =>
       await page.getByRole('link', { name: tc.toList, exact: true }).click();
       await expect(page).toHaveURL(/\/vacancies$/);
       await expect(page.getByRole('alertdialog')).toHaveCount(0);
-      expect(reads).toBe(1);
+      // One denied read, one reload, one denied read of the new document, and no loop.
+      expect(reads).toBe(2);
       await page.goBack();
       await expect(page.getByRole('textbox')).toHaveCount(0);
       await expect(page.getByText('Приватний незбережений текст')).toHaveCount(
@@ -507,19 +514,15 @@ test.describe('published vacancy content [VAC-01, VAC-08, D133, ADR-020]', () =>
       await context.clearCookies();
       await route.fulfill(await problemFulfill(401, 'UNAUTHORIZED'));
     });
-    const refresh = page.waitForResponse(
-      (response) =>
-        response.url().includes(contentPath(vacancy.id)) &&
-        response.headers()['content-type']?.includes('text/x-component') ===
-          true,
+    const guarded = page.waitForRequest(
+      (request) =>
+        request.isNavigationRequest() &&
+        new URL(request.url()).pathname === '/login' &&
+        new URL(request.redirectedFrom()?.url() ?? request.url()).pathname ===
+          contentPath(vacancy.id),
     );
     await saveContent(page).click();
-    const refreshed = await refresh;
-    const flight = await refreshed.text();
-    expect(
-      flight.includes('NEXT_REDIRECT'),
-      'the session guard redirects the refreshed route',
-    ).toBe(true);
+    await guarded;
     await expect(page).toHaveURL(/\/login(?:\?|$)/);
     await expect(page.getByText('Текст втраченої сесії')).toHaveCount(0);
     await expect(page.locator('[contenteditable="true"]')).toHaveCount(0);

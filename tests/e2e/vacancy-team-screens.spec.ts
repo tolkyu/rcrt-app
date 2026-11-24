@@ -1,7 +1,10 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import messages from '../../messages/uk.json' with { type: 'json' };
-import { E2E_ORIGIN, sessionFile } from '../support/e2e-session';
+import { DEMO_VERTICALS } from '../../server/db/seed';
+import { E2E_ORIGIN, sessionFile, signIn } from '../support/e2e-session';
 import { openHydrated } from '../support/hydration';
+import { withIsolatedActor } from '../support/isolated-actor';
+import { withOwner } from '../support/vacancy-request-db';
 import { demoVacancy } from '../support/vacancy-demo';
 import {
   addPickerRecruiter,
@@ -9,6 +12,7 @@ import {
   pinClosedDay,
   removePickerRecruiter,
   removeTeamFixtures,
+  TEAM_MARKER,
   type TeamFixture,
   type TeamFixtureSpec,
 } from '../support/vacancy-team-db';
@@ -41,6 +45,7 @@ import {
 
 const HEAD = 'head.recruiter.gambling@demo';
 const TITLE = 'Медіабаєр — Facebook';
+const DESCRIPTION = 'Шукаємо медіабаєра для запуску кампаній у Facebook.';
 const REASON = 'Команда змінила плани найму.';
 const CLOSED_REASON =
   'Команда змінила плани найму.\nВакансію закрили до кінця кварталу.';
@@ -59,9 +64,12 @@ const reasonBox = (page: Page) =>
 const setTheme = (page: Page, theme: 'light' | 'dark') =>
   page.context().addCookies([{ name: 'theme', value: theme, url: E2E_ORIGIN }]);
 
-/** The fixture shows a fixed number whatever identity value the database handed out. */
+/** The fixture shows a fixed number whatever identity value the database handed out, and Ukrainian text in place of its cleanup marker. */
 async function stage(page: Page, fixed?: readonly [TeamFixture, string]) {
-  await installFixedClock(page, fixed ? [[fixed[0].number, fixed[1]]] : []);
+  await installFixedClock(page, [
+    [TEAM_MARKER, DESCRIPTION],
+    ...(fixed ? [[fixed[0].number, fixed[1]] as const] : []),
+  ]);
   await page.emulateMedia({ reducedMotion: 'reduce' });
 }
 
@@ -142,7 +150,16 @@ test.describe('urgency on the card [STORY-VAC-08-2, SHOT-01..03, D125]', () => {
       );
       await setTheme(page, 'light');
       await openCard(page, filled);
-      await expect(header(page)).toContainText(tv.urgentClosed);
+      await expect(header(page)).not.toContainText(tv.urgentClosed);
+      await expect(
+        page.getByText(
+          tv.statusMenu.banner.filled.replace(
+            '{at, date, ::dd.MM.yyyy}',
+            '13.11.2026',
+          ),
+          { exact: true },
+        ),
+      ).toBeVisible();
       await expect(
         page.getByRole('radiogroup', { name: tv.urgency.label }),
       ).toHaveCount(0);
@@ -581,6 +598,51 @@ test.describe('status of the vacancy [STORY-VAC-02-1, SHOT-01..03, D125]', () =>
         'light',
       );
     });
+  });
+});
+
+test.describe('Admin before the 2FA step-up [D63, SHOT-01..03, D125]', () => {
+  test.use({ storageState: { cookies: [], origins: [] } });
+
+  // D63 withholds only the Admin grant of a mixed-role user at aal1; a disposable Admin + Recruiter shows it under the seeded Admin name.
+  test('S1: on a phone the status and team actions stay visible, disabled, with the reason and «Підтвердити»', async ({
+    page,
+    isMobile,
+  }, info) => {
+    test.skip(!isMobile, PHONE_ONLY);
+    const target = await fixture(
+      page,
+      { status: 'OPEN', teamLead: 'vasyl.tl@demo' },
+      'V-0007',
+    );
+    await withIsolatedActor(
+      [
+        { role: 'ADMIN', verticalId: null },
+        { role: 'RECRUITER', verticalId: DEMO_VERTICALS.gambling },
+      ],
+      async (actor) => {
+        await withOwner(
+          (sql) => sql`
+            update app.app_user set full_name = 'Іван Коваленко'
+            where id = ${actor.id} and email = ${actor.email}`,
+        );
+        await signIn(page.request, actor.email);
+        await setTheme(page, 'light');
+        await openCard(page, target);
+        const verify = page
+          .getByRole('link', { name: tv.stepUp.verify, exact: true })
+          .first();
+        await expect(verify).toBeVisible();
+        await expect(verify).toHaveAttribute(
+          'href',
+          `/mfa/verify?next=${encodeURIComponent(`/vacancies/${target.id}`)}`,
+        );
+        await expect(
+          page.getByText(tv.stepUp.reason, { exact: true }).first(),
+        ).toBeVisible();
+        await snap(page, info, '50-admin-vacancy-status-step-up', 'light');
+      },
+    );
   });
 });
 

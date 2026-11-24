@@ -3,6 +3,7 @@ import { expect, type APIRequestContext, type Page } from '@playwright/test';
 import { DEMO_VERTICALS } from '../../../server/db/seed';
 import type { VacancyDetail } from '../../../lib/schemas/vacancy';
 import { MUTATION_HEADERS } from '../../support/e2e-session';
+import { seedDraft, type DraftAuthor } from '../../support/vacancy-draft-db';
 import { OWN_DRAFT_PREFIX, POSITION, t } from './vacancy-create';
 
 export const te = t.edit;
@@ -39,26 +40,29 @@ export async function activePositionId(api: APIRequestContext) {
   return found!.id;
 }
 
-/** A real draft of the signed-in user, with a position and values in every group the edit tests read; the title carries the run's prefix so the sweep finds it. */
-export async function createDraft(api: APIRequestContext) {
-  const answer = await api.post('/api/v1/vacancies', {
-    headers: write(),
-    data: {
-      mode: 'DRAFT',
-      verticalId: DEMO_VERTICALS.gambling,
-      positionId: await activePositionId(api),
-      title: `${OWN_DRAFT_PREFIX} ${Date.now()}`,
-      headcount: 3,
-      priority: 'URGENT',
-      seniority: 'Мідл',
-      location: 'Київ',
-      salaryMinMinor: '250000',
-      salaryMaxMinor: '400050',
-      salaryCurrency: 'USD',
-    },
+const DRAFT_VALUES = {
+  headcount: 3,
+  priority: 'URGENT',
+  seniority: 'Мідл',
+  location: 'Київ',
+  salaryMinMinor: '250000',
+  salaryMaxMinor: '400050',
+  salaryCurrency: 'USD',
+} as const;
+
+/** A stored draft of `author`, read back through their session, with values in every group the edit tests read; the title carries the run's prefix so the sweep finds it. */
+export async function createDraft(
+  api: APIRequestContext,
+  status: 'DRAFT' | 'CANCELLED' = 'DRAFT',
+  author: DraftAuthor = 'recruiter2.gambling@demo',
+) {
+  const id = await seedDraft({
+    ...DRAFT_VALUES,
+    author,
+    status,
+    title: `${OWN_DRAFT_PREFIX} ${randomUUID()}`,
   });
-  expect(answer.status(), await answer.text()).toBe(201);
-  return (await answer.json()) as VacancyDetail;
+  return readDraft(api, id);
 }
 
 export async function readDraft(api: APIRequestContext, id: string) {

@@ -173,6 +173,145 @@ test.describe('a Recruiter takes a free vacancy [STORY-VAC-03-1, D130-2]', () =>
     });
 });
 
+test.describe('a lost claim on the card [STORY-VAC-03-1, D132]', () => {
+  test.use({ storageState: sessionFile('recruiter1.gambling@demo') });
+
+  test('another recruiter was first: one reload into the not-found view warns once; «Вакансії» and F5 stay quiet', async ({
+    page,
+    playwright,
+  }) => {
+    const fixture = await addTeamFixture({
+      title: uniqueTitle('Гонка на картці'),
+      status: 'OPEN',
+      teamLead: 'vasyl.tl@demo',
+    });
+    const description = fill(tt.claimDialog.lostDescription, {
+      number: fixture.number,
+    });
+    // Each distinct warning element counts once per document, so a toast that stays on screen across a client navigation is one warning.
+    await page.addInitScript(
+      ({ title, text }) => {
+        const seen = new WeakSet<Element>();
+        Reflect.set(window, 'e2eLostWarnings', 0);
+        new MutationObserver(() => {
+          for (const toast of document.querySelectorAll(
+            '[data-slot="toast"]',
+          )) {
+            const content = toast.textContent ?? '';
+            if (
+              seen.has(toast) ||
+              !content.includes(title) ||
+              !content.includes(text)
+            )
+              continue;
+            seen.add(toast);
+            Reflect.set(
+              window,
+              'e2eLostWarnings',
+              Number(Reflect.get(window, 'e2eLostWarnings')) + 1,
+            );
+          }
+        }).observe(document, {
+          childList: true,
+          subtree: true,
+          characterData: true,
+        });
+      },
+      { title: tt.claimDialog.lost, text: description },
+    );
+    const warnings = () =>
+      page.evaluate(() => Number(Reflect.get(window, 'e2eLostWarnings')));
+    const settle = () =>
+      page.evaluate(() => fetch('/api/health').then((answer) => answer.text()));
+    const path = `/vacancies/${fixture.id}`;
+
+    await openCard(page, fixture);
+    await button(teamSection(page), tt.claim).click();
+    const dialog = alertDialogNamed(page, tt.claimDialog.title);
+    await expect(dialog).toBeVisible();
+    const documents: string[] = [];
+    page.on('request', (request) => {
+      if (
+        request.isNavigationRequest() &&
+        request.frame() === page.mainFrame() &&
+        new URL(request.url()).pathname === path
+      )
+        documents.push(request.url());
+    });
+    const rival = await apiAs(playwright, 'recruiter2.gambling@demo');
+    await claimByApi(rival, fixture.id);
+    await rival.dispose();
+    await button(dialog, tt.claimDialog.confirm).click();
+
+    await expect.poll(() => documents.length).toBe(1);
+    await expect(page).toHaveURL(new RegExp(`${path}$`));
+    await expect(
+      page.getByRole('heading', { level: 1, name: notFoundTitle }),
+    ).toBeVisible();
+    await expect(toastWith(page, tt.claimDialog.lost)).toContainText(
+      description,
+    );
+    await settle();
+    expect(await warnings()).toBe(1);
+    expect(documents).toHaveLength(1);
+
+    await page
+      .getByRole('link', { name: messages.nav.vacancies, exact: true })
+      .filter({ visible: true })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/vacancies(\?|$)/);
+    await expect(
+      page.getByRole('heading', { level: 1, name: tv.title }),
+    ).toBeVisible();
+    await settle();
+    expect(await warnings()).toBe(1);
+
+    await page.reload();
+    await expect(
+      page.getByRole('heading', { level: 1, name: tv.title }),
+    ).toBeVisible();
+    await settle();
+    expect(await warnings()).toBe(0);
+    await expect(toastWith(page, tt.claimDialog.lost)).toHaveCount(0);
+    expect(documents).toHaveLength(1);
+  });
+
+  test('the lost-claim reader never loads on «Нова вакансія» [PERF-04, D132]', async ({
+    page,
+  }) => {
+    const carriers: string[] = [];
+    const reads: Promise<void>[] = [];
+    // Another route's page chunk arrives only through link prefetch (the list carries the notice itself); this page's own and shared chunks must not.
+    const prefetchedRoute = (path: string) =>
+      path.startsWith('/_next/static/chunks/app/') &&
+      !path.includes('/vacancies/new/');
+    page.on('response', (response) => {
+      if (response.request().resourceType() !== 'script') return;
+      if (prefetchedRoute(new URL(response.url()).pathname)) return;
+      reads.push(
+        response
+          .text()
+          .then((source) => {
+            if (source.includes('vacancy-claim-lost'))
+              carriers.push(new URL(response.url()).pathname);
+          })
+          .catch(() => undefined),
+      );
+    });
+    await page.goto('/vacancies/new');
+    await expect(
+      page.getByRole('heading', {
+        level: 1,
+        name: messages.vacancyForm.title,
+      }),
+    ).toBeVisible();
+    await page.waitForLoadState('networkidle');
+    await Promise.all(reads);
+    expect(carriers).toEqual([]);
+  });
+});
+
 test.describe('a Head Recruiter shapes the team [STORY-VAC-03-1, STORY-VAC-03-2, D130, D131]', () => {
   test.use({ storageState: sessionFile(HEAD) });
 

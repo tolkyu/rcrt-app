@@ -8,7 +8,6 @@ import { notFound, sweepDrafts } from './support/vacancy-create';
 import {
   cancelDialog,
   cancelledListPath,
-  cancelByApi,
   confirmCancel,
   confirmDelete,
   deleteDialog,
@@ -39,7 +38,7 @@ const counter = (count: number) =>
 test.describe('cancel and delete dialogs of own drafts [STORY-VAC-01-1, VAC-01, D82, D92, D98, D111, D112, D113]', () => {
   test.use({ storageState: sessionFile(AUTHOR) });
   test.describe.configure({ mode: 'serial' });
-  // Real writes per project: five drafts, then one cancel and one delete in the list, a delete of the cancelled one, a cancel and a delete on the card. Everything else is stubbed.
+  // Real API writes per project: one cancel and one delete in the list, a delete of the cancelled one, a cancel and a delete on the card. Drafts are seeded and swept in the database, everything else is stubbed.
   // The «Чернетки N» chip is not asserted here: desktop and mobile write the same author's drafts in lockstep, so only unit (`applyClosed`) and Newman (count after cancel and delete) can pin the numbers.
   let api: APIRequestContext;
   let toCancel: VacancyDetail;
@@ -534,8 +533,7 @@ test.describe('who sees the cancel and delete actions [D92, D98, D112]', () => {
     const api = owner.request;
     let draft: VacancyDetail | undefined;
     try {
-      draft = await createOwnDraft(api, 'X', true);
-      await cancelByApi(api, draft.id);
+      draft = await createOwnDraft(api, 'X', true, 'CANCELLED');
       const page = await other.newPage();
       await openHydrated(page, cancelledListPath());
       await expect(rowLink(page, draft.title)).toHaveCount(0);

@@ -36,7 +36,7 @@ const REASON = v.draftErrors.positionRequired;
 test.describe('draft actions in the list, preview and card [STORY-VAC-01-1, VAC-01, D92, D98]', () => {
   test.use({ storageState: sessionFile(AUTHOR) });
   test.describe.configure({ mode: 'serial' });
-  // The real writes are two drafts per project; every publish is stubbed (an open vacancy cannot be deleted).
+  // No real API write: drafts are seeded and swept in the database, every publish is stubbed (an open vacancy cannot be deleted).
   let api: APIRequestContext;
   let second: VacancyDetail;
   let bare: VacancyDetail;

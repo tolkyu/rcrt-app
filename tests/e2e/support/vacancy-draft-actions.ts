@@ -3,8 +3,9 @@ import { DEMO_VERTICALS } from '../../../server/db/seed';
 import type { VacancyDetail } from '../../../lib/schemas/vacancy';
 import messages from '../../../messages/uk.json' with { type: 'json' };
 import { problemFulfill } from '../../support/problem';
+import { seedDraft } from '../../support/vacancy-draft-db';
 import { OWN_DRAFT_PREFIX } from './vacancy-create';
-import { activePositionId, opened, readDraft, write } from './vacancy-edit';
+import { opened, readDraft } from './vacancy-edit';
 
 export const ta = messages.vacancies.draft.actions;
 export const COUNT_URL = /\/api\/v1\/vacancies\/drafts\/count$/;
@@ -20,18 +21,15 @@ export async function createOwnDraft(
   api: APIRequestContext,
   label: string,
   withPosition: boolean,
-) {
-  const answer = await api.post('/api/v1/vacancies', {
-    headers: write(),
-    data: {
-      mode: 'DRAFT',
-      verticalId: DEMO_VERTICALS.gambling,
-      ...(withPosition ? { positionId: await activePositionId(api) } : {}),
-      title: `${OWN_DRAFT_PREFIX} ${label}`,
-    },
+  status: 'DRAFT' | 'CANCELLED' = 'DRAFT',
+): Promise<VacancyDetail> {
+  const id = await seedDraft({
+    author: 'recruiter2.gambling@demo',
+    title: `${OWN_DRAFT_PREFIX} ${label}`,
+    withPosition,
+    status,
   });
-  expect(answer.status(), await answer.text()).toBe(201);
-  return (await answer.json()) as VacancyDetail;
+  return readDraft(api, id);
 }
 
 const menuLabel = (title: string) => ta.menuLabel.replace('{title}', title);

@@ -1215,14 +1215,17 @@ test.describe('layouts', () => {
     await expect(page.getByRole('table')).toBeVisible();
     await expect(preview.getByRole('heading', { level: 2 })).toBeVisible();
     const columns = page.getByRole('columnheader');
+    // Below 1600 px the vertical column yields to the preview, which shows the vertical (M6).
     await expect(columns).toHaveText([
       t.columns.title,
-      t.columns.vertical,
       t.columns.teamLead,
       t.columns.recruiters,
       t.columns.status,
       t.columns.preview,
     ]);
+    await expect(
+      preview.locator('dt', { hasText: t.fields.vertical }).locator('+ dd'),
+    ).toHaveText(/\S/);
     const fits = () =>
       page.evaluate(
         () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -1236,6 +1239,9 @@ test.describe('layouts', () => {
     ).toHaveCount(0);
     await expect(
       page.getByRole('columnheader', { name: t.columns.openedAt }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('columnheader', { name: t.columns.vertical }),
     ).toBeVisible();
     expect(await fits()).toBe(true);
   });

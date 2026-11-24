@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import {
   expect,
   test as base,
@@ -61,6 +63,25 @@ export const test = base.extend<{ vacancy: ContentFixture }>({
     }
   },
 });
+
+/** The built Tiptap runtime chunk; its options are the only stable signature in minified output. */
+export async function editorRuntimePath() {
+  const directory = join(process.cwd(), '.next/static/chunks');
+  const names = (await readdir(directory)).filter((name) =>
+    name.endsWith('.js'),
+  );
+  const sources = await Promise.all(
+    names.map(async (name) => ({
+      name,
+      source: await readFile(join(directory, name), 'utf8'),
+    })),
+  );
+  const matches = sources.filter(({ source }) =>
+    source.includes('immediatelyRender:!1,shouldRerenderOnTransaction:!1'),
+  );
+  expect(matches).toHaveLength(1);
+  return `/_next/static/chunks/${matches[0]!.name}`;
+}
 
 export const contentPath = (id: string) => `/vacancies/${id}/content/edit`;
 export const contentUrl = (id: string) =>

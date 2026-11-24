@@ -67,7 +67,7 @@ test.describe('Dialog family on a phone [UI-F8, mobile TL flows]', () => {
     expect(await horizontalOverflow(page)).toBe(0);
   });
 
-  test('ConfirmDialog is a sheet too: Cancel above, a full-width destructive confirm last, the reason shown as text under it', async ({
+  test('ConfirmDialog is a sheet too: Cancel above, a full-width destructive confirm last, the blocker shown as text in the reason field', async ({
     page,
   }) => {
     await openGallery(page);
@@ -83,18 +83,23 @@ test.describe('Dialog family on a phone [UI-F8, mobile TL flows]', () => {
     expect(confirmBox.width).toBe(cancelBox.width);
     expect(confirmBox.height).toBeGreaterThanOrEqual(44);
 
-    // Touch has no tooltip: the blocker is visible text directly below the button.
+    // Touch has no tooltip: the blocker is visible text in the reason field, between the input and the actions.
+    const field = page.getByRole('textbox');
     const helper = dialog.getByText(c.confirmReasonRequired, { exact: true });
-    const helperBox = await box(helper);
+    await expect(
+      dialog
+        .locator('[data-slot="form-field"]')
+        .filter({ has: field })
+        .getByText(c.confirmReasonRequired, { exact: true }),
+    ).toBeVisible();
+    const [fieldBox, helperBox] = [await box(field), await box(helper)];
     expect(helperBox.height).toBeGreaterThan(10);
-    expect(helperBox.y).toBeGreaterThanOrEqual(
-      confirmBox.y + confirmBox.height,
-    );
+    expect(helperBox.y).toBeGreaterThanOrEqual(fieldBox.y + fieldBox.height);
+    expect(helperBox.y + helperBox.height).toBeLessThanOrEqual(cancelBox.y);
     expect(
       await helper.evaluate((node) => getComputedStyle(node).fontSize),
     ).toBe('12px');
 
-    const field = page.getByRole('textbox');
     expect((await box(field)).height).toBeGreaterThanOrEqual(44);
     expect(
       await field.evaluate((node) => getComputedStyle(node).fontSize),

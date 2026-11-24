@@ -1,5 +1,3 @@
-import { readdir, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import {
   expect,
   type APIRequestContext,
@@ -26,6 +24,7 @@ import {
   contentPath,
   contentUrl,
   editor,
+  editorRuntimePath,
   fieldSection,
   replaceText,
   saveContent,
@@ -39,6 +38,8 @@ import {
 } from './support/vacancy-content';
 
 const TITLE = 'Медіабаєр — Facebook';
+const LONG_TITLE =
+  'Старший медіабаєр Facebook, Google і TikTok Ads для міжнародної команди Надзвичайновідповідальнийкерівникнапрямумедіазакупівель';
 const NUMBER = 'V-0510';
 const HEAD = 'head.recruiter.gambling@demo';
 const INTRO = 'Шукаємо медіабаєра для запуску кампаній у Facebook.';
@@ -52,6 +53,18 @@ const DESCRIPTION: RichTextDoc = {
       content: [{ type: 'text', text: 'Про роль' }],
     },
     { type: 'paragraph', content: [{ type: 'text', text: INTRO }] },
+    {
+      type: 'paragraph',
+      content: [
+        {
+          type: 'text',
+          text: 'Детальніше про команду',
+          marks: [
+            { type: 'link', attrs: { href: 'https://example.com/careers' } },
+          ],
+        },
+      ],
+    },
     {
       type: 'bulletList',
       content: ['Планування бюджету', 'Аналіз результатів кампаній'].map(
@@ -134,24 +147,6 @@ const editLink = (page: Page) =>
     name: messages.vacancies.contentCard.editAction,
     exact: true,
   });
-
-async function editorRuntimePath() {
-  const directory = join(process.cwd(), '.next/static/chunks');
-  const names = (await readdir(directory)).filter((name) =>
-    name.endsWith('.js'),
-  );
-  const sources = await Promise.all(
-    names.map(async (name) => ({
-      name,
-      source: await readFile(join(directory, name), 'utf8'),
-    })),
-  );
-  const matches = sources.filter(({ source }) =>
-    source.includes('immediatelyRender:!1,shouldRerenderOnTransaction:!1'),
-  );
-  expect(matches).toHaveLength(1);
-  return `/_next/static/chunks/${matches[0]!.name}`;
-}
 
 /** CANCELLED is terminal in the database, so the second theme reuses the row the first one closed. */
 const cancelledOnce = new Set<string>();
@@ -261,13 +256,43 @@ const edit = {
     await saveContent(page).click();
     await alertWith(page, tc.filled);
   },
-  'permission-lost': async ({ page, vacancy }) => {
+  'permission-retained': async ({ page, vacancy }) => {
     await openDirty(page, vacancy);
     await stubContent(page, vacancy.id, 'PATCH', async (route) =>
       route.fulfill(await problemFulfill(403, 'FORBIDDEN')),
     );
     await saveContent(page).click();
     await alertWith(page, tc.permissionLost);
+    await expect(editor(page, 'description')).toHaveAttribute(
+      'contenteditable',
+      'true',
+    );
+  },
+  'permission-lost': async ({ page, vacancy }) => {
+    await openDirty(page, vacancy);
+    let writes = 0;
+    await page.route(contentUrl(vacancy.id), async (route) => {
+      if (route.request().method() === 'PATCH') {
+        writes += 1;
+        return route.fulfill(await problemFulfill(403, 'FORBIDDEN'));
+      }
+      const response = await route.fetch();
+      await route.fulfill({
+        response,
+        json: { ...(await response.json()), canEditContent: false },
+      });
+    });
+    await saveContent(page).click();
+    await alertWith(page, tc.permissionLost);
+    for (const field of ['description', 'requirements'] as const)
+      await expect(editor(page, field)).toHaveAttribute(
+        'contenteditable',
+        'false',
+      );
+    await expect(saveContent(page)).toHaveAttribute('aria-disabled', 'true');
+    await saveContent(page).click({ force: true });
+    await editor(page, 'description').press('ControlOrMeta+Enter');
+    expect(writes).toBe(1);
   },
   'save-failed': async ({ page, vacancy }) => {
     await openDirty(page, vacancy);
@@ -368,6 +393,7 @@ const ROLES: readonly {
       'stale-dialog',
       'closed-while-editing',
       'permission-lost',
+      'permission-retained',
       'save-failed',
       'chunk-failed',
       'leave-guard',
@@ -393,11 +419,12 @@ async function capture(
   info: TestInfo,
   scenario: Scenario,
   file: string,
+  title = TITLE,
 ) {
   test.setTimeout(120_000);
   page.on('dialog', (dialog) => dialog.accept());
   await installFixedClock(page, [
-    [vacancy.title, TITLE],
+    [vacancy.title, title],
     [vacancy.number, NUMBER],
   ]);
   await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -439,3 +466,78 @@ for (const { user, role, card: cardStates, edit: editStates } of ROLES)
         }
       });
   });
+
+test.describe('content captures open More menu on a phone [VAC-08, SHOT-01..03, D125]', () => {
+  test.use({ storageState: sessionFile('recruiter1.gambling@demo') });
+
+  const moreOpen: Scenario = async ({ page, vacancy }) => {
+    await openEditor(page, vacancy);
+    const more = fieldSection(page, 'description').getByRole('button', {
+      name: tr.more,
+      exact: true,
+    });
+    await more.tap();
+    await expect(more).toHaveAttribute('aria-expanded', 'true');
+    await expect(
+      fieldSection(page, 'description').getByRole('button', {
+        name: tr.heading1,
+        exact: true,
+      }),
+    ).toBeVisible();
+  };
+
+  test('captures 52-recruiter-vacancy-content-edit-more-open', async ({
+    page,
+    vacancy,
+    playwright,
+    isMobile,
+  }, info) => {
+    test.skip(!isMobile, 'the More menu exists only on a phone');
+    const head = await apiAs(playwright, HEAD);
+    try {
+      await capture(
+        { page, vacancy, head },
+        info,
+        moreOpen,
+        '52-recruiter-vacancy-content-edit-more-open',
+      );
+    } finally {
+      await head.dispose();
+    }
+  });
+});
+
+test.describe('content captures long title at 390 px [VAC-08, SHOT-01..03, D125]', () => {
+  test.use({ storageState: sessionFile('recruiter1.gambling@demo') });
+
+  for (const { scenario, file } of [
+    {
+      scenario: card.editable as Scenario,
+      file: '51-recruiter-vacancy-content-card-long-title',
+    },
+    {
+      scenario: edit.loaded as Scenario,
+      file: '52-recruiter-vacancy-content-edit-long-title',
+    },
+  ])
+    test(`captures ${file}`, async ({
+      page,
+      vacancy,
+      playwright,
+      isMobile,
+    }, info) => {
+      test.skip(!isMobile, 'the long title is a phone layout case');
+      const head = await apiAs(playwright, HEAD);
+      try {
+        await capture(
+          { page, vacancy, head },
+          info,
+          scenario,
+          file,
+          LONG_TITLE,
+        );
+      } finally {
+        await head.dispose();
+      }
+    });
+});

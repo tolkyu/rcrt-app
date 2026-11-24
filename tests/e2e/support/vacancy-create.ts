@@ -6,7 +6,7 @@ import {
 } from '@playwright/test';
 import { createTranslator } from 'next-intl';
 import type { VacancyDetail } from '../../../lib/schemas/vacancy';
-import { MUTATION_HEADERS } from '../../support/e2e-session';
+import { removeSeededDraft } from '../../support/vacancy-draft-db';
 import { openHydrated } from '../../support/hydration';
 import { problemFulfill } from '../../support/problem';
 import { chooseOption, listboxOf, optionsOf } from '../../support/select';
@@ -78,13 +78,8 @@ export async function sweepDrafts(request: APIRequestContext) {
         draft.title.startsWith(OWN_DRAFT_PREFIX) ||
         (draft.title.startsWith(E2E_DRAFT_PREFIX) &&
           Date.parse(draft.createdAt) < stale),
-    )) {
-      const removed = await request.delete(`/api/v1/vacancies/${item.id}`, {
-        headers: MUTATION_HEADERS,
-        data: {},
-      });
-      expect([200, 404], await removed.text()).toContain(removed.status());
-    }
+    ))
+      await removeSeededDraft(item.id, item.title);
   }
 }
 

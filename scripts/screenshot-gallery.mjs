@@ -677,7 +677,7 @@ const groups2 = [
         dir: VAC,
         variants: LIGHT,
         heading:
-          'Буфер обміну заблоковано — повне посилання виділено в полі, кнопка «Закрити»',
+          'Поділитися: буфер обміну недоступний — посилання виділено для ручного копіювання',
       },
     ],
   },
@@ -754,7 +754,7 @@ const groups2 = [
         variants: LIGHT,
         label: 'заповнена',
         heading:
-          'Термінова, але заповнена — нейтральна шапка й примітка про закриття, перемикача немає (Керівник рекрутингу; так само бачить Адміністратор)',
+          'Термінова, але заповнена — нейтральна шапка й банер із датою закриття, перемикача немає (Керівник рекрутингу; так само бачить Адміністратор)',
       },
       {
         file: '48-head-recruiter-vacancy-urgency-switching',
@@ -835,11 +835,19 @@ const groups2 = [
           'Призупинена вакансія без рекрутера — примітка про паузу, кнопка «Відновити» (Керівник рекрутингу)',
       },
       {
+        file: '50-admin-vacancy-status-step-up',
+        dir: VAC,
+        variants: ['mobile-light'],
+        label: 'Адміністратор',
+        heading:
+          'Телефон, Адміністратор без коду 2FA: дії зі статусом і командою видно, але вимкнено — причина й посилання «Підтвердити»',
+      },
+      {
         file: '50-team-lead-vacancy-status-menu',
         dir: VAC,
         variants: ['mobile-light'],
         heading:
-          'Телефон, Тімлід: власна відкрита вакансія — «Призупинити» й меню «⋯» з пунктом «Скасувати вакансію…»',
+          'Телефон, Тімлід: власна відкрита вакансія — «Призупинити» й нижня шторка «⋯» з пунктом «Скасувати вакансію…»',
       },
       {
         file: '50-team-lead-vacancy-status-cancel-sheet',
@@ -1415,6 +1423,13 @@ groups2.push(
           dir: VAC,
           heading: 'Заповнена вакансія: без кнопки редагування',
         },
+        {
+          file: '51-recruiter-vacancy-content-card-long-title',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Довга назва вакансії на телефоні',
+          variants: ['mobile-light', 'mobile-dark'],
+        },
       ],
     },
     {
@@ -1471,6 +1486,13 @@ groups2.push(
           heading: 'Поле позначено до очищення',
         },
         {
+          file: '52-recruiter-vacancy-content-edit-more-open',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Меню «Більше» відкрите на телефоні',
+          variants: ['mobile-light', 'mobile-dark'],
+        },
+        {
           file: '52-recruiter-vacancy-content-edit-saving',
           label: 'Рекрутер',
           dir: VAC,
@@ -1510,7 +1532,13 @@ groups2.push(
           file: '52-recruiter-vacancy-content-edit-permission-lost',
           label: 'Рекрутер',
           dir: VAC,
-          heading: 'Право редагування змінилося',
+          heading: 'Право редагування втрачено: лише читання',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-permission-retained',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Збереження відхилено, право редагування збережено: повтор',
         },
         {
           file: '52-recruiter-vacancy-content-edit-save-failed',
@@ -1553,6 +1581,13 @@ groups2.push(
           label: 'Рекрутер',
           dir: VAC,
           heading: 'Помилка завантаження з повтором',
+        },
+        {
+          file: '52-recruiter-vacancy-content-edit-long-title',
+          label: 'Рекрутер',
+          dir: VAC,
+          heading: 'Довга назва вакансії на телефоні',
+          variants: ['mobile-light', 'mobile-dark'],
         },
       ],
     },

@@ -1,7 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync, readFileSync } from 'node:fs';
-import { parseEnv } from 'node:util';
-import { createClient } from '@supabase/supabase-js';
 import { expect, type APIResponse, type Page } from '@playwright/test';
 import { z } from 'zod';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
@@ -15,7 +12,7 @@ import type { vacancy as vacancyTable } from '../../server/db/schema';
 import { DEMO_VERTICALS, demoId } from '../../server/db/seed';
 import { demoPositionId } from '../../server/db/seed/vacancies';
 import { signIn } from '../support/e2e-session';
-import { requireLoopbackUrl } from '../support/loopback';
+import { localAuthAdmin } from '../support/isolated-actor';
 import { withOwner } from '../support/vacancy-request-db';
 import {
   contentPath,
@@ -40,21 +37,6 @@ type Stored = Pick<
   'version' | 'descriptionDoc' | 'requirementsDoc'
 > & { events: number; updates: number };
 const problem = z.object({ code: z.string() });
-
-function localAuthAdmin() {
-  const env = {
-    ...(existsSync('.env') ? parseEnv(readFileSync('.env', 'utf8')) : {}),
-    ...process.env,
-  };
-  const url = requireLoopbackUrl('SUPABASE_URL', env.SUPABASE_URL);
-  if (!env.SUPABASE_SECRET_KEY)
-    throw new Error(
-      'Isolated MFA actors require the local Supabase secret key',
-    );
-  return createClient(url, env.SUPABASE_SECRET_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  }).auth.admin;
-}
 
 async function provisionActor(
   actor: Actor,
