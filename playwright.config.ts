@@ -27,12 +27,13 @@ const OPEN_LIST_SPECS = [
 
 export default defineConfig({
   testDir: './tests',
+  captureGitInfo: { commit: false, diff: false },
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  reporter: [['list'], ['html', { open: 'never' }]],
+  reporter: [['./tests/support/private-reporter.ts']],
   use: {
     baseURL,
-    trace: 'retain-on-failure',
+    trace: process.env.CI ? 'off' : 'retain-on-failure',
     /** Re-rastering only the invalidated rect leaves 1-level anti-aliasing seams that vary between runs (SHOT-DET-01); a project-level launchOptions would drop this. */
     launchOptions: { args: ['--disable-partial-raster'] },
   },

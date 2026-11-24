@@ -2,6 +2,10 @@ import { copyFileSync, mkdirSync } from 'node:fs';
 import { expect, type Page, type TestInfo } from '@playwright/test';
 import { FIXED_CLOCK_ISO } from '../../lib/fixed-clock';
 import { E2E_ORIGIN } from '../support/origins';
+import {
+  isRouteTeardownError,
+  safeNetworkError,
+} from '../support/safe-network-error';
 
 /** Phone projects end in `mobile` (`e2e-mobile`, `e2e-admin-mobile`); the file name's viewport token follows it. */
 export const viewportOf = (testInfo: TestInfo) =>
@@ -44,8 +48,8 @@ export async function installFixedClock(
         await route.fulfill({ response, body });
       } catch (error) {
         // A reload, a navigation or the end of the test that supersedes the request cancels it mid-flight.
-        if (!/disposed|already handled|closed|Test ended/i.test(String(error)))
-          throw error;
+        if (!isRouteTeardownError(error))
+          throw safeNetworkError('fixed-clock document/RSC', error);
       }
     },
   );
@@ -54,8 +58,12 @@ export async function installFixedClock(
     await page.route(
       (url) => url.pathname.startsWith('/api/v1/vacancies'),
       async (route) => {
-        const response = await route.fetch();
-        await route.fulfill({ response, body: mask(await response.text()) });
+        try {
+          const response = await route.fetch();
+          await route.fulfill({ response, body: mask(await response.text()) });
+        } catch (error) {
+          throw safeNetworkError('fixed-clock masked API', error);
+        }
       },
     );
 }

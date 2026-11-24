@@ -1,5 +1,11 @@
 # PROGRESS
 
+## CI-LOG-01 — private browser diagnostics
+
+- Integrated onto `main` merge `d520d08`, preserving the GET-only ECONNRESET retry and serial browser projects. Credential filtering protects list/HTML reports; a reconstructed context retains roles, states and exact static Ukrainian UI copy while omitting private values.
+- Independent security/code reviews approved metadata, tags, attachment handling and context reconstruction. Post-integration verification: 49 units, full isolated synthetic browser/report canary, focused ESLint and diff checks passed. No shared application/DB tests were run; hosted CI remains pending.
+- Raw traces, screenshots, arbitrary attachments and worker output remain excluded from CI publication. Matcher context covers its captured subtree, not necessarily the whole page. Evidence and limits: [CI-LOG-01](security/review-ci-log-01.md).
+
 Current phase status, active boundaries and owner decisions. Historical checkpoints: [through 2026-11-17](archive/progress-through-2026-11-17.md). Read [CLAUDE_HANDOFF.md](CLAUDE_HANDOFF.md) first for the latest handoff.
 
 ## Vacancy content batch closure — 2026-11-24 (Claude)
