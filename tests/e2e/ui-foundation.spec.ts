@@ -90,7 +90,14 @@ test.describe('button press feedback [UI-F1]', () => {
     await page.keyboard.down('Space');
     await expect.poll(() => isActive(save)).toBe(true);
     expect(await scaleOf(save)).toBe('none');
+    /** The release submits the form; unless the stub answers before `afterEach` unroutes, the rename reaches the shared seeded recruiter. */
+    const refused = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'PATCH' &&
+        response.url().endsWith('/api/v1/me'),
+    );
     await page.keyboard.up('Space');
+    expect((await refused).status()).toBe(500);
   });
 
   test('prefers-reduced-motion removes the press scale and collapses the motion tokens to opacity-only', async ({

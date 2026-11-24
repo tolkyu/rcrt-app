@@ -124,25 +124,10 @@ for (const user of USERS) {
       await expect(statusChip(page, t.filterStatuses.DRAFT)).toHaveCount(
         canAuthorDrafts ? 1 : 0,
       );
-      // Only «Чернетки» carries a count, and it equals the own-drafts API (STORY-VAC-01-3 AC1).
+      // Only «Чернетки» carries a count; vacancies-create-draft-count.spec.ts pins its value where no parallel draft write can shift it.
       await expect(statusFilter(page).locator('.tabular-nums')).toHaveCount(
         canAuthorDrafts ? 1 : 0,
       );
-      if (canAuthorDrafts)
-        await expect
-          .poll(async () => {
-            const count = await page.request.get(
-              '/api/v1/vacancies/drafts/count',
-            );
-            const shown = await statusChip(page, t.filterStatuses.DRAFT)
-              .locator('.tabular-nums')
-              .innerText();
-            return (
-              shown ===
-              String(((await count.json()) as { count: number }).count)
-            );
-          })
-          .toBe(true);
       expect(await listedNumbers(page, isMobile)).toEqual(newestFirst(visible));
       const drafts = await page.request.get('/api/v1/vacancies?status=DRAFT');
       expect(drafts.status()).toBe(200);
