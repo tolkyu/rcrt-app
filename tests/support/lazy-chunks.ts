@@ -17,8 +17,8 @@ export async function blockValidationChunks(page: Page) {
       }
       await route.fulfill({ response });
     } catch (error) {
-      // A chunk still in flight when the test ends is disposed with the page; that is no failure of the test.
-      if (!page.isClosed()) throw error;
+      // Context teardown disposes fetched bodies before its pages finish closing.
+      if (!page.isClosed() && !page.context().isClosed()) throw error;
     }
   });
   return blocked;
