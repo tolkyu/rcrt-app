@@ -1,0 +1,1 @@
+ALTER TABLE "app"."user_session" ADD COLUMN "mfa_verified_at" timestamp with time zone;

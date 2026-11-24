@@ -1,0 +1,67 @@
+# QA — published vacancy content API
+
+- Task: QA-VAC-CONTENT; 2026-11-18; baseline `bc8f061`, scoped working tree.
+- Contract: STORY-VAC-01-2a, VAC-08, D75/D78/D92/D93/D133, [ADR-018](adr/018-vacancy-content-editing.md).
+- Result: **PASS** for this API-only slice; no blocking acceptance gap found.
+- Ownership: this report and `tests/integration/vacancies-content-qa.test.ts` only. No source changes, commit or push.
+
+## Acceptance coverage
+
+Inspected the actual implementation and test bodies, rather than relying on test names alone.
+
+| Acceptance area               | Evidence                                                                                                                                                                                                                                                                                                                                                                          |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Allowed roles and live states | Engineer content integration tests save as assigned Recruiter, own TL, scoped Head Recruiter and Admin; OPEN/ON_HOLD, unchanged non-content columns and canonical response are asserted.                                                                                                                                                                                          |
+| Scope and private drafts      | Visible unassigned Recruiter/HR/Head HR get 403; Finance, foreign Head, other TL, unknown/deleted/malformed/private draft get 404. Another author's cancelled draft stays private. Denied saves retain version/history.                                                                                                                                                           |
+| D133 and precedence           | Authorized DRAFT/FILLED/CANCELLED/cancelled-draft saves get `VACANCY_CONTENT_LOCKED` before stale/no-op checks; visible HR gets 403 before state disclosure. Existing draft/reopen/status regressions remain covered separately.                                                                                                                                                  |
+| Mixed roles and MFA           | Central tests cover mixed role/vertical unions, independent TL rights, synthetic custom scopes and withheld GLOBAL. Pure Admin aal1 HTTP receives `MFA_REQUIRED`. New independent QA test proves Admin + assigned Recruiter aal1 saves through fresh service authorization, but withheld Admin cannot permit visible unassigned content, foreign scope or another author's draft. |
+| Strict body and documents     | Schema tests cover either/both fields, version/empty patch, operational/unknown overposting, HTML/unsupported nodes/control rejection, normalized HTTPS/unsafe URLs and inherited serialized size. Shared validator is reused unchanged; no parallel rich-text suite added.                                                                                                       |
+| Patch and no-op               | Integration asserts whole-document replacement, omission retention, NULL clear, empty paragraph preservation, exact changed fields/order, one version increment, unchanged current no-op timestamp/history, stale no-op conflict.                                                                                                                                                 |
+| Fresh concurrency             | Real PostgreSQL tests queue writes behind row locks, then commit assignment removal retaining another recruiter, status close, role loss or deactivation. Independent TL rights survive unassignment. Competing content versions produce one winner, stale loser and one history pair.                                                                                            |
+| Atomicity and PII             | Exact event/audit fields and envelope, version-only before/after, no submitted contact/URL or `entity_event_pii` row. Forced audit failure rolls back the earlier event/content/version; forced fresh-scope failure rolls back all writes and scope changes. Final fresh scoped read also exists on no-op.                                                                        |
+| HTTP boundary                 | Factory tests cover canonical JSON/private no-store, CSRF, UUID, unauthenticated/revoked/deactivated sessions, safe 400 problem content, streamed 413, pure Admin MFA and exactly 30 no-op calls before 429. Actual route wiring matches the tested factory specification.                                                                                                        |
+| API artifacts                 | Independent Node assertions passed: all 16 content cases exist in generated Postman, fixture title matches source, strict content request has exactly three properties, and draft PATCH remains a separate operation. Custom scripts check fixture status, response fields, documents and revisions; no-op uses whole-response snapshots.                                         |
+
+## Executed checks and attribution
+
+| Owner                                                                  | Check                                                                                                | Result                                                                                                                                  |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| QA, independently executed                                             | `corepack pnpm exec vitest run --project integration tests/integration/vacancies-content-qa.test.ts` | **1 file, 1 passed**; real disposable PostgreSQL. Exclusive shared lock acquired and own token released.                                |
+| QA, independently executed                                             | `corepack pnpm exec eslint tests/integration/vacancies-content-qa.test.ts --max-warnings=0`          | Passed.                                                                                                                                 |
+| QA, independently executed                                             | `corepack pnpm typecheck` after adding QA test                                                       | Passed with existing SWC cache access outside sandbox; initial sandbox attempt failed before type checking with `ERR_SWC_NATIVE_CACHE`. |
+| QA, independently executed                                             | Read-only Node assertions over source/generated Postman and OpenAPI JSON                             | Passed; 16 generated content cases and synchronized fixture title. This is artifact verification, not Newman execution.                 |
+| QA, independently executed                                             | Scoped Prettier check and `git diff --check`                                                         | Passed.                                                                                                                                 |
+| Implementation engineer, final evidence relayed by orchestrator        | Content service/HTTP and race/rollback integration                                                   | **2 files, 33 passed**.                                                                                                                 |
+| Implementation engineer, final evidence relayed by orchestrator        | Affected draft route/lifecycle, urgency, assignment/race and status regressions                      | **6 files, 319 passed**.                                                                                                                |
+| Implementation engineer, final evidence relayed by orchestrator        | Affected unit tests; typecheck, lint and scoped formatting                                           | **11 files, 1,667 passed**; checks passed; OpenAPI/Postman regenerated after fixture-title fix.                                         |
+| Code reviewer, recorded in [review](review-phase-2-vacancy-content.md) | Real content authz/audit unit checks                                                                 | **2 files, 24 passed**.                                                                                                                 |
+
+Counts above belong to distinct owners/checks and are not a unique-test total. Passing developer/reviewer suites were not repeated by QA. No branch-coverage measurement was run; this report makes no 100% coverage claim.
+
+## Code quality (thermo-nuclear)
+
+- **Blocking:** none. Narrow route/schema/service and central authorization union reuse established repositories, locking, validator, rate limit, history and route factory. No new transaction framework, migration, renderer or scattered role-name bypass.
+- **Non-blocking:** reviewer records a D126-deferred race-harness observation: the two-writer test confirms at least one queued statement, not both contenders queued simultaneously. It proves one committed document/history pair and one stale loser; no stronger scheduling claim is made here.
+- No additional structural finding. Stored UUID branding casts are confined to already typed/DB-validated facts; the QA test adds no casts, comments, suppressions, redundant guards or new production helpers. Deslop/no-comments applied to owned diff: zero removals, HOLDs or MUST KILL items.
+
+## Engineering self-check
+
+Filled applicability checklist from `engineering-self-check.md`; grouped where this API-only slice has no corresponding UI behavior.
+
+- [x] Checked: patch states are explicit (omitted/NULL/document); schema and authorization rules have one canonical owner; shared scalar audit extension stays a static two-value allowlist.
+- [x] Checked: API failure coverage includes 400/401/403/404/409/413/429 and transaction/history failure rollback. Refusal assertions use exact codes; successful write and no-op semantics are distinct. Unit tables cover pure schema/authz helpers.
+- [x] Checked: deterministic own fixtures and rollback cleanup, fixed content timestamps, ordered multi-row history queries; QA's empty-history queries do not depend on row order. No new mutable shared seed or time-of-day expectation.
+- [x] Checked: tests/ESLint/typecheck and formatting evidence above; no accidental screenshots/tsconfig changes; one integration run at a time under the shared lock. New QA test added after engineer checks is independently linted/typechecked.
+- [x] Checked: TypeScript skill, Zod/Drizzle boundaries, concise comments, no stubs/unused helpers. Shared production guard/eligibility consumers and authorization architecture tests are covered by the engineer's affected unit checks; QA adds only a test, not another guarded production reader.
+- [x] Checked: no new product/security/ADR deviation or bug class requiring a self-check/PROGRESS change. Deferred existing race-harness limit remains in the code review. All other agents' files preserved.
+- [x] N/a: double press/Enter locks, navigation/unmount, cache invalidation/reconciliation, toast retry callbacks, network-loss recovery, optimistic rollback/refetch, deferred UI actions and focus — no client mutation/UI in this slice.
+- [x] N/a: Idempotency-Key reuse or retry reconciliation — ADR-018 explicitly has no idempotency key; expectedVersion supplies stale-write protection.
+- [x] N/a: lazy chunks/import failure, Suspense/fallback, cloned props, hydration/useMobile, form cross-field revalidation, client length mirrors, keys/counts — no corresponding client code changed.
+- [x] N/a: shared-screen E2E, screenshots, translations/ICU, skeleton/footer measurements, mobile/zoom, displayed event dates and wireframes — no screen or visible text changed.
+- [x] N/a: local build/bundle/performance run — no client route bundle change; ADR-018 and D129 prohibit duplicate slice builds/full suites. V-block/CI gates remain with orchestrator.
+- [x] N/a: implementation subtraction/refactor consumer audit, list-scope deletion behavior and DTO role-comparison tests — QA owns no production/refactor/delete/DTO change. Assignment/status regressions remain engineer evidence above.
+- [x] N/a: TDD failing-before proof — QA adds acceptance coverage for working behavior, not a bug fix. No new env/test switch or validator-fragment reuse.
+
+## Runtime limits and next action
+
+No Newman, browser/UI E2E, screenshots, build, performance or full-suite runtime was executed by QA. HTTP coverage uses the real route factory with fixture authentication; only the new mixed-role database acceptance test was independently executed by QA. Existing PostgreSQL concurrency/rollback results are engineer evidence, with actual test bodies inspected here. CI runs full gates after the orchestrator's authorized push. This PASS does not complete V4, Phase 2, UI integration or release verification.

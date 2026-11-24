@@ -1,0 +1,13 @@
+node_modules
+.next
+.cache
+pnpm-lock.yaml
+coverage
+playwright-report
+test-results
+screenshots
+.agents
+.claude/skills
+skills-lock.json
+docs/OPEN_QUESTIONS.md
+docs/archive

@@ -1,0 +1,125 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793432513159,
+      "tag": "0000_narrow_inhumans",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793433245977,
+      "tag": "0001_auth_session_column_privileges",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793433660909,
+      "tag": "0002_auth_session_status_view",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793448234776,
+      "tag": "0003_file_object_checks_event_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793466727379,
+      "tag": "0004_auth_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793517723505,
+      "tag": "0005_user_session_mfa_verified",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793525743888,
+      "tag": "0006_audit_viewer_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1793553205837,
+      "tag": "0007_user_list",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793564636726,
+      "tag": "0008_user_invite_latest_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793640731606,
+      "tag": "0009_team_lead_priority_bounds",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793797200000,
+      "tag": "0010_invite_job_delete_privileges",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794164671048,
+      "tag": "0011_vacancies_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794212826806,
+      "tag": "0012_position_catalog_writes",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794214776646,
+      "tag": "0013_position_name_key",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794251034658,
+      "tag": "0014_vacancy_create",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1794255604079,
+      "tag": "0015_vacancy_draft_lifecycle",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1794984643294,
+      "tag": "0016_vacancy_recruiter_delete",
+      "breakpoints": true
+    }
+  ]
+}

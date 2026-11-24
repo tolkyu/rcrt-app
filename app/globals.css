@@ -1,0 +1,510 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+/* Themes follow `color-scheme` (`.light` / `.dark` on <html>, none = the OS), so `dark:` must too, not the OS alone. */
+@custom-variant dark {
+  &:where(.dark, .dark *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not(.light) *) {
+      @slot;
+    }
+  }
+}
+
+/*
+ * Design tokens — docs/ux/design-system.md (v1.0, designer mockups).
+ * One declaration per token: light-dark() follows `color-scheme`, which the
+ * server sets from the theme cookie (`.light` / `.dark` on <html>; none = system).
+ */
+:root {
+  color-scheme: light dark;
+
+  --brand: light-dark(#6366f1, #818cf8);
+  --brand-fill: light-dark(#6366f1, #5558ef);
+  --cyan: light-dark(#06b6d4, #22d3ee);
+  --magenta: light-dark(#ec4899, #f472b6);
+  --yellow: light-dark(#f59e0b, #fbbf24);
+  --background: light-dark(#f8fafc, #0b1220);
+  --surface: light-dark(#ffffff, #111827);
+  --surface-muted: light-dark(#f1f5f9, #1f2937);
+  --foreground: light-dark(#0f172a, #f8fafc);
+  --muted-foreground: light-dark(#5b6b82, #94a3b8);
+  --muted-foreground-strong: light-dark(#475569, #94a3b8);
+  --border: light-dark(#e2e8f0, #334155);
+  --success: light-dark(#22c55e, #34d399);
+  --warning: light-dark(#f59e0b, #fbbf24);
+  --error: light-dark(#ef4444, #f87171);
+
+  /* Derived for WCAG AA (design-system §1.2–1.4): white on #6366F1 is 4.47:1, on #5558EF 5.21:1. */
+  --primary: #5558ef;
+  --primary-hover: #4f46e5;
+  --primary-active: #4338ca;
+  --primary-foreground: #ffffff;
+  --link: light-dark(#5558ef, #818cf8);
+  --primary-subtle: light-dark(#eef2ff, #232b48);
+  --ring: light-dark(#6366f1, #818cf8);
+  --input: light-dark(#7b8698, #64748b);
+  --success-text: light-dark(#166534, #34d399);
+  --warning-text: light-dark(#92400e, #fbbf24);
+  --error-text: light-dark(#b91c1c, #f87171);
+  --success-subtle: light-dark(#f0fdf4, #173639);
+  --warning-subtle: light-dark(#fffbeb, #363327);
+  --info: light-dark(#3b82f6, #60a5fa);
+  --info-subtle: light-dark(#eff6ff, #1e2f49);
+  --info-text: light-dark(#1d4ed8, #93c5fd);
+  --destructive: #dc2626;
+  --destructive-subtle: light-dark(#fef2f2, #3a1d24);
+  --destructive-subtle-hover: light-dark(#fce8e8, #471e24);
+  --now-line: light-dark(#ef4444, #f87171);
+  --tooltip: #0f172a;
+  --tooltip-foreground: #ffffff;
+
+  --shadow-color-sm: light-dark(rgb(0 0 0 / 0.05), rgb(0 0 0 / 0.3));
+  --shadow-color-md: light-dark(rgb(0 0 0 / 0.08), rgb(0 0 0 / 0.4));
+  --shadow-color-lg: light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.5));
+
+  --motion-scale: 0.96;
+  --motion-scale-tooltip: 0.97;
+  --motion-shift: 100%;
+
+  /* Layers above page chrome (header 20, rail tooltip 30): modals < anchored popups < toasts. */
+  --z-dialog: 40;
+  --z-popover: 45;
+  --z-toast: 50;
+  /* Space the bottom chrome occupies; `:has` reads the server-rendered BottomNav, so sticky bars do not jump after hydration. */
+  --chrome-bottom: env(safe-area-inset-bottom);
+  --sticky-bar-bottom: 0px;
+}
+
+@media (width < 48rem) {
+  :root:has([data-bottom-nav]) {
+    --chrome-bottom: calc(4rem + env(safe-area-inset-bottom));
+  }
+  :root:has([data-sticky-action-bar]) {
+    --sticky-bar-bottom: 3.5rem;
+  }
+}
+
+:root.light {
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand: var(--brand);
+  --color-brand-fill: var(--brand-fill);
+  --color-cyan: var(--cyan);
+  --color-magenta: var(--magenta);
+  --color-yellow: var(--yellow);
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--surface);
+  --color-popover-foreground: var(--foreground);
+  --color-muted: var(--surface-muted);
+  --color-accent: var(--surface-muted);
+  --color-accent-foreground: var(--foreground);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted-foreground-strong: var(--muted-foreground-strong);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-active: var(--primary-active);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-subtle: var(--primary-subtle);
+  --color-secondary: var(--primary-subtle);
+  --color-secondary-foreground: var(--link);
+  --color-link: var(--link);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-success-text: var(--success-text);
+  --color-warning-text: var(--warning-text);
+  --color-error-text: var(--error-text);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-info: var(--info);
+  --color-info-subtle: var(--info-subtle);
+  --color-info-text: var(--info-text);
+  --color-destructive: var(--destructive);
+  --color-destructive-subtle: var(--destructive-subtle);
+  --color-destructive-subtle-hover: var(--destructive-subtle-hover);
+  --color-now-line: var(--now-line);
+  --color-tooltip: var(--tooltip);
+  --color-tooltip-foreground: var(--tooltip-foreground);
+
+  --shadow-sm: 0 1px 2px 0 var(--shadow-color-sm);
+  --shadow-md: 0 4px 12px 0 var(--shadow-color-md);
+  --shadow-lg: 0 10px 32px 0 var(--shadow-color-lg);
+}
+
+/* Motion tokens (design-system §8): overriding --ease-out makes every existing `ease-out` class strong. */
+@theme static {
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --duration-press: 120ms;
+  --duration-tooltip: 125ms;
+  --duration-popover: 160ms;
+  --duration-popover-exit: 120ms;
+  --duration-dialog: 200ms;
+  --duration-dialog-exit: 150ms;
+  --duration-drawer: 240ms;
+  --duration-drawer-exit: 180ms;
+}
+
+/* Radius and type scale: design-system §2–3. Tailwind's text-base/sm/xs already match 16/24, 14/20, 12/16. */
+@theme {
+  --radius-xs: 2px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+
+  --text-display-3xl: 3rem;
+  --text-display-3xl--line-height: 3.5rem;
+  --text-display-3xl--font-weight: 700;
+  --text-display-3xl--letter-spacing: -0.02em;
+  --text-display-2xl: 2rem;
+  --text-display-2xl--line-height: 2.5rem;
+  --text-display-2xl--font-weight: 700;
+  --text-display-2xl--letter-spacing: -0.02em;
+  --text-display-xl: 1.5rem;
+  --text-display-xl--line-height: 2rem;
+  --text-display-xl--font-weight: 700;
+  --text-display-xl--letter-spacing: -0.01em;
+  --text-heading-lg: 1.25rem;
+  --text-heading-lg--line-height: 1.75rem;
+  --text-heading-lg--font-weight: 600;
+  --text-heading-lg--letter-spacing: -0.01em;
+
+  /* Stage palette (design-system §1.5): accent, chip background, chip text. Dark bg = accent 16 % over surface. */
+  --color-stage-new: #10b981;
+  --color-stage-new-bg: light-dark(
+    #ecfdf5,
+    color-mix(in srgb, #10b981 16%, #111827)
+  );
+  --color-stage-new-fg: light-dark(#065f46, #6ee7b7);
+  --color-stage-in-work: #3b82f6;
+  --color-stage-in-work-bg: light-dark(
+    #eff6ff,
+    color-mix(in srgb, #3b82f6 16%, #111827)
+  );
+  --color-stage-in-work-fg: light-dark(#1d4ed8, #93c5fd);
+  --color-stage-submitted: #8b5cf6;
+  --color-stage-submitted-bg: light-dark(
+    #f5f3ff,
+    color-mix(in srgb, #8b5cf6 16%, #111827)
+  );
+  --color-stage-submitted-fg: light-dark(#6d28d9, #c4b5fd);
+  --color-stage-interview: #6366f1;
+  --color-stage-interview-bg: light-dark(
+    #eef2ff,
+    color-mix(in srgb, #6366f1 16%, #111827)
+  );
+  --color-stage-interview-fg: light-dark(#4338ca, #a5b4fc);
+  --color-stage-polygraph: #f59e0b;
+  --color-stage-polygraph-bg: light-dark(
+    #fffbeb,
+    color-mix(in srgb, #f59e0b 16%, #111827)
+  );
+  --color-stage-polygraph-fg: light-dark(#92400e, #fcd34d);
+  --color-stage-offer: #ec4899;
+  --color-stage-offer-bg: light-dark(
+    #fdf2f8,
+    color-mix(in srgb, #ec4899 16%, #111827)
+  );
+  --color-stage-offer-fg: light-dark(#be185d, #f9a8d4);
+  --color-stage-probation: #14b8a6;
+  --color-stage-probation-bg: light-dark(
+    #f0fdfa,
+    color-mix(in srgb, #14b8a6 16%, #111827)
+  );
+  --color-stage-probation-fg: light-dark(#115e59, #5eead4);
+  --color-stage-passed: #22c55e;
+  --color-stage-passed-bg: light-dark(
+    #f0fdf4,
+    color-mix(in srgb, #22c55e 16%, #111827)
+  );
+  --color-stage-passed-fg: light-dark(#166534, #86efac);
+  --color-stage-rejected: #ef4444;
+  --color-stage-rejected-bg: light-dark(
+    #fef2f2,
+    color-mix(in srgb, #ef4444 16%, #111827)
+  );
+  --color-stage-rejected-fg: light-dark(#b91c1c, #fca5a5);
+  --color-stage-withdrawn: #64748b;
+  --color-stage-withdrawn-bg: light-dark(
+    #f1f5f9,
+    color-mix(in srgb, #64748b 16%, #111827)
+  );
+  --color-stage-withdrawn-fg: light-dark(#334155, #cbd5e1);
+  --color-stage-failed: #f97316;
+  --color-stage-failed-bg: light-dark(
+    #fff7ed,
+    color-mix(in srgb, #f97316 16%, #111827)
+  );
+  --color-stage-failed-fg: light-dark(#9a3412, #fdba74);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+    /* Data refreshes through TanStack Query; vertical only so the macOS swipe-back gesture keeps working. */
+    overscroll-behavior-y: none;
+  }
+
+  /* viewport-fit=cover draws under the landscape notch; the insets are zero in portrait. */
+  body {
+    @apply bg-background text-foreground font-sans text-sm antialiased;
+    padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+  }
+
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  :where(
+    a,
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [role='button'],
+    [role='tab'],
+    [role='menuitem'],
+    [role='option']
+  ) {
+    touch-action: manipulation;
+  }
+
+  /* Controls only: body text and form values must stay selectable. */
+  :where(button, [role='button']) {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+}
+
+/*
+ * Radix Presence waits for CSS animations, not transitions, so every exit below is a keyframe.
+ * Reduced motion keeps the opacity part of each keyframe: scale and travel collapse to no-ops.
+ */
+@keyframes motion-pop-in {
+  from {
+    opacity: 0;
+    scale: var(--motion-scale);
+  }
+}
+@keyframes motion-pop-out {
+  to {
+    opacity: 0;
+    scale: var(--motion-scale);
+  }
+}
+@keyframes motion-tooltip-in {
+  from {
+    opacity: 0;
+    scale: var(--motion-scale-tooltip);
+  }
+}
+@keyframes motion-tooltip-out {
+  to {
+    opacity: 0;
+    scale: var(--motion-scale-tooltip);
+  }
+}
+@keyframes motion-sheet-up-in {
+  from {
+    opacity: 0;
+    translate: 0 var(--motion-shift);
+  }
+}
+@keyframes motion-sheet-up-out {
+  to {
+    opacity: 0;
+    translate: 0 var(--motion-shift);
+  }
+}
+@keyframes motion-sheet-side-in {
+  from {
+    opacity: 0;
+    translate: calc(var(--motion-shift) * var(--motion-dir, 1)) 0;
+  }
+}
+@keyframes motion-sheet-side-out {
+  to {
+    opacity: 0;
+    translate: calc(var(--motion-shift) * var(--motion-dir, 1)) 0;
+  }
+}
+@keyframes motion-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes motion-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Anchored surfaces grow from their trigger (Popper exposes the origin to its content). */
+@utility motion-pop {
+  transform-origin: var(--radix-popper-transform-origin, center);
+  &[data-state='open'] {
+    animation: motion-pop-in var(--duration-popover) var(--ease-out);
+  }
+  &[data-state='closed'] {
+    animation: motion-pop-out var(--duration-popover-exit) var(--ease-out)
+      forwards;
+  }
+  &[data-instant] {
+    animation: none;
+  }
+}
+
+/* `instant-open`: a neighbouring tooltip was just open, so this one appears without motion. */
+@utility motion-tooltip {
+  transform-origin: var(--radix-popper-transform-origin, center);
+  &[data-state='delayed-open'] {
+    animation: motion-tooltip-in var(--duration-tooltip) var(--ease-out);
+  }
+  &[data-state='closed'] {
+    animation: motion-tooltip-out var(--duration-tooltip) var(--ease-out)
+      forwards;
+  }
+  &[data-state='instant-open'],
+  &[data-instant] {
+    animation: none;
+  }
+}
+
+/* Modals are not anchored to a trigger: they stay centred. */
+@utility motion-modal {
+  transform-origin: center;
+  &[data-state='open'] {
+    animation: motion-pop-in var(--duration-dialog) var(--ease-out);
+  }
+  &[data-state='closed'] {
+    animation: motion-pop-out var(--duration-dialog-exit) var(--ease-out)
+      forwards;
+  }
+  &[data-instant] {
+    animation: none;
+  }
+}
+
+@utility motion-sheet-up {
+  &[data-state='open'] {
+    animation: motion-sheet-up-in var(--duration-drawer) var(--ease-drawer);
+  }
+  &[data-state='closed'] {
+    animation: motion-sheet-up-out var(--duration-drawer-exit)
+      var(--ease-drawer) forwards;
+  }
+}
+
+/* Right sheet by default; `--motion-dir: -1` on the element mirrors it for a left sheet. */
+@utility motion-sheet-side {
+  &[data-state='open'] {
+    animation: motion-sheet-side-in var(--duration-drawer) var(--ease-drawer);
+  }
+  &[data-state='closed'] {
+    animation: motion-sheet-side-out var(--duration-drawer-exit)
+      var(--ease-drawer) forwards;
+  }
+}
+
+@utility motion-fade {
+  &[data-state='open'] {
+    animation: motion-fade-in var(--duration-dialog) var(--ease-out);
+  }
+  &[data-state='closed'] {
+    animation: motion-fade-out var(--duration-dialog-exit) var(--ease-out)
+      forwards;
+  }
+}
+
+/* Unlayered on purpose: it must beat the utilities layer, including tw-animate-css scale and slide variables. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-scale: 1;
+    --motion-scale-tooltip: 1;
+    --motion-shift: 0%;
+    --duration-popover: 120ms;
+    --duration-dialog: 120ms;
+    --duration-dialog-exit: 120ms;
+    --duration-drawer: 120ms;
+    --duration-drawer-exit: 120ms;
+  }
+
+  *,
+  ::before,
+  ::after {
+    --tw-enter-scale: 1;
+    --tw-exit-scale: 1;
+    --tw-enter-translate-x: 0;
+    --tw-enter-translate-y: 0;
+    --tw-exit-translate-x: 0;
+    --tw-exit-translate-y: 0;
+    scroll-behavior: auto !important;
+  }
+
+  /* Sonner zeroes every toast transition under reduced motion with !important; the doubled selector outranks it by specificity, so the opacity fade stays and the slide goes. */
+  [data-sonner-toast][data-sonner-toast],
+  [data-sonner-toast][data-sonner-toast] > * {
+    transition: opacity var(--duration-popover) var(--ease-out) !important;
+  }
+}
+
+@utility z-dialog {
+  z-index: var(--z-dialog);
+}
+@utility z-popover {
+  z-index: var(--z-popover);
+}
+@utility z-toast {
+  z-index: var(--z-toast);
+}
+
+/* Radix modals set pointer-events: none on <body>; toasts must stay clickable above them. */
+[data-sonner-toaster] {
+  pointer-events: auto;
+}
+
+/* Skeletons appear only if loading lasts longer than 150 ms (UI-06/UI-07); no shimmer. */
+@keyframes skeleton-appear {
+  to {
+    opacity: 1;
+  }
+}
+
+@utility skeleton-delayed {
+  opacity: 0;
+  animation: skeleton-appear 0s linear 150ms forwards;
+}

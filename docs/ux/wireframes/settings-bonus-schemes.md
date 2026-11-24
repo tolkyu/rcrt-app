@@ -58,6 +58,7 @@
 ```
 
 ## Rules in UI
+
 - Presets prefill tranches (30/70 or 100) — fully editable after.
 - «Разом» indicator: green ✓ when sum = 100; otherwise red «Разом 90 % — має бути 100 %», «Зберегти» disabled with that tooltip.
 - Tranche percent: integer 1–100 ⚠ OPEN-B1 (decimals allowed?). Trigger list: Початок ВТ · Проходження ВТ · Через N дн. після виходу.
@@ -69,9 +70,11 @@
 - Money inputs: thin-space grouping, comma decimal; stored as minor units.
 
 ## States
+
 - Loading: form skeleton (labels + inputs).
 - Empty list: impossible after seed (presets shipped); if all inactive: «Немає активних схем. Бонуси не нараховуватимуться для нових оферів.» (warning).
 - Validation errors inline, focus moves to first error, summary at top with links (a11y).
 
 ## ⚠ OPEN
+
 B1 tranche percent precision · B2 attribution of tranches beyond 2 / DAYS_AFTER_START · B3 supported currencies.

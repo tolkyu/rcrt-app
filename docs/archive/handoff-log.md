@@ -1,0 +1,600 @@
+# Handoff log — archive (newest first). Read only for old details; current state is in `docs/CLAUDE_HANDOFF.md`.
+
+> Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
+
+## Checkpoint — 2026-11-24 (Claude, vacancy content batch committed)
+
+- **State:** the whole vacancy content batch is committed on `phase-2` and pushed. Check PR #1 (`phase-2` → `main`) on GitHub: if hosted CI on the latest head is green and the PR is not merged yet, merge it with a **true merge commit** (`gh pr merge 1 --merge`), never squash or rebase, because `.gitleaksignore` pins commit SHAs. Then confirm CI on `main` and delete `origin/wip/content-ui-2026-11-23`.
+- **What the batch contains:** see the top section of `docs/PROGRESS.md` ("Vacancy content batch closure").
+- **Owner decisions:** full page reload on confirmed loss of read; no deferral of UI findings; every session ends on GitHub; Claude merges PR #1 after green CI.
+- **Verification done locally:** focused unit suites, a full browser pass of every touched screen on desktop and mobile, the final recapture, all routes under 180 kB (`/vacancies/new` 179.33 kB, almost no margin). Known local-only failures and flaky tests are listed in PROGRESS "Gaps".
+
+## Checkpoint — 2026-11-23 21:45 (Claude, paused by owner)
+
+- **Not merged.** PR #1 (`phase-2` → `main`) is open. Last full CI on `4e0dbe7` is red (run `45153135565`, 4 E2E failures; causes below). The owner wants CI green, then a merge by Claude. Use a true merge commit only: `.gitleaksignore` pins commit SHAs, so squash or rebase turns the secret scan red.
+- **All unfinished work is on `origin/wip/content-ui-2026-11-23`.** It is also uncommitted in `D:\recruiting-app`. If the local tree is missing or differs, restore from that branch. Do not merge it as is: it is unverified and has a WIP commit message.
+- **Owner decisions today:** fix every UI finding before merge, with no Phase 7 deferral; on confirmed loss of read access, do a full page reload; end every session on GitHub.
+
+### In the WIP tree
+
+| Area                                                                                                                                                                        | State                                                                                                     |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Content UI: 720 px form, one-row toolbar, shared typography, borders, link contrast, save feedback, Clear rules, edit link in heading row, shared form footer, touch reason | Done, units green; browser checks written, not all run                                                    |
+| Denial: synchronous purge, one `location.replace`, per-URL+key hashed marker, session throttle, `#main` handling, MFA redirect                                              | Security passed this part; denial E2E 15/15 desktop, 12 + 3 skips mobile on the build before the hook fix |
+| Bundle                                                                                                                                                                      | All 21 routes pass; largest `/vacancies/new` 179.95 kB of 180. Almost no margin                           |
+| E2E fixes: 401 body capture, 429 write reduction, urgency badge selector                                                                                                    | Written; full CI not run                                                                                  |
+| New specs: `vacancy-content-ui`, `vacancies-denial-back`, `vacancy-content-nav`, `ui-label`                                                                                 | `vacancy-content-nav` never run                                                                           |
+| Screenshots                                                                                                                                                                 | **Not recaptured.** Committed PNGs show the old UI                                                        |
+
+### Open blocker (start here)
+
+`CONTENT-MOBILE-STUCK-2` in `components/vacancies/use-vacancy-content-access.ts` was **stopped mid-edit**.
+
+- Bug: a client navigation from card to editor can hang on the skeleton, because `isFetchedAfterMount` stays false after hydration lowers `dataUpdateCount`.
+- Security blockers on the first fix: B1, the gate must use only `gate.fresh`, because hydration and `setQueryData` raise the counters. B2, `gate.fresh` must reset to false after a failed read.
+- Intended watcher: on `updated` events for the current query object, `error` → false, non-manual `success` → true, otherwise unchanged.
+- Must also hold: a navigation that starts no GET must still trigger a real read and reach `readable`.
+- Required tests: no-data query hydrated during a GET; `setQueryData` during a GET; failed GET then hydration; good GET, failed re-read, hydration; late success from a removed query; the three navigation tests.
+- This was the **second automatic repair**. If it fails, stop and bring options to the owner.
+
+## Checkpoint — 2026-11-23 (Claude, vacancy content batch)
+
+- **Branch/PR:** `phase-2` → `main`, PR #1. The owner told Claude to bring CI to green and merge this batch. Check PR state on GitHub: this file cannot record the final merge commit.
+- **Merge method:** true merge commit only. `.gitleaksignore` pins commit SHAs, so squash or rebase turns the secret scan red on `main`.
+- **Committed:** AI harness (`a906ac4`), content read/edit UI (`6a95add`), Next 15.5.29 security update (`f832a49`), two reviewed secret-scan false positives (`2bb351d`), cache and load-failure fixes (`76f8781`, `7c33814`).
+- **Fixes after blast-radius review:** a failed status, urgency or publish write no longer strands the first content read; content responses no longer enter the detail cache; a successful publish refreshes content; denial clears the whole `['vacancy', id]` cache prefix; recruiter SQL correlation is qualified; content edit load failures are logged without PII.
+- **Review:** code-reviewer APPROVED `2bb351d..7c33814`, no blocking findings. Non-blocking stale-read items are in the PROGRESS Phase 7 debt list.
+- **CI note:** perf P95 `real profile write` failed once at 120.75/120 ms and passed on rerun of the same commit. It is a known slow-runner flake. Budget unchanged.
+
+## Checkpoint — 2026-11-21 (Codex, CONTENT-E2E-MFA/RUNTIME)
+
+- Branch `phase-2`, HEAD/pushed baseline `b0e7c3e` unchanged. Hosted CI 44474819422 covers committed PATCH/audit labels only; later GET/editor/harness work remains local. No commit/push/merge/deploy; owner merges.
+- Latest tests-only slice: `tests/e2e/vacancy-content-mfa.spec.ts` and `vacancy-content-runtime.spec.ts`, six new scenarios. Desktop6/6 and mobile6/6 PASS, typecheck/focused lint/format/diff-check PASS. Two High QA workers independently cross-reviewed as security; both PASS. No browser assertion repairs. Detailed limits/evidence: `docs/qa-phase-2-content-browser.md` latest follow-up.
+- MFA: isolated real local actors, Admin plus Head Recruiter/assigned Recruiter/owning TL at aal1 retain lower grants; foreign/private404, then pure-Admin401 MFA_REQUIRED/redirect/immutability/no replay. No actual TOTP step-up in these new cases; existing provider/MFA evidence remains separate.
+- Runtime: actual Tiptap chunk failure and each-field retry keep Save gated until both ready; delayed real GET is canceled across actor change; committed PATCH response cannot adopt old version+1 after HR remount/newer canonical version+2. Same document identity and immediate post-release assertions exclude reload/fresh-read masking. Chunk discovery depends on current build signature.
+- Initial runtime-only run failed fixture setup because Docker/local Supabase were off; restarted existing services without installs/schema/seed changes, then both successful browser runs reused existing build/sessions. Final DB check: live content fixtures0, active/linked MFA actors0, remaining fixture Auth actors0. Inactive audit-referenced app identities retained.
+- Total content scenarios28. Earlier session1, status3, unassignment2 and original editor16 retain desktop/mobile passing evidence; do not repeat passing full suites. Existing shared auth/MFA/profile/draft regression desktop81+setup11/mobile80+one existing skip remains attributed to prior checkpoint.
+- All previous READ/F10-A/ACCESS/STATE/F10-B/PAGE/CARD code/security reviews and terminal fix evidence retained. Prior checkpoint archived. Tiptap3.34.0, Next15.5.28 pinned. D133 OPEN/ON_HOLD only; FILLED needs existing reopen, CANCELLED immutable.
+- BUG-CONTENT-SESSION-01 locally fixed/reviewed: dirty guard layout teardown releases history guard before terminal refresh; 28/28 form units and actual login redirect browser PASS. Shared guard unchanged.
+- Existing fresh-build/bundle evidence remains valid (no product edits this slice): content/edit164.35, card165.27, draft179.85, create179.64 kB gz. Runtime/Lighthouse still pending; card extra post-mount GET is perf follow-up.
+- Owner explicitly authorized recovery of stale lease `codex-content-mfa-20261121`; new session lease `codex-content-resume-20261121b` used. Shared checkout/integration locks released after checkpoint. No whole-feature publishing approval claimed.
+
+## Checkpoint — 2026-11-21 (Codex, CONTENT-E2E-SESSION with agents)
+
+- Branch `phase-2`, HEAD/pushed baseline `b0e7c3e` unchanged. Prior hosted CI 44474819422 passed for the committed PATCH/audit-label slice only; all later GET/editor and harness work remains local. No commit/push/merge/deploy this session; owner merges.
+- Latest tests-only slice: `tests/e2e/vacancy-content-session.spec.ts`, paired same-session refresh preservation versus real same-actor/new-session editor remount, Clear/Undo/cache/buffer reset and canonical GET without document reload. Desktop1/1 and mobile1/1 PASS, lint/format/tsc and security PASS; one test-only streaming-wait repair. Two reused agents, existing build/sessions, no production change. Framework global adapter is pinned Next15.5.28; fixture-only title commit marker guards cleanup. Total content scenarios22; evidence `docs/qa-phase-2-content-browser.md` session follow-up.
+- Latest tests-only slice with two reused agents: `tests/e2e/vacancy-content-status.spec.ts`, real HOLD stale/confirmed reload/deliberate save, real CANCEL locked/readable buffer/no replay, fixture-only FILLED background gate/discard guard. Explicit browser GET/codes/server immutability/no reopen. Desktop3/3, mobile3/3 PASS without repair; focused lint/format/tsc PASS, security PASS. Existing build/sessions reused; total content scenarios21. Evidence `docs/qa-phase-2-content-browser.md` status follow-up.
+- New small tests-only slice: two real-API recruiter-removal cases, desktop2/2 + setup11 PASS and mobile2/2 PASS; explicit browser GET200/canEditContent:false or GET404 after denied PATCH, retained disabled text versus full removal, no replay/persistence. TypeScript/lint/format PASS; focused security PASS after browser-GET coverage finding fixed. Existing verified build reused; no full checks repeated. Total content scenarios now18; evidence `docs/qa-phase-2-content-browser.md` follow-up.
+- Earlier local READ/F10-A/ACCESS/STATE/F10-B/PAGE/CARD slices retain their individual APPROVED/security PASS evidence (see reports and archived 2026-11-19 handoff). Do not reinstall dependencies or duplicate completed checks. Fifteen Tiptap packages pinned 3.34.0. D133 remains OPEN/ON_HOLD only; FILLED requires existing reopen, CANCELLED immutable.
+- CONTENT-E2E added `tests/e2e/vacancy-content-edit.spec.ts` and `support/vacancy-content.ts`: 16 real-Tiptap scenarios; real persistence/stale/roles, safe paste/link and WCAG, NULL/empty/Clear/undo, keyboard/IME/discard, denial cleanup, actor switch, closed states and owning TL on ON_HOLD. Fixtures clean up by exact ID/title, never mutable description.
+- Fresh fixed build: desktop 16/16 PASS. Mobile 15 PASS, then keyboard case PASS after test-only Ctrl/Meta+End/collapsed-selection correction; corrected case also PASS desktop. All 16 scenarios verified both viewports. Details and remaining gaps: `docs/qa-phase-2-content-browser.md`.
+- BUG-CONTENT-SESSION-01 fixed: dirty editor teardown's history.back cancelled router.refresh's login redirect. ContentEditor captures existing guardRef and releases in layout cleanup before passive teardown; shared guard unchanged. Three regressions failed before (back called once); 28/28 form units PASS after (engineer). Actual PATCH401 login destination PASS both viewports. Code APPROVED `docs/review-phase-2-content-terminal.md`; integrated security/focused fix PASS `docs/security/content-integrated-browser-review.md`.
+- Shared auth/mfa/profile/draft edit/access regression: desktop 81 + 11 session setup PASS; mobile 80 PASS/one existing desktop-only skip. `captures` cases intentionally excluded for D125; no PNGs regenerated. Earlier CARD evidence: vacancies desktop63/mobile44, share/assignment/status desktop37/mobile35 PASS; not repeated for editor-only fix.
+- Fresh build/typecheck/focused lint/format/diff-check PASS. Typecheck/build/Playwright require elevation for existing native cache/browser access, not a reinstall. perf:size all routes PASS: content/edit164.35, card165.27, draft edit179.85, create179.64 kB gz. Runtime/Lighthouse performance not rerun. Card's extra post-mount GET remains V-block perf follow-up.
+- Existing harness changes preserved without publishing. Shared edit lease and integration lock released after checkpoint; acquire your own before edits/heavy runs. Source-level reviews do not approve whole-feature publishing.
+
+## Next (in order)
+
+1. Finish remaining consolidated browser gates: mixed-role MFA and delayed completions/chunk failures; see ADR-020 and QA checkpoint. Terminal, actor-switch, same-user/new-session, real recruiter-removal and status-during-edit cases are done; do not duplicate passing full suites.
+2. V-block UX/new-state screenshots (D125), runtime/bundle perf and final independent feature QA before publish; update PR description for actual feature batch, then authorized commit/push/hosted CI. No automatic owner merge.
+3. D117 create/draft adoption is explicit following work. Phase 2/V4/candidates/files/dedup/talent pool/dashboard/custom roles remain unfinished; never advance automatically to Phase 3.
+4. Owner physical-phone keyboard/selection/sticky-footer/toast checks remain open. 200% zoom is a viewport surrogate. Retain D126 deferred nits and Phase 7 demo-video reminder.
+
+## Run notes
+
+- `corepack pnpm ...`; Vitest from PowerShell. One checkout edit lease via `scripts/ai-edit-lease.mjs`; latest session owner was `codex-content-session-20261121`.
+- Shared heavy-test lock `D:/recruiting-wt/.integration.lock`: acquire exclusively; never overlap build/integration/Playwright. Desktop then mobile sequentially. Initial sessions dependency once, repeats `--no-deps`.
+- Never print `.env`/full Supabase status, delete rate-limit rows or reinstall approved dependencies without cause. Existing audit exemption expires 2026-12-18.
+
+## Checkpoint — 2026-11-21 (Codex, CONTENT-E2E-STATUS with agents)
+
+- Branch `phase-2`, HEAD/pushed baseline `b0e7c3e` unchanged. Prior hosted CI 44474819422 passed for the committed PATCH/audit-label slice only; all later GET/editor and harness work remains local. No commit/push/merge/deploy this session; owner merges.
+- Latest tests-only slice with two reused agents: `tests/e2e/vacancy-content-status.spec.ts`, real HOLD stale/confirmed reload/deliberate save, real CANCEL locked/readable buffer/no replay, fixture-only FILLED background gate/discard guard. Explicit browser GET/codes/server immutability/no reopen. Desktop3/3, mobile3/3 PASS without repair; focused lint/format/tsc PASS, security PASS. Existing build/sessions reused; total content scenarios21. Evidence `docs/qa-phase-2-content-browser.md` status follow-up.
+- New small tests-only slice: two real-API recruiter-removal cases, desktop2/2 + setup11 PASS and mobile2/2 PASS; explicit browser GET200/canEditContent:false or GET404 after denied PATCH, retained disabled text versus full removal, no replay/persistence. TypeScript/lint/format PASS; focused security PASS after browser-GET coverage finding fixed. Existing verified build reused; no full checks repeated. Total content scenarios now18; evidence `docs/qa-phase-2-content-browser.md` follow-up.
+- Earlier local READ/F10-A/ACCESS/STATE/F10-B/PAGE/CARD slices retain their individual APPROVED/security PASS evidence (see reports and archived 2026-11-19 handoff). Do not reinstall dependencies or duplicate completed checks. Fifteen Tiptap packages pinned 3.34.0. D133 remains OPEN/ON_HOLD only; FILLED requires existing reopen, CANCELLED immutable.
+- CONTENT-E2E added `tests/e2e/vacancy-content-edit.spec.ts` and `support/vacancy-content.ts`: 16 real-Tiptap scenarios; real persistence/stale/roles, safe paste/link and WCAG, NULL/empty/Clear/undo, keyboard/IME/discard, denial cleanup, actor switch, closed states and owning TL on ON_HOLD. Fixtures clean up by exact ID/title, never mutable description.
+- Fresh fixed build: desktop 16/16 PASS. Mobile 15 PASS, then keyboard case PASS after test-only Ctrl/Meta+End/collapsed-selection correction; corrected case also PASS desktop. All 16 scenarios verified both viewports. Details and remaining gaps: `docs/qa-phase-2-content-browser.md`.
+- BUG-CONTENT-SESSION-01 fixed: dirty editor teardown's history.back cancelled router.refresh's login redirect. ContentEditor captures existing guardRef and releases in layout cleanup before passive teardown; shared guard unchanged. Three regressions failed before (back called once); 28/28 form units PASS after (engineer). Actual PATCH401 login destination PASS both viewports. Code APPROVED `docs/review-phase-2-content-terminal.md`; integrated security/focused fix PASS `docs/security/content-integrated-browser-review.md`.
+- Shared auth/mfa/profile/draft edit/access regression: desktop 81 + 11 session setup PASS; mobile 80 PASS/one existing desktop-only skip. `captures` cases intentionally excluded for D125; no PNGs regenerated. Earlier CARD evidence: vacancies desktop63/mobile44, share/assignment/status desktop37/mobile35 PASS; not repeated for editor-only fix.
+- Fresh build/typecheck/focused lint/format/diff-check PASS. Typecheck/build/Playwright require elevation for existing native cache/browser access, not a reinstall. perf:size all routes PASS: content/edit164.35, card165.27, draft edit179.85, create179.64 kB gz. Runtime/Lighthouse performance not rerun. Card's extra post-mount GET remains V-block perf follow-up.
+- Existing harness changes preserved without publishing. Shared edit lease and integration lock released after checkpoint; acquire your own before edits/heavy runs. Source-level reviews do not approve whole-feature publishing.
+
+## Next (in order)
+
+1. Finish remaining consolidated browser gates: mixed-role MFA/same-user new-session and delayed completions/chunk failures; see ADR-020 and QA checkpoint. Terminal, actor-switch, real recruiter-removal and status-during-edit cases are done; do not duplicate passing full suites.
+2. V-block UX/new-state screenshots (D125), runtime/bundle perf and final independent feature QA before publish; update PR description for actual feature batch, then authorized commit/push/hosted CI. No automatic owner merge.
+3. D117 create/draft adoption is explicit following work. Phase 2/V4/candidates/files/dedup/talent pool/dashboard/custom roles remain unfinished; never advance automatically to Phase 3.
+4. Owner physical-phone keyboard/selection/sticky-footer/toast checks remain open. 200% zoom is a viewport surrogate. Retain D126 deferred nits and Phase 7 demo-video reminder.
+
+## Run notes
+
+- `corepack pnpm ...`; Vitest from PowerShell. One checkout edit lease via `scripts/ai-edit-lease.mjs`; latest session owner was `codex-content-status-20261121`.
+- Shared heavy-test lock `D:/recruiting-wt/.integration.lock`: acquire exclusively; never overlap build/integration/Playwright. Desktop then mobile sequentially. Initial sessions dependency once, repeats `--no-deps`.
+- Never print `.env`/full Supabase status, delete rate-limit rows or reinstall approved dependencies without cause. Existing audit exemption expires 2026-12-18.
+
+## Checkpoint — 2026-11-21 (Codex, CONTENT-E2E-UNASSIGN small follow-up)
+
+- Branch `phase-2`, HEAD/pushed baseline `b0e7c3e` unchanged. Prior hosted CI 44474819422 passed for the committed PATCH/audit-label slice only; all later GET/editor and harness work remains local. No commit/push/merge/deploy this session; owner merges.
+- New small tests-only slice: two real-API recruiter-removal cases, desktop2/2 + setup11 PASS and mobile2/2 PASS; explicit browser GET200/canEditContent:false or GET404 after denied PATCH, retained disabled text versus full removal, no replay/persistence. TypeScript/lint/format PASS; focused security PASS after browser-GET coverage finding fixed. Existing verified build reused; no full checks repeated. Total content scenarios now18; evidence `docs/qa-phase-2-content-browser.md` follow-up.
+- Earlier local READ/F10-A/ACCESS/STATE/F10-B/PAGE/CARD slices retain their individual APPROVED/security PASS evidence (see reports and archived 2026-11-19 handoff). Do not reinstall dependencies or duplicate completed checks. Fifteen Tiptap packages pinned 3.34.0. D133 remains OPEN/ON_HOLD only; FILLED requires existing reopen, CANCELLED immutable.
+- CONTENT-E2E added `tests/e2e/vacancy-content-edit.spec.ts` and `support/vacancy-content.ts`: 16 real-Tiptap scenarios; real persistence/stale/roles, safe paste/link and WCAG, NULL/empty/Clear/undo, keyboard/IME/discard, denial cleanup, actor switch, closed states and owning TL on ON_HOLD. Fixtures clean up by exact ID/title, never mutable description.
+- Fresh fixed build: desktop 16/16 PASS. Mobile 15 PASS, then keyboard case PASS after test-only Ctrl/Meta+End/collapsed-selection correction; corrected case also PASS desktop. All 16 scenarios verified both viewports. Details and remaining gaps: `docs/qa-phase-2-content-browser.md`.
+- BUG-CONTENT-SESSION-01 fixed: dirty editor teardown's history.back cancelled router.refresh's login redirect. ContentEditor captures existing guardRef and releases in layout cleanup before passive teardown; shared guard unchanged. Three regressions failed before (back called once); 28/28 form units PASS after (engineer). Actual PATCH401 login destination PASS both viewports. Code APPROVED `docs/review-phase-2-content-terminal.md`; integrated security/focused fix PASS `docs/security/content-integrated-browser-review.md`.
+- Shared auth/mfa/profile/draft edit/access regression: desktop 81 + 11 session setup PASS; mobile 80 PASS/one existing desktop-only skip. `captures` cases intentionally excluded for D125; no PNGs regenerated. Earlier CARD evidence: vacancies desktop63/mobile44, share/assignment/status desktop37/mobile35 PASS; not repeated for editor-only fix.
+- Fresh build/typecheck/focused lint/format/diff-check PASS. Typecheck/build/Playwright require elevation for existing native cache/browser access, not a reinstall. perf:size all routes PASS: content/edit164.35, card165.27, draft edit179.85, create179.64 kB gz. Runtime/Lighthouse performance not rerun. Card's extra post-mount GET remains V-block perf follow-up.
+- Existing harness changes preserved without publishing. Shared edit lease and integration lock released after checkpoint; acquire your own before edits/heavy runs. Source-level reviews do not approve whole-feature publishing.
+
+## Next (in order)
+
+1. Finish remaining consolidated browser gates: mixed-role MFA/same-user new-session, delayed completions/chunk failures and status changes during editing; see ADR-020 and QA checkpoint. Terminal, actor-switch and real recruiter-removal cases are done; do not duplicate passing full suites.
+2. V-block UX/new-state screenshots (D125), runtime/bundle perf and final independent feature QA before publish; update PR description for actual feature batch, then authorized commit/push/hosted CI. No automatic owner merge.
+3. D117 create/draft adoption is explicit following work. Phase 2/V4/candidates/files/dedup/talent pool/dashboard/custom roles remain unfinished; never advance automatically to Phase 3.
+4. Owner physical-phone keyboard/selection/sticky-footer/toast checks remain open. 200% zoom is a viewport surrogate. Retain D126 deferred nits and Phase 7 demo-video reminder.
+
+## Run notes
+
+- `corepack pnpm ...`; Vitest from PowerShell. One checkout edit lease via `scripts/ai-edit-lease.mjs`; latest session owner was `codex-content-unassign-20261121`.
+- Shared heavy-test lock `D:/recruiting-wt/.integration.lock`: acquire exclusively; never overlap build/integration/Playwright. Desktop then mobile sequentially. Initial sessions dependency once, repeats `--no-deps`.
+- Never print `.env`/full Supabase status, delete rate-limit rows or reinstall approved dependencies without cause. Existing audit exemption expires 2026-12-18.
+
+## Checkpoint — 2026-11-21 (Codex, CONTENT-E2E + session teardown fix)
+
+- Branch `phase-2`, HEAD/pushed baseline `b0e7c3e` unchanged. Prior hosted CI 44474819422 passed for the committed PATCH/audit-label slice only; all later GET/editor and harness work remains local. No commit/push/merge/deploy this session; owner merges.
+- Earlier local READ/F10-A/ACCESS/STATE/F10-B/PAGE/CARD slices retain their individual APPROVED/security PASS evidence (see reports and archived 2026-11-19 handoff). Do not reinstall dependencies or duplicate completed checks. Fifteen Tiptap packages pinned 3.34.0. D133 remains OPEN/ON_HOLD only; FILLED requires existing reopen, CANCELLED immutable.
+- CONTENT-E2E added `tests/e2e/vacancy-content-edit.spec.ts` and `support/vacancy-content.ts`: 16 real-Tiptap scenarios; real persistence/stale/roles, safe paste/link and WCAG, NULL/empty/Clear/undo, keyboard/IME/discard, denial cleanup, actor switch, closed states and owning TL on ON_HOLD. Fixtures clean up by exact ID/title, never mutable description.
+- Fresh fixed build: desktop 16/16 PASS. Mobile 15 PASS, then keyboard case PASS after test-only Ctrl/Meta+End/collapsed-selection correction; corrected case also PASS desktop. All 16 scenarios verified both viewports. Details and remaining gaps: `docs/qa-phase-2-content-browser.md`.
+- BUG-CONTENT-SESSION-01 fixed: dirty editor teardown's history.back cancelled router.refresh's login redirect. ContentEditor captures existing guardRef and releases in layout cleanup before passive teardown; shared guard unchanged. Three regressions failed before (back called once); 28/28 form units PASS after (engineer). Actual PATCH401 login destination PASS both viewports. Code APPROVED `docs/review-phase-2-content-terminal.md`; integrated security/focused fix PASS `docs/security/content-integrated-browser-review.md`.
+- Shared auth/mfa/profile/draft edit/access regression: desktop 81 + 11 session setup PASS; mobile 80 PASS/one existing desktop-only skip. `captures` cases intentionally excluded for D125; no PNGs regenerated. Earlier CARD evidence: vacancies desktop63/mobile44, share/assignment/status desktop37/mobile35 PASS; not repeated for editor-only fix.
+- Fresh build/typecheck/focused lint/format/diff-check PASS. Typecheck/build/Playwright require elevation for existing native cache/browser access, not a reinstall. perf:size all routes PASS: content/edit164.35, card165.27, draft edit179.85, create179.64 kB gz. Runtime/Lighthouse performance not rerun. Card's extra post-mount GET remains V-block perf follow-up.
+- Existing harness changes preserved without publishing. Shared edit lease and integration lock released after checkpoint; acquire your own before edits/heavy runs. Source-level reviews do not approve whole-feature publishing.
+
+## Next (in order)
+
+1. Finish remaining consolidated browser gates: mixed-role MFA/same-user new-session, delayed completions/chunk failures, assignment/status changes during editing; see ADR-020 and QA checkpoint. Current terminal and actor-switch cases are done; do not duplicate passing full suites.
+2. V-block UX/new-state screenshots (D125), runtime/bundle perf and final independent feature QA before publish; update PR description for actual feature batch, then authorized commit/push/hosted CI. No automatic owner merge.
+3. D117 create/draft adoption is explicit following work. Phase 2/V4/candidates/files/dedup/talent pool/dashboard/custom roles remain unfinished; never advance automatically to Phase 3.
+4. Owner physical-phone keyboard/selection/sticky-footer/toast checks remain open. 200% zoom is a viewport surrogate. Retain D126 deferred nits and Phase 7 demo-video reminder.
+
+## Run notes
+
+- `corepack pnpm ...`; Vitest from PowerShell. One checkout edit lease via `scripts/ai-edit-lease.mjs`; current session owner was `codex-content-e2e-20261121`.
+- Shared heavy-test lock `D:/recruiting-wt/.integration.lock`: acquire exclusively; never overlap build/integration/Playwright. Desktop then mobile sequentially. Initial sessions dependency once, repeats `--no-deps`.
+- Never print `.env`/full Supabase status, delete rate-limit rows or reinstall approved dependencies without cause. Existing audit exemption expires 2026-12-18.
+
+## Checkpoint — 2026-11-19 (Codex, content editor in progress)
+
+- `phase-2` HEAD/pushed `b0e7c3e`; PR #1 OPEN/CLEAN at verification. **CI 44474819422 fully SUCCESS**: all tests, performance, E2E, screenshots, Newman and secrets. The previous watchers exited. This verifies the committed content PATCH/audit-label fix, not later local changes.
+- Owner D133/Q-195: published content editable only on OPEN/ON_HOLD; FILLED must reopen first, CANCELLED remains immutable. ADR-018 records the narrow permission union and fresh actor/vacancy/assignment authorization under ordered locks.
+- Committed PATCH: code APPROVED/security/QA PASS in the content reports; narrow permission union, fresh locked authorization and metadata-only history. Draft PATCH unchanged. Earlier label failure fixed with 3 failing-before assertions and 9/9 passing afterwards.
+- Local ADR-019 GET/query/loader (153 production lines): coherent scoped document/version/status/assignment snapshot, advisory edit flag and no writes/throttle. Units 145 passed; read plus write/race integration 58 passed; 12 new GET Postman cases. F10-A viewer/adapter (181 lines), 14 Tiptap packages pinned 3.34.0 and 17 units passed. Combined code APPROVED (`docs/review-phase-2-content-read-f10.md`), security PASS (`docs/security/content-read-f10-review.md`); dependency audit passed. Independent feature/browser QA remains.
+- ADR-020/content-edit wireframe are security/UX-contract approved. Planned route `/vacancies/[vacancyId]/content/edit`; full-card viewer only, preview/list stay small. Contract approval is not a runtime UI approval.
+- CONTENT-ACCESS complete locally: 238 lines, 18 React/provider tests, typecheck/lint/format passed; code APPROVED and security PASS. Whole-feature browser gates remain. CONTENT-STATE complete locally: 39 tests/3 files; code APPROVED (`docs/review-phase-2-content-state.md`), security PASS (`docs/security/content-state-review.md`).
+- F10-B shell/runtime/toolbar/link-dialog code APPROVED and security PASS before small keyboard follow-ups. Root-inspected Mod+Enter fix and standard UndoRedo addition: latest 12 actual-runtime tests passed, earlier 3 shell tests passed, final types/lint/format passed. Fifteen Tiptap packages now pinned 3.34.0 (UndoRedo runtime-only). Explicit resetKey adoption clears old undo history without moving an equal document's selection; normal equal-save keeps resetKey/history. Final integrated security/browser/perf remains. `richText.*` messages ownership released; never edit/format messages concurrently.
+- CONTENT-PAGE complete locally (Claude, 2026-11-19): route `/vacancies/[id]/content/edit` layout/page/loading, `vacancy-content-{edit-form,feedback,field}.tsx`, messages selector, `vacancies.contentEdit.*`; ~880 prod + 733 test lines; 47 new units, vacancies unit set 957 passed, typecheck/lint/format clean. Code APPROVED (`docs/review-phase-2-content-page.md`), security PASS; Low F1 (GET 403 not terminal) FIXED: GET 403 → terminal notFound, PATCH 403 unchanged, failing-before 2, after 72/72, security verified, ADR-020 §Access loss updated. Not linked from card yet; no E2E/bundle measured.
+- CONTENT-CARD complete locally (Claude, 2026-11-19): `vacancy-content-panel.tsx`, card layout/detail-view/overview slots, `vacancies.contentCard.*`, shared `isEditableStatus` in `lib/vacancy-content-form.ts`. Code APPROVED (`docs/review-phase-2-content-card.md`), security PASS (`docs/security/content-card-review.md`); fix round done (layout `unstable_rethrow` + log, retry feedback, detail-view denial test + no refetch after eviction, notFound evicts detail cache, lazy ConfirmDialog). Units 998 passed; E2E vacancies desktop 63/mobile 44, share/assignment/status desktop 37/mobile 35, 0 failures. perf:size: content/edit 164.31, edit 179.85 (0.15 headroom), card 165.27 kB. Deferred to V-block perf: card panel waits for post-mount revalidation (extra GET per visit).
+- Both engineers resumed successfully after a usage-limit interruption; preserve saved work. Do not reinstall dependencies or rerun completed GET/F10-A checks without new cause. Local ACCESS/editor work is not approved for push yet. Full Phase 2/V4 and candidates remain unfinished.
+
+## Next (in order)
+
+1. ACCESS, F10-B and STATE are APPROVED/PASS. Next: feature is visible end-to-end; remaining before publish: `vacancy-content-edit.spec.ts` E2E + browser QA (real Tiptap, 390px, keyboard, 401/404 eviction, identity switch), UX/screenshots at V-block end; then commit/push; D117 create/draft adoption remains explicit follow-on work.
+2. Consolidated browser/auth/mfa/profile/shared-screen, bundle/performance, UX/screenshots and independent QA gates precede publishing the visible feature. Do not duplicate passing full CI locally (D129).
+3. PR description is reconciled with the committed API and fixed V3 captures; update for the next feature batch when ready. Owner merges; do not advance to Phase 3 automatically.
+4. Owner physical-phone selection/sticky-footer/toast check remains open; 200% zoom test is a viewport surrogate. Phase 7 demo videos reminder and D126 nits remain.
+
+## Run notes
+
+- `corepack pnpm …`; Vitest from PowerShell. Typecheck/build may need elevation for native bindings/cache.
+- Shared integration lock = `D:/recruiting-wt/.integration.lock`; acquire exclusively before integration/Playwright and release only your lock. Never overlap build, integration or Playwright runs.
+- Desktop then mobile E2E sequentially (429 on concurrent sign-ins/writes). First run with session dependency; repeats may use `--no-deps`.
+- Screenshots only at V-block end (D125/D126); do not recapture unchanged screens. CI triggers on PRs; push branches are main/phase-1.
+- Never print `.env`/full `supabase status`; never delete local rate-limit rows. Dependency audit exemption expires 2026-12-18 (`docs/security/dependency-audit-picomatch.md`).
+
+## Checkpoint — 2026-11-19 (Codex, content API CI follow-up)
+
+- Following baseline `bc8f061`, STORY-VAC-01-2a implements `PATCH /api/v1/vacancies/{vacancyId}/content`: description/requirements only, strict shared rich-text schema, omission/null/replacement semantics, version/no-op checks and atomic metadata-only history. Existing draft PATCH is unchanged. No migration or UI change.
+- Owner D133/Q-195: published content editable only on OPEN/ON_HOLD; FILLED must reopen first, CANCELLED remains immutable. ADR-018 records the narrow permission union and fresh actor/vacancy/assignment authorization under ordered locks.
+- Code review APPROVED; security PASS; independent QA PASS. Reports: `docs/review-phase-2-vacancy-content.md`, `docs/security/vacancy-content-review.md`, `docs/qa-phase-2-vacancy-content.md`. One nonblocking race-harness synchronization nit deferred under D126.
+- Local verification: affected units 1667 passed; content integration/races 33 passed; affected draft/urgency/assignment/status regressions 319 passed; independent mixed-role aal1 QA 1 passed. Typecheck, lint, formatting and generated OpenAPI/Postman consistency passed. Shared integration lock released; test PostgreSQL remains running.
+- Content code committed/pushed as `fea6edd`. CI 44396538695 passed lint/format/types/secrets but failed three `audit-vacancy-labels` assertions: new `vacancy.updated` lacked its Ukrainian viewer label. Minimal follow-up adds the label and expected emitted action; targeted suite reproduced 3 failures before and passed 9/9 afterwards. Existing scan/unused-label checks remain intact; verify the follow-up commit's CI before implementation continues.
+- Hosted verification is authoritative at PR #1 latest checks: https://github.com/tolkyu/rcrt-app/pull/1/checks . Baseline CI 44382912511 on bc8f061 passed all gates; it is not evidence for the new content code. The orchestrator must verify the content commit's CI before the next implementation slice.
+- V3 mobile fixes/captures have focused UX approval (`docs/ux/review-phase-2-v3-fixed-captures.md`). Follow-on form: `docs/ux/wireframes/vacancy-content-edit.md`; ADR-019 designs the narrow authorized content GET and eligibility flag, pending security review. GET and F10 editor/view remain unimplemented. Full Phase 2/V4 and candidates remain unfinished.
+
+## Next (in order)
+
+1. Verify the content commit's hosted CI, including 16 new Postman cases; fix any red gate before more implementation. Do not duplicate passing full suites locally (D129).
+2. After green CI/security contract review, implement ADR-019's narrow initial content GET/query in a bounded critical slice, then approved F10 editor/view and two-field UI. Keep D133 and draft isolation; PATCH is never a read path.
+3. PR #1 description has stale V3 bug/capture claims; reconcile for owner merge. Do not merge or advance to Phase 3 automatically.
+4. Owner physical-phone selection/sticky-footer/toast check remains open; the existing 200% zoom test is a viewport surrogate. Phase 7 demo videos reminder and D126 nits remain.
+
+## Run notes
+
+- `corepack pnpm …`; Vitest from PowerShell. Typecheck/build may need elevation for native bindings/cache.
+- Shared integration lock = `D:/recruiting-wt/.integration.lock`; acquire exclusively before integration/Playwright and release only your lock. Never overlap build, integration or Playwright runs.
+- Desktop then mobile E2E sequentially (429 on concurrent sign-ins/writes). First run with session dependency; repeats may use `--no-deps`.
+- Screenshots only at V-block end (D125/D126); do not recapture unchanged screens. CI triggers on PRs; push branches are main/phase-1.
+- Never print `.env`/full `supabase status`; never delete local rate-limit rows. Dependency audit exemption expires 2026-12-18 (`docs/security/dependency-audit-picomatch.md`).
+
+## Checkpoint — 2026-11-18 (Codex, published vacancy content API)
+
+- Following baseline `bc8f061`, STORY-VAC-01-2a implements `PATCH /api/v1/vacancies/{vacancyId}/content`: description/requirements only, strict shared rich-text schema, omission/null/replacement semantics, version/no-op checks and atomic metadata-only history. Existing draft PATCH is unchanged. No migration or UI change.
+- Owner D133/Q-195: published content editable only on OPEN/ON_HOLD; FILLED must reopen first, CANCELLED remains immutable. ADR-018 records the narrow permission union and fresh actor/vacancy/assignment authorization under ordered locks.
+- Code review APPROVED; security PASS; independent QA PASS. Reports: `docs/review-phase-2-vacancy-content.md`, `docs/security/vacancy-content-review.md`, `docs/qa-phase-2-vacancy-content.md`. One nonblocking race-harness synchronization nit deferred under D126.
+- Local verification: affected units 1667 passed; content integration/races 33 passed; affected draft/urgency/assignment/status regressions 319 passed; independent mixed-role aal1 QA 1 passed. Typecheck, lint, formatting and generated OpenAPI/Postman consistency passed. Shared integration lock released; test PostgreSQL remains running.
+- Hosted verification is authoritative at PR #1 latest checks: https://github.com/tolkyu/rcrt-app/pull/1/checks . Baseline CI 44382912511 on bc8f061 passed all gates; it is not evidence for the new content code. The orchestrator must verify the content commit's CI before the next implementation slice.
+- V3 mobile fixes/captures have focused UX approval (`docs/ux/review-phase-2-v3-fixed-captures.md`). Follow-on content form design: `docs/ux/wireframes/vacancy-content-edit.md`; initial authorized document/version/eligibility read and F10 editor/view remain unimplemented dependencies. Full Phase 2/V4 and candidates remain unfinished.
+
+## Next (in order)
+
+1. Verify the content commit's hosted CI, including 16 new Postman cases; fix any red gate before more implementation. Do not duplicate passing full suites locally (D129).
+2. Design the authorized initial content read and effective edit eligibility, then implement approved F10 editor/view and the two-field UI in bounded reviewed slices. Do not invent GET routes or use PATCH for reading. Keep D133 and draft isolation.
+3. PR #1 description has stale V3 bug/capture claims; reconcile for owner merge. Do not merge or advance to Phase 3 automatically.
+4. Owner physical-phone selection/sticky-footer/toast check remains open; the existing 200% zoom test is a viewport surrogate. Phase 7 demo videos reminder and D126 nits remain.
+
+## Run notes
+
+- `corepack pnpm …`; Vitest from PowerShell. Typecheck/build may need elevation for native bindings/cache.
+- Shared integration lock = `D:/recruiting-wt/.integration.lock`; acquire exclusively before integration/Playwright and release only your lock. Never overlap build, integration or Playwright runs.
+- Desktop then mobile E2E sequentially (429 on concurrent sign-ins/writes). First run with session dependency; repeats may use `--no-deps`.
+- Screenshots only at V-block end (D125/D126); do not recapture unchanged screens. CI triggers on PRs; push branches are main/phase-1.
+- Never print `.env`/full `supabase status`; never delete local rate-limit rows. Dependency audit exemption expires 2026-12-18 (`docs/security/dependency-audit-picomatch.md`).
+
+## Checkpoint — 2026-11-18 (Codex, vacancy V-block CI green)
+
+- `phase-2` @ `bc8f061`, committed and pushed with owner authorization. V2/V3 vacancy implementation, row status menu and `needsMfa` are merged; this is not full Phase 2 completion. V4 remains; candidates, files, deduplication, talent pool, dashboard and custom roles are outside this vacancy block.
+- BUG-V3-1/D132 and BUG-V3-2 fixed in `1fe09aa`; BUG-V3-3 mobile bottom action sheet fixed in `d9bfd0e`. Review `33b7524` APPROVED; records typecheck and 128 passing unit tests (`docs/review-phase-2-v3-bugs.md`). No new product tests run for this assessment.
+- Captures updated in `0530cf1` + `3edabbb`; all 41 changed phase-2 PNGs match `screenshots/latest/`. Focused UX review approves the fixed claim notice and status sheet: `docs/ux/review-phase-2-v3-fixed-captures.md`; existing D126 nits remain deferred.
+- **Current-head CI 44382912511 SUCCESS** on `bc8f061`: quality and secrets passed, including E2E, screenshots, Newman, performance and security checks. PR #1 merge state CLEAN. The earlier run hit the 45-minute job timeout; `bc8f061` raises it to 60 without relaxing checks. New quality job completed in 39m33s.
+- Latest UX review and `docs/stories/phase-2-next-slice.md` are local documentation only. Proposed next slice: published vacancy description/requirements editing, API first; closed-state edit policy needs an owner decision before implementation. No application code or duplicate local suites.
+
+## Next (in order)
+
+1. Report the vacancy V-block in Ukrainian: gallery, demo, green CI and open boundaries. PR #1 description still has stale BUG-V3-1..3/open-capture claims; reconcile when preparing it for owner merge. Do not merge automatically.
+2. Use `docs/stories/phase-2-next-slice.md` to plan remaining Phase 2/V4 work; resolve its closed-state policy question and architecture/security contract before implementation. Do not report full Phase 2 complete or advance automatically to Phase 3.
+3. Owner physical-phone selection/sticky-footer/toast check remains open; the existing 200% zoom test is a viewport surrogate.
+4. Phase 7: demo videos reminder; D126 gallery/style nits remain deferred.
+
+## Run notes
+
+- `corepack pnpm …`; Vitest from PowerShell. Typecheck/build may need elevation for native bindings/cache.
+- Shared integration lock = `D:/recruiting-wt/.integration.lock`; acquire exclusively before integration/Playwright and release only your lock. Never overlap build, integration or Playwright runs.
+- Desktop then mobile E2E sequentially (429 on concurrent sign-ins/writes). First run with session dependency; repeats may use `--no-deps`.
+- Screenshots only at V-block end (D125/D126); do not recapture unchanged screens. CI triggers on PRs; push branches are main/phase-1.
+- Never print `.env`/full `supabase status`; never delete local rate-limit rows. Dependency audit exemption expires 2026-12-18 (`docs/security/dependency-audit-picomatch.md`).
+
+## Checkpoint — 2026-11-18 (Codex QA, VERIFY-V3)
+
+- Assessed `phase-2` @ `1abc02a`. V2/V3 vacancy implementation, row status menu and `needsMfa` are merged; this is not full Phase 2 completion. V4 remains; candidates, files, deduplication, talent pool, dashboard and custom roles are outside this vacancy block.
+- BUG-V3-1/D132 and BUG-V3-2 fixed in `1fe09aa`; BUG-V3-3 mobile bottom action sheet fixed in `d9bfd0e`. Review `33b7524` APPROVED; records typecheck and 128 passing unit tests (`docs/review-phase-2-v3-bugs.md`). No new product tests run for this assessment.
+- Captures updated in `0530cf1` + `3edabbb`; all 41 changed phase-2 PNGs match `screenshots/latest/`. QA visually checked the corrected mobile claim notice and status sheet. This is QA acknowledgement, not UX designer approval; gallery review remains `docs/ux/review-phase-2-v3-gallery.md` with D126 nits.
+- Current-head CI run **44360353603 is incomplete**: secrets and all pre-E2E gates (including lint, format, typecheck, tests, perf, security and API contracts) passed; E2E hit the 45-minute job limit at passing test 1116/1193, with no failure/retry markers; screens/API skipped. DevOps prepared the focused `ci.yml` timeout change 45 → 60 minutes; no checks relaxed. Fix is local, pending commit/push and green CI; CI has not restarted. Earlier green run 44336031730 does not close the current head.
+- Latest local Playwright report is only 5 passing screenshot tests / 12 skipped in `vacancy-team-screens.spec.ts`; it is not a complete shared-screen regression result.
+
+## Next (in order)
+
+1. Obtain owner authorization to commit/push the reviewed CI configuration change (CLAUDE.md §12), then obtain green current-head E2E, screenshots and Newman results. D129: do not duplicate full CI suites locally.
+2. Reconcile PR #1 description (stale BUG-V3-1..3/open-capture claims), then report the vacancy V-block in Ukrainian: gallery, demo, checks and open boundaries. Confirm remaining Phase 2/V4 scope with the owner; do not report full Phase 2 complete or advance automatically to Phase 3.
+3. Owner physical-phone selection/sticky-footer/toast check remains open; the existing 200% zoom test is a viewport surrogate.
+4. Phase 7: demo videos reminder; D126 gallery/style nits remain deferred.
+
+## Run notes
+
+- `corepack pnpm …`; Vitest from PowerShell. Typecheck/build may need elevation for native bindings/cache.
+- Shared integration lock = `D:/recruiting-wt/.integration.lock`; acquire exclusively before integration/Playwright and release only your lock. Never overlap build, integration or Playwright runs.
+- Desktop then mobile E2E sequentially (429 on concurrent sign-ins/writes). First run with session dependency; repeats may use `--no-deps`.
+- Screenshots only at V-block end (D125/D126); do not recapture unchanged screens. CI triggers on PRs; push branches are main/phase-1.
+- Never print `.env`/full `supabase status`; never delete local rate-limit rows. Dependency audit exemption expires 2026-12-18 (`docs/security/dependency-audit-picomatch.md`).
+
+## Checkpoint — 2026-11-18 night (Claude)
+
+- **PR #1 `phase-2` → `main` (Phase 1 + 2) is fully GREEN** (run 44336031730: quality incl. e2e, screens, Newman; secrets). Merge state CLEAN. `gh` installed and authed (`tolkyu`).
+- CI fixes this session: `.gitleaksignore` (6 reviewed test fixtures), scoped time-boxed prod audit exemption for picomatch GHSA-fc5q-39xc-vjpf (lapses 2026-12-18 → re-check `npm view picomatch version`), prettier on docs, event `orderBy` in two tests, perf audit fixture inside the 7-day window, pre-V3 E2E specs aligned, `vacancy-share.spec.ts` runs last (its Admin TOTP ends shared aal1 sessions), table scroller `relative` (page overflow 900–1100 px).
+- CI triggers on PRs only (push trigger = main, phase-1). Each push runs ~40 min: batch docs with code pushes.
+- Owner D132: late claim shows «Вакансію вже взяв інший рекрутер» (BUG-V3-1).
+
+## Next (in order)
+
+1. Engineer: BUG-V3-1 (D132) + BUG-V3-2 (390 px claim sheet clamps the irreversibility notice). UX: gallery review `screenshots/phase-2/index.html` + BUG-V3-3 (mobile `[⋯]` dropdown vs sheet).
+2. Push → CI green (babysit) → owner phase report (Ukrainian): done, gallery, demo script, open questions → wait for «go phase 3» and owner merge of PR #1.
+3. Tech debt: flaky in CI — perf P95 profile write (124 vs 120 ms) and audit interaction (104 vs 100 ms) on slow runners; `mfa.spec.ts:172` desktop; `vacancies-create-team-lead.spec.ts:216` mobile draft count race. Edit route JS 179.04/180 kB.
+4. Phase 7: demo videos reminder.
+
+## Run notes / open checks
+
+- `corepack pnpm …`; Vitest from PowerShell. Typecheck/build may need elevation for native bindings/cache.
+- Docker/Supabase + integration DB were running. Shared integration lock = `D:/recruiting-wt/.integration.lock`; acquire exclusively before integration/Playwright and release only your lock. Never overlap build, integration or Playwright runs.
+- Desktop then mobile E2E sequentially (429 on concurrent sign-ins/writes). First run with session dependency; repeats may use `--no-deps`.
+- Latest focused E2E: `corepack pnpm exec playwright test tests/e2e/vacancy-share.spec.ts --project=e2e-desktop --workers=1 --grep 'clipboard|fallback|inside the screen|preview'`; mobile with `--no-deps`.
+- Screenshots only at V-block end (D125/D126). Phone selection/sticky-footer/toast check remains owner-run; existing “200% zoom” test is a viewport surrogate. No visual gallery review in this slice.
+- Never print `.env`/full `supabase status`; never delete local rate-limit rows.
+
+## Checkpoint — 2026-11-18 evening (Claude, before VS Code restart)
+
+- `phase-2` @ `412dd43`+, pushed. All V2 + V3 code merged: slices 1–7, 6b row status menu, needsMfa step-up reason, share fallback (Codex), API contracts + Newman. Every slice: code review APPROVED; security PASS (`docs/security/v3-*.md`); UX deviations in wireframes.
+- **Owner rule 2026-11-18 (CLAUDE.md §6.7, memory risk-based-dod-d129): never duplicate GitHub CI locally.** Merge = resolve conflicts → run only affected test files → push → CI → `babysit`/`fix-ci`. CI (`.github/workflows/ci.yml`) runs lint, typecheck, test, perf:check, test:e2e, test:screens, test:api.
+- Owner is installing `gh` (`winget install --id GitHub.cli`, `gh auth login`). CI status of recent pushes is UNKNOWN until then.
+- V-block end merged (`v3-vblock`): `vacancy-assignment.spec.ts` 13/13, `vacancy-status.spec.ts` 7/7, `vacancy-team-screens.spec.ts` (desktop 12 + mobile 5), 22 PNGs (U1 re-captured, C1–C5, T1–T8, S1–S8), axe pass, deterministic. Specs run in isolated `e2e-request-*` projects (`OPEN_LIST_SPECS` in `playwright.config.ts`). Older `30-*`/`31-*` PNGs predate V3 — CI may show a PNG diff.
+- Bugs (`docs/bugs.md`): **BUG-V3-1** late claim (other recruiter committed first) shows generic 404 toast instead of «Вакансію вже взяв інший рекрутер» — owner decision: keep + amend wireframe, or map 404-after-open-dialog to the conflict toast (recommend: map). **BUG-V3-2** 390 px claim sheet clamps the body at 3 lines and hides the irreversibility notice — fix. **BUG-V3-3** mobile `[⋯]` opens a small dropdown, wireframe says bottom sheet — UX review.
+
+## Next (in order)
+
+1. `gh auth status`; `gh run list --branch phase-2 --limit 5`; fix red CI with `fix-ci`.
+2. UX reviews the gallery (`screenshots/phase-2/index.html`) + BUG-V3-3; engineer fixes BUG-V3-2 (+ BUG-V3-1 after owner answer).
+3. Open PR `phase-2` → `main` with `make-pr-easy-to-review`, keep green with `babysit`.
+4. Owner report (Ukrainian): done, gallery path, demo script, open questions; wait for «go phase 3». Edit route JS 179.04/180 kB — perf follow-up before any form growth.
+5. Phase 7: demo videos reminder; tech debt in PROGRESS.
+
+## Checkpoint — 2026-11-18 afternoon (Claude)
+
+- `phase-2` @ `b8d7709`, pushed. Merged: V3 slices 1–5, 7, API contracts/Newman (658 req / 3831 assertions / 0 fail), Codex share-fallback fix (verified, one stale test fixed), Codex config, story wording (D46/D130/D131/errata). Full unit+integration 5110 green at `c712eb9`.
+- Owner D131: no claim cap; removed last recruiter may reclaim.
+- V3 slice 6 (status menu card/preview) @ `4fb4814` in `D:/recruiting-wt/v3-status-ui`: two code reviews (s6a logic, s6b dialogs) + UX deviation review running. ~930 non-test lines.
+- Decision (orchestrator, tech only): list-row `[⋯]` status items = option A — server sends per-vertical status-grant mirror (like `selfAssignVerticals`), row menu reads card version on open.
+
+## Next (in order)
+
+1. Slice 6 review fixes → merge (typecheck, lint, full `pnpm test` under lock, build + perf:size) → push.
+2. Slice 6b: list-row status menu (option A).
+3. `needsMfa` DTO flag + DisabledReason for Admin without 2FA on team/status controls (PROGRESS gap).
+4. V-block end: E2E (assignment, status, share), Newman rerun, V2+V3 gallery PNGs (+ register PNG 47), UX gallery review, perf check. Then owner report (Ukrainian).
+5. Phase 7: demo videos reminder; tech debt (PROGRESS). Flaky under load: `tests/unit/auth/lazy-validation-forms.test.ts` MFA button, combobox listbox timeout.
+
+## Checkpoint — 2026-11-18 (Codex, SHARE-FALLBACK)
+
+- Branch `phase-2` @ `c712eb9`; V3 assignment/status/Team Lead APIs, team panel and API/review tests already merged. Old “merge slices 2–5” tasks are superseded.
+- Small slice **SHARE-FALLBACK / STORY-UI-09-1 complete, uncommitted**: full selected read-only URL, warning alert, Ukrainian label and «Закрити»; focus and rapid/stale clipboard outcomes covered. Card/preview share the fix; same-ID draft focus lifecycle retained.
+- Verification: 56 focused unit tests, scoped ESLint, typecheck, build, bundle checks and code review APPROVED. Desktop Playwright: 7 share cases + 11 session setup passed; mobile: 5 passed, 2 desktop-preview skips.
+- Initial JS gzip: card 160.32 kB; list/preview 169.19; edit 178.95; new 178.73; all ≤180. No PNG recaptures, full suites, commits or pushes. QA lock released; screenshots and tsconfig unchanged.
+- Codex optimization remains uncommitted too: Sol Medium defaults; High critical work; two subagents max; see `CLAUDE.md` §12. Preserve existing untracked `.agents/skills/`.
+- Detailed evidence/current gaps: `docs/PROGRESS.md`.
+
+## Next (one small slice at a time)
+
+1. Reconcile existing **dirty** status work at `D:/recruiting-wt/v3-status-ui`. HEAD `3899dee` is already merged; status code exists only as four modified tracked files plus nine new files (~1,566 new lines), including shared urgency cache changes. Inspected read-only, left intact. Do not blindly merge/copy or duplicate it.
+2. Finish bounded hold/resume request/cache work with urgency regressions, then dialogs/menu integration (STORY-VAC-02-1). Follow ADR-017 and its errata. Resolve Admin-without-2FA `needsMfa`/DisabledReason gap before status UI closure.
+3. V-block end: reconcile story wording (HR share access vs D46), E2E/API/Newman, updated PNG47/U1 and V2/V3 gallery, UX review. Existing audit/unit gap labels may already be covered by `9db162c`; verify before repeating work.
+4. Phase 7: retain D126 tech debt and remind owner about demo videos.
+
+## Checkpoint — 2026-11-18 midday (Claude)
+
+- `phase-2` local HEAD has slice 7 merged (share tests, `24cd363`) + docs; pushed up to `c64c941`. Merged + pushed: urgency filter (slice 4 of V2), V3 slice 1 foundation (code APPROVED, security CONDITIONAL → S1-1 fixed).
+- ADR-017 has an **Errata** table (E1–E6) from security pre-review `docs/security/v3-adr-017-prereview.md` — binding for slices 2–4.
+- V3 slice 4 (Team Lead API) `v3-teamlead` @71f8499: code APPROVED; security review running (with slice 3).
+- V3 slice 3 (status API) `v3-status` @da50f0a: code review + security running.
+- V3 slice 2 (assignment API) `v3-assign`: engineer still building.
+- Integration DB shared by agents: lock = `mkdir D:/recruiting-wt/.integration.lock`, `rmdir` after. Orchestrator also takes it for `pnpm test` (includes integration).
+
+## Next (in order)
+
+1. After security PASS: merge slices 3, 4 (then 2) into `phase-2`, full `pnpm test` under lock, push; remove worktrees.
+2. Slice 5 (UI «Команда» + share fix `useShareLink`/`ClipboardFallbackAlert`, see PROGRESS share follow-ups) → slice 6 (status menu). Card route has room (158 kB); edit/new at 178.8/178.6 of 180.
+3. Slice 8: E2E, OpenAPI/Postman, Newman, V2+V3 gallery (PNG 47 share already captured), audit labels, S1-5 unit cases, story copy fixes, UX review.
+4. Owner report: UX §14 defaults applied; A5 daily claim cap question; HR share AC vs D46.
+5. Phase 7: demo videos reminder; tech debt in PROGRESS.
+
+## Open, not blocking
+
+- Owner's real-phone check of the sticky footer + toast.
+- 10 Phase-1 PNGs (+ latest copies) modified in tree without UI change — keep out of commits; determinism triage later.
+- E2E: running desktop + mobile projects in parallel hits 429 (30 writes/min, sign-in window). Run per project.
+
+## Run notes (Windows)
+
+- `corepack pnpm …` (pnpm not on PATH). Vitest only from PowerShell (Git Bash: "failed to find the current suite").
+- Docker Desktop → `npx supabase start`; `corepack pnpm test:db:up` for integration; never two integration or Playwright runs at once.
+- `corepack pnpm build` before E2E. First E2E of the day without `--no-deps`; repeats may use `--no-deps`.
+- Contracts: `corepack pnpm api:openapi`, then `corepack pnpm exec tsx scripts/postman.ts`.
+- Corrupt `.next` (`reading 'length'`) → delete `.next`, rebuild.
+- Never print `.env` or full `supabase status`. Local DB rate-limit rows: never delete.
+- Codex fallback: on return verify its work, commit, code-review. `AGENTS.md`/`.codex` only point to `CLAUDE.md`.
+
+
+## Checkpoint — 2026-11-17 evening (Claude)
+
+- Branch `phase-2`, HEAD `b48910d`, pushed. Owner approved pushes; work continues without waiting for the owner.
+- Done: S3.5 + S3.6 reviewed (code APPROVED x3, security PASS), BUG-S3-14 fixed, D123/D124/D125 recorded, lean gallery captures (`c955138`), rich-text fragment fix `6cd0276`.
+- New skills (`.claude/skills/`): deslop, no-comments, thermo-nuclear (QA), blast-radius (reviewer), benchmark-checklist (perf), tdd, typescript-best-practices, make-pr-easy-to-review, babysit, fix-ci, fix-merge-conflicts. Wired into `docs/engineering-self-check.md` and agent files.
+- **S3.7 closed (D126):** part 1 `b48910d` (items 7, 8, BUG-S3-20), part 2 (items 1, 6: pure `planAttempt`/`settle` in `lib/vacancy-draft-retry.ts`). Both code-reviewer APPROVED. Rest of thermo items → Phase 7 tech debt (PROGRESS «Gaps»).
+- **D126 (owner, 2026-11-17):** one review round per slice; only bugs/security/authz/PII/PRD mismatch block; screenshots once per V-block.
+
+## Next (in order) — 2026-11-17 late, wave 2
+
+1. Done + pushed: VAC-03-3 (`3a1b504`, `95672ac`); urgency API slice 1 + highlight slice 3 merged `7d46438` (highlight code-review APPROVED).
+2. Running: security + code-review of urgency API (377c50c); slice 2 client control in `D:/recruiting-wt/urgency-client` (branch `vac-08-2-client`); slice 4 list filter in `D:/recruiting-wt/urgency-filter` (`vac-04-4-filter`); QA fixes flaky unit `waitFor` timeouts in main tree (uncommitted).
+3. Then merge slices 2+4 (uk.json may conflict trivially), review, slice 5 (E2E, Postman success/stale/locked, V2 gallery PNGs, perf + UX gallery review), remove worktrees. Worktrees are manual (tool isolation fails on d:/D: case).
+4. Owner questions open: Q-190..Q-194 (V3 defaults apply). Then V3 design (architect + UX) and build.
+5. Tech debt (Phase 7): private cancelled urgent draft shows only Lock note; record dark-hover 2.94:1 in UX contrast table; `change_feed` row for urgency not emitted (no consumer).
+6. Phase 7: remind owner about demo videos.
+
+## Checkpoint — 2026-11-17 (Codex: S3.5 fixes and S3.6 gallery)
+
+- Implementation/gallery checkpoint: **`ac0b63f`**, saved locally. **Push is blocked pending explicit owner approval:** automatic approval review rejected `git push origin phase-2` because the configured destination `https://github.com/tolkyu/rcrt-app.git` was not explicitly authorized for sending this private-code checkpoint. Do not retry or work around the rejection until the owner approves that remote write. No remote push succeeded in this session.
+- Resumed Claude's uncommitted S3.5 from `42e41ac`. Cancel/delete implementation is present; **S3.5/S3.6 are still in progress**, not independently approved. Astra code/perf/QA agents hit their usage limit; model policy was not changed.
+- Initial code review found four issues; fixed all: old detail GET restoring DRAFT, changed-reason uncertain retries, collapsed internal breaks (D113), and reconciliation publishing status before dialog close/focus. Retry regressions also cover two lost answers and intervening 403/429. The security review initially passed; see coordinator addendum and remaining Low.
+- S3.6 exposed/fixed a stale «Виправте N полів» summary. Both forms dismiss its snapshot when values change, including picker `setValue`, without removing field errors. A refused-work integration snapshot now orders rows by stable primary keys.
+- Verified: production build (lint/TypeScript), **4,163 Vitest / 163 files**, secret/dev-route check and all JS gates. `/vacancies` 165.44 kB, card 157.14, create 177.73, edit 177.95. Generated OpenAPI/Postman hashes are stable (42 paths). Newman: **502 requests / 2,910 assertions**, zero failures (`docs/qa-phase-2-s3.md`).
+- E2E: main run **755 passed**, one known **BUG-S3-14** desktop 403 toast failure, 29 skips and 160 dependent cases not run. Those Admin cases passed separately in order: **96 desktop + 64 mobile**. The 403 test then passed **3/3** focused repeats; it stays open. Do not call the one-shot full E2E gate green.
+- Gallery: **180 new S3 PNGs**, **522 Phase-2 PNGs**, both themes and viewports; all 22 new gallery cases passed. Phase-2/latest images and HTML match. Representative coordinator visual review is recorded; the remaining wireframe §10 matrix, 320 px/200% visual pass, owner's real-phone check and independent UX verdict remain open.
+- Reports: `docs/review-phase-2-s3-5.md`, `docs/security/review-phase-2-s3-5.md`, `docs/perf/report-phase-2-s3-5.md`, `docs/qa-phase-2-s3.md`, `docs/ux/review-phase-2-s3.md`. **Next:** independent re-review when Astra is available, BUG-S3-14 investigation, finish S3.6; then F10. Do not rebuild S3.5 from scratch.
+- Test notes: full E2E must preserve project dependencies (no `--no-deps` on the combined four-project command). Focused reruns reuse sessions with `--no-deps`. Nested `pnpm` is absent in this shell: generate contracts with `corepack pnpm api:openapi`, then `corepack pnpm exec tsx scripts/postman.ts`.
+- Screenshot carry-over: this run also changed ten unrelated Phase-1 PNGs plus their latest copies (reactivation backgrounds and mobile priorities). They are intentionally left outside this checkpoint for determinism triage; no Phase-1 product UI changed. One inspected reactivation difference is 523 pixels in the background table only. Do not promote these as an intended UI change.
+
+## Checkpoint — 2026-11-17 (S3.2b + S3.2c pushed)
+
+- Pushed: S3.2b `5ef93bd` (D122 one TL predicate, test-only create limit), S3.2c `f8fc4f3` («Умови», readiness rail, draft-limit reason, BUG-S3-1/2 fixed). QA green (integration 309, E2E create 159, Newman 463/2691), code review APPROVED, security PASS.
+- Review follow-ups pushed `5dd7515` (re-review APPROVED). BUG-S3-4 (focus-then-hover tooltip, Minor) open — fix in S3.6 polish.
+- S3.3 pushed `b031f15` (QA green, security PASS `docs/security/review-phase-2-s3-3.md`, review APPROVED). Orchestrator decision: blank headcount/probation on EDIT = required error (create keeps defaults) — tell owner. Headroom: `/vacancies/new` 179.27 kB (0.73 left) — perf cut before any form growth (F10!).
+- S3.4 pushed `4f8fe3a` (QA full E2E 850/0, review APPROVED x2, designer decisions in wireframe §6.2, perf C lazy own-draft UI). Last full test:e2e was before the final S3.4 fixes — rerun at S3.6.
+- Perf slice pushed `9ae739b` (ADR-015 app-core chunk; /vacancies/new 177.71, edit 177.93, list 165.33, card 156.91). Next cut if needed: tooltip trigger shell (~0.7 kB, risky). Mobile flake once: vacancies-create-basics.spec.ts:456 (403 toast), 3/3 alone.
+- In progress: S3.5 (cancel/delete dialogs) → S3.6. Then S3.3 (edit + publish + stale version) → S3.4 → S3.5 → S3.6 (regenerate gallery; `screenshots/*38-admin-ui-page-frame-*` modified in tree, uncommitted on purpose).
+- Accepted: probation field visible only with the GLOBAL grant (D115) while the API accepts a vertical grant (D78) — intentional, not a predicate bug.
+- `pnpm` is not on PATH for agents: use `corepack pnpm`.
+
+## Checkpoint — 2026-11-16 evening (perf slice, S3.2a pushed)
+
+- Pushed: perf slice `c961c67` (ADR-014 precompiled messages, owner OK), flake fix `2909c3f`, S3.2a Team Lead picker + «Чернетки» count/empty/row `5bb0cb0`. Owner decision D122 (Q-187): TL must have accepted invite, one predicate everywhere.
+- Next: S3.2b-server (D122 eligibility in create/draft/publish + higher create limit only under `APP_ENV=test`, E2E bucket exhaustion B-1) ‖ S3.2c-UI (group «Умови», readiness rail, draft-limit `DisabledReason`). Then S3.3 → S3.4 rest → S3.5 → S3.6, F10.
+- Agents must run `docs/engineering-self-check.md`. Local DB rate-limit rows: never delete (classifier blocks; owner decides).
+
+## Checkpoint — 2026-11-16 (S3.1 create form pushed)
+
+- **S3.1 done and pushed** (QA all green, code review APPROVED after B1/B2/N1 fixes, security PASS `docs/security/review-phase-2-s3-1.md`): entry points, `/vacancies/new`, group «Основне», both submits, D110 list fix (`vacancyListWhere`: «Усі» hides own drafts). Details + gaps in `docs/PROGRESS.md`.
+- **Owner decisions D114–D121 (2026-11-16):** no bonus fields in the vacancy form; separate Admin «Бонуси» menu presets bonus per position; Head Recruiter may change a vacancy's bonus with Admin approval; opened vacancies keep the old bonus. Q-186 answered.
+- **Next (owner said «працюй по максимуму» — continue without asking per slice):** perf slice first — `/vacancies/new` is at exactly 180.00 kB (0 headroom); cut the shared `(app)` layout chunk (`vacancy-filters`, intl parser) and fix the mobile toast covering the form footer (`useStickyBar` in `FormPageFooter`). Then S3.2 → S3.3/S3.4 → S3.5 → S3.6, then F10.
+- **Owner reply style:** ASD-STE100 rules, in Ukrainian.
+
+## Checkpoint — 2026-11-16 (F6b, D111/D112, F9a, F9b, F9c reviewed and pushed)
+
+- **All reviews APPROVED and pushed to `origin/phase-2` (HEAD `1142038`)**: F6b `29620cc` + follow-up `30ca0eb`; D111/D112 `341eeb3` (code + security, `docs/security/review-phase-2-d111-d112.md`) + follow-up `30ca0eb`; F9a `ef0e83a`; F9b `f0a443e` + leave-guard fix `1142038`. Details and gaps in `docs/PROGRESS.md`.
+- **Owner decisions 2026-11-16 («згоден з реками»):** busy-dim contrast exemption accepted; no visible «Статус» label over the chips; the owner checks the sticky bar / form footer on a real phone.
+- **S3 must follow the leave-guard contract:** after a successful save call `guardRef.current.release()` then `router.replace(target)` (a push without `release()` leaves a stale history entry).
+- **F9c done and pushed (2026-11-16)**: RowSkeleton (in «Вакансії»), FormSkeleton (gallery, for S3), DetailHeader (preview title clamp + actions slot). Owner kept the ~68.5 px row (G11, 2026-11-16). **Next: S3** (create form UI + «Чернетки» chip count + draft actions; uses FormPageLayout/FormSkeleton/RowActionsMenu/DetailHeader); F10 rich text trails S3 core (`docs/ux/ui-foundation.md`). Do not start without the owner's go.
+- Run notes: a corrupted `.next` from the dev-ui dev server made `next build` die with `uncaughtException … reading 'length'` — move/delete `.next` and rebuild. Vitest from Git Bash fails ("failed to find the current suite"); run it from PowerShell (`corepack pnpm test` or `node node_modules/vitest/vitest.mjs run --project unit …`). Integration files share one test DB — do not run two integration runs at once (`42P01`).
+
+## UI foundation checkpoint — 2026-11-13 (F1–F5, F6a, F7, F8, F8.1 + hydration fix committed)
+
+- **F6a (`FilterChips`) done and committed** (Codex build → Claude review/fixes → APPROVED; details + gaps in `docs/PROGRESS.md`). **Next: F6b**, then F9, F10, then S3 UI. F6b extra notes: selection follows focus → `router.replace`, stable options array, review the start-aligned reveal.
+
+- **Codex model policy (owner, 2026-11-12):** coordinator GPT-6.1 Sol; subagents GPT-6 Astra, effort high, bounded fresh contexts. See `CLAUDE.md` §12 and `.codex/config.toml`; Claude Code keeps Sonnet agents. Product work still resumes at F6a.
+- **F8.1 done and committed**: pointerdown opener capture, menu/submenu trigger focus fallback, `DisabledReason reserveSpace`, test isolation, tab theme assertion; tracker stays in `(app)` (root install would cost `/login` +0.31 kB). Full gates green (details + gaps in `docs/PROGRESS.md`). `/login` 179.55 kB → **0.45 kB headroom**.
+- **Next: F6b, then F9, F10** (per `docs/ux/ui-foundation.md`), then S3 UI.
+- **F6 brief (ready to launch, split in two small slices; spec = `docs/ux/ui-foundation.md` row F6 + gaps G7/G9):**
+  - **F6a — `FilterChips` only** (`components/ui/filter-chips.tsx` + gallery section + tests): single-select `radiogroup`, pill chips, selected = `--primary-subtle` + 2 px `--brand` ring, optional `count` (`tabular-nums`), arrow keys move within the group, horizontal scroll-snap with edge fade, selected chip scrolled into view, `pointer-coarse:min-h-11`, no animation on selection change; 390 px row scrolls with no page overflow and no clipped first chip. No production page changes → no `perf:size` risk.
+  - **F6b — `FilterBar` + `vacancies-view.tsx`**: labelled controls grid, «Скинути фільтри» slot, `busy` dims results only after 150 ms; status `<select>` → chips keyed to `VACANCY_STATUSES` incl. «Чернетки» (count only when the API supplies a scoped total — S3), search + vertical via F3 Select; URL stays the source of truth. Re-check `perf:size` (`/vacancies` 170.44).
+  - Flow per slice: senior-fullstack-engineer → qa-engineer full gates (PowerShell + `npx.cmd`; start Docker Desktop first) → code-reviewer → fixes/re-checks → commit + push.
+
+- **DisabledReason hydration fix committed** (`80ee5e4`): id pair created after hydration; root cause was dev-only `useId` path divergence, not the Tooltip Suspense. Open: Select/Combobox/Form sections still log a dev-only hydration mismatch in ~3–6 % of loads under load.
+- **F8 (Dialog family + ConfirmDialog) done and committed**: sizes, header/footer, mobile slide, `ConfirmDialog` (tone, consequence, reason, pending, 409 slot), focus return to the opener (`use-opener-focus.ts` + `lib/last-focus.ts`), global `@custom-variant dark` (all `dark:` now follow the app theme), per-open menu source. Full gates green (details in `docs/PROGRESS.md`).
+- S3 UI is the first production user of ConfirmDialog → re-check `perf:size`.
+
+- **F5 (form kit) done and committed** (details + gaps in `docs/PROGRESS.md`). Owner decision D113 (Q-180): reason fields are multi-line — S3 adds a server multi-line schema helper for reasons and uses the matching counter.
+- **F3 (Select) done and committed** (details + non-blocking gaps in `docs/PROGRESS.md`).
+- **F3 focus race fixed and committed** (`c49dbb9`; root cause + verification in `docs/PROGRESS.md`).
+- **F4 (Combobox) done and committed** (details + gaps in `docs/PROGRESS.md`; F8 must fix Select `z-30` inside Dialog and set the z-scale).
+- **F7 (Toasts + z-scale) done and committed** (details + gaps in `docs/PROGRESS.md`; F8's z-index AC is already done).
+- Flow per slice: senior-fullstack-engineer → qa-engineer + code-reviewer → fixes → re-review; orchestrator verifies and commits. Full `pnpm test` needs `pnpm test:db:up` first (integration project).
+- Run notes: stored E2E sign-ins expire overnight — the first E2E run of a day must **not** use `--no-deps` (the setup project refreshes them; otherwise every test lands on `/login`); `--no-deps` only for repeat runs within the session (avoids the sign-in 429). Local stack: start Docker Desktop, then `npx supabase start`; `corepack pnpm build` before E2E (`next start` serves `.next`).
+- F2 done (Badge, Tooltip, DisabledReason; size-limit `[param]` fix; dev-server suite `pnpm test:e2e:dev-ui`).
+- F1 done (details in `docs/PROGRESS.md`). **Next: F2–F10 per `docs/ux/ui-foundation.md`** — order F2, F3, F5, F7, F8 (parallel-safe where files don't overlap), then F4, F6, F9, F10; then S3 UI. Agents read design skills as files (CLAUDE.md §11); Claude Code agents run on Sonnet, Codex agents on GPT-6 Astra, both with effort high (§12).
+- Owner questions answered 2026-11-10 («ок реки»): (1) own drafts only under chip «Чернетки» (D110); (2) seniority / employment type fixed lists, no free text (D111; API/Zod must be restricted in S3 or a backend follow-up); (3) Q-177 → 1a/2a/3a (D112; author may delete a cancelled draft: backend follow-up).
+- Run notes: `pnpm` only via `corepack pnpm` in the agent shell; Playwright Chromium was reinstalled 2026-11-10; screenshots for phase-2 screens come from `test:e2e` (`captureScreen`), not `test:screens`.
+
+## V2b S2 checkpoint — 2026-11-10 (draft lifecycle backend, committed)
+
+- **Status:** code review (2 rounds), security and perf APPROVED, all findings fixed. Verified: typecheck, lint, prettier, 2,979 Vitest, build, Newman 441 requests / 2,565 assertions 0 failed. E2E/screens not run (no UI in S2). Local Supabase was recreated fresh on 2026-11-10 (new image) → migrations 0000–0015 + provision + seeds applied; the 0015 hash note below no longer applies to this machine.
+- **Next (owner chose hybrid, 2026-11-10):** UI foundation slice before S3 — shared components to the mockups (`UI FROM DESIGNER/`, `docs/ux/design-system.md`) + motion rules, using the design skills (CLAUDE.md §11); then S3 UI built with them. Old screens retrofit in one later pass. Q-177 decided (D112).
+- Done: author-only `PATCH` / `POST publish` / `POST cancel` / `DELETE` on `/api/v1/vacancies/{id}` (details in `docs/PROGRESS.md`, design in the ADR-012 S2 addendum), migration `0015` (column-level UPDATE for `app_rw` + lifecycle trigger `vacancy_lifecycle_guard`; edited in place, never committed), `vacancy-draft.ts` service, `vacancyEventReadWhere`, OpenAPI/Postman, tests (`vacancies-draft-lifecycle`, `vacancies-draft-routes`, schema/authz unit tests). **Next: S3** — create form UI + «Чернетки» chip + draft actions (edit / publish / cancel with reason / delete), screenshots; then S4 TL request, S5 urgency.
+- Rules the UI must follow: **publish body is `{ expectedVersion }`** (the version the user last saw; 409 `STALE_STATE` → refetch) next to the `Idempotency-Key`; PATCH needs `expectedVersion` (409 `STALE_STATE` → conflict toast + refetch); publish sends an `Idempotency-Key` (reuse the same key for a retry of the same click); cancel needs a reason (1..500 chars); delete has no body and answers `{id}`; error codes `VACANCY_NOT_DRAFT`, `POSITION_INACTIVE`, `STALE_STATE` and field errors `body.positionId required|invalid_position`, `body.teamLeadId invalid_team_lead`, `body.salary*` (messages already in `vacancies.draftErrors`). A cancelled draft stays visible to its author only, under status «Скасовані».
+- Product decisions I took that the owner may want to change (see report): cancel requires a reason, delete uses a fixed reason, a cancelled draft stays private, the vertical of a draft is not editable. **HR, Head HR, Team Lead and Finance now get 404 (not 403) on every draft route** (STORY-VAC-01-3 AC); 403 remains only for a lost Team Lead / probation permission and for a caller who authors in another vertical.
+- Local DB: run `pnpm db:migrate` (0015). **0015 was edited in place after review (index dropped, trigger added): a dev DB that applied the earlier 0015 must `drop index app.vacancy_cancelled_draft_author_idx`, apply the trigger part of `0015_vacancy_draft_lifecycle.sql` by hand and update the stored hash/`created_at` row in `drizzle.__drizzle_migrations`, or be recreated. The integration test DB is rebuilt on every run.** Newman now leaves one soft-deleted invisible vacancy per run (cannot be cleaned: events are append-only).
+
+## V2b S1 checkpoint — 2026-11-09 (vacancy creation backend + draft visibility, uncommitted)
+
+- Done: `POST /api/v1/vacancies` (OPEN / author's DRAFT, idempotent, rate-limited), migration `0014`, one draft-aware read predicate, tests (details and gaps in `docs/PROGRESS.md`, design in the ADR-012 addendum). **Next: S2** — edit / publish / cancel (`DRAFT → CANCELLED` with `cancelled_at`, D82) / soft-delete of the author's own draft; needs `UPDATE`/`DELETE` grants in its own migration (runtime has INSERT only), publish re-validation and the race tests of STORY-VAC-01-3 AC2–AC8. Then S3 UI, S4 TL request, S5 urgency.
+- S2 must reuse `vacancyReadWhere` / `findVisibleVacancyOrThrow` (never `vacancyScope` directly — a unit test fails on it), `vacancyAuthorKind` for who may act on a draft, and `claimIdempotencyKey` for double-click publish. A vacancy timeline reader must hide a DRAFT's `entity_event` rows from everyone but the author (D92).
+- Local DB: run `pnpm db:migrate`; the old seeded V-0008 draft was authored by a Team Lead, so set `created_by` to `admin@demo` once (`update app.vacancy set created_by = (select id from app.app_user where email = 'admin@demo') where public_no = 8`); done on my DB. Other roles no longer see V-0008 (E2E map `VISIBLE_VACANCIES` and the Head Recruiter / Team Lead / Head HR list screenshots changed; 40 PNGs in `screenshots/phase-2` + `latest` regenerated by the E2E run, gallery `index.html` unchanged because file names are the same).
+- Test notes: Newman creates no vacancies (they cannot be deleted: events are append-only); success paths live in `tests/integration/vacancies-create*.test.ts`. Run `test:e2e` before `test:api`; E2E takes ~10 minutes and consumes ~13 sign-ins of the 30 per 15 min budget.
+
+## V2a T3 checkpoint — 2026-11-09 (position catalog UI done, committed)
+
+- Done: «Довідник посад» `/vacancies/positions` (details in `docs/PROGRESS.md`). QA, code-reviewer, security (APPROVED, `docs/security/review-phase-2-positions.md`) and perf (`docs/perf/report-phase-2-positions.md`) completed; fixes applied. Verified: lint, typecheck, prettier, 2,657 Vitest, build, `/vacancies/positions` 170.16 kB, full E2E 440 + 13 skips, Newman 368 / 2,118 / 0 failed, gallery `screenshots/phase-2/index.html` (+ latest).
+- **V2b S0 and S1 done (see the S1 checkpoint above); next S2. V2b has no open questions** (Q-166..Q-172 resolved by D86..D99; Q-171 «orphan drafts» → D98 author-only lifecycle, no Admin action/cleanup; Q-172 → D99). Scope: vacancy creation `OPEN` or author's `DRAFT` by Recruiter / Head Recruiter / Admin (recruiter-initiated may lack a TL; probation default 90, 30..90 Admin/Head HR only; bonus fields Admin only) + draft save/edit/publish/cancel/delete **by the author only** (D92 — not Head Recruiter, not Admin; `vacancy.approve` unused) + TL «Запросити вакансію» creating `OPEN` with a creation event listing addressees, no notification delivery (D87, D89..D91, D93) + `DRAFT→CANCELLED` with `cancelled_at` (D82) + role-based landing (D84/D88). Naming: «Терміновість вакансії» ≠ «Пріоритет тімліда» (D94). **Must-do when adding drafts:** the V1 vacancy scope/list/search/counts/detail must exclude `DRAFT` for everyone except the author, including Admin (`G`) and Head Recruiter (D92, `docs/authz-matrix.md` note ᵇ). Stories: `docs/stories/phase-2.md` STORY-VAC-01-1, 01-3, 03-3, 08-2. Also D97: urgent vacancy highlighted red + text «Термінова» (S0 done; D99: red only for DRAFT/OPEN/ON_HOLD, closed FILLED/CANCELLED keep a neutral «Термінова» badge). Proposed slices (≤400 lines each): **S0** (small, existing V1 UI, no backend) shared urgent highlight in list row/card, preview, detail header, light/dark contrast, seed has an urgent + a normal open vacancy per vertical, screenshots [STORY-VAC-04-4 AC1–AC6]; **S1** backend create (`OPEN`/`DRAFT`), migration `cancelled_at` + relaxed constraint + `vacancy_position_open_idx`, draft-author scope in all read paths, events, authz allowed/denied tests, OpenAPI/Postman [VAC-01-1 AC1–AC8]; **S2** backend draft lifecycle edit/publish/cancel/delete + publish re-validation + race tests [VAC-01-3 AC2–AC8]; **S3** create form UI + «Чернетки» chip + draft actions, screenshots [VAC-01-1 AC1–AC5, VAC-01-3 AC1,AC3,AC5]; **S4** TL «Запросити вакансію» endpoint + form + TL landing and own list, addressee event [VAC-03-3 AC1–AC8]; **S5 (may merge into V3)** urgency edit + Admin TL-priority override [VAC-08-2 AC1–AC5].
+- **V2b S0 done (2026-11-09) [STORY-VAC-04-4, D97, D99]:** one shared condition `isUrgentHighlighted` (`priority = URGENT` and status not `FILLED`/`CANCELLED`) in `components/vacancies/vacancy-badges.tsx` drives the red badge (`--destructive-subtle` / `--error-text`), the `--destructive` row/card edge in `vacancies-list.tsx` and the preview/detail header; closed urgent keeps the neutral label. Seed: urgent `ON_HOLD` (V-0002), `CANCELLED` (V-0006) and new `FILLED` (V-0014, crypto, display fixture only, visible to Admin/HR/Head HR/`recruiter.crypto`/`tl.crypto`); existing identifiers unchanged. An existing local DB needs `pnpm db:seed:vacancies` plus `update app.vacancy set priority_flag='URGENT'` for V-0002/V-0006 (the seed never edits existing rows). Next: S1.
+- Done after the checkpoint: SEC-POS-09 limit, single list layout, header button in the column, band count «N активних, M неактивних» (see `docs/PROGRESS.md`).
+- Carry-overs for V2b: optional partial index `vacancy_position_open_idx` in the V2b migration, positions in perf seed / `tests/perf/foundation.spec.ts`, `settings` messages out of the global provider.
+- Test notes: positions writes limited 30/min/user (two e2e runs <1 min apart can 429); `--no-deps` e2e fails on the MFA-pending test after `pnpm test:api` (Newman revokes Admin sessions) — run `test:e2e` before `test:api`; Radix focus-restore quirk probably affects existing verticals dialogs (not touched).
+
+## V2a checkpoint — 2026-11-09 (position catalog backend)
+
+- Backend of ADR-013 done (T1 migration 0012/0013 + authz, T2 API/service); details in `docs/PROGRESS.md`. **Next: T3 UI** `/vacancies/positions` per `docs/ux/wireframes/position-catalog.md` (strings under `positions.*`, query key `['positions', {status, verticalId}]`, keep cached count on optimistic updates, `notFound` without `position.manage`, MFA redirect), then QA/E2E/screenshots, then V2b vacancy creation + TL «Запросити вакансію» (OPEN, D87/D89..D91).
+- DB note: migration 0013 was edited before commit; the local ledger hash was updated by hand. Any other local DB that applied the earlier 0013 needs the same hash fix or a recreate. 0012 is unchanged.
+- Newman now deletes its throwaway `Тест API %` positions after each run (loopback + demo-data guarded).
+
+## Phase 2 V1 checkpoint — 2026-11-08 (vacancy list + detail complete locally)
+
+- Branch `phase-2`. V1 = real scoped read slice; details and numbers in `docs/PROGRESS.md` (same date). All gates green and re-review APPROVED; committed as one `feat(vacancies)` commit.
+- **DB note:** migration `0011` was edited before ever being committed (role-guarded revoke). Any local DB that already applied the old 0011 (dev, test, Codex's) fails `pnpm db:migrate` with a checksum mismatch → recreate it (`supabase db reset --local` → `db:migrate` → `db:provision:local` → `db:seed` → `db:seed:auth` → `db:seed:vacancies`) or update the stored hash. Mine was updated in place.
+- Run order notes: sign-in limit 30/15 min — full E2E ≈ 13 sign-ins, Newman 4–7; don't run two full suites back to back. `pnpm build` before `test:api`/`test:screens`.
+- Owner answers 2026-11-08 recorded as D79..D85 (PRD §14); V1.1 shipped search ≥ 3 chars + salary role-snapshot test. **V1.2 (2026-11-09) shipped D83** (switcher presets the filter; deep-linked `vacancy=` is never redirected). Owner also decided: TL request creates `OPEN` (D87), HR/Head HR land on their own polygraph screen (D88); open Q-167/Q-168/Q-169 (Q-168 blocks V2 creation). **Still to build from them:** role-based landing / TL «Запросити вакансію» (D84, Q-166 open), `DRAFT→CANCELLED` + `cancelled_at` with the status service (D82).
+- **Next: V2** — position catalog + vacancy creation (D75..78: Admin/Head Recruiter manage catalog and assign TLs; recruiter-initiated vacancies may lack a TL; probation 30..90, default 90). Lock order: users before vacancies. Also: perf seed + Lighthouse/runtime/k6 for vacancy routes, move `settings` messages out of the global provider, NUL guard in users/audit search, V1-5.
+
+## Phase 2 checkpoint — 2026-11-06 (vacancies started)
+
+- Owner approved Phase 2 starting with vacancies and the original `UI FROM DESIGNER/` references. Phase 1 closure commit `68e3375` is pushed to `origin/phase-1`.
+- First increment: real scoped list/search/filters and read-only vacancy details, with positions/vacancies/recruiter assignments and deterministic seed data. Plan/design are in progress; no vacancy implementation is marked complete yet.
+- Owner confirmed Q-26, Q-48/Q-49 and Q-50 (D75–D78): scoped editing/catalog/TL assignment rules and probation 30–90 days, default 90, changed only by Admin/Head HR. First read increment remains in progress on `phase-2`; exact opening dates avoid the open Q-86 days-on-hold rule.
+- Adding real vacancies activates vacancy-related ROLE-06/D24/D43 safety checks for deactivation/role removal; the first increment must fail closed before an open vacancy loses its responsible user.
+
+## Closure checkpoint — 2026-11-06 (local Phase 1 complete)
+
+- Local Phase 1 is complete. Foundation polish, MFA recovery/reset, actual protected HTTP 404, bounded audit keyboard navigation, lazy users virtualization, CI/local Supabase tooling and additive migration 0010 are implemented. Independent code/security/database/visual reviews approve the local implementation; all local combined gates pass.
+- Phase 2 is not started. The next work is vacancies/candidates under PRD §15; wait for the owner's «go phase 2» before starting it.
+- Fresh verification: lint, TypeScript, production build, **2,293 Vitest tests**, schema consistency, secret/dev-route scan and dependency audit pass. All initial JavaScript is ≤180 kB: users **166.10**, audit **166.41**, login **179.32** kB. Audit: zero production advisories, 48 reviewed tooling advisories.
+- Fresh native runtime **5/5** and authenticated Lighthouse **10/10** pass on 2026-11-06 (`docs/perf/report-phase-1.md`). Runtime list/detail/write P95 ≤42.57/30.79/40.61 ms; desktop/mobile median LCP ≤508/1,100 ms, CLS 0; route interaction ≤64/160 ms, 100-row interaction 48/168 ms and warm navigation 65.7/118.5 ms. Lighthouse uses three samples per screen/device. Lab interaction is not field INP; hosted performance remains unverified.
+- Fresh browser gates pass: default-order E2E **228 passed + one existing mobile hover skip**; public screenshot suite **52/52**; corrected dialog screenshot spec **2/2 on two repeated runs**. Do not use `--no-deps` across the whole suite; it removes required desktop-before-mobile mutation sequencing.
+- Gallery: **274 Phase-1 PNGs plus four Foundation 404 captures**, 278 unique valid image links. Independent QA approves repeat determinism: 270 Phase-1 + four Foundation images match the old baseline; four desktop JSON/missing-record captures intentionally changed to a fixed backdrop and remain stable on repeat. Phase/latest PNG and HTML bytes match. Local visual review is approved; G-21/G-14 horizontal-scroll polish has an explicit nonblocking disposition.
+- Newman: **289 requests / 1,679 assertions, zero failures**. OpenAPI/Postman generated twice with identical bytes. Final source formatting/lint/TypeScript pass after the test-only screenshot fixture correction.
+- T7 tests/gallery, T8 Foundation performance and T9 applicable hardening/reviews are complete locally. The orchestrator records the reviewed closure commit and Ukrainian owner report. Remote CI execution and hosted verification remain separate evidence; no demo-data reset or deployment was performed.
+- Boundaries: hosted Auth/Google/Frankfurt verification remains pre-deployment; candidate/vacancy volume and reassignment Phase 2–3; orphan Auth/rate-bucket cleanup Phase 6 jobs; backups/monitoring/final launch checks Phase 7. Telegram requires owner answers first. See `docs/phase-1-completion.md` and final security review.
+- Owner demo: local `admin@demo` → «Налаштування» → «Користувачі та ролі» → user card/roles/invite; «Журнал» → filters/detail; «Профіль» → theme/security. Gallery: `screenshots/phase-1/index.html`. No new product question remains for this closure.
+
+## Previous state — 2026-11-04
+
+- **Working mode (owner):** one small slice end-to-end → commit → report → wait for «далі».
+- **Working mode:** owner wants the team agents used (engineer → QA → code-reviewer + security → engineer fixes); orchestrator verifies, commits, reports in Ukrainian only.
+- **Latest checkpoint — Codex team, gallery step C:** G-07/08/09/12 and optional/backup 2FA exits complete. Direct mobile destinations; lazy multi-filter sheet with atomic draft apply, URL/reload/Back preservation and desktop summaries; invalid-link recovery; ≥44 px touch targets. Optional «Пізніше» / backup «Скасувати» → `/profile`, required MFA/D63/backup aal2 unchanged; TOTP ignores late responses after unmount. All code/security/perf/UX/QA reviews APPROVED. Verified: lint, typecheck, 2,225 Vitest, build, initial-JS users 179.15/audit 179.28 kB, 205 unique E2E + 2 existing skips (two screenshot-helper failures fixed; focused 3/3), screens 36/36, Newman 285 requests/1,660 assertions. Galleries 206 PNG each. **Next: remaining gallery P3 polish, then T8/T9**; Phase 1 not complete.
+- **Latest checkpoint — Codex, seed/demo timeline:** finished Claude's uncommitted seed changes after `26dee02`. Realistic extra-user emails, causal seed history 30.10–02.11 and Auth activation at invite acceptance; E2E/Postman fixtures and 60 screenshot pairs updated. DB engineer, QA, security and independent code review APPROVED. Verified: lint, typecheck, 2,209 Vitest, production build, all initial-JS gates (audit 179.19 kB), full E2E 203 passed + 2 existing mobile skips, screens 36/36, Newman 285 requests / 1,660 assertions. Galleries: 204 PNG each, linked and byte-identical across phase/latest. Existing 16.11 screenshot clock/sign-in dates remain intentional. No reset was needed in this session; QA confirmed the earlier reset is already applied (13 users, no old emails, 12 activation timestamps equal acceptance). **Next: gallery step C** (mobile P2 + optional 2FA escape). Phase 1 remains in progress.
+- **T7 slice 4 done — Newman Auth; all 37 operations covered.** 285 req / 1,660 assertions; 7 confirms per run (≤ 4 runs / 15 min). T9 adds: magic-link timing equalisation, enrol rate-limit order. Owner: fully remote team → per-IP confirm limit unchanged.
+- **T7 slice 3 done — Newman Users + Priorities.** 233 req / 1,363 assertions, refusal-only mutations (version 2147483647, self-target), `snapshot`/`sameAs` after-checks. Open: `resetUserMfa` expectedVersion (owner, Phase 2), malformed-id 400 vs 404 (T9).
+- **T7 slice 2 done — byte-stable screenshots [SHOT-DET-01].** `settleRendering` + `--disable-partial-raster` + fixed sign-in times; no more `git checkout -- screenshots` after E2E — any screenshot diff now means a real UI change. Watch `settings-priorities.spec.ts:271` (one load flake).
+- **T7 slice 1 done — Newman runner `pnpm test:api` [ADR-006].** Cases live in `tests/postman/cases/<tag>.json` (+ `tests/postman/tests/*.js`), merged by `scripts/postman-cases.ts`; run `pnpm build` first. Covered Profile, Verticals, Audit (66 req / 381 assertions). Each run uses 4 of the 30/15 min sign-in budget shared with E2E. Not covered: Auth, Users, Priorities. Open: S2 refine codes → `custom`; CI wiring; ADR-006 vs Sec-Fetch-Site rule.
+- **T6 slice 15 done — «Свій період» draft follows URL navigation [STORY-AUD-2 edge].** Back/Forward, «Скинути фільтри», entity-history links reset the date draft + error to what a fresh load shows (render-time key compare, no effect); applying keeps typed dates; preset → «Свій період» prefills the preset range. Engineer → code review (should-fix applied: dead select logic removed, reset/prefill/soft-nav E2E). Verified: lint, typecheck, perf (audit 179.18 kB), audit spec 15/15 desktop + mobile. **T6 audit scope complete** except j/k row navigation (wireframe gap) and full virtualization.
+- **T6 slice 14 done — «Показати новіші» bounded window [STORY-AUD-4].** `GET /audit` optional `direction=older|newer` + nullable `prevCursor` (mirror keyset, ASC + reverse, one SQL/page; cursor-only callers unchanged); client object pageParams `{cursor,direction}`, `maxPages: 2`, button above the list, measured scroll anchoring (Safari-safe), focus handoff, live region re-announces via keyed inner node; shared `Button` gained `aria-disabled:` styles. BA story → engineer → QA → code review (1 blocker fixed) → fixes. Verified: lint, typecheck, 2194 Vitest, all JS gates (audit **179.15 kB / 180 — ~0.85 kB headroom**, users 178.45, priorities 178.07), full E2E 169 + 2 skips before fixes, audit spec 14/14 desktop + mobile and users/priorities 49/49 after; galleries 128 images. Gap: j/k row navigation from wireframe §3.1 not built.
+- **T6 slice 13 done — grouped multi-action audit filter + security view [STORY-AUD-2, D74, Q-158].** Codex built it; Claude's team finished: perf moved TZDate helpers to `server/audit/period.ts` (`server-only`) → `@date-fns/tz` out of the client graph (−1.6 kB); code review APPROVED, follow-ups applied (`selectedAuditActions`, single query-key source via `auditQuery(filters).queryKey`, always-mounted live region, Postman regenerated, `AUDIT_ACTION_COUNT`); QA bug fixed — first checked action scrolls into view in the mobile picker (WCAG 2.4.11). Verified: lint, typecheck, 2172 Vitest, all JS gates (audit **178.43 kB**, users 178.32, priorities 178.04), full E2E 163 + 2 existing skips, audit spec 11/11 desktop + mobile after fixes, screenshots 24/24; galleries 124 images, none missing. Security review `docs/security/review-phase-1-audit-action-filters.md`, perf `docs/perf/report-phase-1-audit-action-filters.md`.
+- **T6 slice 12 done — UX polish P1–P5.** Menu is below the whole identity block; mobile cancel precedes confirm (48 px); shared `EmailText` wraps before `@`; global auto-hyphenation removed. Shared `captureScreen` handles document height and overflowing fixed-modal intrinsic height, checks width and restores the viewport in `finally`. Native 390×844 geometry is asserted separately. Engineer → QA → designer (29 fresh PNGs, APPROVED) → independent code review (APPROVED). Verified: 2123 Vitest, lint/TypeScript/build, all JS gates (audit 179.63 kB, users 178.28), 149 browser scenarios + 2 existing skips, public screenshot suite 24/24; both galleries 112 images, none missing. Actor filter is already committed/pushed as `651f949`; preexisting formatting isolated in `b56821d`. Reviews: `docs/ux/review-phase-1-settings-polish.md`, `docs/perf/report-phase-1-settings-polish.md`.
+- **T6 slice 11 done — audit «Хто» searchable actor filter [STORY-AUD-2].** `GET /api/v1/audit/actors`, lazy combobox and record sheet, `actorId=system` excludes anonymous failed sign-ins. Activated-only picker, 44 px mobile clear, selected-actor announcement and canonical UUIDs. SEC-AAF-01 fixed: one reload per 30 s, even across unrelated successful chunk loads; unavailable storage rethrows. Pending searches cannot select stale options. Code + security APPROVED; full Vitest 2122 passed plus focused UUID regression, full E2E 155 passed + 2 existing skips; 12 refreshed `06-admin-audit-*` PNGs visually reviewed. Next slice 12: UX polish P1–P5 in `docs/ux/wireframes/settings-admin.md` §8.
+- **T6 slice 10 done — «Пріоритети тімлідів» (STORY-ROLE-01-3, D5/D47/D73):** Claude engineer → Codex (after rate limit) → Claude team finished. Security APPROVED, code review fixes applied. Perf: audit 179.69 kB (0.31 kB headroom), priorities 177.57, users 177.70. Verified: lint, typecheck, 2100 vitest, full E2E 151 + 2 skips. Note: `settings-audit` real-rename E2E must run desktop before mobile (shared «Крипто» rename) — don't run both projects with `--no-deps` together.
+- **T6 roles follow-ups done (after slice 9):** guarded `useAdoptUserVersion` (version adopted only with its state, never lowered) in roles / email / activation dialogs; `userCardMutationKey(id)` disables all card actions while any runs; change-email response carries `version`; roles dialog sticky mobile footer + `scroll-pb`; shared `RoleChips` (removed = muted, line-through, aria-atomic); sorted audit role lists; STORY-ROLE-01-1 edge case aligned (409 STALE_STATE). Code review fixes applied. Audit 179.99 kB unchanged.
+- **T6 slice 9 done — deactivate / reactivate (STORY-ROLE-05-5, ADR-011):** Codex WIP finished by Claude's team; security APPROVED, code review fixes applied (blocker: audit booleans «Так/Ні»). Perf: users 178.13 kB, **audit 179.99 kB (~10 B headroom — T8 must free bytes before ANY audit-page change)**. GoTrue ordering probe passed (throwaway user).
+- **Roles slice fc5063b independently re-reviewed by Claude's code-reviewer 2026-11-02: APPROVED** (37/37 role tests at the commit, tsc + eslint clean). Follow-ups (DONE in roles follow-up commit): #1 stale `version` after save — `setQueryData` with returned version in `edit-roles-dialog.tsx` onSuccess + disable «Змінити ролі» while the roles mutation is pending; #2 story STORY-ROLE-01-2 edge case text → «409 STALE_STATE → conflict toast + refetch»; #5 mobile sticky footer in the roles dialog (§1.9); nits: shared `RoleChips` (muted «Буде знято»), `queryKeys.settingsUsersAll()`, duplicate uk key selfAdmin, advisory-lock keys in one module, sorted audit role lists. T9: client handling of 401 `MFA_REQUIRED` (Alert + /mfa/verify) for all settings mutations; role integration fixtures leave committed rows.
+- **T6 slice 8 done — roles editing [STORY-ROLE-01-1/01-2, D40/D45]:** resumed Claude's interrupted working tree. Shared `role-matrix.tsx`, lazy `edit-roles-dialog.tsx`, `PUT /api/v1/users/{id}/roles` with `expectedVersion`, add/remove summary and removal confirmation. D45 rejects own/last active ADMIN removal; accepted active holders only, advisory membership lock, pending invite → user → roles order, `NO KEY UPDATE` avoids cross-admin FK deadlocks. Role events + before/after audit are atomic. Drawer/list chips update optimistically with target-only rollback; assignment UUIDs normalize before diff/dedup. D43 open-work reassignment remains explicitly deferred to Phase 2–3. Code + security approved (`docs/security/review-phase-1-user-roles.md`); full Vitest 1998/1998, lint + production build/typecheck + perf:size green (users 178.06 kB, audit 179.94 kB). Browser scenarios 118 passed + 2 existing skips, six session setup cases passed; final-build role checks 12/12 and screenshots 24/24. Eight new `12-admin-user-roles-*` PNGs visually reviewed; phase/latest galleries each contain 76 images. Kept relevant drawer/invite/email screenshot updates, restored unrelated timestamp-only audit images.
+- **T6 slice 7 done — «Змінити email» for never-activated users (D69, STORY-ROLE-05-7)**: ⋯ menu in the drawer header, `components/settings/change-email-dialog.tsx` (lazy), `PUT /api/v1/users/{id}/email` with `expectedVersion`. Code + security approved. Perf: users 178.03 kB, **audit 179.91 kB (0.09 kB headroom — free space before touching the audit page)**. Verified: lint, typecheck, 1961 vitest, full E2E 112 + 2 skips. Auth sign-in rate limit is 10 / 15 min per IP — back-to-back E2E runs hit 429, wait for the window.
+- **T6 slice 6 done — invitation actions in the drawer** (resend / revoke / re-invite, D70; `components/settings/user-invite-actions.tsx`, `server/services/auth/invite-manage.ts`, POST `/api/v1/users/{id}/invite[/resend|/revoke]`, migration `0008_user_invite_latest_index`). Security approved, code review approved (nits fixed), perf: users 177.79 kB, **audit 179.59 kB (0.41 kB headroom)**.
+- **Local demo DB reset 2026-11-02 (owner OK):** `supabase db reset --local` → `db:migrate` (0000–0008) → `db:provision:local` → `db:seed` → `db:seed:auth`. Ledger matches the checkout again; demo shows the invite-based user history.
+- Docker Desktop must be started before tests (`pnpm test:db:up`); vitest crashes with `code.charCodeAt` stack noise when the test DB is down.
+- **T6 slice 5 done — read-only user drawer** (`components/settings/user-drawer.tsx`, `user-status.tsx`, `components/ui/tabs.tsx`, APIs `GET /api/v1/users/{id}` and `/events`). Timeline reads `subject_type in ('app_user','user')` and `type like 'user.%'`, allowlist re-validation; no migration touches append-only rows. Local demo DB still has old seeded events (`user_role` subject) — only a fresh seed shows the new invite-based history (owner OK needed to reset). Perf users 177.78 kB, audit 179.57 kB.
+- **T6 slice 4 done — «Запросити користувача» dialog** (lazy chunk, `components/settings/invite-user-dialog.tsx`): mockup look (`docs/ux/reference/settings/01-invite-user-dialog.webp`), PRD content; owner question **Q-155** (mockup extras: «Посада», «Базова роль», extra permissions, temp password — recommended: no). `app_user_email_uq` race → 409 `INVITE_PENDING`; `GLOBAL_ROLE_CODES` shared in `server/authz/types.ts`. Audit page now 179.47 kB (0.5 kB headroom) — T8 must free space before any audit-page addition.
+- **T6 slice 3 done — «Користувачі та ролі» list** (`/settings/users`, `GET /api/v1/users`): search + single-select filters in the URL (API accepts multi), derived status (deactivated > activated > pending invite valid/expired > revoked), roles via shared `sortRoles`/`useRoleLabel`, 2FA from view `app.auth_mfa_totp` (migration `0007`, also `app_user_list_idx` uk-collation keyset), id-only cursor, total only on the first page. Admin now lands on Users. Vertical «Користувачі» count = status «Активний» only (invitees excluded) and links to `/settings/users?status=ACTIVE&vertical=…`. Seed: expired invitee now has its RECRUITER · Гемблінг role (run `pnpm db:seed`). Verified: lint, typecheck, 1874 vitest, E2E 72 + 2 skips, perf users 175.5 kB / audit 179.07 kB. Screenshots `08-admin-users-list-*` (sign-in times rewritten to fixed values in the spec).
+- **PERF-04 initial-JS gate GREEN** (`e251de6` + review fixes `5be02ea`): deferred shell menus, in-house rail tooltip, Intl Kyiv dates. Shell 166.2 kB, audit 178.95 (1 kB headroom — watch it), all routes pass `perf:size`. Report: `docs/perf/report-phase-1-deferred-menus.md`. Local demo DB was reset on owner request; statistics-tabs mockups stored in `docs/ux/reference/statistics/` (Phase 4 input).
+- **Full E2E on `6ebaa9a` (2026-11-03):** 171 passed + 2 known desktop-only skips (4.8 min), after a fresh `pnpm build`.
+- **Claude verified Codex's `a92f0fc` + `1030ba0`** (lint, typecheck, 1711 unit, 149 integration, build) and fixed E2E infra in the following commit: `e2e-sessions` setup signs each demo user in once (`.playwright-auth/`, gitignored); `settings-*` specs run last in `e2e-admin-desktop` → `e2e-admin-mobile` (workers 1). Full E2E 58/58, screenshots unchanged. Each full run uses ~8 sign-ins of the 30 / 15 min per-IP limit — wait for the next window on 429.
+- **Latest checkpoint — Codex, small T8 import optimization:** added `@tanstack/react-query` to the existing Next.js import optimization list. The original shell/menu implementation is retained. Performance engineer investigated and implemented; QA added keyboard/focus navigation tests and tablet/mobile screenshots; code reviewer approved. No dependency, permission or data changes.
+- **Verified on latest checkpoint:** clean production build (includes lint/TypeScript), 1,860 unit/integration tests; full E2E 52 passed + 6 existing mobile-vertical skips; screenshot suite 24/24. Added 4 navigation PNGs (`07-admin-navigation-open-{tablet|mobile}-{light|dark}.png`); galleries `screenshots/phase-1/index.html` and `screenshots/latest/index.html` contain 32 images each with no missing files. QA visually inspected tablet/mobile in both themes. Independent code review approved.
+- **Previous checkpoint `a92f0fc` — T6 slice 2:** Admin aal2-only audit list/detail, URL filters, before/after sheet, vertical history links, OpenAPI/Postman and migration `0006`. Reviewed; 50 E2E passed + 6 existing mobile-vertical skips; screenshot suite 24/24, 28 gallery images per directory. Full T6/Phase 1 remain in progress; Newman runner belongs to T7.
+- (Superseded — gate now green) Perf gate was RED: actual initial JavaScript including ancestor layouts: shell 186.72 kB, audit 205.05, verticals 193.31, profile 194.28, settings 189.60 (180 kB cap). Shell was 188.02 before this slice. Latest measurements: `docs/perf/report-phase-1-query-imports.md`; earlier audit analysis: `docs/perf/report-phase-1-settings-audit.md`. Next CLI route numbers omit some parent-layout chunks; do not use them as proof of PERF-04.
+- **Audit scope still pending:** j/k row navigation (wireframe §3.1), full virtualization (window ≤100, back/forward both work since STORY-AUD-4). Searchable activated-user/system actor picker is done (`651f949`). Explicit API date ranges are capped at 366 days; absent boundaries remain uncapped with bounded output. Retention jobs remain later work.
+- **T6 slice 1 done** `b7520c6`: `/settings` frame + «Вертикалі» (list, create, rename), Admin lands on Налаштування. Verified: lint, typecheck, 1680 unit, 142 integration, build, 37 E2E.
+- Notes from slice 1: protected pages under `(app)` return a soft 404 (status 200 + «Сторінку не знайдено») because `(app)/loading.tsx` streams; APIs return real 404. Flaky under full-suite load: `tests/unit/auth/supabase-identity.test.ts` «bounds a hanging JWKS request» (passes alone) → T9.
+
+- Branch `phase-1` pushed to `origin`. T1–T5 done and reviewed; settings wireframes `docs/ux/wireframes/settings-admin.md`; owner decisions D69/D70 (Q-153/154).
+- Verified on `bb620e8`: lint, typecheck, 1674 unit, 132 integration, build (103 kB shared JS), 34 E2E (incl. signed-in shell specs on local Supabase).
+- Known leftovers:
+  - **CI:** signed-in `tests/e2e/shell.spec.ts` needs Supabase Auth; CI has placeholder keys → add `supabase start` + migrate + seed to the CI job (devops, T9) — CI red until then.
+  - Local Supabase still runs `max_enrolled_factors = 10` until `supabase stop && supabase start`.
+  - Event `subjectType` mixed: profile writes `'user'`, invite/MFA `'app_user'` — unify in T6.
+  - Bug (Minor): server 400 field error on profile name form lost (form remounts via `key` on optimistic update) — fix with a test.
+  - E2E sign-in helper: same-user sign-ins must not run in parallel; `/auth/confirm` 30/15 min per IP.
+  - `@axe-core/playwright` not installed (needs approval as new dev dependency).
+
+## Next steps (in order)
+
+1. **Next:** remaining P3 batches from `docs/ux/review-phase-1-gallery.md`. A/B/C complete; seed timeline verified; G-07/08/09/12 and optional/backup 2FA exits closed. Galleries: 206 PNGs. Users 179.15 / audit 179.28 kB of 180. Then T8 perf gates, T9 security/carry-overs and Phase-1 report. T9 includes settings 404 HTTP 200 (VIS-02) and Newman CI wiring with local Supabase. Seed reset already applied 2026-11-03 (owner OK); older checkouts need `supabase db reset --local` → `db:migrate` → `db:provision:local` → `db:seed` → `db:seed:auth` for the renamed extras; re-seeding alone duplicates old email-derived IDs.
+2. **T7** QA: full phase-1 E2E, Newman, screenshots → `screenshots/phase-1/` + `index.html` + `screenshots/latest/`.
+3. **T8** perf gates for phase-1 screens.
+4. **T9** carry-overs: CI Supabase job, CI SHA pins, `pnpm audit`, Drizzle drift, `format:check`, secret grep, DG-03 storage test, hosted Supabase config drift (A04, B06, C06, D03, H04, I03, R03), SEC-CORE-13/14.
+5. Phase-1 report to owner, wait for "go phase 2".
+
+## Environment notes (Windows)
+
+- pnpm via `corepack pnpm …`; Docker Desktop must be running (`supabase start` stack + `docker compose -f docker-compose.test.yml` test DB on PG 17.11).
+- Never print `.env` or full `supabase status`. Seed/test tooling refuses non-local / non-demo databases.
+- Codex is the owner's fallback when Claude is rate-limited: on return, verify its work (tests), commit a checkpoint, send through code-reviewer. `AGENTS.md`/`.codex` only point to `CLAUDE.md`.

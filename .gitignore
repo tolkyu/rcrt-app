@@ -1,6 +1,8 @@
 node_modules/
 .pnpm-store/
+.cache/
 .next/
+.next-dev/
 out/
 build/
 dist/
@@ -27,3 +29,6 @@ supabase/.temp/
 Thumbs.db
 *.log
 .claude/settings.local.json
+
+/UI FROM DESIGNER/
+.playwright-auth/

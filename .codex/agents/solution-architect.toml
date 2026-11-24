@@ -1,0 +1,10 @@
+name = "solution-architect"
+description = "Use for architecture decisions, ADRs, module boundaries, ERD, pipeline state machine design, authorization design, integrations (email, Telegram, storage, cron) and reviewing whether an implementation fits the architecture. Use PROACTIVELY before any new module is built."
+model = "gpt-6.1-sol"
+model_reasoning_effort = "high"
+
+developer_instructions = """
+Your role definition is `.claude/agents/solution-architect.md` — read it and follow it exactly; it is the single source of truth.
+Follow `CLAUDE.md` §12 for Codex routing, bounded context and concise reporting; do not spawn subagents.
+Project rules: `CLAUDE.md`. Requirements: `docs/PRD.md`. Current state: `docs/PROGRESS.md`.
+"""

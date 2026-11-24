@@ -1,0 +1,3 @@
+ALTER TABLE "app"."team_lead_priority" DROP CONSTRAINT "team_lead_priority_priority_chk";--> statement-breakpoint
+CREATE INDEX "user_role_team_lead_idx" ON "app"."user_role" USING btree ("vertical_id","user_id") WHERE "app"."user_role"."role" = 'TEAM_LEAD';--> statement-breakpoint
+ALTER TABLE "app"."team_lead_priority" ADD CONSTRAINT "team_lead_priority_priority_chk" CHECK ("app"."team_lead_priority"."priority" BETWEEN 0 AND 99);
