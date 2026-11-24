@@ -2,6 +2,13 @@
 
 > Rule: after every green task the orchestrator commits and updates this file. On "стоп" / ~95 % usage: commit current state, update this file, stop.
 
+## Checkpoint — 2026-11-24 (Claude, vacancy content batch committed)
+
+- **State:** the whole vacancy content batch is committed on `phase-2` and pushed. Check PR #1 (`phase-2` → `main`) on GitHub: if hosted CI on the latest head is green and the PR is not merged yet, merge it with a **true merge commit** (`gh pr merge 1 --merge`), never squash or rebase, because `.gitleaksignore` pins commit SHAs. Then confirm CI on `main` and delete `origin/wip/content-ui-2026-11-23`.
+- **What the batch contains:** see the top section of `docs/PROGRESS.md` ("Vacancy content batch closure").
+- **Owner decisions:** full page reload on confirmed loss of read; no deferral of UI findings; every session ends on GitHub; Claude merges PR #1 after green CI.
+- **Verification done locally:** focused unit suites, a full browser pass of every touched screen on desktop and mobile, the final recapture, all routes under 180 kB (`/vacancies/new` 179.33 kB, almost no margin). Known local-only failures and flaky tests are listed in PROGRESS "Gaps".
+
 ## Checkpoint — 2026-11-23 21:45 (Claude, paused by owner)
 
 - **Not merged.** PR #1 (`phase-2` → `main`) is open. Last full CI on `4e0dbe7` is red (run `45153135565`, 4 E2E failures; causes below). The owner wants CI green, then a merge by Claude. Use a true merge commit only: `.gitleaksignore` pins commit SHAs, so squash or rebase turns the secret scan red.
