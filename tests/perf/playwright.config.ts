@@ -4,6 +4,7 @@ import { E2E_ORIGIN } from '../support/origins';
 
 export default defineConfig({
   testDir: '.',
+  captureGitInfo: { commit: false, diff: false },
   testMatch: 'foundation.spec.ts',
   workers: 1,
   retries: 0,

@@ -72,7 +72,13 @@ jobs:
         env:
           APP_ENV: local
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm perf:check
+      - name: Verify browser diagnostic privacy with synthetic credentials
+        run: pnpm exec tsx tests/security/run-privacy-canary.ts
+      - name: Performance checks with private diagnostics
+        run: >-
+          pnpm build && pnpm perf:size &&
+          pnpm perf:runtime --reporter=./tests/support/private-reporter.ts --trace=off &&
+          pnpm perf:lighthouse --reporter=./tests/support/private-reporter.ts --trace=off
       - run: pnpm security:check
       - name: Check generated API contracts
         run: |
@@ -87,10 +93,6 @@ jobs:
           name: foundation-browser-results
           path: |
             playwright-report/
-            test-results/
-            tests/perf/results/
-            screenshots/foundation/
-            screenshots/phase-1/
           retention-days: 14
       - name: Stop disposable Supabase
         if: always()
