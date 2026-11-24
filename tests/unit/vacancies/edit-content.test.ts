@@ -5,8 +5,8 @@ import { createElement, type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useEditVacancyContent } from '@/components/vacancies/use-edit-vacancy-content';
 import { useVacancyContentAccess } from '@/components/vacancies/use-vacancy-content-access';
+import { vacancyContentQuery } from '@/lib/queries/vacancy-content';
 import { queryKeys } from '@/lib/query-keys';
-import { ApiError } from '@/lib/api-client';
 import { parseEditorDocument } from '@/lib/rich-text-editor-document';
 import {
   updateVacancyContentSchema,
@@ -435,11 +435,9 @@ describe('content mutation lifecycle [ADR-020]', () => {
       });
       act(() => view.result.current.edit.clear('descriptionDoc'));
       patch = () => {
-        if (status === 404) get = () => problem(404, 'NOT_FOUND');
-        return problem(
-          status,
-          status === 401 ? 'SESSION_EXPIRED' : 'NOT_FOUND',
-        );
+        const code = status === 401 ? 'SESSION_EXPIRED' : 'NOT_FOUND';
+        get = () => problem(status, code);
+        return problem(status, code);
       };
       await act(() => view.result.current.edit.submit());
       expect(view.result.current.access.state.kind).toBe('unavailable');
@@ -525,10 +523,14 @@ describe('content mutation lifecycle [ADR-020]', () => {
       request = view.result.current.edit.submit();
     });
     await waitFor(() => expect(writes()).toHaveLength(1));
-    await act(() =>
-      view.result.current.access.handleWriteError(
-        new ApiError(401, 'SESSION_EXPIRED'),
-      ),
+    get = () => problem(401, 'SESSION_EXPIRED');
+    await act(async () => {
+      await client
+        .fetchQuery({ ...vacancyContentQuery(ID), staleTime: 0 })
+        .catch(() => undefined);
+    });
+    await waitFor(() =>
+      expect(view.result.current.access.state.kind).toBe('unavailable'),
     );
     const calls = fetcher.mock.calls.length;
     await act(async () => {

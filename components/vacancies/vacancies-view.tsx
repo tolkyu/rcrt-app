@@ -50,6 +50,7 @@ import { ALL_VERTICALS } from '@/lib/vertical-filter';
 import { CreateVacancyLink } from './create-vacancy-link';
 import { RequestVacancyLink } from './request-vacancy-link';
 import { DraftLeaveProvider } from './draft-leave';
+import { useLostClaimNotice } from './lost-claim-notice';
 import { RowSkeleton } from './row-skeleton';
 import { UrgencyFilter } from './urgency-filter';
 import { useDraftLeaveHandlers } from './use-draft-leave';
@@ -67,12 +68,15 @@ export function VacanciesView({
   canRequestVacancy,
   selfAssignVerticals,
   statusGrants,
+  showTeamLead = true,
 }: {
   canManagePositions: boolean;
   canAuthorDrafts: boolean;
   canRequestVacancy: boolean;
   selfAssignVerticals: SelfAssignVerticals;
   statusGrants: StatusGrantMirror | null;
+  /** False when every row the viewer can list is led by the viewer (server decision). */
+  showTeamLead?: boolean;
 }) {
   const t = useTranslations('vacancies');
   const params = useSearchParams();
@@ -90,6 +94,7 @@ export function VacanciesView({
   const wide = useWideScreen();
   const queryClient = useQueryClient();
   useEffect(() => rememberVacancyList(searchKey), [searchKey]);
+  useLostClaimNotice();
   const query = useQuery({
     ...vacanciesQuery(filters),
     placeholderData: keepPreviousData,
@@ -215,7 +220,10 @@ export function VacanciesView({
         retrying={query.isFetching}
       />
     ) : (
-      <RowSkeleton menuColumn={canAuthorDrafts || statusGrants !== null} />
+      <RowSkeleton
+        menuColumn={canAuthorDrafts || statusGrants !== null}
+        showTeamLead={showTeamLead}
+      />
     );
   } else if (items.length === 0 && draftsEmpty) {
     body = (
@@ -258,6 +266,7 @@ export function VacanciesView({
         canAuthorDrafts={canAuthorDrafts}
         selfAssignVerticals={selfAssignVerticals}
         statusGrants={statusGrants}
+        showTeamLead={showTeamLead}
       />
     );
   }

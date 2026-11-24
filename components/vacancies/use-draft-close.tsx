@@ -10,6 +10,10 @@ import { reasonLength, VACANCY_REASON_MAX } from '@/lib/reason-length';
 import { hasOnlyReasonChars } from '@/lib/reason-text';
 import { toast } from '@/lib/toast';
 import {
+  watchVacancyAccess,
+  type VacancyAccessWatch,
+} from '@/lib/vacancy-detail-cache';
+import {
   applyClosed,
   closeDraft,
   closedLandingHref,
@@ -138,19 +142,27 @@ export function useDraftClose(draft: ClosableDraft, card?: CardFocus) {
   async function finish(
     done: CloseKind,
     vacancy: Parameters<typeof applyClosed>[2],
+    stillAllowed: VacancyAccessWatch,
   ) {
     try {
       try {
-        await applyClosed(queryClient, draft, vacancy, () => {
-          if (!leave?.removed(draft.id) && done === 'cancel') card?.removed();
-        });
+        await applyClosed(
+          queryClient,
+          draft,
+          vacancy,
+          () => {
+            if (!leave?.removed(draft.id) && done === 'cancel') card?.removed();
+            // Before the removal, which unmounts this card and would end its navigation.
+            if (done === 'delete' && !leave && mounted.current)
+              router.replace(closedLandingHref(draft));
+          },
+          stillAllowed,
+        );
         leave?.settled(draft.id);
       } finally {
         // The server already did the work: the user hears it even when the cache write fails.
         announceClosed(t, done, draft);
       }
-      if (done === 'delete' && !leave && mounted.current)
-        router.replace(closedLandingHref(draft));
     } catch {
       // The server did it; whatever went wrong locally, the caches read it again.
       refreshDraft(queryClient, draft.id);
@@ -158,6 +170,8 @@ export function useDraftClose(draft: ClosableDraft, card?: CardFocus) {
       // A deleted draft on its own page stays locked until the page is left.
       if (done === 'cancel' || leave) locked.current = false;
       if (mounted.current) setPending(false);
+      // The Next router cache could otherwise hydrate the deleted card back on Forward.
+      if (done === 'delete') router.refresh();
     }
   }
 
@@ -171,6 +185,7 @@ export function useDraftClose(draft: ClosableDraft, card?: CardFocus) {
     const attempt = planAttempt(retry.current, kind, reason);
     // A call that throws before it answers still keeps what planning decided.
     retry.current = settle(attempt, { status: 'busy' });
+    const stillAllowed = watchVacancyAccess(queryClient, draft.id);
     const outcome = await closeDraft(
       queryClient,
       kind,
@@ -182,7 +197,7 @@ export function useDraftClose(draft: ClosableDraft, card?: CardFocus) {
     if (outcome.status === 'done') {
       const { vacancy } = outcome;
       after.current = () => {
-        finish(kind, vacancy).catch(() => undefined);
+        finish(kind, vacancy, stillAllowed).catch(() => undefined);
       };
       setOpen(false);
       // The close event normally runs it; this covers a close that never reports.

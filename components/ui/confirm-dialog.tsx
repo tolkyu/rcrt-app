@@ -15,7 +15,6 @@ import {
   AlertDialogTitle,
 } from './alert-dialog';
 import { Button } from './button';
-import { DisabledReason } from './disabled-reason';
 import { FormField } from './form-field';
 import { Textarea } from './textarea';
 
@@ -76,14 +75,18 @@ function ConfirmBody({
 > & { confirmRef: Ref<HTMLButtonElement> }) {
   const t = useTranslations('common');
   const fieldId = useId();
+  const blockerId = useId();
   const [text, setText] = useState('');
   const length = (reason?.countLength ?? trimmedTextLength)(text);
+  const tooLong = reason
+    ? t('confirmReasonTooLong', { max: reason.maxLength })
+    : '';
   const blocker = !reason
     ? null
     : !hasVisibleChar(text)
       ? t('confirmReasonRequired')
       : length > reason.maxLength
-        ? t('confirmReasonTooLong', { max: reason.maxLength })
+        ? tooLong
         : null;
   return (
     <>
@@ -117,7 +120,29 @@ function ConfirmBody({
             id={fieldId}
             label={reason.label}
             required
-            hint={reason.hint}
+            hint={
+              // The invisible copy holds the height of the longest message, so the dialog does not jump as the blocker comes and goes.
+              <span className="grid">
+                <span
+                  aria-hidden="true"
+                  className="invisible col-start-1 row-start-1"
+                >
+                  {reason.hint ? `${reason.hint} ${tooLong}` : tooLong}
+                </span>
+                <span className="col-start-1 row-start-1">
+                  {reason.hint}
+                  {reason.hint && blocker && ' '}
+                  {blocker && (
+                    <span
+                      id={blockerId}
+                      className="text-muted-foreground-strong font-medium"
+                    >
+                      {blocker}
+                    </span>
+                  )}
+                </span>
+              </span>
+            }
             counter={{
               count: length,
               max: reason.maxLength,
@@ -151,7 +176,7 @@ function ConfirmBody({
       <span role="status" className="sr-only">
         {pending ? t('confirmPending') : ''}
       </span>
-      <AlertDialogFooter className={reason ? 'md:items-start' : undefined}>
+      <AlertDialogFooter>
         <AlertDialogCancel asChild>
           <Button
             variant="outline"
@@ -161,22 +186,17 @@ function ConfirmBody({
             {cancelLabel ?? t('cancel')}
           </Button>
         </AlertDialogCancel>
-        <DisabledReason
-          disabled={blocker !== null}
-          reason={blocker ?? ''}
-          // The blocker is visible text under the button on every device; keep its height when it goes, so the dialog does not jump.
-          reserveSpace={Boolean(reason)}
-          alwaysVisible
-          className="max-md:w-full"
-        >
+        <span className="inline-flex max-w-full flex-col items-start gap-1.5 max-md:w-full">
           <Button
             ref={confirmRef}
             variant={tone === 'destructive' ? 'destructive' : 'default'}
-            aria-disabled={pending || undefined}
+            aria-disabled={pending || blocker !== null || undefined}
+            aria-describedby={blocker ? blockerId : undefined}
             aria-busy={pending || undefined}
             className={cn(
               actionClass,
               'relative max-md:w-full',
+              blocker !== null && 'cursor-not-allowed',
               // A request in flight is not a refusal: the button keeps its fill instead of turning grey.
               pending &&
                 (tone === 'destructive'
@@ -184,7 +204,7 @@ function ConfirmBody({
                   : 'aria-disabled:bg-primary aria-disabled:text-primary-foreground'),
             )}
             onClick={() => {
-              if (!pending) onConfirm(text.trim());
+              if (!pending && blocker === null) onConfirm(text.trim());
             }}
           >
             {pending && (
@@ -198,7 +218,7 @@ function ConfirmBody({
             )}
             {confirmLabel}
           </Button>
-        </DisabledReason>
+        </span>
       </AlertDialogFooter>
     </>
   );

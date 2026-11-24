@@ -314,15 +314,61 @@ describe('ConfirmDialog [UI foundation F8, G16]', () => {
     }
   });
 
-  it('reserves the helper line on touch once the reason is given, and only then', () => {
-    mount(withReason);
-    const spacer = () =>
-      confirm()
-        .closest('span.inline-flex')
-        ?.querySelector('span[aria-hidden="true"].invisible') ?? null;
-    expect(spacer()).toBeNull();
-    fireEvent.change(reasonField(), { target: { value: 'Причина' } });
-    expect(spacer()).not.toBeNull();
+  describe('blocker in the reason field [V3 #6]', () => {
+    const HINT = 'Причину бачитимуть усі.';
+    const TOO_LONG = 'Скоротіть причину до 10 символів';
+    const hinted = { reason: { label: LABEL, maxLength: 10, hint: HINT } };
+    const field = () => reasonField().closest('[data-slot="form-field"]')!;
+    const sizer = () => field().querySelector('[aria-hidden="true"].invisible');
+    const blocker = () =>
+      document.getElementById(confirm().getAttribute('aria-describedby') ?? '');
+
+    it('shows the blocker beside the hint, inside the field', () => {
+      mount(hinted);
+      expect(field().contains(blocker())).toBe(true);
+      expect(blocker()?.textContent).toBe(REQUIRED);
+      expect(blocker()?.className).not.toContain('sr-only');
+      expect(screen.getByText(HINT)).toBeTruthy();
+    });
+
+    it('leaves no spacer beside the button once the reason is valid', () => {
+      mount(hinted);
+      fireEvent.change(reasonField(), { target: { value: 'Причина' } });
+      const wrapper = confirm().parentElement!;
+      expect(wrapper.querySelector('.invisible')).toBeNull();
+      expect(wrapper.children).toHaveLength(1);
+      expect(confirm().hasAttribute('aria-describedby')).toBe(false);
+      expect(screen.queryByText(REQUIRED)).toBeNull();
+    });
+
+    it('reserves the longest message in every state, so the height holds', () => {
+      mount(hinted);
+      const reserved = `${HINT} ${TOO_LONG}`;
+      expect(sizer()?.textContent).toBe(reserved);
+      fireEvent.change(reasonField(), { target: { value: 'Причина' } });
+      expect(sizer()?.textContent).toBe(reserved);
+      fireEvent.change(reasonField(), { target: { value: 'Дванадцять сим' } });
+      expect(sizer()?.textContent).toBe(reserved);
+      expect(blocker()?.textContent).toBe(TOO_LONG);
+    });
+
+    it('works for a reason without a hint', () => {
+      mount(withReason);
+      expect(blocker()?.textContent).toBe(REQUIRED);
+      expect(sizer()?.textContent).toBe(TOO_LONG);
+    });
+
+    it('renders a dialog without a reason with the same action wrapper and no field', () => {
+      mount();
+      const wrapper = confirm().parentElement!;
+      expect(wrapper.tagName).toBe('SPAN');
+      expect(wrapper.className).toBe(
+        'inline-flex max-w-full flex-col items-start gap-1.5 max-md:w-full',
+      );
+      expect(wrapper.children).toHaveLength(1);
+      expect(confirm().hasAttribute('aria-describedby')).toBe(false);
+      expect(document.querySelector('[data-slot="form-field"]')).toBeNull();
+    });
   });
 
   it('shows an inline failure as an alert inside the dialog', () => {

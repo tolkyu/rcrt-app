@@ -11,6 +11,7 @@ import {
   type KeyboardEvent,
 } from 'react';
 import { Button } from '@/components/ui/button';
+import { DisabledReason } from '@/components/ui/disabled-reason';
 import { FormError } from '@/components/ui/form-error';
 import { FormPageLayout } from '@/components/ui/form-page-layout';
 import type { LeaveGuardHandle } from '@/components/ui/use-leave-guard';
@@ -29,12 +30,14 @@ import {
 } from './vacancy-content-field';
 import {
   ContentAlerts,
-  ContentCheckRetry,
+  ContentFrame,
+  ContentReadError,
   ContentReadOnly,
   ContentSkeleton,
   ContentUnavailable,
   blockKey,
   contentFieldErrors,
+  isSaveAlert,
   useContentHeading,
   type BlockKey,
   type ContentVacancy,
@@ -89,9 +92,19 @@ function ContentEditor({
     (field) => latest.current.undoClear(field),
     [],
   );
+  const alertsRef = useRef<HTMLDivElement>(null);
+  const awaitingResult = useRef(false);
   const save = () => {
+    if (edit.canSave) awaitingResult.current = true;
     edit.submit().catch(() => undefined);
   };
+  // Only a save the user just made may scroll: a background read must not move the page while they type.
+  useEffect(() => {
+    if (edit.pending || !awaitingResult.current) return;
+    awaitingResult.current = false;
+    if (isSaveAlert(edit.feedback.kind))
+      alertsRef.current?.scrollIntoView({ block: 'start' });
+  }, [edit.pending, edit.feedback]);
   const onKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
     if (
       event.key !== 'Enter' ||
@@ -127,84 +140,106 @@ function ContentEditor({
       : edit.feedback.kind === 'noOp'
         ? t('unchanged')
         : '';
+  const pristine =
+    !edit.dirty &&
+    !edit.pending &&
+    !edit.stale &&
+    !block &&
+    edit.feedback.kind === 'idle' &&
+    CONTENT_FIELDS.every((field) => edit.ready[field]);
   return (
-    <FormPageLayout
-      {...heading}
-      guardRef={guardRef}
-      dirty={edit.protectLeave}
-      onSubmit={(event) => event.preventDefault()}
-      onKeyDown={onKeyDown}
-      footer={
-        <>
-          {edit.pending ? (
-            <Button variant="outline" aria-disabled className="h-11 md:h-10">
-              {t('cancel')}
-            </Button>
-          ) : (
-            <Button asChild variant="outline" className="h-11 md:h-10">
-              <Link href={heading.back.href}>{t('cancel')}</Link>
-            </Button>
-          )}
-          <Button
-            aria-busy={edit.pending || undefined}
-            aria-disabled={!edit.canSave || undefined}
-            className="h-11 min-w-[9.5rem] md:h-10"
-            onClick={save}
-          >
-            {edit.pending ? t('saving') : t('save')}
-          </Button>
-        </>
-      }
-    >
-      <ContentAlerts
-        vacancyId={vacancy.id}
-        feedback={edit.feedback}
-        general={general}
-        block={block}
-        stale={edit.stale}
-        dirty={edit.dirty}
-        busy={edit.pending || edit.reloading}
-        checkFailed={checkFailed}
-        onReload={() => {
-          edit.reloadConfirmed().catch(() => undefined);
-        }}
-        onRetry={save}
-        onRecheck={onRecheck}
-      />
-      <FormError
-        count={failed.length}
-        attempt={attempts.count}
-        links={failed.map((field) => ({
-          id: CONTENT_FIELD_IDS[field],
-          label: t(CONTENT_FIELD_TEXT[field].label),
-        }))}
-      />
-      {CONTENT_FIELDS.map((field) => (
-        <VacancyContentField
-          key={field}
-          field={field}
-          baseline={baseline[field]}
-          intent={fields[field]}
-          resetKey={edit.resetKeys[field]}
-          disabled={edit.disabled}
-          errorCode={byField[field]}
-          onChange={onChange}
-          onReady={onReady}
-          onClear={onClear}
-          onUndoClear={onUndoClear}
-        />
-      ))}
-      <div
-        role="status"
-        className={
-          edit.pending
-            ? 'sr-only'
-            : 'text-success-text text-sm font-medium empty:hidden'
+    <ContentFrame>
+      <FormPageLayout
+        {...heading}
+        guardRef={guardRef}
+        dirty={edit.protectLeave}
+        onSubmit={(event) => event.preventDefault()}
+        onKeyDown={onKeyDown}
+        footer={
+          <>
+            <div
+              role="status"
+              className={
+                edit.pending
+                  ? 'sr-only'
+                  : 'text-success-text text-sm font-medium empty:hidden max-md:basis-full! md:mr-auto md:self-center'
+              }
+            >
+              {status}
+            </div>
+            {edit.pending ? (
+              <Button variant="outline" aria-disabled className="h-11 md:h-10">
+                {t('cancel')}
+              </Button>
+            ) : (
+              <Button asChild variant="outline" className="h-11 md:h-10">
+                <Link href={heading.back.href}>{t('cancel')}</Link>
+              </Button>
+            )}
+            <DisabledReason
+              reason={t('saveNoChanges')}
+              disabled={pristine}
+              reserveSpace
+              className="items-stretch md:items-end"
+            >
+              <Button
+                aria-busy={edit.pending || undefined}
+                aria-disabled={!edit.canSave || undefined}
+                className="h-11 min-w-[9.5rem] md:h-10"
+                onClick={save}
+              >
+                {edit.pending ? t('saving') : t('save')}
+              </Button>
+            </DisabledReason>
+          </>
         }
       >
-        {status}
-      </div>
-    </FormPageLayout>
+        <div
+          ref={alertsRef}
+          className="flex scroll-mt-20 flex-col gap-6 empty:hidden sm:[&_[role=alert]]:items-center sm:[&_[role=alert]>svg]:mt-0"
+        >
+          <ContentAlerts
+            vacancyId={vacancy.id}
+            feedback={edit.feedback}
+            general={general}
+            block={block}
+            stale={edit.stale}
+            dirty={edit.dirty}
+            busy={edit.pending || edit.reloading}
+            checkFailed={checkFailed}
+            onReload={() => {
+              edit.reloadConfirmed().catch(() => undefined);
+            }}
+            onRetry={save}
+            onRecheck={onRecheck}
+          />
+        </div>
+        <FormError
+          className="[&_a]:min-h-11 md:[&_a]:min-h-8"
+          count={failed.length}
+          attempt={attempts.count}
+          links={failed.map((field) => ({
+            id: CONTENT_FIELD_IDS[field],
+            label: t(CONTENT_FIELD_TEXT[field].label),
+          }))}
+        />
+        {CONTENT_FIELDS.map((field) => (
+          <VacancyContentField
+            key={field}
+            field={field}
+            baseline={baseline[field]}
+            intent={fields[field]}
+            resetKey={edit.resetKeys[field]}
+            disabled={edit.disabled}
+            errorCode={byField[field]}
+            onChange={onChange}
+            onReady={onReady}
+            onClear={onClear}
+            onUndoClear={onUndoClear}
+          />
+        ))}
+      </FormPageLayout>
+    </ContentFrame>
   );
 }
 
@@ -266,7 +301,7 @@ export function VacancyContentEditForm({
     );
   if (read) return <ContentReadOnly vacancy={vacancy} content={read.content} />;
   return checking?.error ? (
-    <ContentCheckRetry onRetry={recheck} />
+    <ContentReadError vacancyId={vacancy.id} onRetry={recheck} />
   ) : (
     <ContentSkeleton vacancy={vacancy} />
   );

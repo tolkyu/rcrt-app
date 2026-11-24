@@ -9,6 +9,11 @@ import type {
 } from '@/lib/schemas/vacancy';
 import { toast } from '@/lib/toast';
 import type { VACANCY_PRIORITIES } from '@/lib/vacancy-filters';
+import {
+  adoptVacancyDetail,
+  noteVacancyWriteFailure,
+  watchVacancyAccess,
+} from '@/lib/vacancy-detail-cache';
 import { readCurrentVacancy, refreshVacancy } from '@/lib/vacancy-refresh';
 import { applyOptimisticUrgency } from '@/lib/vacancy-urgency-optimistic';
 
@@ -65,6 +70,7 @@ export async function changeUrgency(
   // Set before the first await: a double press cannot slip past it.
   if (inFlight.has(id)) return { status: 'busy' };
   inFlight.add(id);
+  const stillAllowed = watchVacancyAccess(queryClient, id);
   try {
     // A refetch landing after the optimistic write would put the old flag back.
     await Promise.all([
@@ -82,11 +88,12 @@ export async function changeUrgency(
         expectedVersion: version,
       });
       optimistic.settle();
-      queryClient.setQueryData(queryKeys.vacancy(id), detail);
+      await adoptVacancyDetail(queryClient, detail, stillAllowed);
       void refreshVacancy(queryClient, id);
       return { status: 'changed', detail };
     } catch (error) {
       optimistic.restore();
+      noteVacancyWriteFailure(queryClient, error, id);
       const kind = classifyUrgencyFailure(error);
       if (kind !== 'stale') {
         if (kind !== 'rateLimited') void refreshVacancy(queryClient, id);

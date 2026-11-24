@@ -1,12 +1,13 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslations } from 'next-intl';
 import { SectionError } from '@/components/states/section-error';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api-client';
 import { withVacancySelection } from '@/lib/vacancy-filters';
 import { navigateVacancies } from '@/lib/vacancy-navigation';
+import { isVacancyClosed } from '@/lib/vacancy-closed';
 import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
 import { TeamSkeleton } from './team-skeleton';
 import { VacancyOverview } from './vacancy-overview';
@@ -20,7 +21,11 @@ export function VacancyPreview({
   canAuthorDrafts: boolean;
 }) {
   const t = useTranslations('vacancies');
-  const query = useQuery(vacancyDetailQuery(id));
+  const queryClient = useQueryClient();
+  const query = useQuery({
+    ...vacancyDetailQuery(id),
+    enabled: !isVacancyClosed(queryClient, id),
+  });
   if (query.data)
     return (
       <VacancyOverview

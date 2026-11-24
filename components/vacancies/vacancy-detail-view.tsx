@@ -1,43 +1,29 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, SearchX } from 'lucide-react';
-import Link from 'next/link';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { SearchX } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { PageHeader } from '@/components/shell/page-header';
 import { EmptyState } from '@/components/states/empty-state';
 import { SectionError } from '@/components/states/section-error';
-import { buttonVariants } from '@/components/ui/button';
+import { BackLink as Back } from '@/components/ui/back-link';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api-client';
 import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
+import { isVacancyClosed } from '@/lib/vacancy-closed';
 import { useVacancyListHref } from '@/lib/vacancy-list-memory';
-import { cn } from '@/lib/utils';
+import { LostClaimCardNotice } from './lost-claim-card-notice';
 import { TeamSkeleton } from './team-skeleton';
 import { useVacancyContentAccess } from './use-vacancy-content-access';
-import {
-  VacancyContentEditLink,
-  VacancyContentPanel,
-} from './vacancy-content-panel';
+import { VacancyContentPanel } from './vacancy-content-panel';
 import { VacancyOverview } from './vacancy-overview';
 
-function BackLink({ className }: { className?: string }) {
+function BackLink() {
   const t = useTranslations('vacancies.detail');
-  const href = useVacancyListHref();
   return (
-    <Link
-      href={href}
-      className={cn(
-        buttonVariants({ variant: 'ghost', size: 'md' }),
-        'h-11 text-sm',
-        className,
-      )}
-    >
-      <ArrowLeft aria-hidden="true" />
-      {t('back')}
-    </Link>
+    <Back href={useVacancyListHref()} label={t('back')} className="mb-2" />
   );
 }
 
@@ -52,18 +38,22 @@ export function VacancyDetailView({
   const t = useTranslations('vacancies');
   const router = useRouter();
   const listHref = useVacancyListHref();
+  const queryClient = useQueryClient();
   const access = useVacancyContentAccess(id);
   const { state } = access;
   // A content 404/403 proves the whole card unreadable: no stale metadata or actions stay behind it (ADR-020).
   const denied = state.kind === 'unavailable' ? state.reason : null;
-  const query = useQuery({ ...vacancyDetailQuery(id), enabled: !denied });
+  const query = useQuery({
+    ...vacancyDetailQuery(id),
+    enabled: !denied && !isVacancyClosed(queryClient, id),
+  });
   const vacancy = denied ? undefined : query.data;
   const missing =
     denied === 'notFound' ||
     (!vacancy && query.error instanceof ApiError && query.error.status === 404);
   return (
     <>
-      <BackLink className="mb-2 -ml-3" />
+      <BackLink />
       {vacancy && (
         <>
           <PageHeader title={vacancy.title} />
@@ -72,7 +62,6 @@ export function VacancyDetailView({
               vacancy={vacancy}
               canAuthorDrafts={canAuthorDrafts}
               onClaimLost={() => router.replace(listHref)}
-              headerAction={<VacancyContentEditLink id={id} state={state} />}
               content={
                 <VacancyContentPanel
                   id={id}
@@ -93,6 +82,7 @@ export function VacancyDetailView({
             title={t('detail.notFoundTitle')}
             description={t('detail.notFoundDescription')}
           />
+          <LostClaimCardNotice />
         </Card>
       )}
       {!vacancy && !denied && !missing && query.isError && (

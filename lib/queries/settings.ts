@@ -1,5 +1,6 @@
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
-import { ApiError, apiRequest } from '@/lib/api-client';
+import { apiRequest } from '@/lib/api-client';
+import { retryServerErrors } from '@/lib/queries/vacancy-detail';
 import { queryKeys } from '@/lib/query-keys';
 import type {
   AuditDirection,
@@ -95,8 +96,7 @@ export const usersQuery = (
 export const auditRecordQuery = (id: string) =>
   queryOptions({
     queryKey: queryKeys.settingsAuditRecord(id),
-    retry: (count, error) =>
-      !(error instanceof ApiError && error.status < 500) && count < 2,
+    retry: retryServerErrors,
     queryFn: ({ signal }) =>
       apiRequest(`/audit/${id}`, {
         schema: async () =>

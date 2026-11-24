@@ -104,10 +104,18 @@ describe('document query options [ADR-019]', () => {
       client.clear();
     }
   });
-  it.each([401, 403, 404, 429])('does not retry HTTP %s', (status) => {
+  it.each([403, 404, 429])('does not retry HTTP %s', (status) => {
     const retry = vacancyContentQuery(ID).retry;
     if (typeof retry !== 'function') throw new Error('Expected retry policy');
     expect(retry(0, new ApiError(status, 'DENIED'))).toBe(false);
+  });
+  it('retries a session 401 once and never MFA_REQUIRED', () => {
+    const retry = vacancyContentQuery(ID).retry;
+    if (typeof retry !== 'function') throw new Error('Expected retry policy');
+    const lost = new ApiError(401, 'SESSION_EXPIRED');
+    expect(retry(0, lost)).toBe(true);
+    expect(retry(1, lost)).toBe(false);
+    expect(retry(0, new ApiError(401, 'MFA_REQUIRED'))).toBe(false);
   });
   it('bounds retryable server/network failures', () => {
     const retry = vacancyContentQuery(ID).retry;

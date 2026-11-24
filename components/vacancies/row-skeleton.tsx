@@ -22,9 +22,11 @@ function Line({
 export function RowSkeleton({
   count = 8,
   menuColumn = false,
+  showTeamLead = true,
 }: {
   count?: number;
   menuColumn?: boolean;
+  showTeamLead?: boolean;
 }) {
   const t = useTranslations('states');
   const rows = Array.from({ length: count }, (_, index) => index);
@@ -34,7 +36,10 @@ export function RowSkeleton({
       <div aria-hidden="true">
         <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-sm">
-            <VacanciesTableHead menuColumn={menuColumn} />
+            <VacanciesTableHead
+              menuColumn={menuColumn}
+              showTeamLead={showTeamLead}
+            />
             <tbody>
               {rows.map((row) => (
                 <tr
@@ -42,27 +47,29 @@ export function RowSkeleton({
                   className="border-border border-b align-middle last:border-0"
                 >
                   <td className="px-4 py-3">
-                    <Line height="h-6" className="w-56" />
+                    <Line height="h-6" className="w-56 xl:max-2xl:w-40" />
                     <Line height="h-5" className="w-16" />
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 xl:max-[1600px]:hidden">
                     <Line height="h-5" className="w-16" />
                   </td>
-                  <td className="px-4 py-3">
-                    <Line height="h-5" className="w-28" />
-                  </td>
+                  {showTeamLead && (
+                    <td className="px-4 py-3">
+                      <Line height="h-5" className="w-28" />
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <Line height="h-5" className="w-20" />
                   </td>
                   <td className="px-4 py-3">
                     <Skeleton className="h-6.5 w-24 rounded-full" />
                   </td>
-                  <td className="px-4 py-3 xl:max-2xl:hidden">
+                  <td className="px-4 py-3 xl:max-[1720px]:hidden">
                     <Line height="h-5" className="w-20" />
                   </td>
                   <td
                     className={cn(
-                      'px-2 py-3',
+                      'bg-surface sticky right-0 z-10 px-2 py-3',
                       !menuColumn && 'hidden xl:table-cell',
                     )}
                   >
@@ -86,7 +93,7 @@ export function RowSkeleton({
               <div className="flex h-6.5 items-center">
                 <Skeleton className="h-6.5 w-24 rounded-full" />
               </div>
-              <Line height="h-5" className="w-2/3" />
+              {showTeamLead && <Line height="h-5" className="w-2/3" />}
               <Line height="h-4" className="w-1/3" />
             </li>
           ))}

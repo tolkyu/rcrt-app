@@ -1,5 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query';
-import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
+import {
+  retrySessionLoss,
+  vacancyDetailQuery,
+} from '@/lib/queries/vacancy-detail';
 import { queryKeys } from '@/lib/query-keys';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
 
@@ -22,7 +25,7 @@ export async function readCurrentVacancy(
     return await queryClient.fetchQuery({
       ...vacancyDetailQuery(id),
       staleTime: 0,
-      retry: false,
+      retry: retrySessionLoss,
     });
   } catch {
     return null;

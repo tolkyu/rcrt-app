@@ -72,6 +72,7 @@ export const VacanciesList = memo(function VacanciesList({
   canAuthorDrafts,
   selfAssignVerticals,
   statusGrants,
+  showTeamLead = true,
 }: {
   items: readonly VacancySummary[];
   selectedId: string | undefined;
@@ -81,6 +82,8 @@ export const VacanciesList = memo(function VacanciesList({
   canAuthorDrafts: boolean;
   selfAssignVerticals: SelfAssignVerticals;
   statusGrants: StatusGrantMirror | null;
+  /** False when every row the viewer can list is led by the viewer (server decision). */
+  showTeamLead?: boolean;
 }) {
   const t = useTranslations('vacancies');
   /** The table keeps the menu column below `xl` only when some row can have a menu. */
@@ -99,10 +102,13 @@ export const VacanciesList = memo(function VacanciesList({
   };
   return (
     <>
-      <div className="relative hidden overflow-x-auto md:block">
+      <div className="relative hidden scroll-pr-28 overflow-x-auto md:block">
         <table className="w-full text-sm">
           <caption className="sr-only">{t('caption')}</caption>
-          <VacanciesTableHead menuColumn={menuColumn} />
+          <VacanciesTableHead
+            menuColumn={menuColumn}
+            showTeamLead={showTeamLead}
+          />
           <tbody>
             {items.map((vacancy) => {
               const selected = wide && vacancy.id === selectedId;
@@ -115,7 +121,7 @@ export const VacanciesList = memo(function VacanciesList({
                     urgentRow(vacancy, selected) ??
                       (selected
                         ? 'bg-primary-subtle shadow-[inset_2px_0_0_0_var(--brand)]'
-                        : 'hover:bg-surface-muted active:bg-surface-muted'),
+                        : 'bg-surface hover:bg-surface-muted active:bg-surface-muted'),
                   )}
                 >
                   <th scope="row" className="px-4 py-3 text-left font-normal">
@@ -137,12 +143,14 @@ export const VacanciesList = memo(function VacanciesList({
                       </span>
                     </div>
                   </th>
-                  <td className="px-4 py-3 break-words">
+                  <td className="px-4 py-3 break-words xl:max-[1600px]:hidden">
                     {vacancy.vertical.name}
                   </td>
-                  <td className="px-4 py-3">
-                    <TeamLead vacancy={vacancy} />
-                  </td>
+                  {showTeamLead && (
+                    <td className="px-4 py-3">
+                      <TeamLead vacancy={vacancy} />
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     <RecruiterCell
                       vacancy={vacancy}
@@ -152,7 +160,7 @@ export const VacanciesList = memo(function VacanciesList({
                   <td className="px-4 py-3">
                     <VacancyStatus status={vacancy.status} />
                   </td>
-                  <td className="text-muted-foreground px-4 py-3 whitespace-nowrap tabular-nums xl:max-2xl:hidden">
+                  <td className="text-muted-foreground px-4 py-3 whitespace-nowrap tabular-nums xl:max-[1720px]:hidden">
                     <OpenedAt
                       at={vacancy.openedAt}
                       draft={vacancy.status === 'DRAFT'}
@@ -160,7 +168,7 @@ export const VacanciesList = memo(function VacanciesList({
                   </td>
                   <td
                     className={cn(
-                      'px-2 py-3',
+                      'sticky right-0 z-10 bg-inherit px-2 py-3',
                       !menuColumn && 'hidden xl:table-cell',
                     )}
                   >
@@ -243,12 +251,14 @@ export const VacanciesList = memo(function VacanciesList({
                 <VacancyStatus status={vacancy.status} />
                 <VacancyFlags vacancy={vacancy} />
               </div>
-              <p className="flex flex-wrap gap-x-1 text-sm">
-                <span className="text-muted-foreground">
-                  {t('teamLeadLine')}
-                </span>
-                <TeamLead vacancy={vacancy} />
-              </p>
+              {showTeamLead && (
+                <p className="flex flex-wrap gap-x-1 text-sm">
+                  <span className="text-muted-foreground">
+                    {t('teamLeadLine')}
+                  </span>
+                  <TeamLead vacancy={vacancy} />
+                </p>
+              )}
               <ClaimCard vacancy={vacancy} verticals={selfAssignVerticals} />
               {vacancy.openedAt ? (
                 <p className="text-muted-foreground text-xs">

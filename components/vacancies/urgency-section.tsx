@@ -56,14 +56,14 @@ export function UrgencySection({
     <section ref={sectionRef} aria-labelledby={`vacancy-urgency-${key}`}>
       <Heading
         id={`vacancy-urgency-${key}`}
-        className="mb-2 text-sm font-semibold"
+        className="mb-0.5 text-sm font-semibold"
       >
         {t('title')}
       </Heading>
       <FormField
         id={`vacancy-urgency-field-${key}`}
         layout="group"
-        label={t('label')}
+        label={<span className="sr-only">{t('label')}</span>}
         hint={t('hint')}
       >
         {(controlProps) => (

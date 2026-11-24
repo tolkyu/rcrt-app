@@ -5,6 +5,7 @@ import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
 import { queryKeys } from '@/lib/query-keys';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
 import { toast } from '@/lib/toast';
+import { watchVacancyAccess } from '@/lib/vacancy-detail-cache';
 import { vacancyEditHref } from '@/lib/vacancy-draft-actions';
 import { applyOptimisticPublish } from '@/lib/vacancy-draft-optimistic';
 import {
@@ -67,6 +68,7 @@ export async function publishFromList(
   // Set before the first await: a double press cannot slip past it.
   if (inFlight.has(id)) return { status: 'busy' };
   inFlight.add(id);
+  const stillAllowed = watchVacancyAccess(queryClient, id);
   try {
     let draft: VacancyDetail;
     try {
@@ -90,19 +92,24 @@ export async function publishFromList(
         exact: true,
       }),
     ]);
-    const optimistic = applyOptimisticPublish(queryClient, id);
+    const optimistic = applyOptimisticPublish(queryClient, id, stillAllowed);
     let outcome: Awaited<ReturnType<typeof submitEdit>>;
     // Everything after the optimistic write is inside this try, so nothing can leave it applied.
     try {
       hooks.removed();
-      outcome = await submitEdit(queryClient, attemptsOf(id), {
-        id,
-        version: draft.version,
-        action: 'PUBLISH',
-        changes: null,
-        everything: {},
-        hasSalaryAmount: false,
-      });
+      outcome = await submitEdit(
+        queryClient,
+        attemptsOf(id),
+        {
+          id,
+          version: draft.version,
+          action: 'PUBLISH',
+          changes: null,
+          everything: {},
+          hasSalaryAmount: false,
+        },
+        stillAllowed,
+      );
     } catch (error) {
       optimistic.restore();
       hooks.restored();

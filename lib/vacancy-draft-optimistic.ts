@@ -11,6 +11,11 @@ import type {
   VacancyPage,
   VacancySummary,
 } from '@/lib/schemas/vacancy';
+import { isPage } from '@/lib/denial-log';
+import {
+  watchVacancyAccess,
+  type VacancyAccessWatch,
+} from '@/lib/vacancy-detail-cache';
 
 interface RemovedRow {
   readonly key: QueryKey;
@@ -31,11 +36,6 @@ export interface OptimisticPublish {
   readonly settle: () => void;
 }
 
-export const isPage = (data: unknown): data is VacancyPage =>
-  typeof data === 'object' &&
-  data !== null &&
-  'items' in data &&
-  Array.isArray(data.items);
 /** Content and picker entries share the `['vacancy', id]` prefix, and a content DTO also carries `status` and `version`. */
 export const isVacancyDetailKey = (key: QueryKey, id: string) =>
   hashKey(key) === hashKey(queryKeys.vacancy(id));
@@ -69,6 +69,7 @@ function insertionIndex(
 export function applyOptimisticPublish(
   queryClient: QueryClient,
   id: string,
+  stillAllowed: VacancyAccessWatch = watchVacancyAccess(queryClient, id),
 ): OptimisticPublish {
   const countKey = queryKeys.vacancyDraftCount();
   const detailKey = queryKeys.vacancy(id);
@@ -158,9 +159,15 @@ export function applyOptimisticPublish(
     settle,
     restore: () => {
       unsubscribe();
+      // A row or card the viewer lost access to during the call must not come back.
+      const allowed = stillAllowed();
       for (const [hash, row] of removed) {
         const data = queryClient.getQueryData(row.key);
-        if (!isPage(data) || data.items.some((item) => item.id === id))
+        if (
+          !allowed ||
+          !isPage(data) ||
+          data.items.some((item) => item.id === id)
+        )
           continue;
         const items = [...data.items];
         items.splice(
@@ -176,7 +183,7 @@ export function applyOptimisticPublish(
           count: current.count + 1,
         });
       const card = queryClient.getQueryData<VacancyDetail>(detailKey);
-      if (flipped && card?.status === 'OPEN')
+      if (allowed && flipped && card?.status === 'OPEN')
         queryClient.setQueryData<VacancyDetail>(detailKey, {
           ...card,
           status: 'DRAFT',

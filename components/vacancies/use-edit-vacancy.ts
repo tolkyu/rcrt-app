@@ -9,7 +9,6 @@ import type { LeaveGuardHandle } from '@/components/ui/use-leave-guard';
 import { focusField } from '@/components/vacancies/use-field-summary';
 import { useSubmitLifecycle } from '@/components/vacancies/use-submit-lifecycle';
 import type { CreateVacancyBody, VacancyDetail } from '@/lib/schemas/vacancy';
-import { queryKeys } from '@/lib/query-keys';
 import { vacancyFormValues } from '@/lib/vacancy-edit-form';
 import {
   loadEditFeedback,
@@ -20,7 +19,6 @@ import {
 import type { EditFinalFailure } from '@/lib/vacancy-edit-submit';
 import {
   type FilledField,
-  type VacancyFormField,
   type VacancyFormMode,
   type VacancyFormValues,
 } from '@/lib/vacancy-form';
@@ -90,53 +88,35 @@ export function useEditVacancy({
     reset(vacancyFormValues(next, shown.probation));
   };
 
-  const refreshLists = () =>
-    queryClient.invalidateQueries({ queryKey: queryKeys.vacanciesAll() });
-
   /** `retry` repeats the action that failed (a save or a reload), so a toast button never runs another one. */
   const showFailure = (
     lib: EditModule,
     effect: EditFinalFailure,
     retry: () => void,
     publishRefused = false,
-  ) => {
-    if (effect.type === 'fields') {
-      for (const [field, code] of Object.entries(effect.errors))
-        setError(field as VacancyFormField, { type: 'server', message: code });
-      lib.refreshAfterFieldErrors(queryClient, effect.errors);
-      const invalid = Object.keys(effect.errors);
-      invalidFields(invalid);
-      if (publishRefused)
-        lib.announceRefused(tEdit, () => {
-          focusFirstInvalid(invalid);
-          // Sonner 2.0.8 hands focus back to the element focused before the toaster when the action's button blurs (`lastFocusedElementRef`, sync or a tick later); focusing again afterwards wins. Not run in WebKit here: Safari does not focus a clicked button, so nothing is handed back and the first call is the one that counts.
-          setTimeout(() => focusFirstInvalid(invalid), 0);
-        });
-    } else if (effect.type === 'stale') {
-      setStale(true);
-      lib.announceStale(tEdit, stored.current.id);
-      loadEditFeedback().then(
-        (loaded) => mounted.current && setStaleUi(loaded),
-        () => undefined,
-      );
-    } else if (effect.type === 'notDraft') {
-      // The page re-reads the draft and shows the not-a-draft state instead of the form.
-      void refreshLists();
-      void queryClient.invalidateQueries({
-        queryKey: queryKeys.vacancy(stored.current.id),
-      });
-      router.refresh();
-    } else if (effect.type === 'gone') {
-      lib.announceGone(tEdit);
-      void refreshLists();
-      guard.current?.release();
-      router.replace(lib.rememberedListHref());
-    } else {
-      lib.showFailureToast(t, effect, retry);
-      // The role was lost mid-session: the page re-reads the grants and the refused field goes away.
-      if (effect.title === 'forbidden') router.refresh();
-    }
-  };
+  ) =>
+    lib.showEditFailure(
+      {
+        queryClient,
+        t,
+        tEdit,
+        setError,
+        invalidFields,
+        focusFirstInvalid,
+        id: stored.current.id,
+        router,
+        setStale,
+        loadStaleUi: () =>
+          void loadEditFeedback().then(
+            (loaded) => mounted.current && setStaleUi(loaded),
+            () => undefined,
+          ),
+        release: () => guard.current?.release(),
+      },
+      effect,
+      retry,
+      publishRefused,
+    );
 
   const send = async (
     lib: EditModule,

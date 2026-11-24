@@ -1,8 +1,10 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 import { RichTextEditor } from '@/components/rich-text/rich-text-editor';
 import { Button } from '@/components/ui/button';
+import { DisabledReason } from '@/components/ui/disabled-reason';
 import { FormField } from '@/components/ui/form-field';
 import type { EditorDocumentResult } from '@/lib/rich-text-editor-document';
 import type { RichTextDoc } from '@/lib/schemas/rich-text';
@@ -50,6 +52,9 @@ export function VacancyContentField({
   const t = useTranslations('vacancies.contentEdit');
   const cleared = intent.kind === 'clear';
   const nothingToClear = baseline === null && intent.kind === 'unchanged';
+  const [loadFailed, setLoadFailed] = useState(false);
+  // Only a failed chunk blocks Clear: it is the way out of an invalid stored document, and undo needs no editor.
+  const clearBlocked = loadFailed && !cleared && !disabled && !nothingToClear;
   return (
     <div className="flex flex-col">
       <FormField
@@ -65,9 +70,11 @@ export function VacancyContentField({
                 {...control}
                 initialDocument={baseline}
                 resetKey={String(resetKey)}
+                fieldLabel={t(CONTENT_FIELD_TEXT[field].label)}
                 disabled={disabled || cleared}
                 onChange={(result) => onChange(field, result)}
                 onReadyChange={(ready) => onReady(field, ready)}
+                onLoadFailedChange={setLoadFailed}
               />
             </div>
             {cleared && (
@@ -79,15 +86,21 @@ export function VacancyContentField({
         )}
       </FormField>
       <div className="mt-2 flex h-11 items-center md:h-8">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-11 md:h-8"
-          disabled={disabled || nothingToClear}
-          onClick={() => (cleared ? onUndoClear(field) : onClear(field))}
+        <DisabledReason
+          reason={t('clearNeedsEditor')}
+          disabled={clearBlocked}
+          className="flex-row items-center gap-2"
         >
-          {cleared ? t('undoClear') : t('clear')}
-        </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-3 h-11 shrink-0 disabled:bg-transparent aria-disabled:bg-transparent md:h-8"
+            disabled={disabled || nothingToClear}
+            onClick={() => (cleared ? onUndoClear(field) : onClear(field))}
+          >
+            {cleared ? t('undoClear') : t('clear')}
+          </Button>
+        </DisabledReason>
       </div>
     </div>
   );

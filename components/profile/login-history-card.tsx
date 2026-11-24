@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DATE_TIME } from '@/lib/format';
-import { myLoginHistoryQuery } from '@/lib/queries/me';
+import { myLoginHistoryQuery } from '@/lib/queries/my-security';
 import { describeDevice } from '@/lib/user-agent';
 
 /** Own recent sign-ins (D25, AUD-3), cursor-paginated by the auth API. */

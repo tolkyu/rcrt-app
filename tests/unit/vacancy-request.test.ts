@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { ApiError } from '@/lib/api-client';
 import { plainTextToDoc } from '@/lib/plain-text-doc';
@@ -15,6 +16,20 @@ const values = (changes: Partial<typeof emptyRequest> = {}) => ({
   ...emptyRequest,
   positionId: POSITION,
   ...changes,
+});
+
+describe('request form failure notice', () => {
+  it('sits above the fields, so the bottom toast and nav cannot cover its Retry', () => {
+    const source = readFileSync(
+      'components/vacancies/vacancy-request-form.tsx',
+      'utf8',
+    );
+    expect(source.indexOf('{form.notice && (')).toBeGreaterThan(-1);
+    expect(source.indexOf('{form.notice && (')).toBeLessThan(
+      source.indexOf('id="request-position"'),
+    );
+    expect(source).toContain('scrollIntoView');
+  });
 });
 
 describe('parseRequest [STORY-VAC-03-3]', () => {

@@ -34,6 +34,7 @@ const doc = (text: string) =>
 const defaults = () =>
   ({
     id: 'description',
+    fieldLabel: 'Опис',
     resetKey: 'one',
     initialDocument: null,
     disabled: false,
@@ -462,7 +463,7 @@ describe('real rich text runtime', () => {
     expect(
       screen
         .getAllByRole('button')
-        .every((button) => button.hasAttribute('disabled')),
+        .every((button) => button.getAttribute('aria-disabled') === 'true'),
     ).toBe(true);
   });
 

@@ -467,7 +467,7 @@ describe('detail header highlight [STORY-VAC-04-4, D99]', () => {
   );
 
   it.each(['FILLED', 'CANCELLED'] as const)(
-    'keeps the header of a %s urgent vacancy neutral with the closed note and an info mark',
+    'keeps the header of a %s urgent vacancy neutral, with the explanation only in the chip title',
     (status) => {
       mount(
         createElement(VacancyOverview, {
@@ -475,9 +475,8 @@ describe('detail header highlight [STORY-VAC-04-4, D99]', () => {
         }),
       );
       expect(block().className).not.toContain('destructive');
-      const note = screen.getByText(messages.vacancies.urgentClosed);
-      expect(note.querySelector('svg.lucide-info')).not.toBeNull();
-      expect(note.querySelector('svg.lucide-lock')).toBeNull();
+      expect(screen.queryByText(messages.vacancies.urgentClosed)).toBeNull();
+      expect(screen.getByTitle(messages.vacancies.urgentClosed)).toBeTruthy();
     },
   );
 
@@ -600,7 +599,7 @@ describe('vacancy badges [UI foundation F2, design-system 1.6]', () => {
     ['DRAFT', 'border-dashed'],
     ['OPEN', 'bg-success-subtle'],
     ['ON_HOLD', 'bg-warning-subtle'],
-    ['FILLED', 'bg-primary-subtle'],
+    ['FILLED', 'border-brand'],
     ['CANCELLED', 'bg-surface-muted'],
   ] as const)(
     'renders %s as a pill with a dot and its label',

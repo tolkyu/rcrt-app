@@ -2,7 +2,14 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { ApiError, apiRequest } from '@/lib/api-client';
 import { queryKeys } from '@/lib/query-keys';
-import type { VacancyDetail, VacancyPage } from '@/lib/schemas/vacancy';
+import type { VacancyDetail } from '@/lib/schemas/vacancy';
+import { isPage } from '@/lib/denial-log';
+import {
+  adoptVacancyDetail,
+  noteVacancyWriteFailure,
+  watchVacancyAccess,
+  type VacancyAccessWatch,
+} from '@/lib/vacancy-detail-cache';
 import { readCurrentVacancy, refreshVacancy } from '@/lib/vacancy-refresh';
 
 export const detailSchema = async () =>
@@ -90,12 +97,6 @@ export function classifyTeamFailure(error: unknown): TeamFailure {
   return 'failed';
 }
 
-const isPage = (data: unknown): data is VacancyPage =>
-  typeof data === 'object' &&
-  data !== null &&
-  'items' in data &&
-  Array.isArray(data.items);
-
 /** Until the list reads again (a claim keeps the row but changes its cell), the row shows the team the server answered with. */
 const withTeam = (data: unknown, detail: VacancyDetail): unknown =>
   isPage(data)
@@ -117,16 +118,13 @@ const withTeam = (data: unknown, detail: VacancyDetail): unknown =>
 export async function adoptTeamDetail(
   queryClient: QueryClient,
   detail: VacancyDetail,
+  stillAllowed: VacancyAccessWatch,
 ) {
-  await queryClient.cancelQueries({
-    queryKey: queryKeys.vacancy(detail.id),
-    exact: true,
-  });
-  queryClient.setQueryData(queryKeys.vacancy(detail.id), detail);
-  queryClient.setQueriesData<unknown>(
-    { queryKey: queryKeys.vacanciesAll() },
-    (data: unknown) => withTeam(data, detail),
-  );
+  if (await adoptVacancyDetail(queryClient, detail, stillAllowed))
+    queryClient.setQueriesData<unknown>(
+      { queryKey: queryKeys.vacanciesAll() },
+      (data: unknown) => withTeam(data, detail),
+    );
   void refreshVacancy(queryClient, detail.id);
 }
 
@@ -145,12 +143,16 @@ export async function attemptTeamWrite(
   request: () => Promise<VacancyDetail>,
   adopted?: (current: VacancyDetail) => boolean,
 ): Promise<TeamOutcome> {
+  const stillAllowed = watchVacancyAccess(queryClient, id);
   try {
     const detail = await request();
     // The server already did the work: a failing cache write must not turn it into an error.
-    await adoptTeamDetail(queryClient, detail).catch(() => undefined);
+    await adoptTeamDetail(queryClient, detail, stillAllowed).catch(
+      () => undefined,
+    );
     return { ok: true, detail };
   } catch (error) {
+    noteVacancyWriteFailure(queryClient, error, id);
     const failure = classifyTeamFailure(error);
     if (failure === 'stale') {
       const current = await readCurrentVacancy(queryClient, id);

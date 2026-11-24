@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
-import { ApiError, apiRequest } from '@/lib/api-client';
+import { apiRequest } from '@/lib/api-client';
+import { retryServerErrors } from '@/lib/queries/vacancy-detail';
 
 /** Route-local key (`lib/query-keys.ts` ships with every route); the prefix is invalidated by «Пріоритети тімлідів». */
 export const teamLeadKeys = {
@@ -13,8 +14,7 @@ export const assignableTeamLeadsQuery = (verticalId: string) =>
   queryOptions({
     queryKey: teamLeadKeys.assignable(verticalId),
     staleTime: 60_000,
-    retry: (count, error) =>
-      !(error instanceof ApiError && error.status < 500) && count < 2,
+    retry: retryServerErrors,
     queryFn: ({ signal }) =>
       apiRequest(`/verticals/${verticalId}/team-leads`, {
         schema: async () =>

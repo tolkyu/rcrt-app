@@ -58,6 +58,11 @@ export function VacancyRequestForm({
       initialPositions.length === verticals.length && positions.length === 0,
   );
   const listHref = useVacancyListHref();
+  const noticeRef = useRef<HTMLDivElement>(null);
+  // At the end of the form the toast and BottomNav would cover its Retry on a phone.
+  useEffect(() => {
+    if (form.notice) noticeRef.current?.scrollIntoView({ block: 'start' });
+  }, [form.notice]);
   useEffect(() => {
     for (const seed of initialPositions) {
       const key = activePositionsQuery(seed.verticalId).queryKey;
@@ -156,6 +161,32 @@ export function VacancyRequestForm({
           label: t(`fields.${field}`),
         }))}
       />
+      {form.notice && (
+        <div
+          ref={noticeRef}
+          role="alert"
+          className="bg-destructive-subtle text-error-text scroll-mt-20 rounded-lg p-3 text-sm"
+        >
+          <p>{t(`errors.${form.notice}`)}</p>
+          {form.notice === 'forbidden' || form.notice === 'rateLimited' ? (
+            <Link
+              href={listHref}
+              className="mt-2 inline-flex min-h-11 items-center underline"
+            >
+              {t('back')}
+            </Link>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-2 min-h-11"
+              onClick={form.submit}
+            >
+              {t('retry')}
+            </Button>
+          )}
+        </div>
+      )}
       <FormField
         id="request-position"
         label={t('fields.positionId')}
@@ -259,31 +290,6 @@ export function VacancyRequestForm({
           />
         )}
       </FormField>
-      {form.notice && (
-        <div
-          role="alert"
-          className="bg-destructive-subtle text-error-text rounded-lg p-3 text-sm"
-        >
-          <p>{t(`errors.${form.notice}`)}</p>
-          {form.notice === 'forbidden' || form.notice === 'rateLimited' ? (
-            <Link
-              href={listHref}
-              className="mt-2 inline-flex min-h-11 items-center underline"
-            >
-              {t('back')}
-            </Link>
-          ) : (
-            <Button
-              type="button"
-              variant="outline"
-              className="mt-2 min-h-11"
-              onClick={form.submit}
-            >
-              {t('retry')}
-            </Button>
-          )}
-        </div>
-      )}
     </FormPageLayout>
   );
 }

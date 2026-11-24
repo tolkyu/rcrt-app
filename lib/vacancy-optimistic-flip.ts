@@ -2,7 +2,8 @@
 import type { QueryClient, QueryKey } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import type { VacancyDetail, VacancyPage } from '@/lib/schemas/vacancy';
-import { isPage, isVacancyDetailKey } from '@/lib/vacancy-draft-optimistic';
+import { isPage } from '@/lib/denial-log';
+import { isVacancyDetailKey } from '@/lib/vacancy-draft-optimistic';
 
 type Item = VacancyDetail | VacancyPage['items'][number];
 type Side = 'from' | 'to';

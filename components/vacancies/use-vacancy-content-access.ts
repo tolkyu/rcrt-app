@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  hashKey,
   useQuery,
   useQueryClient,
   type QueryClient,
@@ -8,15 +9,18 @@ import {
 import { useRouter } from 'next/navigation';
 import {
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useSyncExternalStore,
 } from 'react';
-import { ApiError } from '@/lib/api-client';
+import { ApiError, isSessionLoss } from '@/lib/api-client';
 import { vacancyContentQuery } from '@/lib/queries/vacancy-content';
 import { queryKeys } from '@/lib/query-keys';
 import type { VacancyContentRead } from '@/lib/schemas/vacancy-content';
 import { isEditableStatus } from '@/lib/vacancy-content-form';
+import { denialReloadStarted, recordVacancyDenial } from '@/lib/denial-log';
+import { isVacancyClosed } from '@/lib/vacancy-closed';
 
 type Denial = {
   readonly reason: 'session' | 'notFound';
@@ -39,8 +43,12 @@ class AccessScope {
   private active = true;
   private generation = 0;
   private read = 0;
-  private gate: { readonly writing: boolean; readonly denial: Denial | null } =
-    { writing: false, denial: null };
+  private gate: {
+    readonly writing: boolean;
+    readonly denial: Denial | null;
+    readonly fresh: boolean;
+  } = { writing: false, denial: null, fresh: false };
+  private stopWatchingReads: (() => void) | null = null;
   private readonly tokens = new WeakSet<ContentAccessGeneration>();
   private readonly listeners = new Set<() => void>();
   constructor(
@@ -56,17 +64,43 @@ class AccessScope {
   };
   /** ADR-020: pause automatic reads synchronously, before React renders the write gate. */
   readonly enabled = () =>
-    this.active && !this.gate.writing && this.gate.denial === null;
+    this.active &&
+    !this.gate.writing &&
+    this.gate.denial === null &&
+    !isVacancyClosed(this.client, this.id);
   private update(gate: typeof this.gate) {
     this.gate = gate;
     for (const listener of this.listeners) listener();
   }
+  /** Query counters move on hydration and `setQueryData`, so only the latest network outcome of the live query object proves access. */
   activate() {
     this.active = true;
+    const hash = hashKey(queryKeys.vacancyContent(this.id));
+    const cache = this.client.getQueryCache();
+    this.stopWatchingReads = cache.subscribe((event) => {
+      const live = cache.get(hash);
+      let fresh = this.gate.fresh;
+      if (event.type === 'removed') {
+        if (event.query.queryHash === hash && !live) fresh = false;
+      } else if (event.type === 'updated' && event.query === live) {
+        if (
+          event.action.type === 'error' ||
+          event.action.type === 'failed' ||
+          event.query.state.status !== 'success'
+        )
+          fresh = false;
+        else if (event.action.type === 'success' && !event.action.manual)
+          fresh = true;
+      }
+      if (fresh !== this.gate.fresh) this.update({ ...this.gate, fresh });
+    });
   }
   close() {
     this.active = false;
     this.generation += 1;
+    this.stopWatchingReads?.();
+    this.stopWatchingReads = null;
+    this.gate = { ...this.gate, fresh: false };
   }
   current(token?: ContentAccessGeneration) {
     return (
@@ -78,7 +112,7 @@ class AccessScope {
   lose(denial: Denial) {
     if (!this.current()) return false;
     this.generation += 1;
-    this.update({ writing: false, denial });
+    this.update({ ...this.gate, writing: false, denial });
     return true;
   }
   begin() {
@@ -109,7 +143,7 @@ const terminalDenial = (error: unknown): Denial | null =>
   error instanceof ApiError &&
   (error.status === 401 || error.status === 403 || error.status === 404)
     ? {
-        reason: error.status === 401 ? 'session' : 'notFound',
+        reason: isSessionLoss(error) ? 'session' : 'notFound',
         code: error.code,
       }
     : null;
@@ -135,10 +169,13 @@ export function useVacancyContentAccess(vacancyId: string) {
   const { refetch } = query;
   const observedDenial = terminalDenial(query.error);
   const denial = gate.denial ?? observedDenial;
-  const failure = query.error ?? query.failureReason;
+  // A session 401 gets one retry first, so it must not flash the error card.
+  const failure =
+    query.error ??
+    (isSessionLoss(query.failureReason) ? null : query.failureReason);
   const state: VacancyContentAccessState = denial
     ? { kind: 'unavailable', ...denial }
-    : failure || !query.isSuccess || !query.isFetchedAfterMount
+    : failure || !query.isSuccess || !gate.fresh
       ? { kind: 'checking', error: failure }
       : {
           kind: 'readable',
@@ -157,12 +194,15 @@ export function useVacancyContentAccess(vacancyId: string) {
       if (lost.reason === 'session') {
         void queryClient.cancelQueries().catch(() => undefined);
         queryClient.clear();
-        router.refresh();
+        recordVacancyDenial(queryClient);
+        // Without the reload (storage blocked, already reloaded) only the server guard can leave the session skeleton.
+        if (!denialReloadStarted(queryClient)) router.refresh();
       } else {
         // The prefix also covers the card's metadata and recruiter picker.
         const filter = { queryKey: queryKeys.vacancy(id) };
         void queryClient.cancelQueries(filter).catch(() => undefined);
         queryClient.removeQueries(filter);
+        recordVacancyDenial(queryClient, id);
       }
     },
     [id, queryClient, router, scope],
@@ -177,6 +217,17 @@ export function useVacancyContentAccess(vacancyId: string) {
       scope.close();
     };
   }, [scope]);
+  // Server-stamped data can look fresh to this clock and hydration can clear an error; either would otherwise leave no read running.
+  const needsRead =
+    !denial &&
+    !failure &&
+    !gate.fresh &&
+    !gate.writing &&
+    query.fetchStatus === 'idle';
+  useEffect(() => {
+    if (needsRead && scope.enabled())
+      refetch({ cancelRefetch: false }).catch(() => undefined);
+  }, [needsRead, refetch, scope]);
 
   const revalidate = useCallback(
     async (
@@ -225,14 +276,11 @@ export function useVacancyContentAccess(vacancyId: string) {
       error: unknown,
       token?: ContentAccessGeneration,
     ): Promise<VacancyContentRead | null> => {
+      // The read decides: a write 401 can be MFA for this action or a lost token-refresh race.
       if (!scope.current(token)) return Promise.resolve(null);
-      if (error instanceof ApiError && error.status === 401) {
-        deny({ reason: 'session', code: error.code });
-        return Promise.resolve(null);
-      }
       return revalidate(token);
     },
-    [deny, revalidate, scope],
+    [revalidate, scope],
   );
 
   return { state, revalidate, beginWrite, finishWrite, handleWriteError };

@@ -40,6 +40,7 @@ afterEach(() => {
 });
 const props = () => ({
   id: 'description',
+  fieldLabel: 'Опис',
   initialDocument: null,
   resetKey: 'one',
   disabled: false,
@@ -62,7 +63,7 @@ describe('rich text lazy shell', () => {
       wrap(createElement(RichTextEditor, input)),
     );
     expect(html).toContain(messages.richText.loading);
-    expect(html).toContain('min-h-[420px]');
+    expect(html).toContain('min-h-74 md:min-h-94');
     expect(chunk.attempts).toBe(0);
     expect(input.onChange).not.toHaveBeenCalled();
   });
@@ -98,5 +99,32 @@ describe('rich text lazy shell', () => {
       expect(screen.getByTestId('editor-runtime')).toBeTruthy(),
     );
     expect(chunk.attempts).toBeGreaterThan(attempts);
+  });
+
+  it('reports a chunk failure until a retry has really loaded the runtime', async () => {
+    chunk.fail = true;
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { RichTextEditor } =
+      await import('@/components/rich-text/rich-text-editor');
+    const onLoadFailedChange = vi.fn();
+    render(
+      wrap(createElement(RichTextEditor, { ...props(), onLoadFailedChange })),
+    );
+    await screen.findByRole('alert');
+    expect(onLoadFailedChange).toHaveBeenLastCalledWith(true);
+    onLoadFailedChange.mockClear();
+    fireEvent.click(
+      screen.getByRole('button', { name: messages.richText.retry }),
+    );
+    await screen.findByRole('alert');
+    expect(onLoadFailedChange).not.toHaveBeenCalledWith(false);
+    chunk.fail = false;
+    fireEvent.click(
+      screen.getByRole('button', { name: messages.richText.retry }),
+    );
+    await screen.findByTestId('editor-runtime');
+    await waitFor(() =>
+      expect(onLoadFailedChange).toHaveBeenLastCalledWith(false),
+    );
   });
 });

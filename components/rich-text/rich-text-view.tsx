@@ -1,6 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 import type { RichTextDoc } from '@/lib/schemas/rich-text';
 import { cn } from '@/lib/utils';
+import { RICH_TEXT_TYPOGRAPHY } from './rich-text-typography';
 
 type Block = RichTextDoc['content'][number];
 type Paragraph = Extract<Block, { type: 'paragraph' }>;
@@ -21,14 +22,7 @@ function renderInline(node: Inline): ReactNode {
         break;
       case 'link':
         if (index !== lastLink) break;
-        content = (
-          <a
-            className="text-primary underline underline-offset-4"
-            href={mark.attrs.href}
-          >
-            {content}
-          </a>
-        );
+        content = <a href={mark.attrs.href}>{content}</a>;
         break;
       default: {
         const exhaustive: never = mark;
@@ -39,50 +33,40 @@ function renderInline(node: Inline): ReactNode {
   return content;
 }
 
-function renderBlock(node: Block): ReactNode {
+function renderBlock(node: Block, headingOffset: number): ReactNode {
   switch (node.type) {
     case 'paragraph':
     case 'heading': {
       const content = node.content?.map((inline, index) => (
         <Fragment key={index}>{renderInline(inline)}</Fragment>
       ));
-      if (node.type === 'paragraph')
-        return <p className="min-h-6 whitespace-pre-wrap">{content}</p>;
+      if (node.type === 'paragraph') return <p>{content}</p>;
+      const ariaLevel = node.attrs.level + headingOffset;
       switch (node.attrs.level) {
         case 1:
-          return (
-            <h1 className="text-heading-lg font-semibold whitespace-pre-wrap">
-              {content}
-            </h1>
-          );
+          return <h1 aria-level={ariaLevel}>{content}</h1>;
         case 2:
-          return (
-            <h2 className="text-lg font-semibold whitespace-pre-wrap">
-              {content}
-            </h2>
-          );
+          return <h2 aria-level={ariaLevel}>{content}</h2>;
         case 3:
-          return (
-            <h3 className="font-semibold whitespace-pre-wrap">{content}</h3>
-          );
+          return <h3 aria-level={ariaLevel}>{content}</h3>;
       }
       return null;
     }
     case 'bulletList':
     case 'orderedList': {
       const items = node.content.map((item, index) => (
-        <li key={index} className="space-y-2">
+        <li key={index}>
           {item.content.map((paragraph, paragraphIndex) => (
-            <Fragment key={paragraphIndex}>{renderBlock(paragraph)}</Fragment>
+            <Fragment key={paragraphIndex}>
+              {renderBlock(paragraph, headingOffset)}
+            </Fragment>
           ))}
         </li>
       ));
       return node.type === 'bulletList' ? (
-        <ul className="list-disc space-y-2 pl-6">{items}</ul>
+        <ul>{items}</ul>
       ) : (
-        <ol start={node.attrs?.start} className="list-decimal space-y-2 pl-6">
-          {items}
-        </ol>
+        <ol start={node.attrs?.start}>{items}</ol>
       );
     }
     default: {
@@ -92,23 +76,21 @@ function renderBlock(node: Block): ReactNode {
   }
 }
 
+/** `headingOffset` is the outline level of the surrounding section: document headings are announced below it and keep their look (P9). */
 export function RichTextView({
   document,
   className,
+  headingOffset = 1,
 }: {
   document: RichTextDoc | null;
   className?: string;
+  headingOffset?: number;
 }) {
   if (document === null) return null;
   return (
-    <div
-      className={cn(
-        'text-foreground space-y-3 text-base leading-6 [overflow-wrap:anywhere]',
-        className,
-      )}
-    >
+    <div className={cn(RICH_TEXT_TYPOGRAPHY, className)}>
       {document.content.map((node, index) => (
-        <Fragment key={index}>{renderBlock(node)}</Fragment>
+        <Fragment key={index}>{renderBlock(node, headingOffset)}</Fragment>
       ))}
     </div>
   );

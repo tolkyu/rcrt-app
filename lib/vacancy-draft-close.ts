@@ -8,7 +8,14 @@ import {
   type VacancyDetail,
   type VacancyDraftCount,
 } from '@/lib/schemas/vacancy';
-import { isCount, isPage } from '@/lib/vacancy-draft-optimistic';
+import {
+  adoptVacancyDetail,
+  noteVacancyWriteFailure,
+  type VacancyAccessWatch,
+} from '@/lib/vacancy-detail-cache';
+import { isPage } from '@/lib/denial-log';
+import { markVacancyClosed } from '@/lib/vacancy-closed';
+import { isCount } from '@/lib/vacancy-draft-optimistic';
 import { vacancyPageUrlSearch } from '@/lib/vacancy-filters';
 
 export type CloseKind = 'cancel' | 'delete';
@@ -78,15 +85,12 @@ async function send(
   return null;
 }
 
-/** The retry of a request that may have gone through meets its own result as a conflict; the stored state says whether it did. */
-async function alreadyDone(
+/** The retry of a cancel that may have gone through meets its own result as a conflict; the stored state says whether it did. A delete has no such proof: its 404 can also be lost access. */
+async function alreadyCancelled(
   queryClient: QueryClient,
-  kind: CloseKind,
   id: string,
   failure: CloseFailure,
 ): Promise<CloseOutcome | null> {
-  if (kind === 'delete')
-    return failure === 'gone' ? { status: 'done', vacancy: null } : null;
   if (failure !== 'notDraft') return null;
   try {
     await queryClient.cancelQueries({
@@ -118,15 +122,21 @@ export async function closeDraft(
   if (inFlight.has(draft.id)) return { status: 'busy' };
   inFlight.add(draft.id);
   try {
-    return {
-      status: 'done',
-      vacancy: await send(kind, draft.id, reason),
-    };
+    // A read already out could answer 404 after the commit but before the DELETE response marks the id.
+    if (kind === 'delete')
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.vacancy(draft.id),
+      });
+    const vacancy = await send(kind, draft.id, reason);
+    if (kind === 'delete') markVacancyClosed(queryClient, draft.id);
+    return { status: 'done', vacancy };
   } catch (error) {
+    noteVacancyWriteFailure(queryClient, error, draft.id);
     const failure = classifyCloseFailure(error, kind);
-    const adopted = retrying
-      ? await alreadyDone(queryClient, kind, draft.id, failure)
-      : null;
+    const adopted =
+      retrying && kind === 'cancel'
+        ? await alreadyCancelled(queryClient, draft.id, failure)
+        : null;
     return adopted ?? { status: 'failed', failure };
   } finally {
     inFlight.delete(draft.id);
@@ -147,6 +157,7 @@ export async function applyClosed(
   draft: ClosableDraft,
   vacancy: VacancyDetail | null,
   onRemoved: () => void,
+  stillAllowed: VacancyAccessWatch,
 ): Promise<void> {
   // An older list or card answer must not restore the draft after the write.
   await Promise.all([
@@ -171,7 +182,7 @@ export async function applyClosed(
           ? { count: count.count - 1 }
           : count,
     );
-  if (vacancy) queryClient.setQueryData(queryKeys.vacancy(draft.id), vacancy);
+  if (vacancy) await adoptVacancyDetail(queryClient, vacancy, stillAllowed);
   else queryClient.removeQueries({ queryKey: queryKeys.vacancy(draft.id) });
   queryClient
     .invalidateQueries({ queryKey: queryKeys.vacanciesAll() })

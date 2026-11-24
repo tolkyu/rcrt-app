@@ -1,6 +1,7 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { RICH_TEXT_TYPOGRAPHY } from '@/components/rich-text/rich-text-typography';
 import { RichTextView } from '@/components/rich-text/rich-text-view';
 import { richTextDocSchema } from '@/lib/schemas/rich-text';
 
@@ -112,9 +113,29 @@ describe('RichTextView', () => {
     expect(html).toContain('href="https://example.com/?a=1&amp;b=2"');
     expect(html).toContain('href="mailto:team@example.com"');
     expect(html).toContain('<ol start="12"');
-    expect(html).toContain('<ul ');
-    expect(html).toContain('<li ');
+    expect(html).toContain('<ul>');
+    expect(html).toContain('<li>');
     expect(html).not.toContain('<script>');
+  });
+
+  it('shares the editor typography and offsets heading levels without changing the tag', () => {
+    const document = richTextDocSchema.parse({
+      type: 'doc',
+      content: [
+        {
+          type: 'heading',
+          attrs: { level: 1 },
+          content: [{ type: 'text', text: 'Роль' }],
+        },
+      ],
+    });
+    const html = renderToStaticMarkup(
+      createElement(RichTextView, { document, headingOffset: 3 }),
+    );
+    expect(html).toContain('<h1 aria-level="4">');
+    expect(html).toContain(RICH_TEXT_TYPOGRAPHY.replaceAll('&', '&amp;'));
+    expect(RICH_TEXT_TYPOGRAPHY).toContain('[&_a]:text-link');
+    expect(RICH_TEXT_TYPOGRAPHY).not.toContain('text-primary');
   });
 
   it('preserves absence versus an empty editable paragraph', () => {
@@ -127,7 +148,7 @@ describe('RichTextView', () => {
     });
     expect(
       renderToStaticMarkup(createElement(RichTextView, { document })),
-    ).toContain('<p ');
+    ).toContain('<p>');
   });
 
   it('preserves selectable whitespace and applies the caller layout class', () => {

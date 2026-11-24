@@ -296,14 +296,14 @@ describe('terminal denials remove protected state [ADR-020]', () => {
     router.refresh.mockImplementationOnce(() =>
       expect(client.getQueryCache().getAll()).toEqual([]),
     );
-    fetcher.mockImplementation(async () => problem(401, 'MFA_REQUIRED'));
+    fetcher.mockImplementation(async () => problem(401, 'SESSION_EXPIRED'));
     await act(async () => {
       await view.result.current.revalidate();
     });
     expect(view.result.current.state).toEqual({
       kind: 'unavailable',
       reason: 'session',
-      code: 'MFA_REQUIRED',
+      code: 'SESSION_EXPIRED',
     });
     expect(router.refresh).toHaveBeenCalledOnce();
     late.resolve(Response.json(content()));
@@ -311,13 +311,14 @@ describe('terminal denials remove protected state [ADR-020]', () => {
     expect(client.getQueryData(['late-private'])).toBeUndefined();
     expect(client.getQueryData(['other-private'])).toBeUndefined();
   });
-  it('PATCH 401 is terminal even while the content query still contains a successful read', async () => {
+  it('PATCH 401 confirmed by the read is terminal even while the content query still contains a successful read', async () => {
     const view = mount();
     await waitFor(() =>
       expect(view.result.current.state.kind).toBe('readable'),
     );
     const token = await act(() => view.result.current.beginWrite());
     if (!token) throw new Error('Expected a write generation');
+    fetcher.mockImplementation(async () => problem(401, 'SESSION_EXPIRED'));
     await act(async () => {
       await view.result.current.handleWriteError(
         new ApiError(401, 'SESSION_EXPIRED'),

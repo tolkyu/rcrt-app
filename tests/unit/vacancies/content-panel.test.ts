@@ -23,8 +23,15 @@ import {
 } from '@/tests/support/vacancy-share-harness';
 
 vi.mock('next/link', () => ({
-  default: ({ href, children }: { href: string; children?: ReactNode }) =>
-    createElement('a', { href }, children),
+  default: ({
+    href,
+    children,
+    className,
+  }: {
+    href: string;
+    children?: ReactNode;
+    className?: string;
+  }) => createElement('a', { href, className }, children),
 }));
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
@@ -141,6 +148,27 @@ describe('content panel states [VAC-01]', () => {
     expect(screen.queryByText(copy.contentEdit.emptyDescription)).toBeNull();
   });
 
+  it('puts the edit link in the heading row, which reserves a 44 px row in every state', () => {
+    panel(readable());
+    const heading = screen.getByRole('heading', {
+      name: copy.contentCard.title,
+    });
+    const row = heading.parentElement!;
+    expect(row.contains(link())).toBe(true);
+    expect(row.className).toContain('min-h-11');
+    expect(link()?.className).toContain('min-h-11');
+    // Two 20 px lines plus borders must fit the reserved 44 px at a 320 px viewport.
+    expect(link()?.className).toContain('py-0');
+    expect(link()?.className).not.toContain('py-1');
+    cleanup();
+    panel(checking);
+    expect(link()).toBeNull();
+    expect(
+      screen.getByRole('heading', { name: copy.contentCard.title })
+        .parentElement!.className,
+    ).toContain('min-h-11');
+  });
+
   it('shows the empty copy for both fields after a successful read', () => {
     panel(readable({ descriptionDoc: null, requirementsDoc: null }));
     expect(screen.getByText(copy.contentEdit.emptyDescription)).not.toBeNull();
@@ -196,20 +224,13 @@ describe('content panel states [VAC-01]', () => {
 });
 
 describe('overview slot contract [ADR-020]', () => {
-  it('renders the header action after Share and the content slot after the terms', () => {
+  it('renders the content slot after the terms', () => {
     mount(
       createElement(VacancyOverview, {
         vacancy: shareVacancy(),
-        headerAction: createElement('a', { href: '/slot-a' }, 'slot-action'),
         content: createElement('p', null, 'slot-content'),
       }),
     );
-    expect(
-      follows(
-        screen.getByRole('button', { name: copy.share }),
-        screen.getByText('slot-action'),
-      ),
-    ).toBe(true);
     expect(
       follows(
         screen.getByRole('heading', { name: copy.termsTitle }),
@@ -218,16 +239,14 @@ describe('overview slot contract [ADR-020]', () => {
     ).toBe(true);
   });
 
-  it('renders neither slot for a private draft', () => {
+  it('renders no content slot for a private draft', () => {
     mount(
       createElement(VacancyOverview, {
         vacancy: shareVacancy({ status: 'DRAFT' }),
         canAuthorDrafts: true,
-        headerAction: createElement('a', { href: '/slot-a' }, 'slot-action'),
         content: createElement('p', null, 'slot-content'),
       }),
     );
-    expect(screen.queryByText('slot-action')).toBeNull();
     expect(screen.queryByText('slot-content')).toBeNull();
   });
 

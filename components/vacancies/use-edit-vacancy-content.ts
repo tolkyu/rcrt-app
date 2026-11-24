@@ -95,7 +95,9 @@ export function useEditVacancyContent({
     !form.needsFresh &&
     !disabled &&
     !!read?.canEdit &&
-    CONTENT_FIELDS.every((field) => form.ready[field]);
+    CONTENT_FIELDS.every(
+      (field) => form.ready[field] || form.fields[field].kind === 'clear',
+    );
   const currentForm = useRef(form);
   useLayoutEffect(() => {
     currentForm.current = form;
@@ -147,7 +149,10 @@ export function useEditVacancyContent({
       snapshot.feedback.kind === 'fields' ||
       !snapshot.baseline ||
       invalidContentFields(snapshot.fields).length ||
-      !CONTENT_FIELDS.every((field) => snapshot.ready[field]) ||
+      !CONTENT_FIELDS.every(
+        (field) =>
+          snapshot.ready[field] || snapshot.fields[field].kind === 'clear',
+      ) ||
       !tryLock()
     )
       return;

@@ -57,7 +57,7 @@ export default async function ContentEditLayout({
     </NextIntlClientProvider>
   );
   if (!vacancy.ok || !content.ok || !vacancy.value || !content.value)
-    return provide(<ContentLoadRetry />);
+    return provide(<ContentLoadRetry vacancyId={vacancyId} />);
   const queryClient = getQueryClient();
   queryClient.setQueryData(queryKeys.vacancy(vacancy.value.id), vacancy.value);
   queryClient.setQueryData(

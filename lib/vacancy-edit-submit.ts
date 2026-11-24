@@ -1,8 +1,12 @@
 /** What the edit form needs only after the user acts (diff, PATCH, publish, reload); loaded on mount, outside the page's initial JavaScript (PERF-04). */
 import type { QueryClient } from '@tanstack/react-query';
 import type { useTranslations } from 'next-intl';
+import type { UseFormSetError } from 'react-hook-form';
 import { apiRequest } from '@/lib/api-client';
-import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
+import {
+  retrySessionLoss,
+  vacancyDetailQuery,
+} from '@/lib/queries/vacancy-detail';
 import { queryKeys } from '@/lib/query-keys';
 import {
   vacancyDetailSchema,
@@ -11,6 +15,11 @@ import {
   type VacancyDetail,
 } from '@/lib/schemas/vacancy';
 import { toast } from '@/lib/toast';
+import {
+  noteVacancyWriteFailure,
+  watchVacancyAccess,
+  type VacancyAccessWatch,
+} from '@/lib/vacancy-detail-cache';
 import {
   FILLED_CODE,
   type FilledField,
@@ -25,6 +34,9 @@ import {
 } from '@/lib/vacancy-form-failure';
 import {
   applyCreatedVacancy,
+  markFieldErrors,
+  rememberedListHref,
+  showFailureToast,
   vacancyDraftLandingHref,
   type createAttemptKeys,
 } from '@/lib/vacancy-form-submit';
@@ -174,11 +186,14 @@ export type EditOutcome =
     };
 
 /** Cancel first: an inactive in-flight DRAFT read is not replaced by invalidation alone. */
-const refreshPublishedContent = (queryClient: QueryClient, id: string) => {
+const refreshPublished = (queryClient: QueryClient, id: string) => {
   const filter = { queryKey: queryKeys.vacancyContent(id), exact: true };
   queryClient
     .cancelQueries(filter)
     .then(() => queryClient.invalidateQueries(filter))
+    .catch(() => undefined);
+  queryClient
+    .invalidateQueries({ queryKey: queryKeys.vacancy(id), exact: true })
     .catch(() => undefined);
 };
 
@@ -187,6 +202,7 @@ export async function submitEdit(
   queryClient: QueryClient,
   attempts: ReturnType<typeof createAttemptKeys>,
   { id, version, action, changes, everything, hasSalaryAmount }: EditRequest,
+  stillAllowed: VacancyAccessWatch = watchVacancyAccess(queryClient, id),
 ): Promise<EditOutcome> {
   const context = { hasSalaryAmount };
   let saved: VacancyDetail | null = null;
@@ -194,6 +210,7 @@ export async function submitEdit(
     try {
       saved = await patchDraft(id, changes, version);
     } catch (error) {
+      noteVacancyWriteFailure(queryClient, error, id);
       const effect = planEditFailure(error, true, context);
       // A PATCH is not replayable: when its answer was lost the retry meets a newer version, so the stored draft is checked before the author is warned.
       if (effect.type === 'stale')
@@ -201,7 +218,7 @@ export async function submitEdit(
       if (!saved)
         return { status: 'failed', effect, stage: 'patch', saved: null };
     }
-    applyCreatedVacancy(queryClient, saved);
+    await applyCreatedVacancy(queryClient, saved, stillAllowed);
   }
   if (action === 'DRAFT') return { status: 'saved', vacancy: saved };
   const expectedVersion = saved?.version ?? version;
@@ -212,10 +229,11 @@ export async function submitEdit(
         expectedVersion,
         attempts.keyFor({ id, expectedVersion }),
       );
-      applyCreatedVacancy(queryClient, published);
-      refreshPublishedContent(queryClient, id);
+      await applyCreatedVacancy(queryClient, published, stillAllowed);
+      refreshPublished(queryClient, id);
       return { status: 'published', vacancy: published };
     } catch (error) {
+      noteVacancyWriteFailure(queryClient, error, id);
       const effect = planEditFailure(error, retried, context);
       if (effect.type !== 'retry')
         return { status: 'failed', effect, stage: 'publish', saved };
@@ -249,7 +267,7 @@ export const loadLatestVacancy = (queryClient: QueryClient, id: string) =>
     ...vacancyDetailQuery(id),
     staleTime: 0,
     // The author is waiting on this answer: one failure goes to the toast, whose button tries again.
-    retry: false,
+    retry: retrySessionLoss,
   });
 
 type Translate = ReturnType<typeof useTranslations<'vacancyForm'>>;
@@ -289,5 +307,57 @@ export const announceRefused = (t: EditTranslate, showFields: () => void) =>
     description: t('toast.refusedDescription'),
     action: { label: t('toast.showFields'), onAction: showFields },
   });
+
+/** `retry` repeats the action that failed (a save or a reload), so a toast button never runs another one. */
+export function showEditFailure(
+  view: {
+    readonly queryClient: QueryClient;
+    readonly t: Translate;
+    readonly tEdit: EditTranslate;
+    readonly setError: UseFormSetError<VacancyFormValues>;
+    readonly invalidFields: (invalid: readonly string[]) => void;
+    readonly focusFirstInvalid: (invalid: readonly string[]) => void;
+    readonly id: string;
+    readonly router: { refresh(): void; replace(href: string): void };
+    readonly setStale: (stale: boolean) => void;
+    readonly loadStaleUi: () => void;
+    readonly release: () => void;
+  },
+  effect: EditFinalFailure,
+  retry: () => void,
+  publishRefused = false,
+) {
+  const { queryClient, t, tEdit, focusFirstInvalid, id, router } = view;
+  const refreshLists = () =>
+    queryClient.invalidateQueries({ queryKey: queryKeys.vacanciesAll() });
+  if (effect.type === 'fields') {
+    const invalid = markFieldErrors(queryClient, view.setError, effect.errors);
+    view.invalidFields(invalid);
+    if (publishRefused)
+      announceRefused(tEdit, () => {
+        focusFirstInvalid(invalid);
+        // Sonner 2.0.8 hands focus back to the element focused before the toaster when the action's button blurs (`lastFocusedElementRef`, sync or a tick later); focusing again afterwards wins. Not run in WebKit here: Safari does not focus a clicked button, so nothing is handed back and the first call is the one that counts.
+        setTimeout(() => focusFirstInvalid(invalid), 0);
+      });
+  } else if (effect.type === 'stale') {
+    view.setStale(true);
+    announceStale(tEdit, id);
+    view.loadStaleUi();
+  } else if (effect.type === 'notDraft') {
+    // The page re-reads the draft and shows the not-a-draft state instead of the form.
+    void refreshLists();
+    void queryClient.invalidateQueries({ queryKey: queryKeys.vacancy(id) });
+    router.refresh();
+  } else if (effect.type === 'gone') {
+    announceGone(tEdit);
+    void refreshLists();
+    view.release();
+    router.replace(rememberedListHref());
+  } else {
+    showFailureToast(t, effect, retry);
+    // The role was lost mid-session: the page re-reads the grants and the refused field goes away.
+    if (effect.title === 'forbidden') router.refresh();
+  }
+}
 
 export { planEditFailure };

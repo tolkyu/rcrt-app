@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { beforeDenialReload } from '@/lib/denial-release';
 
 const MARKER = '__leaveGuard';
 
@@ -97,8 +98,14 @@ export function useLeaveGuard(dirty: boolean) {
     document.addEventListener('click', onClick, true);
     window.addEventListener('popstate', onPopState);
     teardown.current = remove;
+    const stopDenialRelease = beforeDenialReload(() => {
+      armed.current = false;
+      rearm.current = null;
+      remove();
+    });
     arm();
     return () => {
+      stopDenialRelease();
       remove();
       rearm.current = null;
       if (!armed.current) return;

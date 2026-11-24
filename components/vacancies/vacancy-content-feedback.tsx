@@ -11,7 +11,9 @@ import {
   useRef,
   useState,
   useTransition,
+  type ReactNode,
 } from 'react';
+import { RICH_TEXT_FIELD_HEIGHT } from '@/components/rich-text/rich-text-typography';
 import { RichTextView } from '@/components/rich-text/rich-text-view';
 import { EmptyState } from '@/components/states/empty-state';
 import { SectionError } from '@/components/states/section-error';
@@ -30,6 +32,7 @@ import {
   type ContentFeedback,
   type ContentFields,
 } from '@/lib/vacancy-content-form';
+import { cn } from '@/lib/utils';
 import { FormAlert } from './form-alert';
 import {
   CONTENT_FIELD_TEXT,
@@ -134,6 +137,15 @@ export function useContentHeading(vacancy: ContentVacancy | null) {
   };
 }
 
+/** Wireframe 720 px column for this page only; below md it stays full width so the sticky footer's negative margins still reach the screen edges. */
+export function ContentFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className="w-full md:max-w-[720px] [&_h1+p]:[overflow-wrap:anywhere]">
+      {children}
+    </div>
+  );
+}
+
 /** Loading twin of the form: same heading, label rows, editor box and clear row, so nothing moves when the editors arrive. */
 export function ContentSkeleton({
   vacancy,
@@ -143,7 +155,7 @@ export function ContentSkeleton({
   const t = useTranslations('states');
   const heading = useContentHeading(vacancy);
   return (
-    <>
+    <ContentFrame>
       <FormPageHeading {...heading} />
       <div
         role="status"
@@ -156,7 +168,7 @@ export function ContentSkeleton({
             <div className="mb-1.5 flex h-5 items-center">
               <Skeleton className="h-3.5 w-32" />
             </div>
-            <Skeleton className="min-h-[420px] rounded-lg" />
+            <Skeleton className={cn('rounded-lg', RICH_TEXT_FIELD_HEIGHT)} />
             <div className="mt-2 h-11 md:h-8" />
           </div>
         ))}
@@ -165,28 +177,45 @@ export function ContentSkeleton({
           <Skeleton className="h-11 min-w-[9.5rem] rounded-lg md:h-10" />
         </FormPageFooter>
       </div>
-    </>
+    </ContentFrame>
   );
 }
 
-export function ContentLoadRetry() {
+const VACANCY_ID = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+
+/** The read failed, so only the static title and the id already in the URL are shown: no number or title, and the same output whether or not the vacancy exists. */
+export function ContentReadError({
+  vacancyId,
+  retrying,
+  onRetry,
+}: {
+  vacancyId: string;
+  retrying?: boolean;
+  onRetry: () => void;
+}) {
+  const t = useTranslations('vacancies.contentEdit');
+  const back = VACANCY_ID.test(vacancyId)
+    ? { href: `/vacancies/${vacancyId.toLowerCase()}`, label: t('back') }
+    : { href: '/vacancies', label: t('toList') };
+  return (
+    <ContentFrame>
+      <FormPageHeading title={t('title')} back={back} />
+      <Card>
+        <SectionError retrying={retrying} onRetry={onRetry} />
+      </Card>
+    </ContentFrame>
+  );
+}
+
+export function ContentLoadRetry({ vacancyId }: { vacancyId: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   return (
-    <Card className="mx-auto mt-6 max-w-xl">
-      <SectionError
-        retrying={pending}
-        onRetry={() => startTransition(() => router.refresh())}
-      />
-    </Card>
-  );
-}
-
-export function ContentCheckRetry({ onRetry }: { onRetry: () => void }) {
-  return (
-    <Card className="max-w-xl">
-      <SectionError onRetry={onRetry} />
-    </Card>
+    <ContentReadError
+      vacancyId={vacancyId}
+      retrying={pending}
+      onRetry={() => startTransition(() => router.refresh())}
+    />
   );
 }
 
@@ -220,7 +249,7 @@ export function ContentBlock({ id, reason }: { id: string; reason: BlockKey }) {
       action={
         <Link
           href={draft ? `/vacancies/${id}/edit` : `/vacancies/${id}`}
-          className="underline"
+          className="inline-flex min-h-11 items-center underline md:min-h-0"
         >
           {t(draft ? 'draftLink' : 'back')}
         </Link>
@@ -243,9 +272,9 @@ export function ContentReadOnly({
   const heading = useContentHeading(vacancy);
   const reason = blockKey(content.status);
   return (
-    <>
+    <ContentFrame>
       <FormPageHeading {...heading} />
-      <div className="flex max-w-3xl flex-col gap-6">
+      <div className="flex flex-col gap-6">
         <ContentBlock id={vacancy.id} reason={reason} />
         {reason !== 'draft' &&
           CONTENT_FIELDS.map((field) => (
@@ -254,7 +283,7 @@ export function ContentReadOnly({
                 {t(CONTENT_FIELD_TEXT[field].label)}
               </h2>
               {content[field] ? (
-                <RichTextView document={content[field]} />
+                <RichTextView document={content[field]} headingOffset={2} />
               ) : (
                 <p className="text-muted-foreground text-sm">
                   {t(CONTENT_FIELD_TEXT[field].empty)}
@@ -263,7 +292,7 @@ export function ContentReadOnly({
             </section>
           ))}
       </div>
-    </>
+    </ContentFrame>
   );
 }
 
@@ -367,6 +396,13 @@ const FAILURE_KINDS = [
 ] as const;
 const failureOf = (kind: ContentFeedback['kind']) =>
   FAILURE_KINDS.find((failure) => failure === kind);
+
+/** Save outcomes shown above the fields; `fields` is excluded because the invalid editor takes focus instead. */
+export const isSaveAlert = (kind: ContentFeedback['kind']) =>
+  kind === 'stale' ||
+  kind === 'closed' ||
+  kind === 'forbidden' ||
+  failureOf(kind) !== undefined;
 
 export function ContentAlerts({
   vacancyId,

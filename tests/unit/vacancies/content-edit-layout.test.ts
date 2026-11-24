@@ -119,6 +119,19 @@ describe('content edit layout [ADR-020]', () => {
       expect(dehydrate).not.toHaveBeenCalled();
     },
   );
+  it.each(['vacancy', 'content'] as const)(
+    'a failed %s read keeps the heading and back link without vacancy data',
+    async (name) => {
+      reject(mocks[name]);
+      const html = await render();
+      expect(html).toContain(`<h1`);
+      expect(html).toContain(messages.vacancies.contentEdit.title);
+      expect(html).toContain(messages.vacancies.contentEdit.back);
+      expect(html).toContain(`href="/vacancies/${ID}"`);
+      expect(html).not.toContain(vacancy.number);
+      expect(html).not.toContain(vacancy.title);
+    },
+  );
   it.each([
     ['vacancy', 'vacancy content edit: card read failed'],
     ['content', 'vacancy content edit: content read failed'],

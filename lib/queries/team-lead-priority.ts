@@ -1,6 +1,7 @@
 import { queryOptions, type QueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/api-client';
 import { teamLeadKeys } from '@/lib/queries/team-leads';
+import { retryServerErrors } from '@/lib/queries/vacancy-detail';
 import type { UpdateTeamLeadPrioritiesInput } from '@/lib/schemas/team-lead-priority';
 
 /** Route-local keys: `lib/query-keys.ts` ships with every route, these only with «Пріоритети тімлідів» (PERF-04). */
@@ -15,6 +16,7 @@ const schemas = () => import('@/lib/schemas/team-lead-priority');
 export const priorityVerticalsQuery = () =>
   queryOptions({
     queryKey: priorityKeys.verticals(),
+    retry: retryServerErrors,
     queryFn: ({ signal }) =>
       apiRequest('/settings/priorities/verticals', {
         signal,
@@ -26,6 +28,7 @@ export const priorityVerticalsQuery = () =>
 export const teamLeadPrioritiesQuery = (verticalId: string) =>
   queryOptions({
     queryKey: priorityKeys.vertical(verticalId),
+    retry: retryServerErrors,
     queryFn: ({ signal }) =>
       apiRequest(`/verticals/${verticalId}/team-lead-priorities`, {
         signal,

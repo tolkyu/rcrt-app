@@ -3,18 +3,16 @@ import {
   queryOptions,
   useQueryClient,
 } from '@tanstack/react-query';
-import { ApiError, apiRequest } from '@/lib/api-client';
+import { apiRequest } from '@/lib/api-client';
+import { retryServerErrors } from '@/lib/queries/vacancy-detail';
 import { queryKeys } from '@/lib/query-keys';
 import type { UserDetail } from '@/lib/schemas/user';
 
 /** Imported only by the lazy user drawer, so these queries and their schemas stay out of the list bundle. */
-const noRetryOnClientError = (count: number, error: Error) =>
-  !(error instanceof ApiError && error.status < 500) && count < 2;
-
 export const userDetailQuery = (id: string) =>
   queryOptions({
     queryKey: queryKeys.settingsUser(id),
-    retry: noRetryOnClientError,
+    retry: retryServerErrors,
     queryFn: ({ signal }) =>
       apiRequest(`/users/${id}`, {
         schema: async () =>
@@ -27,7 +25,7 @@ export const userEventsQuery = (id: string) =>
   infiniteQueryOptions({
     queryKey: queryKeys.settingsUserEvents(id),
     initialPageParam: null as string | null,
-    retry: noRetryOnClientError,
+    retry: retryServerErrors,
     queryFn: ({ pageParam, signal }) =>
       apiRequest(
         `/users/${id}/events${pageParam ? `?cursor=${encodeURIComponent(pageParam)}` : ''}`,

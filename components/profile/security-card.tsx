@@ -16,7 +16,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { apiRequest } from '@/lib/api-client';
-import { myMfaQuery, mySessionsQuery } from '@/lib/queries/me';
+import { myMfaQuery, mySessionsQuery } from '@/lib/queries/my-security';
 import { queryKeys } from '@/lib/query-keys';
 import { type MfaStatus, type SessionList } from '@/lib/schemas/auth';
 import { DATE_TIME } from '@/lib/format';

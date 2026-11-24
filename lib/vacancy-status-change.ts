@@ -5,6 +5,11 @@ import { apiRequest } from '@/lib/api-client';
 import type { ChangeVacancyStatusInput } from '@/lib/schemas/vacancy-status';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
 import { toast } from '@/lib/toast';
+import {
+  adoptVacancyDetail,
+  noteVacancyWriteFailure,
+  watchVacancyAccess,
+} from '@/lib/vacancy-detail-cache';
 import { readCurrentVacancy, refreshVacancy } from '@/lib/vacancy-refresh';
 import { applyOptimisticFlip, type Flip } from '@/lib/vacancy-optimistic-flip';
 import {
@@ -81,6 +86,7 @@ export async function toggleStatus(
   // Set before the first await: a double press cannot slip past it.
   if (inFlight.has(id)) return { status: 'busy' };
   inFlight.add(id);
+  const stillAllowed = watchVacancyAccess(queryClient, id);
   try {
     // A refetch landing after the optimistic write would put the old status back.
     await Promise.all([
@@ -95,11 +101,12 @@ export async function toggleStatus(
     try {
       const detail = await putStatus(id, { action, expectedVersion: version });
       optimistic.settle();
-      queryClient.setQueryData(queryKeys.vacancy(id), detail);
+      await adoptVacancyDetail(queryClient, detail, stillAllowed);
       void refreshVacancy(queryClient, id);
       return { status: 'changed', detail };
     } catch (error) {
       optimistic.restore();
+      noteVacancyWriteFailure(queryClient, error, id);
       const failure = classifyTeamFailure(error);
       if (failure === 'rateLimited' || failure === 'network')
         return { status: 'failed', failure, current: null };

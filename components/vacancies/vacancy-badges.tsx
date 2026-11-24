@@ -10,7 +10,7 @@ const statusBadge = {
   DRAFT: { tone: 'neutral', dashed: true, outline: true },
   OPEN: { tone: 'success' },
   ON_HOLD: { tone: 'warning' },
-  FILLED: { tone: 'brand' },
+  FILLED: { tone: 'brand', outline: true },
   CANCELLED: { tone: 'neutral' },
 } as const satisfies Record<
   VacancySummary['status'],

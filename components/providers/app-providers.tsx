@@ -7,6 +7,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { trackLastFocus } from '@/lib/last-focus';
 import { makeQueryClient } from '@/lib/query-client';
 import type { Theme } from '@/lib/theme';
+import { reloadRestoredPage } from '@/lib/vacancy-denial';
 
 export function AppProviders({
   theme,
@@ -15,8 +16,9 @@ export function AppProviders({
   theme: Theme;
   children: ReactNode;
 }) {
-  const [queryClient] = useState(makeQueryClient);
+  const [queryClient] = useState(() => makeQueryClient());
   useEffect(trackLastFocus, []);
+  useEffect(() => reloadRestoredPage(), []);
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider initialTheme={theme}>

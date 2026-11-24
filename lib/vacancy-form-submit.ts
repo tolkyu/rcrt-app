@@ -5,6 +5,7 @@ import type {
   FieldErrors,
   ResolverResult,
   UseFormReturn,
+  UseFormSetError,
 } from 'react-hook-form';
 import { apiRequest } from '@/lib/api-client';
 import { activePositionsQuery } from '@/lib/queries/positions';
@@ -28,6 +29,7 @@ import { VACANCY_DRAFT_LIMIT } from '@/lib/vacancy-limits';
 import {
   type FilledField,
   type VacancyFormErrors,
+  type VacancyFormField,
   type VacancyFormMode,
   type VacancyFormValues,
 } from '@/lib/vacancy-form';
@@ -37,6 +39,10 @@ import {
   applyCreatedVacancy,
   type createAttemptKeys,
 } from '@/lib/vacancy-create-result';
+import {
+  noteVacancyWriteFailure,
+  watchVacancySession,
+} from '@/lib/vacancy-detail-cache';
 import { normalizeSalaryText } from '@/lib/vacancy-salary';
 
 export { parseVacancyForm };
@@ -80,12 +86,14 @@ export async function submitCreate(
   attempts: ReturnType<typeof createAttemptKeys>,
   body: CreateVacancyBody,
 ): Promise<CreateOutcome> {
+  const stillAllowed = watchVacancySession(queryClient);
   for (let retried = false; ; retried = true) {
     try {
       const created = await createVacancy(body, attempts.keyFor(body));
-      applyCreatedVacancy(queryClient, created);
+      await applyCreatedVacancy(queryClient, created, stillAllowed);
       return { status: 'created', created };
     } catch (error) {
+      noteVacancyWriteFailure(queryClient, error);
       const effect = planFailure(error, retried, {
         hasSalaryAmount:
           body.salaryMinMinor != null || body.salaryMaxMinor != null,
@@ -256,6 +264,49 @@ export const showAlertToast = (
         })
       : t('alerts.verticalUnavailable'),
   );
+
+export function markFieldErrors(
+  queryClient: QueryClient,
+  setError: UseFormSetError<VacancyFormValues>,
+  errors: Parameters<typeof refreshAfterFieldErrors>[1],
+) {
+  for (const [field, code] of Object.entries(errors))
+    setError(field as VacancyFormField, { type: 'server', message: code });
+  refreshAfterFieldErrors(queryClient, errors);
+  return Object.keys(errors);
+}
+
+export function showCreateFailure(
+  view: {
+    readonly queryClient: QueryClient;
+    readonly t: Translate;
+    readonly tVacancies: ReturnType<typeof useTranslations<'vacancies'>>;
+    readonly setError: UseFormSetError<VacancyFormValues>;
+    readonly invalidFields: (invalid: readonly string[]) => void;
+    readonly showAlert:
+      ((alert: 'draftLimit' | 'verticalUnavailable') => void) | null;
+    readonly router: { refresh(): void };
+  },
+  effect: FinalFailure,
+  retry: () => void,
+) {
+  const { queryClient, t, tVacancies, showAlert, router } = view;
+  if (effect.type === 'fields') {
+    view.invalidFields(
+      markFieldErrors(queryClient, view.setError, effect.errors),
+    );
+  } else if (effect.type === 'alert') {
+    if (effect.alert === 'draftLimit')
+      applyDraftLimitHit(queryClient).catch(() => undefined);
+    if (showAlert) showAlert(effect.alert);
+    else showAlertToast(t, tVacancies, effect.alert);
+    if (effect.alert === 'verticalUnavailable') router.refresh();
+  } else {
+    showFailureToast(t, effect, retry);
+    // The role was lost mid-session: the page re-reads the grants and the refused field goes away (ux §4.2).
+    if (effect.title === 'forbidden') router.refresh();
+  }
+}
 
 /** The list the form's back link and «Скасувати» return to: the one the user came from. */
 export const rememberedListHref = () =>

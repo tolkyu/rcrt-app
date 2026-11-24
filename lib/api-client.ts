@@ -18,6 +18,12 @@ export class ApiError extends Error {
   }
 }
 
+/** MFA_REQUIRED is also a 401, but it withholds one grant and leaves the session alive. */
+export const isSessionLoss = (error: unknown): boolean =>
+  error instanceof ApiError &&
+  error.status === 401 &&
+  error.code !== 'MFA_REQUIRED';
+
 interface RequestOptions<S extends z.ZodType> {
   readonly method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   readonly body?: unknown;

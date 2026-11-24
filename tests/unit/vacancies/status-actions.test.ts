@@ -184,12 +184,15 @@ describe('below 768 px the «⋯» is an icon button that opens a bottom sheet [
     }));
   });
 
-  it('puts «Інші дії» in the row of the status button and lists cancel last, in a sheet', async () => {
+  it('puts «Інші дії» before the full-width status button and lists cancel last, in a sheet', async () => {
     stubApi({});
     mount(open());
     const more = await button(t.moreActions);
     const hold = await button(t.hold);
-    expect(hold.parentElement).toBe(more.parentElement);
+    expect(
+      more.compareDocumentPosition(hold) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(hold.className).toContain('max-md:basis-full');
     expect(more.classList.contains('size-11')).toBe(true);
     expect(screen.queryByRole('button', { name: /^Дії:/ })).toBeNull();
     await userEvent.click(more);

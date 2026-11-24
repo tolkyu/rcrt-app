@@ -1,6 +1,10 @@
 import type { QueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/lib/query-keys';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
+import {
+  adoptVacancyDetail,
+  type VacancyAccessWatch,
+} from '@/lib/vacancy-detail-cache';
 
 /** One key per attempt: a retry of the same body reuses it (the server replays the first result), any change gets a new one. */
 export function createAttemptKeys(
@@ -21,11 +25,12 @@ export function createAttemptKeys(
 }
 
 /** Seeds the card cache and refreshes every vacancy list (which includes the «Чернетки» count) and the position counters. */
-export function applyCreatedVacancy(
+export async function applyCreatedVacancy(
   queryClient: QueryClient,
   created: VacancyDetail,
+  stillAllowed: VacancyAccessWatch,
 ) {
-  queryClient.setQueryData(queryKeys.vacancy(created.id), created);
+  await adoptVacancyDetail(queryClient, created, stillAllowed);
   queryClient
     .invalidateQueries({ queryKey: queryKeys.vacanciesAll() })
     .catch(() => undefined);

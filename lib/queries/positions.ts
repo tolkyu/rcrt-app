@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
-import { ApiError, apiRequest } from '@/lib/api-client';
+import { apiRequest } from '@/lib/api-client';
+import { retryServerErrors } from '@/lib/queries/vacancy-detail';
 import { queryKeys } from '@/lib/query-keys';
 
 export interface PositionsFilters {
@@ -11,8 +12,7 @@ export interface PositionsFilters {
 export const positionsQuery = (filters: PositionsFilters) =>
   queryOptions({
     queryKey: queryKeys.positions(filters),
-    retry: (count, error) =>
-      !(error instanceof ApiError && error.status < 500) && count < 2,
+    retry: retryServerErrors,
     queryFn: ({ signal }) => {
       const params = new URLSearchParams({ status: filters.status });
       if (filters.verticalId) params.set('verticalId', filters.verticalId);

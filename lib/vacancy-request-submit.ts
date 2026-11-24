@@ -12,6 +12,10 @@ import {
   createAttemptKeys,
 } from '@/lib/vacancy-create-result';
 import {
+  noteVacancyWriteFailure,
+  watchVacancySession,
+} from '@/lib/vacancy-detail-cache';
+import {
   REQUEST_FIELDS,
   type RequestErrors,
   type RequestField,
@@ -84,6 +88,7 @@ export async function submitRequest(
   attempts: ReturnType<typeof createAttemptKeys>,
   body: RequestVacancyInput,
 ) {
+  const stillAllowed = watchVacancySession(queryClient);
   for (let retried = false; ; retried = true) {
     try {
       const created = await apiRequest('/vacancies/request', {
@@ -92,9 +97,10 @@ export async function submitRequest(
         headers: { 'Idempotency-Key': attempts.keyFor(body) },
         schema: vacancyDetailSchema,
       });
-      applyCreatedVacancy(queryClient, created);
+      await applyCreatedVacancy(queryClient, created, stillAllowed);
       return { ok: true, created } as const;
     } catch (error) {
+      noteVacancyWriteFailure(queryClient, error);
       const failure = requestFailure(error);
       if (failure.kind !== 'keyReused') return { ok: false, failure } as const;
       if (retried)

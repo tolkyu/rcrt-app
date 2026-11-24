@@ -17,7 +17,10 @@ const router = vi.hoisted(() => ({
   replace: vi.fn(),
   refresh: vi.fn(),
 }));
-vi.mock('next/navigation', () => ({ useRouter: () => router }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => router,
+  usePathname: () => window.location.pathname,
+}));
 vi.mock('next/link', () => ({
   default: ({ href, children }: { href: string; children?: ReactNode }) =>
     createElement('a', { href }, children),

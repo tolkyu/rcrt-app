@@ -37,7 +37,12 @@ export function VacancyContentEditLink({
   )
     return null;
   return (
-    <Button asChild size="sm" variant="outline" className="h-11">
+    <Button
+      asChild
+      size="sm"
+      variant="outline"
+      className="h-auto min-h-11 min-w-0 shrink py-0 whitespace-normal"
+    >
       <Link href={`/vacancies/${id}/content/edit`}>
         <Pencil aria-hidden="true" />
         {t('editAction')}
@@ -78,9 +83,16 @@ export function VacancyContentPanel({
     return null;
   return (
     <section aria-labelledby="vacancy-content-detail">
-      <h2 id="vacancy-content-detail" className="mb-2 text-sm font-semibold">
-        {t('contentCard.title')}
-      </h2>
+      {/* The row always reserves the link's 44 px, so the card does not move when the access read resolves. */}
+      <div className="mb-2 flex min-h-11 items-center justify-between gap-2">
+        <h2
+          id="vacancy-content-detail"
+          className="shrink-0 text-sm font-semibold"
+        >
+          {t('contentCard.title')}
+        </h2>
+        <VacancyContentEditLink id={id} state={state} />
+      </div>
       {state.kind === 'readable' ? (
         <div className="flex min-w-0 flex-col gap-4">
           {CONTENT_FIELDS.map((field) => {
@@ -92,7 +104,7 @@ export function VacancyContentPanel({
                 </h3>
                 {document ? (
                   <div className="text-sm [overflow-wrap:anywhere]">
-                    <RichTextView document={document} />
+                    <RichTextView document={document} headingOffset={3} />
                   </div>
                 ) : (
                   <p className="text-muted-foreground text-sm">

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { createElement } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PageHeader } from '@/components/shell/page-header';
+import { FormPageFooter } from '@/components/ui/form-page-frame';
 import { RowActionsMenu } from '@/components/ui/row-actions-menu';
 
 afterEach(cleanup);
@@ -39,6 +40,33 @@ describe('PageHeader [UI foundation F9, G6]', () => {
     );
     expect(container.querySelector('[data-sticky-action-bar]')).toBeNull();
     expect(screen.queryByRole('button')).toBeNull();
+  });
+});
+
+describe('FormPageFooter [UX review P11]', () => {
+  const footerClass = () => {
+    const { container } = render(
+      createElement(FormPageFooter, {
+        children: createElement('button', null, 'Зберегти'),
+      }),
+    );
+    return container.querySelector('[data-slot="form-page-footer"]')!.className;
+  };
+  it('insets the actions from the band edge on desktop', () => {
+    const name = footerClass();
+    expect(name).toContain('md:px-4');
+    expect(name).not.toContain('md:px-0');
+  });
+  it('keeps square corners so scrolled content cannot show through (M2)', () => {
+    expect(footerClass()).not.toContain('rounded');
+  });
+  it('cancels the part of the shell padding the BottomNav does not cover, and keeps its offset', () => {
+    const name = footerClass();
+    expect(name).toContain(
+      'max-md:[:root:has([data-bottom-nav])_&]:mb-[calc(var(--chrome-bottom)-7rem)]',
+    );
+    expect(name).toContain('bottom-(--chrome-bottom)');
+    expect(name).toContain('after:h-[env(safe-area-inset-bottom)]');
   });
 });
 

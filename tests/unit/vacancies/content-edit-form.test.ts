@@ -22,8 +22,9 @@ import {
 import { baselineContent } from '@/lib/vacancy-content-form';
 import messages from '@/messages/uk.json';
 
-const { router } = vi.hoisted(() => ({
+const { router, editorState } = vi.hoisted(() => ({
   router: { refresh: vi.fn(), push: vi.fn(), replace: vi.fn() },
+  editorState: { autoReady: true },
 }));
 vi.mock('next/navigation', () => ({ useRouter: () => router }));
 vi.mock('next/link', () => ({
@@ -74,13 +75,14 @@ vi.mock('@/components/rich-text/rich-text-editor', async () => {
       'aria-labelledby'?: string;
       onChange: (result: ReturnType<typeof parse>) => void;
       onReadyChange: (ready: boolean) => void;
+      onLoadFailedChange?: (failed: boolean) => void;
     }) => {
       const ready = useRef(props.onReadyChange);
       useEffect(() => {
         ready.current = props.onReadyChange;
       });
       useEffect(() => {
-        ready.current(true);
+        ready.current(editorState.autoReady);
         return () => ready.current(false);
       }, []);
       return h(
@@ -103,6 +105,21 @@ vi.mock('@/components/rich-text/rich-text-editor', async () => {
           type: 'button',
           'data-testid': `bad-${props.id}`,
           onClick: () => props.onChange(parse(badLink)),
+        }),
+        h('button', {
+          type: 'button',
+          'data-testid': `ready-${props.id}`,
+          onClick: () => props.onReadyChange(true),
+        }),
+        h('button', {
+          type: 'button',
+          'data-testid': `fail-${props.id}`,
+          onClick: () => props.onLoadFailedChange?.(true),
+        }),
+        h('button', {
+          type: 'button',
+          'data-testid': `loaded-${props.id}`,
+          onClick: () => props.onLoadFailedChange?.(false),
         }),
       );
     },
@@ -152,8 +169,11 @@ const writes = () =>
 const bodies = () =>
   writes().map(([, init]) => JSON.parse(String(init?.body)) as unknown);
 
+const scrolled = vi.fn();
 beforeEach(() => {
   vi.clearAllMocks();
+  Element.prototype.scrollIntoView = scrolled;
+  editorState.autoReady = true;
   intlErrors = [];
   client = new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
   read = initial();
@@ -277,6 +297,151 @@ describe('content page state selection [ADR-020]', () => {
       screen.getByRole('button', { name: messages.common.retry }),
     );
     await waitFor(() => expect(screen.getAllByRole('textbox')).toHaveLength(2));
+  });
+  it('a failed check keeps the heading and card link without the vacancy subtitle', async () => {
+    get = () => problem(500, 'INTERNAL');
+    mount();
+    await screen.findByRole('alert');
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(t.title);
+    expect(
+      screen.getByRole('link', { name: t.back }).getAttribute('href'),
+    ).toBe(`/vacancies/${ID}`);
+    expect(screen.queryByText(/V-0015/)).toBeNull();
+  });
+  it('limits the form to 720 px from md up and leaves the unavailable state unframed', async () => {
+    const view = mount();
+    await waitFor(() => expect(screen.getAllByRole('textbox')).toHaveLength(2));
+    expect(
+      view.container.querySelector('form')?.closest('.md\\:max-w-\\[720px\\]'),
+    ).not.toBeNull();
+    view.unmount();
+    client.clear();
+    get = () => problem(404, 'NOT_FOUND');
+    const denied = mount();
+    await screen.findByText(t.unavailableTitle);
+    expect(
+      denied.container.querySelector('.md\\:max-w-\\[720px\\]'),
+    ).toBeNull();
+  });
+});
+
+describe('save result stays on screen (B2, P8)', () => {
+  it('shows the success status inside the sticky footer', async () => {
+    await typeAndSave();
+    const status = await screen.findByText(t.saved);
+    expect(status.closest('[data-slot="form-page-footer"]')).not.toBeNull();
+    expect(scrolled).not.toHaveBeenCalled();
+  });
+  it('brings a failed save alert into view without moving focus', async () => {
+    patch = () => problem(500, 'INTERNAL');
+    await typeAndSave();
+    await screen.findByText(t.feedback.server);
+    const active = document.activeElement;
+    await waitFor(() =>
+      expect(scrolled).toHaveBeenCalledExactlyOnceWith({ block: 'start' }),
+    );
+    expect(document.activeElement).toBe(active);
+  });
+  it('a field error keeps editor focus and does not scroll to the alerts', async () => {
+    patch = () =>
+      problem(400, 'VALIDATION', [
+        { path: 'body.descriptionDoc', code: 'too_big' },
+      ]);
+    await typeAndSave();
+    await screen.findByText(t.errors.too_large);
+    expect(scrolled).not.toHaveBeenCalled();
+  });
+  it('a background version change never scrolls the page while typing', async () => {
+    await editable();
+    type();
+    read = { ...read, version: 2 };
+    await act(async () => {
+      await client.refetchQueries({ queryKey: queryKeys.vacancyContent(ID) });
+    });
+    await screen.findByText(t.stale);
+    expect(scrolled).not.toHaveBeenCalled();
+  });
+  it('explains a pristine Save and drops the reason once the form is dirty', async () => {
+    await editable();
+    const reasonId = save().getAttribute('aria-describedby');
+    const reason = document.getElementById(reasonId!);
+    expect(reason?.textContent).toBe(t.saveNoChanges);
+    expect(reason?.className).toContain('[@media(hover:none)]:not-sr-only');
+    const wrapper = save().parentElement!;
+    type();
+    await waitFor(() => expect(saveEnabled()).toBe(true));
+    expect(save().getAttribute('aria-describedby')).toBeNull();
+    expect(wrapper.querySelector('span[aria-hidden="true"]')).not.toBeNull();
+  });
+  it('does not say «no changes» next to a save result (M1)', async () => {
+    await typeAndSave();
+    await screen.findByText(t.saved);
+    await waitFor(() => expect(saveEnabled()).toBe(false));
+    expect(screen.queryByText(t.saveNoChanges)).toBeNull();
+    expect(save().getAttribute('aria-describedby')).toBeNull();
+  });
+  it('does not say «no changes» when an editor failed to load (M1)', async () => {
+    editorState.autoReady = false;
+    await editable();
+    fireEvent.click(screen.getByTestId(`fail-${DESCRIPTION}`));
+    await waitFor(() =>
+      expect(
+        screen
+          .getAllByRole('button', { name: t.clear, hidden: true })[0]!
+          .getAttribute('aria-disabled'),
+      ).toBe('true'),
+    );
+    expect(screen.queryByText(t.saveNoChanges)).toBeNull();
+    expect(saveEnabled()).toBe(false);
+  });
+});
+
+describe('Clear follows the editor chunk', () => {
+  const clearButton = () =>
+    screen.getAllByRole('button', { name: t.clear, hidden: true })[0]!;
+  it('stays available for a loaded editor that is not ready, the way out of an invalid stored document', async () => {
+    editorState.autoReady = false;
+    await editable();
+    expect(clearButton().getAttribute('aria-disabled')).toBeNull();
+    fireEvent.click(clearButton());
+    await screen.findByText(t.cleared);
+    expect(saveEnabled()).toBe(false);
+  });
+  it('blocks Clear with a reason only after a chunk failure, until retry succeeds, without changing Save gating', async () => {
+    editorState.autoReady = false;
+    await editable();
+    fireEvent.click(screen.getByTestId(`fail-${DESCRIPTION}`));
+    const blocked = clearButton();
+    await waitFor(() =>
+      expect(blocked.getAttribute('aria-disabled')).toBe('true'),
+    );
+    await waitFor(() =>
+      expect(blocked.getAttribute('aria-describedby')).toBeTruthy(),
+    );
+    expect(
+      document.getElementById(blocked.getAttribute('aria-describedby')!)
+        ?.textContent,
+    ).toBe(t.clearNeedsEditor);
+    fireEvent.click(blocked);
+    expect(screen.queryByText(t.cleared)).toBeNull();
+
+    fireEvent.click(screen.getByTestId(`loaded-${DESCRIPTION}`));
+    await waitFor(() =>
+      expect(clearButton().getAttribute('aria-disabled')).toBeNull(),
+    );
+    fireEvent.click(screen.getByTestId(`ready-${DESCRIPTION}`));
+    type();
+    expect(saveEnabled()).toBe(false);
+    fireEvent.click(screen.getByTestId('ready-vacancy-content-requirements'));
+    await waitFor(() => expect(saveEnabled()).toBe(true));
+
+    fireEvent.click(clearButton());
+    await screen.findByText(t.cleared);
+    expect(
+      screen
+        .getByRole('button', { name: t.undoClear })
+        .getAttribute('aria-disabled'),
+    ).toBeNull();
   });
 });
 

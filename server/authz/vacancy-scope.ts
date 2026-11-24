@@ -39,6 +39,15 @@ const vacancyScope = {
     )!,
 } satisfies ScopeAdapter<'vacancy'>;
 
+/** Only OWN reads (D67) mean every listed row is led by the viewer, so the list drops the «Тімлід» column (S-04); an author also lists own drafts, which may name another lead. */
+export function seesOnlyOwnLedVacancies(ctx: AuthContext): boolean {
+  const grants = ctx.grants.get('vacancy.read') ?? [];
+  if (!grants.length || grants.some(({ scope }) => scope.kind !== 'OWN'))
+    return false;
+  const { any } = vacancyAuthorVerticals(ctx);
+  return any !== 'ALL' && any.size === 0;
+}
+
 /** SQL twin of `isNeverOpenedCancelled`. */
 const cancelledDraft = and(
   eq(vacancy.status, 'CANCELLED'),

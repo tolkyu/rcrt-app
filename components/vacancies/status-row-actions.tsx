@@ -8,7 +8,10 @@ import {
   type RowAction,
   type RowMenuHandle,
 } from '@/components/ui/row-actions-menu';
-import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
+import {
+  retrySessionLoss,
+  vacancyDetailQuery,
+} from '@/lib/queries/vacancy-detail';
 import { queryKeys } from '@/lib/query-keys';
 import type { VacancyDetail, VacancySummary } from '@/lib/schemas/vacancy';
 import { toast } from '@/lib/toast';
@@ -88,11 +91,11 @@ export default function StatusRowActions({
 
   const readCard = () =>
     queryClient.getQueryData<VacancyDetail>(queryKeys.vacancy(vacancy.id));
-  // No retries: a failed hover read must not hold the press behind backoff; the press reads again itself.
+  // Only a session 401 retries: a failed hover read must not hold the press behind backoff; the press reads again itself.
   const prefetch = () => {
     void queryClient.prefetchQuery({
       ...vacancyDetailQuery(vacancy.id),
-      retry: false,
+      retry: retrySessionLoss,
     });
   };
 
@@ -139,7 +142,10 @@ export default function StatusRowActions({
     setWaiting(action);
     let last = action;
     queryClient
-      .fetchQuery({ ...vacancyDetailQuery(vacancy.id), retry: false })
+      .fetchQuery({
+        ...vacancyDetailQuery(vacancy.id),
+        retry: retrySessionLoss,
+      })
       .then(
         (loaded) => ({ loaded }) as const,
         (error: unknown) => ({ failure: classifyTeamFailure(error) }) as const,

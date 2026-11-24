@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { DetailHeader } from '@/components/ui/detail-header';
 import { Input } from '@/components/ui/input';
+import { Tooltip } from '@/components/ui/tooltip';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
 import { isPrivateDraft, ownDraftActions } from '@/lib/vacancy-draft-actions';
 import { toast } from '@/lib/toast';
@@ -49,14 +50,12 @@ function VacancyOverviewContent({
   preview = false,
   canAuthorDrafts = false,
   onClaimLost,
-  headerAction,
   content,
 }: {
   vacancy: VacancyDetail;
   preview?: boolean;
   canAuthorDrafts?: boolean;
   onClaimLost?: () => void;
-  headerAction?: ReactNode;
   content?: ReactNode;
 }) {
   const t = useTranslations('vacancies');
@@ -111,16 +110,13 @@ function VacancyOverviewContent({
   const holdNote = useStatusNote(vacancy);
   const privateDraft = isPrivateDraft(vacancy);
   const highlighted = isUrgentHighlighted(vacancy);
-  const urgentClosed = vacancy.priority === 'URGENT' && !highlighted;
   const note = privateDraft
     ? t(
         vacancy.status === 'CANCELLED'
           ? 'draft.privateNoteCancelled'
           : 'draft.privateNote',
       )
-    : [holdNote, urgentClosed ? t('urgentClosed') : undefined]
-        .filter(Boolean)
-        .join(' ') || undefined;
+    : holdNote;
   const draftPlan = ownDraftActions(vacancy, canAuthorDrafts);
   const path = `/vacancies/${vacancy.id}`;
   const Heading = preview ? 'h3' : 'h2';
@@ -193,20 +189,34 @@ function VacancyOverviewContent({
                 </Link>
               </Button>
             )}
-            {!privateDraft && (
-              <Button
-                ref={shareRef}
-                size="sm"
-                variant="outline"
-                className="h-11"
-                onClick={() => void copy()}
-                aria-disabled={copying}
-              >
-                <Share2 aria-hidden="true" />
-                {t('share')}
-              </Button>
-            )}
-            {!privateDraft && headerAction}
+            {!privateDraft &&
+              (preview ? (
+                <Tooltip content={t('share')}>
+                  <Button
+                    ref={shareRef}
+                    size="icon"
+                    variant="outline"
+                    className="size-11 p-0"
+                    aria-label={t('share')}
+                    onClick={() => void copy()}
+                    aria-disabled={copying}
+                  >
+                    <Share2 aria-hidden="true" />
+                  </Button>
+                </Tooltip>
+              ) : (
+                <Button
+                  ref={shareRef}
+                  size="sm"
+                  variant="outline"
+                  className="h-11 max-md:min-w-0 max-md:flex-1"
+                  onClick={() => void copy()}
+                  aria-disabled={copying}
+                >
+                  <Share2 aria-hidden="true" />
+                  {t('share')}
+                </Button>
+              ))}
             {!privateDraft && (
               <StatusHeaderActions
                 key={vacancy.id}
@@ -239,7 +249,8 @@ function VacancyOverviewContent({
           />
           <Button
             variant="ghost"
-            className="mt-2"
+            size="sm"
+            className="mt-2 -ml-3 h-11"
             onClick={() => {
               setFailedUrl(null);
               shareRef.current?.focus();

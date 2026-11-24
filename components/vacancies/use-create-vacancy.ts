@@ -8,7 +8,6 @@ import type { UseFormReturn } from 'react-hook-form';
 import type { LeaveGuardHandle } from '@/components/ui/use-leave-guard';
 import { useSubmitLifecycle } from '@/components/vacancies/use-submit-lifecycle';
 import {
-  type VacancyFormField,
   type VacancyFormMode,
   type VacancyFormValues,
 } from '@/lib/vacancy-form';
@@ -53,24 +52,20 @@ export function useCreateVacancy({
     lib: SubmitModule,
     effect: FinalFailure,
     retry: () => void,
-  ) => {
-    if (effect.type === 'fields') {
-      for (const [field, code] of Object.entries(effect.errors))
-        setError(field as VacancyFormField, { type: 'server', message: code });
-      lib.refreshAfterFieldErrors(queryClient, effect.errors);
-      invalidFields(Object.keys(effect.errors));
-    } else if (effect.type === 'alert') {
-      if (effect.alert === 'draftLimit')
-        lib.applyDraftLimitHit(queryClient).catch(() => undefined);
-      if (feedback) setAlert(effect.alert);
-      else lib.showAlertToast(t, tVacancies, effect.alert);
-      if (effect.alert === 'verticalUnavailable') router.refresh();
-    } else {
-      lib.showFailureToast(t, effect, retry);
-      // The role was lost mid-session: the page re-reads the grants and the refused field goes away (ux §4.2).
-      if (effect.title === 'forbidden') router.refresh();
-    }
-  };
+  ) =>
+    lib.showCreateFailure(
+      {
+        queryClient,
+        t,
+        tVacancies,
+        setError,
+        invalidFields,
+        showAlert: feedback ? setAlert : null,
+        router,
+      },
+      effect,
+      retry,
+    );
 
   const send = async (lib: SubmitModule, body: CreateVacancyBody) => {
     setAlert(null);

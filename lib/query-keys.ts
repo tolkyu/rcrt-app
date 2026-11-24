@@ -15,6 +15,8 @@ export const queryKeys = {
     ['vacancies', filters] as const,
   /** Under `['vacancies']` so every list invalidation (create, publish, cancel, delete) refreshes the chip count too. */
   vacancyDraftCount: () => ['vacancies', 'draft-count'] as const,
+  /** Prefix of every card, content and picker entry. */
+  vacancyAll: () => ['vacancy'] as const,
   vacancy: (id: string) => ['vacancy', id.toLowerCase()] as const,
   vacancyContent: (id: string) =>
     ['vacancy', id.toLowerCase(), 'content'] as const,

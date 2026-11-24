@@ -280,11 +280,11 @@ describe('closeDraft: delete [D112(1)]', () => {
     ]);
   });
 
-  it('a 404 on a retry of an answer that was lost means it was deleted; on a first press it is gone', async () => {
+  it('a 404 proves no delete, on a retry or a first press: it can also be lost access', async () => {
     const retry = setup([problem(404, 'NOT_FOUND')]);
     await expect(
       closeDraft(retry.queryClient, 'delete', draft(), '', true),
-    ).resolves.toEqual({ status: 'done', vacancy: null });
+    ).resolves.toEqual({ status: 'failed', failure: 'gone' });
     const first = setup([problem(404, 'NOT_FOUND')]);
     await expect(
       closeDraft(first.queryClient, 'delete', draft(), '', false),
@@ -316,6 +316,8 @@ describe('applyClosed: the caches after the answer', () => {
   const idsOf = (client: QueryClient, key: readonly unknown[]) =>
     client.getQueryData<VacancyPage>(key)?.items.map((item) => item.id);
 
+  const allowed = () => true;
+
   function seeded() {
     const queryClient = new QueryClient();
     queryClient.setQueryData(DRAFT_LIST, page(row(ID), row(OTHER)));
@@ -329,7 +331,13 @@ describe('applyClosed: the caches after the answer', () => {
   it('cancel: the row leaves every list, the count drops by one, the card shows the cancelled draft, everything refreshes', async () => {
     const { queryClient, invalidate } = seeded();
     const cancelled = detail({ status: 'CANCELLED', version: 4 });
-    await applyClosed(queryClient, draft(), cancelled, () => undefined);
+    await applyClosed(
+      queryClient,
+      draft(),
+      cancelled,
+      () => undefined,
+      allowed,
+    );
     expect(idsOf(queryClient, DRAFT_LIST)).toEqual([OTHER]);
     expect(idsOf(queryClient, CANCELLED_LIST)).toEqual([OTHER]);
     expect(queryClient.getQueryData(queryKeys.vacancyDraftCount())).toEqual({
@@ -345,7 +353,13 @@ describe('applyClosed: the caches after the answer', () => {
       CANCELLED_LIST,
       page(row(ID, 'CANCELLED'), row(OTHER, 'CANCELLED')),
     );
-    await applyClosed(queryClient, draft('CANCELLED'), null, () => undefined);
+    await applyClosed(
+      queryClient,
+      draft('CANCELLED'),
+      null,
+      () => undefined,
+      allowed,
+    );
     expect(idsOf(queryClient, CANCELLED_LIST)).toEqual([OTHER]);
     expect(queryClient.getQueryData(queryKeys.vacancyDraftCount())).toEqual({
       count: 4,
@@ -368,7 +382,13 @@ describe('applyClosed: the caches after the answer', () => {
     const settledRead = oldRead.catch(() => undefined);
     const cancelled = detail({ status: 'CANCELLED', version: 4 });
 
-    await applyClosed(queryClient, draft(), cancelled, () => undefined);
+    await applyClosed(
+      queryClient,
+      draft(),
+      cancelled,
+      () => undefined,
+      allowed,
+    );
     resolveOld(detail());
     await settledRead;
     await oldAnswer;
@@ -381,7 +401,7 @@ describe('applyClosed: the caches after the answer', () => {
 
   it('delete of a draft: the count drops and the card is dropped', async () => {
     const { queryClient } = seeded();
-    await applyClosed(queryClient, draft(), null, () => undefined);
+    await applyClosed(queryClient, draft(), null, () => undefined, allowed);
     expect(queryClient.getQueryData(queryKeys.vacancyDraftCount())).toEqual({
       count: 3,
     });
@@ -391,8 +411,12 @@ describe('applyClosed: the caches after the answer', () => {
   it('the neighbour is chosen while the row is still on the page', async () => {
     const { queryClient } = seeded();
     const seen: (string[] | undefined)[] = [];
-    await applyClosed(queryClient, draft(), null, () =>
-      seen.push(idsOf(queryClient, DRAFT_LIST)),
+    await applyClosed(
+      queryClient,
+      draft(),
+      null,
+      () => seen.push(idsOf(queryClient, DRAFT_LIST)),
+      allowed,
     );
     expect(seen).toEqual([[ID, OTHER]]);
   });
@@ -400,19 +424,19 @@ describe('applyClosed: the caches after the answer', () => {
   it('the count never goes below zero, and an uncached count is left alone', async () => {
     const { queryClient } = seeded();
     queryClient.setQueryData(queryKeys.vacancyDraftCount(), { count: 0 });
-    await applyClosed(queryClient, draft(), null, () => undefined);
+    await applyClosed(queryClient, draft(), null, () => undefined, allowed);
     expect(queryClient.getQueryData(queryKeys.vacancyDraftCount())).toEqual({
       count: 0,
     });
     const bare = new QueryClient();
-    await applyClosed(bare, draft(), null, () => undefined);
+    await applyClosed(bare, draft(), null, () => undefined, allowed);
     expect(bare.getQueryData(queryKeys.vacancyDraftCount())).toBeUndefined();
   });
 
   it('a list refetch that was already out when the answer came is cancelled first', async () => {
     const { queryClient } = seeded();
     const cancel = vi.spyOn(queryClient, 'cancelQueries');
-    await applyClosed(queryClient, draft(), null, () => undefined);
+    await applyClosed(queryClient, draft(), null, () => undefined, allowed);
     expect(cancel).toHaveBeenCalledWith({ queryKey: ['vacancies'] });
   });
 });

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useImperativeHandle, useRef } from 'react';
+import { mergeAttributes } from '@tiptap/core';
 import { EditorContent, useEditor } from '@tiptap/react';
 import Document from '@tiptap/extension-document';
 import Text from '@tiptap/extension-text';
@@ -19,15 +20,32 @@ import {
   parseEditorDocument,
   toEditorDocument,
 } from '@/lib/rich-text-editor-document';
+import { cn } from '@/lib/utils';
 import type { RichTextEditorProps } from './rich-text-editor';
 import { RichTextToolbar } from './rich-text-toolbar';
 import { safeEditorLink } from './rich-text-link-dialog';
+import {
+  RICH_TEXT_FIELD_HEIGHT,
+  RICH_TEXT_TYPOGRAPHY,
+} from './rich-text-typography';
 
 const extensions = [
   Document,
   Text,
   Paragraph,
-  Heading.configure({ levels: [1, 2, 3] }),
+  // The tag stays h1-h3 so copy and paste keep the level; aria-level places it under the page h1 (P9).
+  Heading.extend({
+    renderHTML({ node, HTMLAttributes }) {
+      const level = Number(node.attrs.level);
+      return [
+        `h${level}`,
+        mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
+          'aria-level': level + 1,
+        }),
+        0,
+      ];
+    },
+  }).configure({ levels: [1, 2, 3] }),
   BulletList,
   OrderedList,
   ListItem.extend({ content: 'paragraph{1,20}' }),
@@ -52,6 +70,7 @@ export default function RichTextEditorRuntime({
   initialDocument,
   resetKey,
   disabled,
+  fieldLabel,
   onChange,
   onReadyChange,
   ref,
@@ -80,8 +99,7 @@ export default function RichTextEditorRuntime({
         'aria-describedby': control['aria-describedby'] ?? '',
         'aria-invalid': String(control['aria-invalid'] ?? false),
         'aria-required': String(control['aria-required'] ?? false),
-        class:
-          'min-h-60 md:min-h-[332px] p-3 text-base leading-6 outline-none focus-visible:ring-2 focus-visible:ring-ring [overflow-wrap:anywhere] [&_p]:min-h-6 [&_p]:whitespace-pre-wrap [&_h1]:text-heading-lg [&_h2]:text-lg [&_h3]:font-semibold [&_ul]:list-disc [&_ol]:list-decimal [&_ul]:pl-6 [&_ol]:pl-6 [&_a]:text-primary [&_a]:underline',
+        class: `flex-1 p-3 outline-none focus-visible:ring-2 focus-visible:ring-ring ${RICH_TEXT_TYPOGRAPHY}`,
       },
       handleDOMEvents: {
         keydown: (view, event) =>
@@ -135,11 +153,22 @@ export default function RichTextEditorRuntime({
     ready.current(parseEditorDocument(editor.getJSON()).kind === 'valid');
   }, [editor, initialDocument, resetKey]);
   return (
-    <div className="border-border bg-surface min-h-[420px] rounded-lg border">
-      {editor && (
-        <RichTextToolbar editor={editor} disabled={disabled} id={control.id} />
+    <div
+      className={cn(
+        'bg-surface flex flex-col rounded-lg border',
+        RICH_TEXT_FIELD_HEIGHT,
+        control['aria-invalid'] ? 'border-error' : 'border-input',
       )}
-      <EditorContent editor={editor} />
+    >
+      {editor && (
+        <RichTextToolbar
+          editor={editor}
+          disabled={disabled}
+          id={control.id}
+          fieldLabel={fieldLabel}
+        />
+      )}
+      <EditorContent editor={editor} className="flex flex-1 flex-col" />
     </div>
   );
 }
