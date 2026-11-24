@@ -64,6 +64,7 @@ export async function signInForApi(
   totp: boolean,
 ): Promise<ApiSession> {
   const jar = new Map<string, string>();
+  let retryAfter: number | null = null;
   const call = async (method: 'GET' | 'POST', path: string, body?: object) => {
     const response = await fetch(`${origin}/api/v1${path}`, {
       method,
@@ -78,15 +79,29 @@ export async function signInForApi(
       body: body && JSON.stringify(body),
       signal: AbortSignal.timeout(15_000),
     });
+    retryAfter =
+      response.status === 429
+        ? Number(response.headers.get('retry-after')) || 60
+        : null;
     if (!response.ok)
       throw new Error(`${method} ${path} for ${email} → ${response.status}`);
     storeCookies(jar, response);
     return response.json() as Promise<unknown>;
   };
 
-  await call('POST', '/auth/confirm', {
-    token_hash: await magicLinkTokenHash(email),
-  });
+  const tokenHash = await magicLinkTokenHash(email);
+  // Local and CI requests share one unknown-IP sign-in window with the E2E run before; wait it out once, as a real client would.
+  try {
+    await call('POST', '/auth/confirm', { token_hash: tokenHash });
+  } catch (error) {
+    if (retryAfter === null) throw error;
+    const seconds = Math.min(retryAfter, 900) + 1;
+    console.log(
+      `Sign-in limit reached for ${email}; retrying in ${seconds} s.`,
+    );
+    await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+    await call('POST', '/auth/confirm', { token_hash: tokenHash });
+  }
   const aal1Token = await accessToken(jar);
   if (totp) {
     const { factors } = (await call('GET', '/auth/mfa')) as {
