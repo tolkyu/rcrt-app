@@ -11,6 +11,7 @@ import { BackLink } from '@/components/ui/back-link';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api-client';
+import { denialReloadStarted } from '@/lib/denial-log';
 import { vacancyDetailQuery } from '@/lib/queries/vacancy-detail';
 import { isVacancyClosed } from '@/lib/vacancy-closed';
 import { useVacancyListHref } from '@/lib/vacancy-list-memory';
@@ -54,7 +55,10 @@ export function VacancyDetailView({
             <VacancyOverview
               vacancy={vacancy}
               canAuthorDrafts={canAuthorDrafts}
-              onClaimLost={() => router.replace(listHref)}
+              onClaimLost={() => {
+                // The reload into this card's not-found view already won (D132); a list move now would race it.
+                if (!denialReloadStarted(queryClient)) router.replace(listHref);
+              }}
               content={
                 <VacancyContentPanel
                   id={id}

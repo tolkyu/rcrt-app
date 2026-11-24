@@ -11,6 +11,7 @@ import {
   type VacancyAccessWatch,
 } from '@/lib/vacancy-detail-cache';
 import { readCurrentVacancy, refreshVacancy } from '@/lib/vacancy-refresh';
+import { readableAfterWrite404 } from '@/lib/vacancy-write-refusal';
 
 export const detailSchema = async () =>
   (await import('@/lib/schemas/vacancy')).vacancyDetailSchema;
@@ -153,12 +154,18 @@ export async function attemptTeamWrite(
     return { ok: true, detail };
   } catch (error) {
     noteVacancyWriteFailure(queryClient, error, id);
-    const failure = classifyTeamFailure(error);
+    const classified = classifyTeamFailure(error);
+    const failure =
+      classified === 'gone' && (await readableAfterWrite404(error, id))
+        ? 'forbidden'
+        : classified;
     if (failure === 'stale') {
       const current = await readCurrentVacancy(queryClient, id);
       if (current && adopted?.(current)) return { ok: true, detail: current };
     }
-    if (failure !== 'rateLimited' && failure !== 'network')
+    // A lost claim waits for the re-read: if it proves the card unreadable the access-loss reload starts first, so the host never also leaves for the list.
+    if (failure === 'taken') await refreshVacancy(queryClient, id);
+    else if (failure !== 'rateLimited' && failure !== 'network')
       void refreshVacancy(queryClient, id);
     return { ok: false, failure };
   }

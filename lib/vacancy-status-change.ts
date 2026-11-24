@@ -112,6 +112,9 @@ export async function toggleStatus(
         return { status: 'failed', failure, current: null };
       const current = await readCurrentVacancy(queryClient, id);
       void refreshVacancy(queryClient, id);
+      // ADR-020 access loss: the card still reads, so the 404 refused only this action.
+      if (failure === 'gone' && current)
+        return { status: 'failed', failure: 'forbidden', current: null };
       // A lost answer: the first attempt committed (one write since our version), so the retry meets it and there is nothing to warn about.
       if (
         failure === 'stale' &&

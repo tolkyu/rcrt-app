@@ -32,6 +32,7 @@ import {
   planEditFailure,
   type EditFailureEffect,
 } from '@/lib/vacancy-form-failure';
+import { readableAfterWrite404 } from '@/lib/vacancy-write-refusal';
 import {
   applyCreatedVacancy,
   markFieldErrors,
@@ -197,6 +198,23 @@ const refreshPublished = (queryClient: QueryClient, id: string) => {
     .catch(() => undefined);
 };
 
+const ACTION_REFUSED = {
+  type: 'toast',
+  tone: 'error',
+  title: 'forbidden',
+  retry: false,
+} as const;
+
+/** ADR-020 access loss: a draft route answers 404 for a missing action grant, so a card that still reads means only the action was refused. */
+const judgeGone = async <E extends EditFailureEffect>(
+  effect: E,
+  error: unknown,
+  id: string,
+): Promise<E | typeof ACTION_REFUSED> =>
+  effect.type === 'gone' && (await readableAfterWrite404(error, id))
+    ? ACTION_REFUSED
+    : effect;
+
 /** The caches are updated here, before the page may have gone away: a saved or published draft must reach the lists even if the form unmounted meanwhile. */
 export async function submitEdit(
   queryClient: QueryClient,
@@ -211,7 +229,11 @@ export async function submitEdit(
       saved = await patchDraft(id, changes, version);
     } catch (error) {
       noteVacancyWriteFailure(queryClient, error, id);
-      const effect = planEditFailure(error, true, context);
+      const effect = await judgeGone(
+        planEditFailure(error, true, context),
+        error,
+        id,
+      );
       // A PATCH is not replayable: when its answer was lost the retry meets a newer version, so the stored draft is checked before the author is warned.
       if (effect.type === 'stale')
         saved = await findAppliedPatch(queryClient, id, version, everything);
@@ -234,7 +256,11 @@ export async function submitEdit(
       return { status: 'published', vacancy: published };
     } catch (error) {
       noteVacancyWriteFailure(queryClient, error, id);
-      const effect = planEditFailure(error, retried, context);
+      const effect = await judgeGone(
+        planEditFailure(error, retried, context),
+        error,
+        id,
+      );
       if (effect.type !== 'retry')
         return { status: 'failed', effect, stage: 'publish', saved };
       attempts.reset();

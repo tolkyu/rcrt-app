@@ -189,7 +189,6 @@ describe('closeDraft: cancel [D82, D113]', () => {
   it.each([
     ['409 not a draft', problem(409, 'VACANCY_NOT_DRAFT'), 'notDraft'],
     ['409 stale', problem(409, 'STALE_STATE'), 'stale'],
-    ['404', problem(404, 'NOT_FOUND'), 'gone'],
     ['403', problem(403, 'FORBIDDEN'), 'forbidden'],
     ['429', problem(429, 'RATE_LIMITED'), 'rateLimited'],
     ['400', problem(400, 'VALIDATION_FAILED'), 'invalid'],
@@ -207,6 +206,19 @@ describe('closeDraft: cancel [D82, D113]', () => {
       expect(sent()).toHaveLength(2);
     },
   );
+
+  it('404 with a card that is gone too fails as gone and frees the lock [ADR-020]', async () => {
+    const { queryClient, sent } = setup([
+      problem(404, 'NOT_FOUND'),
+      problem(404, 'NOT_FOUND'),
+      json(200, detail()),
+    ]);
+    await expect(
+      closeDraft(queryClient, 'cancel', draft(), 'Дубль', false),
+    ).resolves.toEqual({ status: 'failed', failure: 'gone' });
+    await closeDraft(queryClient, 'cancel', draft(), 'Дубль', false);
+    expect(sent().map(({ method }) => method)).toEqual(['POST', 'GET', 'POST']);
+  });
 
   it('a retry after a lost answer that meets 409 adopts the stored cancelled draft', async () => {
     const stored = detail({ status: 'CANCELLED', version: 4 });

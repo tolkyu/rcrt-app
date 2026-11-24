@@ -3,7 +3,15 @@ import { useQuery, type QueryClient } from '@tanstack/react-query';
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createElement } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { StatusHeaderActions } from '@/components/vacancies/status-header-actions';
 import { queryKeys } from '@/lib/query-keys';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
@@ -108,6 +116,14 @@ const versionsSent = (calls: { method: string; body: unknown }[]) =>
     .filter((call) => call.method === 'PUT')
     .map((call) => (call.body as { expectedVersion: number }).expectedVersion);
 
+/** The lazy chunks load once here, so the first render's `findBy` waits for React, not for a cold module transform. */
+beforeAll(() =>
+  Promise.all([
+    import('@/components/vacancies/status-actions'),
+    import('@/components/vacancies/cancel-vacancy-dialog'),
+    import('@/components/vacancies/reopen-vacancy-dialog'),
+  ]),
+);
 beforeEach(() => {
   vi.clearAllMocks();
 });

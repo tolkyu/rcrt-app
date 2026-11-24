@@ -17,6 +17,7 @@ import { isPage } from '@/lib/denial-log';
 import { markVacancyClosed } from '@/lib/vacancy-closed';
 import { isCount } from '@/lib/vacancy-draft-optimistic';
 import { vacancyPageUrlSearch } from '@/lib/vacancy-filters';
+import { readableAfterWrite404 } from '@/lib/vacancy-write-refusal';
 
 export type CloseKind = 'cancel' | 'delete';
 
@@ -132,7 +133,15 @@ export async function closeDraft(
     return { status: 'done', vacancy };
   } catch (error) {
     noteVacancyWriteFailure(queryClient, error, draft.id);
-    const failure = classifyCloseFailure(error, kind);
+    const classified = classifyCloseFailure(error, kind);
+    // A retried delete meets its own lost commit: the card is gone and its re-read reloads the page, so the toast must not wait.
+    const ownDelete = retrying && kind === 'delete';
+    const failure =
+      classified === 'gone' &&
+      !ownDelete &&
+      (await readableAfterWrite404(error, draft.id))
+        ? 'forbidden'
+        : classified;
     const adopted =
       retrying && kind === 'cancel'
         ? await alreadyCancelled(queryClient, draft.id, failure)

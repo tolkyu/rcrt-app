@@ -28,6 +28,14 @@ export function rememberLostClaim({ id, number }: LostClaim) {
   }
 }
 
+export function forgetLostClaim() {
+  try {
+    window.sessionStorage.removeItem(KEY);
+  } catch {
+    return;
+  }
+}
+
 /** A reload the user asked for or a history step comes after the toast was already seen. */
 function startedByNavigation() {
   if (typeof PerformanceNavigationTiming === 'undefined') return true;

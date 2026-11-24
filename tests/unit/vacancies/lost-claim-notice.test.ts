@@ -120,13 +120,28 @@ describe('lost claim survives the access-loss reload [VAC-02-1, D132]', () => {
     stubApi({
       [`POST /vacancies/${ID}/recruiters/claim`]: () =>
         problem(404, 'NOT_FOUND'),
+      [`GET /vacancies/${ID}`]: () => problem(404, 'NOT_FOUND'),
     });
-    const client = makeQueryClient(null);
+    const denial = page();
+    const client = makeQueryClient(denial);
+    const stop = previewOpen(client);
     expect(await loseClaim(client)).toBe('lost');
+    expect(denial.replace).toHaveBeenCalledOnce();
+    stop();
     toast.warning.mockClear();
     renderHook(() => useLostClaimNotice(), { wrapper: wrapper(client) });
     expect(toast.warning).not.toHaveBeenCalled();
     expect(window.sessionStorage.getItem(FLASH)).not.toBeNull();
+  });
+
+  it('a lost claim with no reload after it leaves no note for a later page load', async () => {
+    stubApi({
+      [`POST /vacancies/${ID}/recruiters/claim`]: () =>
+        problem(404, 'NOT_FOUND'),
+    });
+    expect(await loseClaim(makeQueryClient(null))).toBe('lost');
+    expect(toast.warning).toHaveBeenCalledOnce();
+    expect(window.sessionStorage.getItem(FLASH)).toBeNull();
   });
 
   it('a plain access loss without a claim reloads and shows nothing', async () => {

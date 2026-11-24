@@ -16,6 +16,7 @@ import {
 } from '@/lib/vacancy-detail-cache';
 import { readCurrentVacancy, refreshVacancy } from '@/lib/vacancy-refresh';
 import { applyOptimisticUrgency } from '@/lib/vacancy-urgency-optimistic';
+import { readableAfterWrite404 } from '@/lib/vacancy-write-refusal';
 
 type Priority = (typeof VACANCY_PRIORITIES)[number];
 
@@ -94,7 +95,11 @@ export async function changeUrgency(
     } catch (error) {
       optimistic.restore();
       noteVacancyWriteFailure(queryClient, error, id);
-      const kind = classifyUrgencyFailure(error);
+      const classified = classifyUrgencyFailure(error);
+      const kind =
+        classified === 'gone' && (await readableAfterWrite404(error, id))
+          ? 'forbidden'
+          : classified;
       if (kind !== 'stale') {
         if (kind !== 'rateLimited') void refreshVacancy(queryClient, id);
         return { status: 'failed', failure: { kind } };

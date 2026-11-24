@@ -3,7 +3,15 @@ import { useQuery } from '@tanstack/react-query';
 import { cleanup, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createElement, type ReactNode } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { VacanciesList } from '@/components/vacancies/vacancies-list';
 import { StatusRowMenu } from '@/components/vacancies/status-row-menu';
 import { queryKeys } from '@/lib/query-keys';
@@ -194,6 +202,14 @@ const held = <T>(answer: () => T) => {
   return { release, route: () => gate.then(answer) };
 };
 
+/** The lazy chunks load once here, so the first render's `findBy` waits for React, not for a cold module transform. */
+beforeAll(() =>
+  Promise.all([
+    import('@/components/vacancies/status-row-actions'),
+    import('@/components/vacancies/cancel-vacancy-dialog'),
+    import('@/components/vacancies/reopen-vacancy-dialog'),
+  ]),
+);
 beforeEach(() => {
   vi.clearAllMocks();
 });
