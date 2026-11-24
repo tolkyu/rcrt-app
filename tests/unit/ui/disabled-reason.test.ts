@@ -96,6 +96,22 @@ describe('DisabledReason [UI foundation F2, ui-foundation section 6]', () => {
     expect(tooltip.textContent).toBe(REASON);
   });
 
+  it('explains itself to a pointer resting on the action when the action becomes disabled', async () => {
+    const action = (disabled: boolean) =>
+      createElement(DisabledReason, {
+        reason: REASON,
+        disabled,
+        children: createElement(Button, null, 'Опублікувати'),
+      });
+    const { rerender } = render(action(false));
+    const button = () => screen.getByRole('button', { name: 'Опублікувати' });
+    fireEvent.pointerEnter(button(), { pointerType: 'mouse' });
+    rerender(action(true));
+    fireEvent.pointerMove(button(), { pointerType: 'mouse' });
+    const tooltip = await screen.findByRole('tooltip', {}, { timeout: 3000 });
+    expect(tooltip.textContent).toBe(REASON);
+  });
+
   it('names the open tooltip node, so the decorative bubble leaves no unnamed role=tooltip [BUG-S3-20]', async () => {
     const button = mount(vi.fn());
     await userEvent.hover(button);

@@ -174,6 +174,36 @@ describe('Tooltip semantics and races [UI foundation F2]', () => {
     expect(screen.queryByRole('tooltip')).toBeNull();
   });
 
+  it('opens for a pointer that rested on the trigger while it was disabled: the next move loads it', async () => {
+    fakeTimers();
+    const { rerender } = render(tooltip('', true));
+    await hover(trigger());
+    rerender(tooltip());
+    fireEvent.pointerMove(trigger(), { pointerType: 'mouse' });
+    await advance(0);
+    await advance(DELAY_MS + 50);
+    expect(screen.getByRole('tooltip').textContent).toBe('Підказка');
+  });
+
+  it('opens on a move alone, as when the pointer entered before hydration and its pointerenter was lost', async () => {
+    fakeTimers();
+    render(tooltip());
+    fireEvent.pointerMove(trigger(), { pointerType: 'mouse' });
+    await advance(0);
+    await advance(DELAY_MS + 50);
+    expect(screen.getByRole('tooltip').textContent).toBe('Підказка');
+  });
+
+  it('does not load on a touch move or a move with a pressed button', async () => {
+    fakeTimers();
+    render(tooltip());
+    fireEvent.pointerMove(trigger(), { pointerType: 'touch' });
+    fireEvent.pointerMove(trigger(), { pointerType: 'mouse', buttons: 1 });
+    await advance(DELAY_MS * 2);
+    expect(trigger().hasAttribute('data-state')).toBe(false);
+    expect(screen.queryByRole('tooltip')).toBeNull();
+  });
+
   it('describes its trigger with the tooltip text while open when not decorative', async () => {
     fakeTimers();
     render(tooltip());

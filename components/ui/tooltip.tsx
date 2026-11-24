@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
   type FocusEventHandler,
+  type PointerEvent,
   type PointerEventHandler,
   type ReactElement,
   type ReactNode,
@@ -24,6 +25,7 @@ const TooltipContent = lazy(loadContent);
 export interface TooltipTriggerProps {
   ref?: Ref<HTMLElement>;
   onPointerEnter?: PointerEventHandler<HTMLElement>;
+  onPointerMove?: PointerEventHandler<HTMLElement>;
   onPointerLeave?: PointerEventHandler<HTMLElement>;
   onPointerDown?: PointerEventHandler<HTMLElement>;
   onFocus?: FocusEventHandler<HTMLElement>;
@@ -80,6 +82,7 @@ export function Tooltip({
   const [failed, setFailed] = useState(false);
   const pressed = useRef(false);
   const hovering = useRef(false);
+  const requested = useRef(false);
   const { held, track } = useFocusHold();
   const ownRef = children.props.ref;
   const ref = useCallback(
@@ -99,11 +102,13 @@ export function Tooltip({
     // Where hover does not exist the visible helper line carries a DisabledReason, and a bubble would be described a second time.
     if (decorative && window.matchMedia?.('(hover: none)').matches) return;
     pressed.current = false;
+    requested.current = true;
     loadContent().then(
       () => {
-        // A swap between pointerdown and pointerup would swallow the click.
+        // A swap between pointerdown and pointerup would swallow the click; a later move may ask again.
         // Focus may have moved on while the chunk loaded, so the intent is read at swap time.
-        if (!pressed.current)
+        if (pressed.current) requested.current = false;
+        else
           startTransition(() =>
             setIntent({
               focus: focusIntentOf(element),
@@ -116,15 +121,23 @@ export function Tooltip({
   };
 
   const props = children.props;
+  const hover = (event: PointerEvent<HTMLElement>) => {
+    if (event.pointerType === 'touch') return;
+    hovering.current = true;
+    request(event.currentTarget);
+  };
   // The handlers read refs only when an event fires; the rule cannot see that through cloneElement.
   // eslint-disable-next-line react-hooks/refs
   const trigger = cloneElement(children, {
     ref,
     onPointerEnter: (event) => {
       props.onPointerEnter?.(event);
-      if (event.pointerType === 'touch') return;
-      hovering.current = true;
-      request(event.currentTarget);
+      hover(event);
+    },
+    // A pointer already inside when the trigger hydrated or became enabled, or whose pointerenter was lost, only moves.
+    onPointerMove: (event) => {
+      props.onPointerMove?.(event);
+      if (!requested.current && !event.buttons) hover(event);
     },
     onPointerLeave: (event) => {
       props.onPointerLeave?.(event);

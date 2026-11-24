@@ -100,6 +100,31 @@ test.describe('50-draft limit on «Зберегти чернетку» [D98, ux 
     expect(sent[0]!.postDataJSON()).toMatchObject({ mode: 'PUBLISH' });
   });
 
+  test('a pointer resting on the button when the limit arrives opens the tooltip on its next move inside', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(
+      isMobile,
+      'a touch screen shows the reason as text, not a tooltip',
+    );
+    await stubCount(page, 50);
+    await openHydrated(page, '/vacancies/new');
+    await choosePosition(page);
+    await expect(saveDraft(page)).not.toHaveAttribute('aria-disabled', 'true');
+    const box = (await saveDraft(page).boundingBox())!;
+    const centre = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    await page.mouse.move(centre.x, centre.y);
+    await revalidateCount(page);
+    await expect(saveDraft(page)).toHaveAttribute('aria-disabled', 'true');
+    await page.mouse.move(centre.x + 2, centre.y);
+    await expect(
+      page
+        .locator('[data-radix-popper-content-wrapper] .motion-tooltip')
+        .filter({ hasText: draftLimitReason }),
+    ).toBeVisible({ timeout: 1_000 });
+  });
+
   test('the count the server sent with the page is trusted on mount: no count request until it is stale', async ({
     page,
   }) => {
