@@ -49,7 +49,6 @@ export function DisabledReason({
   reason,
   disabled = true,
   reserveSpace = false,
-  alwaysVisible = false,
   className,
   children,
 }: {
@@ -57,8 +56,6 @@ export function DisabledReason({
   disabled?: boolean;
   /** Keeps the reason's line (and gap) while the action is enabled, so the layout around it does not jump. */
   reserveSpace?: boolean;
-  /** Shows the reason as text on every device, not only where hover does not exist (a dialog has no other cue). */
-  alwaysVisible?: boolean;
   className?: string;
   children: ReactElement<ActionProps>;
 }) {
@@ -87,21 +84,13 @@ export function DisabledReason({
         className,
       )}
     >
-      <Tooltip
-        content={reason}
-        disabled={!disabled || alwaysVisible}
-        decorative
-      >
+      <Tooltip content={reason} disabled={!disabled} decorative>
         {action}
       </Tooltip>
       {disabled ? (
         <span
           id={reasonId}
-          className={
-            alwaysVisible
-              ? 'text-muted-foreground-strong text-xs'
-              : '[@media(hover:none)]:text-muted-foreground-strong sr-only [@media(hover:none)]:not-sr-only [@media(hover:none)]:text-xs'
-          }
+          className="[@media(hover:none)]:text-muted-foreground-strong sr-only [@media(hover:none)]:not-sr-only [@media(hover:none)]:text-xs"
         >
           {reason}
         </span>
@@ -109,11 +98,7 @@ export function DisabledReason({
         reserveSpace && (
           <span
             aria-hidden="true"
-            className={
-              alwaysVisible
-                ? 'invisible text-xs'
-                : 'invisible hidden text-xs [@media(hover:none)]:block'
-            }
+            className="invisible hidden text-xs [@media(hover:none)]:block"
           >
             &nbsp;
           </span>

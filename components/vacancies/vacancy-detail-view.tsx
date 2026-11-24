@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 import { PageHeader } from '@/components/shell/page-header';
 import { EmptyState } from '@/components/states/empty-state';
 import { SectionError } from '@/components/states/section-error';
-import { BackLink as Back } from '@/components/ui/back-link';
+import { BackLink } from '@/components/ui/back-link';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ApiError } from '@/lib/api-client';
@@ -19,13 +19,6 @@ import { TeamSkeleton } from './team-skeleton';
 import { useVacancyContentAccess } from './use-vacancy-content-access';
 import { VacancyContentPanel } from './vacancy-content-panel';
 import { VacancyOverview } from './vacancy-overview';
-
-function BackLink() {
-  const t = useTranslations('vacancies.detail');
-  return (
-    <Back href={useVacancyListHref()} label={t('back')} className="mb-2" />
-  );
-}
 
 /** Full-width card for direct links and mobile; the data was prefetched by the segment layout. */
 export function VacancyDetailView({
@@ -53,7 +46,7 @@ export function VacancyDetailView({
     (!vacancy && query.error instanceof ApiError && query.error.status === 404);
   return (
     <>
-      <BackLink />
+      <BackLink href={listHref} label={t('detail.back')} className="mb-2" />
       {vacancy && (
         <>
           <PageHeader title={vacancy.title} />

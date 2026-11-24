@@ -8,7 +8,7 @@ const KEY = 'vacancy-claim-lost';
 /** The access-loss reload follows the failed claim within one card read; anything older is not that reload. */
 const MAX_AGE_MS = 10_000;
 const NUMBER = /^V-\d{1,9}$/;
-const ID = /^[\da-f-]{36}$/i;
+const ID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i;
 
 interface LostClaim {
   id: string;

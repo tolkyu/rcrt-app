@@ -16,7 +16,14 @@ export function useLogout() {
         schema: async () =>
           (await import('@/lib/schemas/auth')).redirectResponseSchema,
       }),
-    onSuccess: ({ redirectTo }) => window.location.assign(redirectTo),
+    onSuccess: ({ redirectTo }) => {
+      try {
+        window.sessionStorage.clear();
+      } catch {
+        // Blocked storage holds no notices; the full navigation still drops in-memory state.
+      }
+      window.location.assign(redirectTo);
+    },
     onError: () => toast.error(t('logoutFailed')),
   });
 }
