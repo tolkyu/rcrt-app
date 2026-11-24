@@ -10,6 +10,7 @@ import {
   vacancyAuthorKind,
   vacancyFormGrants,
 } from '@/server/authz/vacancy-author';
+import { getVacancyContent } from '@/server/services/vacancy-content';
 import { requireSession } from '../../../_lib/session';
 import { loadPositionSeed } from '../../_lib/position-seed';
 import { loadVacancy } from '../../_lib/vacancy';
@@ -32,16 +33,24 @@ export default async function EditVacancyPage({ params }: Props) {
   if (!vacancy || !verticalId || !vacancyAuthorKind(ctx.auth, verticalId))
     notFound();
   if (vacancy.status !== 'DRAFT') return <EditNotDraft vacancy={vacancy} />;
+  const [initialPositions, content] = await Promise.all([
+    loadPositionSeed(ctx, verticalId),
+    getVacancyContent(ctx, vacancy.id),
+  ]);
   return (
     <FormRailFrame>
       <VacancyEditForm
         vacancy={vacancy}
+        initialContent={{
+          descriptionDoc: content.descriptionDoc,
+          requirementsDoc: content.requirementsDoc,
+        }}
         vertical={{
           id: verticalId,
           name: vacancy.vertical.name,
           ...vacancyFormGrants(ctx.auth, verticalId),
         }}
-        initialPositions={await loadPositionSeed(ctx, verticalId)}
+        initialPositions={initialPositions}
         canManagePositions={hasAnyGrant(ctx.auth, 'position.manage')}
       />
     </FormRailFrame>

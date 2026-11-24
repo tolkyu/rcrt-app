@@ -17,6 +17,7 @@ import * as schema from '../../server/db/schema';
 import { countLiveDrafts } from '../../server/repositories/vacancy';
 import { findCancelReason } from '../../server/repositories/vacancy-cancel-reason';
 import { listPositionCatalog } from '../../server/services/position';
+import { getVacancyContent } from '../../server/services/vacancy-content';
 import {
   createVacancy,
   getVacancyDetail,
@@ -215,6 +216,85 @@ describe('Edit my draft [STORY-VAC-01-3 AC2, D92]', () => {
         location: null,
         headcount: 2,
         version: created.version + 1,
+      });
+    });
+  });
+
+  it('saves, replaces and clears «Опис»/«Вимоги» from the draft form; the author reads them back and an unsafe link is refused [VAC-01, D117]', async () => {
+    const doc = (text: string) => ({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
+    });
+    await scenario(async (s) => {
+      const created = await saveDraft(s, { descriptionDoc: doc('Опис') });
+      const ctx = await s.as(roles().recruiter);
+      expect(await getVacancyContent(ctx, created.id)).toMatchObject({
+        status: 'DRAFT',
+        descriptionDoc: doc('Опис'),
+        requirementsDoc: null,
+        canEditContent: false,
+      });
+
+      const same = await patchVacancyDraft(
+        ctx,
+        created.id,
+        edit(created.version, { descriptionDoc: doc('Опис') }),
+      );
+      expect(same.version).toBe(created.version);
+
+      const saved = await patchVacancyDraft(
+        ctx,
+        created.id,
+        edit(created.version, {
+          descriptionDoc: null,
+          requirementsDoc: doc('Вимоги'),
+          location: 'Львів',
+        }),
+      );
+      expect(saved).toMatchObject({
+        location: 'Львів',
+        version: created.version + 1,
+      });
+      expect(await row(s.tx, created.id)).toMatchObject({
+        descriptionDoc: null,
+        requirementsDoc: doc('Вимоги'),
+      });
+      const events = await eventsOf(s.tx, created.id);
+      expect(events.at(-1)).toMatchObject({
+        type: 'vacancy.updated',
+        payload: {
+          fields: ['location', 'descriptionDoc', 'requirementsDoc'],
+        },
+      });
+
+      const unsafe = {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'x',
+                marks: [
+                  { type: 'link', attrs: { href: 'javascript:alert(1)' } },
+                ],
+              },
+            ],
+          },
+        ],
+      };
+      // The contract refuses it before any write; the route turns the ZodError into a 400.
+      await expect(
+        patchVacancyDraft(
+          ctx,
+          created.id,
+          edit(saved.version, { requirementsDoc: unsafe }),
+        ),
+      ).rejects.toMatchObject({ name: 'ZodError' });
+      expect(await row(s.tx, created.id)).toMatchObject({
+        requirementsDoc: doc('Вимоги'),
+        version: saved.version,
       });
     });
   });

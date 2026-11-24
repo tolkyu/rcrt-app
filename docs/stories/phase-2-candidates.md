@@ -5,28 +5,28 @@
 
 ## Delivery order
 
-| Inc | Deliverable                                                                                                                                                                                            | Depends on                                            | Unblocks                       | Questions                                 |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- | ------------------------------ | ----------------------------------------- |
-| C1  | Schema (`candidate`, `application` read side, `candidate_file`), deterministic seed, scoped candidate list (table) with search/filters, read-only card (profile, applications, history)                | V1 shell; ADR for photo + candidate `version` columns | all others                     | QC-1, QC-2, QC-3, QC-4, QC-14             |
-| C2  | Create / edit profile, exact-match dedupe block, former-employee flag                                                                                                                                  | C1                                                    | C3–C7, C10                     | Q-122, Q-47, Q-51; QC-5, QC-6, QC-7, QC-8 |
-| C3  | Files: CV versions, attachments, photo — signed URLs after authz                                                                                                                                       | C2                                                    | TL card CV, C6 merge of files  | Q-90, Q-124; QC-9, QC-10                  |
-| C4  | Applications: «Додати до вакансії» (stage `NEW`), applications on the candidate card, candidate list on the vacancy card with visible-only counts, D53 read access, ROLE-06 open work for applications | C2                                                    | **V4** (all items), C5, C7, C9 | QC-11, QC-12                              |
-| C5  | Talent pool («Кадровий резерв»): filter, after-save choice, «Запропонувати з резерву»                                                                                                                  | C4                                                    | ARCH-03 «move to talent pool»  | —                                         |
-| C6  | Possible duplicates, merge, 180-day takeover                                                                                                                                                           | C2, C4                                                | —                              | Q-45; QC-13                               |
-| C7  | Soft delete of a candidate; vertical transfer (CAND-06)                                                                                                                                                | C4                                                    | Phase 5 Deleted archive        | Q-52; QC-15                               |
-| C8  | «Поділитися» on the candidate card                                                                                                                                                                     | C1                                                    | STORY-UI-09-1 closure          | —                                         |
-| C9  | Dashboard KPI row (counts)                                                                                                                                                                             | C4                                                    | —                              | Q-152; QC-16                              |
-| C10 | Global search Ctrl+K — candidate results                                                                                                                                                               | C1 (C2 for real data)                                 | —                              | QC-14                                     |
+| Inc | Deliverable                                                                                                                                                                                            | Depends on                                            | Unblocks                       | Questions                         |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------- | ------------------------------ | --------------------------------- |
+| C1  | Schema (`candidate`, `application` read side, `candidate_file`), deterministic seed, scoped candidate list (table) with search/filters, read-only card (profile, applications, history)                | V1 shell; ADR for photo + candidate `version` columns | all others                     | resolved: D138, D139, D143        |
+| C2  | Create / edit profile, exact-match dedupe block, former-employee flag                                                                                                                                  | C1                                                    | C3–C7, C10                     | Q-122, Q-47, Q-51; resolved: D140 |
+| C3  | Files: CV versions, attachments, photo — signed URLs after authz                                                                                                                                       | C2                                                    | TL card CV, C6 merge of files  | Q-90, Q-124; resolved: D141       |
+| C4  | Applications: «Додати до вакансії» (stage `NEW`), applications on the candidate card, candidate list on the vacancy card with visible-only counts, D53 read access, ROLE-06 open work for applications | C2                                                    | **V4** (all items), C5, C7, C9 | resolved: D142                    |
+| C5  | Talent pool («Кадровий резерв»): filter, after-save choice, «Запропонувати з резерву»                                                                                                                  | C4                                                    | ARCH-03 «move to talent pool»  | —                                 |
+| C6  | Possible duplicates, merge, 180-day takeover                                                                                                                                                           | C2, C4                                                | —                              | Q-45; resolved: D143              |
+| C7  | Soft delete of a candidate; vertical transfer (CAND-06)                                                                                                                                                | C4                                                    | Phase 5 Deleted archive        | Q-52; resolved: D144              |
+| C8  | «Поділитися» on the candidate card                                                                                                                                                                     | C1                                                    | STORY-UI-09-1 closure          | —                                 |
+| C9  | Dashboard KPI row (counts)                                                                                                                                                                             | C4                                                    | —                              | Q-152; resolved: D145             |
+| C10 | Global search Ctrl+K — candidate results                                                                                                                                                               | C1 (C2 for real data)                                 | —                              | resolved: D143                    |
 
 **What V4 needs from this file**
 
-| V4 item (`phase-2.md`)                                       | Needs                                                     | Still blocked by |
-| ------------------------------------------------------------ | --------------------------------------------------------- | ---------------- |
-| STORY-VAC-04-3 visible-only funnel/counts, linked candidates | C1 + C4                                                   | —                |
-| Full vacancy history with application events                 | C4 (`application.created` events)                         | —                |
-| STORY-VAC-05-1 clone with rejected-good suggestions          | C4 + rejected applications (Phase 3 reject, or seed only) | Q-127, QC-11     |
-| STORY-ARCH-03-1 delete vacancy with active applications      | C4 + C5 (talent pool target) + reject (Phase 3)           | Q-100, QC-11     |
-| D53 recruiter read access to a vacancy via own application   | C4 (STORY-VIS-03-1)                                       | —                |
+| V4 item (`phase-2.md`)                                       | Needs                                                     | Still blocked by                      |
+| ------------------------------------------------------------ | --------------------------------------------------------- | ------------------------------------- |
+| STORY-VAC-04-3 visible-only funnel/counts, linked candidates | C1 + C4                                                   | —                                     |
+| Full vacancy history with application events                 | C4 (`application.created` events)                         | —                                     |
+| STORY-VAC-05-1 clone with rejected-good suggestions          | C4 + rejected applications (Phase 3 reject, or seed only) | Q-127 (D142 covers `NEW` reject only) |
+| STORY-ARCH-03-1 delete vacancy with active applications      | C4 + C5 (talent pool target) + reject (Phase 3)           | Q-100 (D142 covers `NEW` reject only) |
+| D53 recruiter read access to a vacancy via own application   | C4 (STORY-VIS-03-1)                                       | —                                     |
 
 ## Shared candidate rules
 
@@ -65,7 +65,7 @@ As a **recruiting participant in my vertical**, I want a searchable candidate li
 - Given `vasyl.tl@demo`, Then only candidates with an application on Vasyl's vacancies at `SUBMITTED_TO_TL` or later (including ended ones) are listed; Андрій Мельник at `IN_WORK` on Vasyl's vacancy is absent.
 - Given `hr@demo` (both verticals, D46), Then only candidates with an application that reached `POLYGRAPH` in Гемблінг or Крипто are listed.
 - Given a row, Then it shows: photo or initials, ПІБ, current role · company, active applications (stage chip + vacancy number/title, only applications the viewer may open), «Відповідальний», «Джерело», tags, last activity (Kyiv date), badge «Резерв» when the candidate has no active application (only for full-scope viewers, see Data), probation marker «Випробувальний · N дн. залишилось» while on probation (D64).
-- Given search text of ≥ 3 characters (QC-14), When I search, Then name — and contact fields only for roles holding `candidate.contacts.read` — are matched; a Team Lead typing a phone number gets no match by phone.
+- Given search text of ≥ 3 characters (phone ≥ 5 digits; D143), When I search, Then name — and contact fields only for roles holding `candidate.contacts.read` — are matched; a Team Lead typing a phone number gets no match by phone.
 - Given filters «Етап», «Вакансія», «Вертикаль», «Відповідальний», «Джерело», «Теги», «Лише резерв», When combined, Then the result is the intersection with my scope; filter options list only values from my scope; URL, reload and Back keep them; any filter change resets the cursor.
 - Given more than one page, Then cursor paging has no duplicates or gaps on equal `last_activity_at`; a tampered cursor reveals nothing outside scope.
 - Given no data → empty state; filtered empty → «Нічого не знайдено за фільтрами» + «Скинути фільтри»; request error → retry, shell usable.
@@ -75,7 +75,7 @@ As a **recruiting participant in my vertical**, I want a searchable candidate li
 **Events / notifications / statistics:** read-only; none.
 **Perf:** one query: scope predicate (IDX-14/15/N31 + application EXISTS via IDX-05/06/07/08) + LATERAL for visible active applications; trigram GIN IDX-16 for search; virtualized table; mobile = card list.
 **Copy:** `candidates.list.title` «Кандидати», `candidates.list.searchPlaceholder` «Пошук за ПІБ, email, телефоном…» _(proposed; TL variant «Пошук за ПІБ…»)_, `candidates.list.badge.pool` «Резерв», `candidates.list.empty.recruiter` «Ще немає кандидатів», `common.filters.empty` «Нічого не знайдено за фільтрами», `common.filters.reset` «Скинути фільтри».
-**Edges:** candidate with applications in two vacancies of different TLs (Vasyl sees one chip, Taras the other); deactivated owner shown with «неактивний» (QC-12); purged stub not listed (Phase 5); Kyiv date boundary on last activity (23:30 UTC 19.11 → 20.11.2026).
+**Edges:** candidate with applications in two vacancies of different TLs (Vasyl sees one chip, Taras the other); deactivated owner shown with «неактивний» (D142); purged stub not listed (Phase 5); Kyiv date boundary on last activity (23:30 UTC 19.11 → 20.11.2026).
 
 ### STORY-CAND-04-2: Open a read-only candidate card
 
@@ -83,10 +83,10 @@ As a **user allowed to read a candidate**, I want the card with profile, applica
 
 **Acceptance criteria**
 
-- Given a visible row or a direct `/candidates/{id}` URL, When I open it, Then the card shows header (photo/initials, ПІБ, current role · company, status «Активний»/«Резерв» per edge rule of CAND-04-1, contacts row per role), info strip (vacancy of the selected application, «Джерело», «Відповідальний», «Зарплатні очікування» per QC-4, tags), application switcher if > 1 visible application, read-only stepper (HIST-02) of the selected application, tabs «Історія», «Профіль», «Резюме», «Файли» (files tabs appear with C3).
+- Given a visible row or a direct `/candidates/{id}` URL, When I open it, Then the card shows header (photo/initials, ПІБ, current role · company, status «Активний»/«Резерв» per edge rule of CAND-04-1, contacts row per role), info strip (vacancy of the selected application, «Джерело», «Відповідальний», «Зарплатні очікування» — visible to every card reader incl. TL and HR (D139), tags), application switcher if > 1 visible application, read-only stepper (HIST-02) of the selected application, tabs «Історія», «Профіль», «Резюме», «Файли» (files tabs appear with C3).
 - Given `?app=<id>` of an application the viewer may not open, Then the card opens on the first visible application; the hidden id is not acknowledged.
 - Given `vasyl.tl@demo` opening Ігор Бондаренко (probation day 35 on Vasyl's vacancy), Then he sees that application, the stepper up to «Випробування» with «День 35 з 90», LinkedIn link, no email/phone/Telegram in markup or JSON, and no other application of Ігор.
-- Given «Історія», Then events of the candidate and of visible applications only, newest first, cursor «Показати ще», filters «Усі / Етапи / Поля / Файли»; contact-field changes follow QC-3.
+- Given «Історія», Then events of the candidate and of visible applications only, newest first, cursor «Показати ще», filters «Усі / Етапи / Поля / Файли»; profile-field changes show field names only («Змінено: Телефон»), values only in Admin «Журнал дій» (D139).
 - Given the card is read-only in C1, Then no edit, move, comment, notes, bonus, delete or transfer controls are rendered (no inert buttons); «Коментарі», «Бонус» and «Приватні нотатки» blocks are absent until their phases.
 - Given mobile 390 px (TL first-class), Then header with LinkedIn icon button, tabs «Інфо · Історія · Резюме», compact stepper; no «Дії з кандидатом» sheet while no action exists.
 - Given loading → skeleton of header, strip, stepper, 6 feed rows (no layout shift); card error independent of list; history error retry inside the tab.
@@ -96,7 +96,7 @@ As a **user allowed to read a candidate**, I want the card with profile, applica
 **Events / statistics:** reading writes nothing (CV downloads are audited in C3).
 **Perf:** card < 100 ms: candidate row, visible applications, first history page via `Promise.all`; history IDX-31 cursor.
 **Copy:** `candidates.card.status.active` «Активний», `candidates.card.status.pool` «Резерв», `candidates.card.tabs.history|profile|cv|files` «Історія», «Профіль», «Резюме», «Файли», `candidates.card.pool.empty` «Кандидат у кадровому резерві», `candidates.history.empty` «Подій такого типу немає».
-**Edges:** routed chain Vasyl → Taras: Vasyl sees only his ended application (D52), Taras only his; candidate transferred to Крипто (seed): old-vertical visibility per QC-15; deactivated sourcer/owner marker (QC-12); long names wrap on 320 px.
+**Edges:** routed chain Vasyl → Taras: Vasyl sees only his ended application (D52), Taras only his; candidate transferred to Крипто (seed): old-vertical roles see only the closed applications in their vacancy lists, the card → 404 (D144); deactivated sourcer/owner marker (D142); long names wrap on 320 px.
 
 ### STORY-SEED-3: Deterministic candidate demonstration data
 
@@ -104,7 +104,7 @@ As the **owner reviewing candidates**, I want realistic Ukrainian candidates acr
 
 **Acceptance criteria**
 
-- Given `pnpm db:seed`, Then ~30 candidates exist per CLAUDE.md §8 / ERD §9.1: Гемблінг and Крипто; owners `recruiter1`, `recruiter2`, `recruiter.crypto`, one sourced by `head.recruiter.gambling`; 2+ talent-pool candidates; applications on Vasyl's and Taras's «Медіабаєр — Facebook» vacancies at the stages allowed by QC-1, including one at probation day 35 (fixed clock), one rejected, one routed Vasyl → Taras, one at Polygraph (visible to HR), one deleted candidate.
+- Given `pnpm db:seed`, Then ~30 candidates exist per CLAUDE.md §8 / ERD §9.1: Гемблінг and Крипто; owners `recruiter1`, `recruiter2`, `recruiter.crypto`, one sourced by `head.recruiter.gambling`; 2+ talent-pool candidates; applications on Vasyl's and Taras's «Медіабаєр — Facebook» vacancies at later stages as stage + history events only, no Phase 3 sub-records (D138), including one at probation day 35 (fixed clock), one rejected, one routed Vasyl → Taras, one at Polygraph (visible to HR), one deleted candidate.
 - Given re-seeding, Then UUIDs, `public_no` and events are stable; no duplicates; dedupe keys unique company-wide.
 - Given a nonlocal target, Then the seed refuses to write (inherited guard).
 - (negative) Seed data never bypasses CHECKs/triggers (vertical consistency, ROUTE-06 index, application closed CHECK).
@@ -133,17 +133,17 @@ As a **Recruiter, Head Recruiter or Admin**, I want to add a candidate with thei
 
 **Acceptance criteria**
 
-- Given `recruiter1.gambling` on 20.11.2026 10:00 Kyiv, When he saves «Олена Шевчук», email `Olena.Shevchuk@Example.com `, phone `067 123 45 67`, source «LinkedIn», Then a candidate in Гемблінг is created with `sourcer_id = recruiter1`, `sourcer_since` = creation time, `owner_id = recruiter1`, `last_activity_at` = creation time, `email_normalized = olena.shevchuk@example.com`, `phone_e164 = +380671234567` (QC-8 region), status «Резерв»; the after-save step offers «Додати до вакансії» (C4) / «Залишити в резерві» (C5); «Подати на посаду» is absent until routing (Phase 3).
+- Given `recruiter1.gambling` on 20.11.2026 10:00 Kyiv, When he saves «Олена Шевчук», email `Olena.Shevchuk@Example.com `, phone `067 123 45 67`, source «LinkedIn», Then a candidate in Гемблінг is created with `sourcer_id = recruiter1`, `sourcer_since` = creation time, `owner_id = recruiter1`, `last_activity_at` = creation time, `email_normalized = olena.shevchuk@example.com`, `phone_e164 = +380671234567` (default region Ukraine, D140), status «Резерв»; the after-save step offers «Додати до вакансії» (C4) / «Залишити в резерві» (C5); «Подати на посаду» is absent until routing (Phase 3).
 - Given a user with candidate-create in one vertical, Then the vertical is preset and fixed; with several, he chooses one of his verticals (header switcher sets the initial value, D83 pattern); after creation it changes only by transfer (C7).
-- Given a Head Recruiter creator, Then he is sourcer (D35). Given an Admin creator, Then the sourcer follows QC-5.
-- Given required/optional fields: ПІБ required (trimmed, 2–200 chars, no line breaks); at least one contact or LinkedIn is not required by the PRD (leave optional); email RFC-valid; phone parsed to E.164 or field error; Telegram `@handle` or `t.me/handle` → `handle` (5–32 chars, `[a-z0-9_]`); LinkedIn `https://` only, normalized `linkedin.com/in/<slug>`; portfolio URLs `https://` only, ≤ 5; location, current company, current title ≤ 200; expected salary amount > 0 with currency (Q-51 list) or both empty; summary rich text (shared editor, validated JSON); tags and source per QC-6; consent per QC-7.
+- Given a Head Recruiter creator, Then he is sourcer (D35). Given an Admin creator, Then he must pick an active Recruiter/Head Recruiter of the vertical as sourcer (D140); without it → 400 field error; the Admin is never sourcer (D51).
+- Given required/optional fields: ПІБ required (trimmed, 2–200 chars, no line breaks); at least one contact or LinkedIn is not required by the PRD (leave optional); email RFC-valid; phone parsed to E.164 or field error; Telegram `@handle` or `t.me/handle` → `handle` (5–32 chars, `[a-z0-9_]`); LinkedIn `https://` only, normalized `linkedin.com/in/<slug>`; portfolio URLs `https://` only, ≤ 5; location, current company, current title ≤ 200; expected salary amount > 0 with currency (Q-51 list) or both empty; summary rich text (shared editor, validated JSON); source from the fixed list «LinkedIn, Djinni, Telegram, Рекомендація, Інше», tags free text ≤ 20 × ≤ 30 chars (D140); consent optional, date = Kyiv date when ticked, may be earlier, never future (D140).
 - Given a double click or retry, Then one candidate (idempotency key).
 - Given an exact duplicate, Then STORY-CAND-02-1 applies and nothing is created.
 - (negative) Given Head HR, HR, Team Lead, When they call create, Then 403; Finance 404; Recruiter of Крипто creating in Гемблінг → 404 on the vertical; client-sent `sourcerId`, `ownerId`, `formerEmployee` by a Recruiter for another user's benefit → 400 (unknown/forbidden key).
 
 **Events:** `candidate.created` (vertical, source channel; no PII in payload); audit row with after-values in the PII-separated store. **Statistics:** «candidates added (sourced)» STAT-01 counts from Phase 4 aggregates — event is their input.
 **Copy:** `candidates.create.title` «Новий кандидат», `candidates.form.fullName` «ПІБ», `candidates.form.email` «Email», `candidates.form.phone` «Телефон», `candidates.form.telegram` «Telegram», `candidates.form.linkedin` «LinkedIn», `candidates.form.portfolio` «Портфоліо», `candidates.form.location` «Локація», `candidates.form.currentCompany` «Поточна компанія», `candidates.form.currentTitle` «Поточна посада», `candidates.form.expectedSalary` «Зарплатні очікування», `candidates.form.summary` «Опис», `candidates.form.tags` «Теги», `candidates.form.source` «Джерело», `candidates.form.consent` «Згода на обробку персональних даних», `candidates.form.formerEmployee` «Колишній працівник», `candidates.afterSave.addToVacancy` «Додати до вакансії», `candidates.afterSave.keepInPool` «Залишити в резерві», form exit «Вийти без збереження» (D124).
-**Edges:** creation at 23:30 UTC → Kyiv next day; creator deactivated later → candidate stays, «неактивний» marker (QC-12); mobile form usable but not a TL flow.
+**Edges:** creation at 23:30 UTC → Kyiv next day; creator deactivated later → candidate stays, «неактивний» marker (D142); mobile form usable but not a TL flow.
 
 ### STORY-CAND-01-2: Edit a candidate profile
 
@@ -158,7 +158,7 @@ As an **editor of a candidate**, I want to correct profile data, so that the car
 - Edit does not change `last_activity_at` (pipeline actions only, DG-19; D8 window).
 - (negative) Team Lead, HR, Head HR reading the card → no «Редагувати»; API 403. Recruiter2 on recruiter1's candidate → 404. Head Recruiter Крипто on Гемблінг → 404.
 
-**Events / PII:** history shows changes per QC-3. **Copy:** `candidates.actions.edit` «Редагувати», `common.conflict.refresh` «Оновити».
+**Events / PII:** history shows changed field names only; values only in Admin «Журнал дій» (D139). **Copy:** `candidates.actions.edit` «Редагувати», `common.conflict.refresh` «Оновити».
 **Edges:** candidate table has no `version` column in the ERD — added by migration (see conflicts); edit while the candidate is being merged/transferred → 409.
 
 ### STORY-CAND-02-1: Exact duplicate blocks creation (company-wide)
@@ -173,7 +173,7 @@ As a **creator**, I want an exact duplicate refused without revealing other peop
 - Given the check runs on submit (and on blur only if security accepts it — see conflict with S-08), Then all four keys (email, E.164 phone, Telegram, LinkedIn) are compared after normalization; soft-deleted and purged candidates do not match (unique partial indexes IDX-18..21).
 - Given two recruiters save the same new email at the same moment, Then the unique index lets exactly one commit; the other gets the duplicate response, no partial row.
 - Given an edit that sets a key already used by another live candidate, Then the edit is refused the same way.
-- Given more than N hidden matches per user per day (QC-8), Then further checks are refused 429 and a security event is audited.
+- Given more than 20 hidden matches per user per day (Kyiv day; D140), Then further checks are refused 429 and a security event is audited.
 - (negative) No response time/body difference reveals which field matched; the 409/422 body never contains another candidate's data.
 
 **Events:** no candidate event; `audit_log` security event `candidate.duplicate_blocked` (actor, match kind, no key values). **Copy:** `candidates.dedupe.hidden` «Цей кандидат уже є в системі. Зверніться до керівника рекрутингу.», `candidates.dedupe.visible` _(proposed)_ «Такий кандидат уже є: », `candidates.dedupe.open` «Відкрити картку».
@@ -188,7 +188,7 @@ As a **Recruiter (own) or Head Recruiter**, I want to mark a candidate as a form
 - Given `recruiter1` on his candidate, When he sets «Колишній працівник» with the leave date (if Q-47 = mandatory), Then the flag is stored, `candidate.flag_set {flag: FORMER_EMPLOYEE}`, audit row.
 - Given Admin at aal2, When he clears it with a mandatory multi-line reason (D113), Then cleared, `candidate.flag_cleared`, reason in the PII store, audit.
 - (negative) Given Head Recruiter or Recruiter, When they try to clear, Then 403 and nothing changes (D66); Admin at aal1 → 401 `MFA_REQUIRED`; Head HR → 403 (D66 grants no Head HR right; see conflict with ERD/threat model).
-- Referrer / self-referral flag (BONUS-05, D38): phase per QC-6 (b).
+- Referrer / self-referral flag (BONUS-05, D38): not in the Phase 2 form; ships with Phase 4 bonuses (D140).
 
 **Copy:** `candidates.flags.formerEmployee` «Колишній працівник», `candidates.flags.leftOn` «Дата звільнення», `candidates.flags.clear` «Зняти позначку» _(proposed)_, `candidates.flags.clearReason` «Причина».
 
@@ -223,7 +223,7 @@ As a **Recruiter**, I want to upload CVs and other files to the candidate, so th
 - (negative) Given Head HR/HR/TL, When they request an upload intent, Then 403. Given recruiter2 asking a URL for recruiter1's candidate file id, Then 404. Given a user JWT calling Storage directly, Then denied (no `storage.objects` policies). Given `complete` by another user, Then 404.
 
 **Events:** `candidate.file_uploaded {kind, version}` (filename in PII store); audit on every download URL. **Copy:** `candidates.cv.upload` «Завантажити резюме», `candidates.cv.version` «Версія {n}», `candidates.cv.download` «Завантажити», `candidates.cv.previewError` «Не вдалося відкрити файл», `candidates.files.tooLarge` _(proposed)_ «Файл більший за 10 МБ», `candidates.files.typeNotAllowed` _(proposed)_ «Цей тип файлу не підтримується».
-**Perf:** viewer lazy-loaded (PERF-04); URL minted on click only. **Edges:** file removal per QC-9; transferred candidate keeps the original storage key (ERD); purge removes objects (Phase 5).
+**Perf:** viewer lazy-loaded (PERF-04); URL minted on click only. **Edges:** CV versions are never removed (only purge); attachments are soft-removed by the uploader, Head Recruiter or Admin with `candidate.file_removed` event + audit; others → 403 (D141); transferred candidate keeps the original storage key (ERD); purge removes objects (Phase 5).
 
 ### STORY-CAND-01-4: Candidate photo (D57)
 
@@ -231,9 +231,9 @@ As an **editor of a candidate**, I want to add an optional photo, so that collea
 
 **Acceptance criteria**
 
-- Given JPEG/PNG/WebP ≤ 2 MB, When uploaded through the same signed-upload flow, Then it becomes the current photo; replacing keeps no visible history of old photos (old object scheduled for removal — QC-9).
+- Given JPEG/PNG/WebP ≤ 2 MB, When uploaded through the same signed-upload flow, Then it becomes the current photo; replacing keeps no visible history of old photos (old object scheduled for removal); any profile editor may replace or remove it (D141).
 - Given no photo or a load failure, Then initials avatar.
-- Given the card header, Then the photo is shown through a signed URL after `candidate.read`; lists/drawers per QC-10.
+- Given the card header, Then the photo is shown through a signed URL after `candidate.read`; lists and drawers show initials only, no per-row signed URL (D141).
 - Given GIF, SVG, HEIC, > 2 MB, or a PNG with a JPEG extension mismatch, Then refused.
 - (negative) TL/HR can view (if they read the card) but not upload (403); Finance 404; a photo URL reused after 60 s → expired.
 
@@ -248,7 +248,7 @@ As an **editor of a candidate**, I want to add an optional photo, so that collea
 
 | Role                     | «Додати до вакансії»                                                         | Sees the application                      |
 | ------------------------ | ---------------------------------------------------------------------------- | ----------------------------------------- |
-| Admin                    | any candidate → any `OPEN` vacancy (QC-12) of the same vertical              | all                                       |
+| Admin                    | any candidate → any `OPEN` vacancy (D142) of the same vertical               | all                                       |
 | Head Recruiter           | in vertical                                                                  | in vertical                               |
 | Recruiter                | own candidate → vacancy he can read (assigned or unassigned `OPEN`, authz ⁴) | own (owner or sourcer)                    |
 | Head HR / HR / Team Lead | no                                                                           | per scope (`V≥P` / `sub`) — none at `NEW` |
@@ -260,11 +260,11 @@ As a **Recruiter**, I want to link my candidate to a vacancy, so that work on th
 
 **Acceptance criteria**
 
-- Given Олена (Гемблінг, owner `recruiter1`) and V-0007 `OPEN` assigned to `recruiter1`, When he picks V-0007 in «Додати до вакансії» on 20.11.2026, Then an application is created: stage `NEW`, `source_type = DIRECT`, `vertical`/`position`/`team_lead` copied from the vacancy, `sourcer_id` = candidate sourcer, `owner_id` per QC-12, `max_stage_reached = 1`, `stage_entered_at` = now; candidate status becomes «Активний»; candidate `last_activity_at` updated (new application = activity, D8).
+- Given Олена (Гемблінг, owner `recruiter1`) and V-0007 `OPEN` assigned to `recruiter1`, When he picks V-0007 in «Додати до вакансії» on 20.11.2026, Then an application is created: stage `NEW`, `source_type = DIRECT`, `vertical`/`position`/`team_lead` copied from the vacancy, `sourcer_id` = candidate sourcer, `owner_id` = the candidate's sourcer if active, otherwise the recruiter the actor picks (active REC/HREC of the vertical, accepted invite) (D142), `max_stage_reached = 1`, `stage_entered_at` = now; candidate status becomes «Активний»; candidate `last_activity_at` updated (new application = activity, D8).
 - Given a recruiter-initiated vacancy without a Team Lead, Then adding is allowed (D77 only blocks submission/routing).
 - Given the candidate already has an active application in the same routing group (position + vertical), Then 409 `ACTIVE_APPLICATION_IN_GROUP` (ROUTE-06); if that vacancy is not visible to the actor, the message does not name it.
 - Given a vacancy of another vertical, Then 409 `CANDIDATE_VERTICAL_MISMATCH` (CAND-06); the picker never offers it.
-- Given vacancy status outside QC-12's allowed set (`DRAFT`, `FILLED`, `CANCELLED`, default also `ON_HOLD`), Then 409 `VACANCY_NOT_OPEN` _(proposed code)_; not offered in the picker.
+- Given vacancy status other than `OPEN` (`DRAFT`, `ON_HOLD`, `FILLED`, `CANCELLED`; D142), Then 409 `VACANCY_NOT_OPEN` _(proposed code)_; not offered in the picker.
 - Given two users add the same candidate to two vacancies of the same group at once, Then the partial unique index lets one commit; the other gets `ACTIVE_APPLICATION_IN_GROUP`.
 - Given a double click, Then one application (idempotency key).
 - Given the vacancy picker, Then it lists only `OPEN` vacancies of the candidate's vertical the actor can read, searchable by number/title (D81), urgent ones highlighted (D97/D99 shared component).
@@ -272,7 +272,21 @@ As a **Recruiter**, I want to link my candidate to a vacancy, so that work on th
 
 **Events:** `application.created` (candidate, vacancy, source type) on candidate and vacancy timelines; audit. **Statistics:** vacancy stage counter `NEW` +1 in the same transaction (`vacancy_stage_count`); STAT inputs for Phase 4. **Notifications:** none (D93).
 **Copy:** `applications.add.title` «Додати до вакансії», `applications.add.search` «Пошук вакансії за номером або назвою», `applications.errors.activeInGroup` _(proposed)_ «Кандидат уже має активну кандидатуру на цю посаду», `applications.errors.verticalMismatch` _(proposed)_ «Вакансія з іншої вертикалі», `applications.errors.vacancyNotOpen` _(proposed)_ «Вакансія не відкрита».
-**Edges:** vacancy cancelled while dialog open → 409; candidate deleted/transferred concurrently → 404/409 (vertical trigger `FOR SHARE` serialises); deactivated owner → QC-12; how a mistaken application is closed → QC-11.
+**Edges:** vacancy cancelled while dialog open → 409; candidate deleted/transferred concurrently → 404/409 (vertical trigger `FOR SHARE` serialises); deactivated sourcer → the actor picks the owner, «неактивний» marker on candidate screens (D142); a mistaken application is closed by STORY-CAND-03-4 (D142).
+
+### STORY-CAND-03-4: Close a mistaken application at `NEW` (D142)
+
+As a **Recruiter (application owner), Head Recruiter of the vertical or Admin**, I want to close an application created by mistake before the pipeline exists, so that it does not block ROUTE-06 or vacancy deletion.
+
+**Acceptance criteria**
+
+- Given Олена's application on V-0007 at `NEW` (owner `recruiter1`), When `recruiter1` chooses «Відмова» with a reason, Then the state machine (`server/domain/pipeline/`) moves `NEW → REJECTED`; `closed_at`, reason stored; vacancy counter `NEW` −1 in the same transaction; `application.stage_changed {from: NEW, to: REJECTED}` on candidate and vacancy timelines; audit; Олена returns to «Резерв» if no other active application.
+- Given «Самовідвід», Then `NEW → WITHDRAWN` the same way.
+- Given the application is at any stage other than `NEW` (seed, D138), Then no control; API 409 (Phase 3 transitions).
+- Given two users close the same application at once, Then one succeeds, the other gets 409 `STALE_STATE`.
+- (negative) Recruiter not owner → 404/403 per scope; Team Lead, HR, Head HR → 403; Finance → 404.
+
+**Open detail (Phase 3 questions, defaults applied, not new policy):** reason list and comment rule follow the Q-69 / Q-118 recommendations; who records «Самовідвід» follows the Q-56 recommendation. Confirm when Phase 3 answers arrive.
 
 ### STORY-VAC-04-3: Candidates and counts on the vacancy card (visible only)
 
@@ -346,7 +360,7 @@ As a **Recruiter assigned to a vacancy**, I want to pick pool candidates from th
 
 ### STORY-CAND-02-2: Possible duplicate warning
 
-As a **creator**, I want to see possible (partial) duplicates, so that I avoid creating the same person twice. Partial-match rules are QC-13.
+As a **creator**, I want to see possible (partial) duplicates, so that I avoid creating the same person twice. Partial match = name trigram similarity ≥ 0.6 plus any partial key: phone digit suffix, email local part, similar LinkedIn slug (D143).
 
 **Acceptance criteria**
 
@@ -362,7 +376,7 @@ As a **Head Recruiter or Admin**, I want to merge two records of the same person
 
 - Given candidates A (created 01.10.2026, sourcer recruiter1) and B (created 15.11.2026, sourcer recruiter2) in Гемблінг, When Head Recruiter merges B into A, Then A keeps sourcer recruiter1; B gets `merged_into_id = A` + soft delete (keys freed); A's timeline shows B's events (redaction kept); B's files and applications appear on A; `candidate.merged` event on both; audit.
 - Given both have active applications in the same routing group, Then merge is refused 409 `MERGE_ACTIVE_SAME_GROUP` _(proposed code)_.
-- Given the actor cannot read both, Then 404 (P2-08). Given different verticals, Then refused (transfer first — QC-13).
+- Given the actor cannot read both, Then 404 (P2-08). Given different verticals, Then refused (transfer first — D143).
 - (negative) Recruiter/HR/TL → 403; Finance 404.
 
 ### STORY-BONUS-05-1: 180-day takeover — blocked by Q-45
@@ -393,7 +407,8 @@ As an **Admin, Head Recruiter or Head HR**, I want to move a candidate to anothe
 
 - Given Head Recruiter Гемблінг, candidate without active applications, When he picks Крипто, a new owner (active REC/HREC of Крипто) and a reason, Then vertical changes, sourcer unchanged, `candidate_vertical_transfer` row + `candidate.vertical_transferred {from,to}` (reason in PII store) + audit, one transaction.
 - Given an active application, Then 409 `CANDIDATE_HAS_ACTIVE_APPLICATIONS`.
-- (negative) Recruiter/HR/TL → 403; Head Recruiter of the target vertical only → 404; Head HR scope per QC-15.
+- (negative) Recruiter/HR/TL → 403; Head Recruiter of the target vertical only → 404; Head HR may transfer only a candidate who reached Polygraph in his vertical — a talent-pool candidate that never reached Polygraph → 404 (D144, authz `V≥P`).
+- Given the transfer is done, Then old-vertical roles see the candidate's closed applications only in their vacancy lists; the candidate card → 404 for them (D144).
 
 ---
 
@@ -422,7 +437,9 @@ As a **recruiting participant**, I want key counts on «Головна», so tha
 - Given a tile click, Then the matching filtered list opens.
 - (negative) Finance has no «Головна»; no tile reveals unscoped totals.
 
-**Perf:** one round-trip, counters/aggregates, < 150 ms. Host page and deltas: QC-16.
+- Given Phase 2, Then the host is a new «Головна» page with the KPI row only; role landing pages stay as D84; no deltas («+12 за тиждень») (D145).
+
+**Perf:** one round-trip, counters/aggregates, < 150 ms.
 
 ---
 
@@ -430,48 +447,58 @@ As a **recruiting participant**, I want key counts on «Головна», so tha
 
 ### STORY-UI-03-1: Ctrl+K finds candidates I may open
 
-- Given Ctrl+K with ≥ 3 characters (QC-14), Then up to 10 candidates and 10 vacancies from my scope, no total; contact-field matching only with `candidate.contacts.read`.
+- Given Ctrl+K with ≥ 3 characters (phone ≥ 5 digits; D143), Then up to 10 candidates and 10 vacancies from my scope, no total; contact-field matching only with `candidate.contacts.read`.
 - (negative) Finance has no search (D41); TL searching a candidate's phone gets nothing; deleted/merged candidates never appear.
 
 ---
 
 ## Traceability
 
-| PRD / decision                                | Stories                          | Test evidence        |
-| --------------------------------------------- | -------------------------------- | -------------------- |
-| CAND-04, VIS-01/02, D20, D48, D52, PERF-02/05 | STORY-CAND-04-1, STORY-CAND-04-2 | QA fills after build |
-| CLAUDE §8, PERF-01, SHOT-01..03               | STORY-SEED-3                     | QA fills             |
-| CAND-01, D51, D35, D84                        | STORY-CAND-01-1, STORY-CAND-01-2 | QA fills             |
-| CAND-02, D49, D32                             | STORY-CAND-02-1, -02-2, -02-3    | QA fills             |
-| CAND-05, D66                                  | STORY-CAND-05-1                  | QA fills             |
-| CAND-01, D29, D57, SEC files, AUD             | STORY-CAND-01-3, STORY-CAND-01-4 | QA fills             |
-| CAND-03, ROUTE-06/08, CAND-06                 | STORY-CAND-03-1                  | QA fills             |
-| VAC-04, VIS-02, D19                           | STORY-VAC-04-3                   | QA fills             |
-| D53                                           | STORY-VIS-03-1                   | QA fills             |
-| ROLE-06, D24/D43, BONUS-05                    | STORY-ROLE-06-2                  | QA fills             |
-| CAND-03, glossary «Кадровий резерв»           | STORY-CAND-03-2, -03-3           | QA fills             |
-| BONUS-05, D8, Q-45                            | STORY-BONUS-05-1 (blocked)       | —                    |
-| §2.3 delete, D65, Q-52                        | STORY-CAND-DEL-1                 | QA fills             |
-| CAND-06, D50                                  | STORY-CAND-06-1                  | QA fills             |
-| UI-09, D58                                    | STORY-UI-09-2                    | QA fills             |
-| UI-01, D59, Q-152                             | STORY-UI-01-1                    | QA fills             |
-| UI-03, D41                                    | STORY-UI-03-1                    | QA fills             |
+| PRD / decision                                | Stories                                                | Test evidence        |
+| --------------------------------------------- | ------------------------------------------------------ | -------------------- |
+| CAND-04, VIS-01/02, D20, D48, D52, PERF-02/05 | STORY-CAND-04-1, STORY-CAND-04-2                       | QA fills after build |
+| CLAUDE §8, PERF-01, SHOT-01..03               | STORY-SEED-3                                           | QA fills             |
+| CAND-01, D51, D35, D84                        | STORY-CAND-01-1, STORY-CAND-01-2                       | QA fills             |
+| CAND-02, D49, D32                             | STORY-CAND-02-1, -02-2, -02-3                          | QA fills             |
+| CAND-05, D66                                  | STORY-CAND-05-1                                        | QA fills             |
+| CAND-01, D29, D57, SEC files, AUD             | STORY-CAND-01-3, STORY-CAND-01-4                       | QA fills             |
+| CAND-03, ROUTE-06/08, CAND-06, D142           | STORY-CAND-03-1                                        | QA fills             |
+| CAND-03, §6 state machine, D142               | STORY-CAND-03-4                                        | QA fills             |
+| D138                                          | STORY-SEED-3, STORY-CAND-04-1                          | QA fills             |
+| D139                                          | STORY-CAND-04-2, STORY-CAND-01-2                       | QA fills             |
+| D140                                          | STORY-CAND-01-1, STORY-CAND-02-1, STORY-CAND-05-1      | QA fills             |
+| D141                                          | STORY-CAND-01-3, STORY-CAND-01-4                       | QA fills             |
+| D143                                          | STORY-CAND-02-2, -02-3, STORY-CAND-04-1, STORY-UI-03-1 | QA fills             |
+| D144                                          | STORY-CAND-DEL-1, STORY-CAND-06-1, STORY-CAND-04-2     | QA fills             |
+| D145                                          | STORY-UI-01-1                                          | QA fills             |
+| VAC-04, VIS-02, D19                           | STORY-VAC-04-3                                         | QA fills             |
+| D53                                           | STORY-VIS-03-1                                         | QA fills             |
+| ROLE-06, D24/D43, BONUS-05                    | STORY-ROLE-06-2                                        | QA fills             |
+| CAND-03, glossary «Кадровий резерв»           | STORY-CAND-03-2, -03-3                                 | QA fills             |
+| BONUS-05, D8, Q-45                            | STORY-BONUS-05-1 (blocked)                             | —                    |
+| §2.3 delete, D65, Q-52                        | STORY-CAND-DEL-1                                       | QA fills             |
+| CAND-06, D50                                  | STORY-CAND-06-1                                        | QA fills             |
+| UI-09, D58                                    | STORY-UI-09-2                                          | QA fills             |
+| UI-01, D59, Q-152                             | STORY-UI-01-1                                          | QA fills             |
+| UI-03, D41                                    | STORY-UI-03-1                                          | QA fills             |
 
 ## Conflicts found (for the architect / owner)
 
-1. **ERD vs D57:** no `candidate.photo_file_id`; `file_object_bucket_chk` has no photo bucket; `attachment` allows PNG/JPEG but not WebP; 2 MB photo limit absent.
-2. **ERD:** `candidate` has no `version` column → optimistic lock for edit/merge/transfer impossible.
-3. **ERD §10:** `application` "arrives with the pipeline" (Phase 3), but V4 and C4 need it in Phase 2.
-4. **ERD + threat model P2-11 vs D66:** former-employee/referrer editable "only by HREC/HHR/Admin"; D66 = Recruiter (own) + Head Recruiter set, Admin-only clear, Head HR none. `permissions.ts` follows D66.
-5. **authz §2.2 footnote 8 vs D48:** says LinkedIn/portfolio hidden from TL by default; D48 says visible. Footnote 9 still "⚠ OWNER pending" though D50 confirmed.
-6. **authz `candidate.transfer_vertical` HHR = `V≥P`** vs §2.3 "Head HR — from their vertical": Head HR cannot transfer a talent-pool candidate that never reached Polygraph (QC-15).
+1. **ERD vs D57:** no `candidate.photo_file_id`; `file_object_bucket_chk` has no photo bucket; `attachment` allows PNG/JPEG but not WebP; 2 MB photo limit absent. **Resolved: ADR-021** (`photo_file_id`, bucket `photo`).
+2. **ERD:** `candidate` has no `version` column → optimistic lock for edit/merge/transfer impossible. **Resolved: ADR-021** (`candidate.version`).
+3. **ERD §10:** `application` "arrives with the pipeline" (Phase 3), but V4 and C4 need it in Phase 2. **Resolved: ADR-021** (full table in C1; Phase 2 machine = T01 + `NEW → REJECTED/WITHDRAWN`).
+4. **ERD + threat model P2-11 vs D66:** former-employee/referrer editable "only by HREC/HHR/Admin"; D66 = Recruiter (own) + Head Recruiter set, Admin-only clear, Head HR none. `permissions.ts` follows D66. **Resolved: ADR-021** (D66 applied to ERD, authz, threat model; referrer column in Phase 4).
+5. **authz §2.2 footnote 8 vs D48:** says LinkedIn/portfolio hidden from TL by default; D48 says visible. Footnote 9 still "⚠ OWNER pending" though D50 confirmed. **Resolved: ADR-021** (footnotes rewritten).
+6. **authz `candidate.transfer_vertical` HHR = `V≥P`** vs §2.3 "Head HR — from their vertical": Head HR cannot transfer a talent-pool candidate that never reached Polygraph. **Settled by D144:** keep `V≥P`; PRD CAND-06 updated; authz footnote 9 aligned (ADR-021).
 7. **Wireframe candidate-card:** Recruiter «Видалити» at `NEW` and tooltip «Рекрутер може видалити кандидата лише до співбесіди…» contradict D65. Header badge «З бота» on a candidate has no PRD basis (source badge is vacancy-only, VAC-01).
 8. **screens.md S-08:** dedupe "debounced check on blur" vs authz §4 / threat P2-02 "on submit only"; OPEN-S11 is already settled by D49 (exact match blocks).
 9. **Dashboard wireframe / screens.md:** KPI row "Phase 4"; D59 says counts ship in Phase 2.
-10. **ERD `search_text`** includes email/phone/Telegram for all roles → a TL could confirm a phone by search despite D20; search must use contact terms only with `candidate.contacts.read`.
-11. **STORY-SEED-2 rule** "no invented applications merely to fill a future UI block" vs CLAUDE.md §8 "~30 candidates across all stages incl. probation day 35" (QC-1).
+10. **ERD `search_text`** includes email/phone/Telegram for all roles → a TL could confirm a phone by search despite D20; search must use contact terms only with `candidate.contacts.read`. **Resolved: ADR-021** (`search_name` + `search_contacts`, contact arm under the contacts scope).
+11. **STORY-SEED-2 rule** "no invented applications merely to fill a future UI block" vs CLAUDE.md §8 "~30 candidates across all stages incl. probation day 35". **Settled by D138:** stage + events only, no sub-records; STORY-SEED-2 note updated.
 
 ## Questions for the owner
+
+**All resolved 2026-11-24 — owner accepted every recommendation («згоден зі всім»): QC-1, QC-2 → D138; QC-3, QC-4 → D139; QC-5..QC-8 → D140; QC-9, QC-10 → D141; QC-11, QC-12 → D142; QC-13, QC-14 → D143; QC-15 → D144; QC-16 → D145.** Table kept for traceability.
 
 | ID    | Question                                                                                                                                                                                                                    | Options                                                                                                                                                                                                                          | Recommendation                                                    |
 | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
@@ -494,8 +521,12 @@ As a **recruiting participant**, I want key counts on «Головна», so tha
 
 ## Ready for design
 
-- C1 (after ADR adds photo/version columns and confirms Phase 2 `application`), C2 (with Q-122 default), C3, C4, C5, C8, C10.
+- C1 (after ADR adds photo/version columns and confirms Phase 2 `application`; seed per D138), C2 (with Q-122 default; D140), C3 (D141), C4 incl. STORY-CAND-03-4 (D142), C5, C7 (D144), C8, C9 (D145; Q-152 tile definitions use the stated default), C10 (D143).
+- C6 possible duplicates and merge (STORY-CAND-02-2, -02-3; D143).
 
 ## Blocked by questions
 
-- C1 seed scope — QC-1; C4 close-mistake path — QC-11; C6 — Q-45, QC-13; C7 — Q-52, QC-15; C9 — Q-152, QC-16.
+- STORY-BONUS-05-1 180-day takeover — Q-45.
+- STORY-CAND-DEL-1 with active applications — Q-52 (default: close first → 409).
+- C9 exact tile definitions — Q-152 (default stated; not silently accepted).
+- Architect/database/UX conflicts in «Conflicts found» items 1–5, 7–10 (not owner questions).

@@ -14,7 +14,9 @@ import {
   type PatchVacancyInput,
   type VacancyDetail,
 } from '@/lib/schemas/vacancy';
+import { vacancyContentReadSchema } from '@/lib/schemas/vacancy-content';
 import { toast } from '@/lib/toast';
+import type { ContentDocs } from '@/lib/vacancy-content-form';
 import {
   noteVacancyWriteFailure,
   watchVacancyAccess,
@@ -295,6 +297,15 @@ export const loadLatestVacancy = (queryClient: QueryClient, id: string) =>
     // The author is waiting on this answer: one failure goes to the toast, whose button tries again.
     retry: retrySessionLoss,
   });
+
+/** The draft's stored «Опис»/«Вимоги», read with the draft on «Завантажити актуальну». */
+export async function loadDraftContent(id: string): Promise<ContentDocs> {
+  const { descriptionDoc, requirementsDoc } = await apiRequest(
+    `${draftPath(id)}/content`,
+    { schema: vacancyContentReadSchema },
+  );
+  return { descriptionDoc, requirementsDoc };
+}
 
 type Translate = ReturnType<typeof useTranslations<'vacancyForm'>>;
 

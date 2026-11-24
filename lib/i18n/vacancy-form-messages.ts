@@ -9,6 +9,7 @@ export const vacancyFormClientMessages = ({
   common,
   states,
   form,
+  richText,
 }: Messages) => ({
   vacancyForm,
   vacancies: {
@@ -17,8 +18,10 @@ export const vacancyFormClientMessages = ({
     notSpecified: vacancies.notSpecified,
     workFormat: vacancies.workFormat,
     status: vacancies.status,
+    contentEdit: vacancies.contentEdit,
   },
   common,
   states,
   form,
+  richText,
 });

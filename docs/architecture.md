@@ -464,7 +464,7 @@ export declare function vacancyRewardChangeAllowed(
 ### 8.3 Candidate vertical transfer — service (CAND-06, owner 2026-10-31)
 
 - `candidate.transferVertical(ctx, candidateId, { toVerticalId, newOwnerId, reason })`: scoped fetch `FOR UPDATE` (404) → `candidate.transfer_vertical` in the **source** vertical (403) → no active applications (409 `CANDIDATE_HAS_ACTIVE_APPLICATIONS`) → `newOwnerId` holds REC/HREC in the target vertical → update `vertical_id`, `owner_id` (sourcer unchanged) → event `candidate.vertical_transferred` + audit + change feed on both vertical topics.
-- ⚠ OWNER: defaults pending (role required only in the source vertical; blocked while active applications exist; sourcer unchanged; new owner picked in the dialog). Dedupe stays company-wide.
+- Confirmed by D50 and D144: role required only in the source vertical (Head HR: candidate reached Polygraph there, `V≥P`); blocked while active applications exist; sourcer unchanged; new owner picked in the dialog; `expectedVersion` on the candidate (ADR-021). Old-vertical roles keep only the closed applications in their vacancy lists. Dedupe stays company-wide.
 
 ## 9. Entity names for `docs/erd.md` (database-engineer baseline + additions)
 
@@ -520,7 +520,7 @@ ERD renames (§6.1 C1–C26) are **accepted** and used in these docs: `max_stage
 | Rejected archive                   | `ORDER BY closed_at DESC, id DESC` on IDX-09/10                                                                                                                                                                                                                                                                        | < 150 ms     |
 | Card detail                        | `Promise.all`: entity (1 query with joins) + first timeline page + available actions                                                                                                                                                                                                                                   | < 100 ms     |
 | Stage move                         | 1 tx: lock row, ≤ 8 small writes                                                                                                                                                                                                                                                                                       | < 120 ms     |
-| Global search                      | pg_trgm GIN on candidate name/email + scope, `LIMIT 10`                                                                                                                                                                                                                                                                | < 150 ms     |
+| Global search                      | pg_trgm GIN on `search_name` (+ `search_contacts` only under the contacts scope, ADR-021) + scope, `LIMIT 10`                                                                                                                                                                                                          | < 150 ms     |
 | Statistics                         | aggregate tables only                                                                                                                                                                                                                                                                                                  | < 150 ms     |
 
 ## 11. Designed for later

@@ -10,6 +10,11 @@ type Buffer =
   { kind: 'unchanged' } | { kind: 'replacement'; result: EditorDocumentResult };
 export type ContentIntent = Buffer | { kind: 'clear'; previous: Buffer };
 export type ContentFields = Record<ContentField, ContentIntent>;
+export type ContentDocs = Pick<VacancyContent, ContentField>;
+/** What the create and draft forms read from the lazy content fields at send time; `null` = an invalid field blocks the save and is already shown. */
+export interface FormContentHandle {
+  collect: () => Partial<ContentDocs> | null;
+}
 export type ContentFeedback =
   | {
       kind:
@@ -42,7 +47,7 @@ export const invalidContentFields = (fields: ContentFields) =>
       fields[key].result.kind === 'invalid',
   );
 export function fieldDocument(
-  baseline: VacancyContent,
+  baseline: ContentDocs,
   field: ContentField,
   intent: ContentIntent,
 ) {
@@ -54,7 +59,7 @@ export function fieldDocument(
         ? intent.result.document
         : undefined;
 }
-export const contentDirty = (baseline: VacancyContent, fields: ContentFields) =>
+export const contentDirty = (baseline: ContentDocs, fields: ContentFields) =>
   CONTENT_FIELDS.some(
     (field) =>
       (fields[field].kind === 'replacement' &&
@@ -65,7 +70,7 @@ export const contentDirty = (baseline: VacancyContent, fields: ContentFields) =>
       ),
   );
 export function changeContent(
-  baseline: VacancyContent,
+  baseline: ContentDocs,
   fields: ContentFields,
   field: ContentField,
   result: EditorDocumentResult,
@@ -78,6 +83,19 @@ export function changeContent(
         ? { kind: 'unchanged' }
         : { kind: 'replacement', result },
   };
+}
+/** The documents that differ from `baseline`: omitted keys keep the stored value, `null` clears; an invalid field contributes nothing (callers refuse it first). */
+export function contentChanges(
+  baseline: ContentDocs,
+  fields: ContentFields,
+): Partial<ContentDocs> {
+  const changes: Partial<ContentDocs> = {};
+  for (const field of CONTENT_FIELDS) {
+    const document = fieldDocument(baseline, field, fields[field]);
+    if (document !== undefined && !sameContent(document, baseline[field]))
+      changes[field] = document;
+  }
+  return changes;
 }
 export function clearContent(
   fields: ContentFields,

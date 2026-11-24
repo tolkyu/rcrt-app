@@ -9,6 +9,10 @@ import type { LeaveGuardHandle } from '@/components/ui/use-leave-guard';
 import { focusField } from '@/components/vacancies/use-field-summary';
 import { useSubmitLifecycle } from '@/components/vacancies/use-submit-lifecycle';
 import type { CreateVacancyBody, VacancyDetail } from '@/lib/schemas/vacancy';
+import type {
+  ContentDocs,
+  FormContentHandle,
+} from '@/lib/vacancy-content-form';
 import { vacancyFormValues } from '@/lib/vacancy-edit-form';
 import {
   loadEditFeedback,
@@ -39,6 +43,8 @@ export function useEditVacancy({
   modeRef,
   guard,
   vacancy,
+  initialContent,
+  content,
   shown,
 }: {
   form: Pick<
@@ -48,6 +54,9 @@ export function useEditVacancy({
   modeRef: RefObject<VacancyFormMode>;
   guard: RefObject<LeaveGuardHandle | null>;
   vacancy: VacancyDetail;
+  initialContent: ContentDocs;
+  /** The lazy «Опис»/«Вимоги» fields; absent until their chunk loads, when nothing can have been typed in them. */
+  content: RefObject<FormContentHandle | null>;
   shown: { readonly teamLead: boolean; readonly probation: boolean };
 }) {
   const t = useTranslations('vacancyForm');
@@ -60,6 +69,8 @@ export function useEditVacancy({
   // The draft as the server last stored it: the version every send is checked against. A ref, so a retry never reads an older render.
   const stored = useRef(vacancy);
   const [baseline, setBaseline] = useState(vacancy);
+  const storedContent = useRef(initialContent);
+  const [contentBaseline, setContentBaseline] = useState(initialContent);
   const [staleUi, setStaleUi] = useState<EditFeedbackModule | null>(null);
   const [stale, setStale] = useState(false);
   const [reloading, setReloading] = useState(false);
@@ -82,9 +93,11 @@ export function useEditVacancy({
   } = life;
 
   /** Makes `next` the stored draft and puts its values in the form (nothing typed is left to lose by then). */
-  const adopt = (next: VacancyDetail) => {
+  const adopt = (next: VacancyDetail, docs: ContentDocs) => {
     stored.current = next;
+    storedContent.current = docs;
     setBaseline(next);
+    setContentBaseline(docs);
     reset(vacancyFormValues(next, shown.probation));
   };
 
@@ -141,6 +154,15 @@ export function useEditVacancy({
       );
       return;
     }
+    const docs = content.current ? content.current.collect() : {};
+    if (!docs) {
+      unlock();
+      return;
+    }
+    const changes =
+      plan.changes || Object.keys(docs).length > 0
+        ? { ...plan.changes, ...docs }
+        : null;
     setStale(false);
     setPendingMode(action);
     attempts.current ??= lib.createAttemptKeys();
@@ -148,7 +170,7 @@ export function useEditVacancy({
       id: current.id,
       version: current.version,
       action,
-      changes: plan.changes,
+      changes,
       everything: plan.everything,
       hasSalaryAmount:
         values.salaryMin.trim() !== '' || values.salaryMax.trim() !== '',
@@ -157,7 +179,8 @@ export function useEditVacancy({
       unlock();
       if (!mounted.current) return;
       // The PATCH worked and the publish did not: the draft is saved, so the form is clean again.
-      if (outcome.saved) adopt(outcome.saved);
+      if (outcome.saved)
+        adopt(outcome.saved, { ...storedContent.current, ...docs });
       showFailure(
         lib,
         outcome.effect,
@@ -186,13 +209,13 @@ export function useEditVacancy({
     try {
       const lib = await loadEditSubmit();
       try {
-        const latest = await lib.loadLatestVacancy(
-          queryClient,
-          stored.current.id,
-        );
+        const [latest, docs] = await Promise.all([
+          lib.loadLatestVacancy(queryClient, stored.current.id),
+          lib.loadDraftContent(stored.current.id),
+        ]);
         if (!mounted.current) return;
         if (latest.status === 'DRAFT') {
-          adopt(latest);
+          adopt(latest, docs);
           setStale(false);
           clearSummary();
           // The alert and its button are gone: focus goes back into the form instead of to the page.
@@ -223,5 +246,6 @@ export function useEditVacancy({
     summary: life.summary,
     announce: life.announce,
     baseline,
+    contentBaseline,
   };
 }

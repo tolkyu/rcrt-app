@@ -14,6 +14,7 @@ import {
 import { loadSubmit, type SubmitModule } from '@/lib/vacancy-form-load';
 import type { FinalFailure } from '@/lib/vacancy-form-submit';
 import type { CreateVacancyBody } from '@/lib/schemas/vacancy';
+import type { FormContentHandle } from '@/lib/vacancy-content-form';
 
 export type CreateAlert = 'draftLimit' | 'verticalUnavailable' | null;
 
@@ -25,6 +26,7 @@ export function useCreateVacancy({
   form: { handleSubmit, setError, subscribe },
   modeRef,
   guard,
+  content,
 }: {
   form: Pick<
     UseFormReturn<VacancyFormValues>,
@@ -32,6 +34,8 @@ export function useCreateVacancy({
   >;
   modeRef: RefObject<VacancyFormMode>;
   guard: RefObject<LeaveGuardHandle | null>;
+  /** The lazy «Опис»/«Вимоги» fields; absent until their chunk loads, when nothing can have been typed in them. */
+  content: RefObject<FormContentHandle | null>;
 }) {
   const t = useTranslations('vacancyForm');
   const tVacancies = useTranslations('vacancies');
@@ -90,7 +94,11 @@ export function useCreateVacancy({
   };
 
   const submit = (action: VacancyFormMode) =>
-    life.submit(action, (lib, _values, body) => send(lib, body));
+    life.submit(action, async (lib, _values, body) => {
+      const docs = content.current ? content.current.collect() : {};
+      if (docs) await send(lib, { ...body, ...docs });
+      else unlock();
+    });
 
   return {
     submit,

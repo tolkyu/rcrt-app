@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { FormPageLayout } from '@/components/ui/form-page-layout';
 import { FormRailLayout } from '@/components/ui/form-rail';
@@ -18,6 +18,11 @@ import { VacancyBasicsGroup } from '@/components/vacancies/vacancy-basics-group'
 import { VacancyFormError } from '@/components/vacancies/vacancy-form-error';
 import { useVacancyPickers } from '@/components/vacancies/use-vacancy-pickers';
 import { VacancyConditionsGroup } from '@/components/vacancies/vacancy-conditions-group';
+import { VacancyFormContentSlot } from '@/components/vacancies/vacancy-form-content-slot';
+import type {
+  ContentDocs,
+  FormContentHandle,
+} from '@/lib/vacancy-content-form';
 import {
   emptyVacancyForm,
   isTitleLengthReady,
@@ -28,7 +33,9 @@ import {
 } from '@/lib/vacancy-form';
 import type { PositionsSeed } from '@/lib/vacancy-form-submit';
 
-/** «Нова вакансія», groups «Основне» and «Умови» (VAC-01, STORY-VAC-01-1): one create call for both actions, checked by the shared Zod schema. */
+const NO_CONTENT: ContentDocs = { descriptionDoc: null, requirementsDoc: null };
+
+/** «Нова вакансія», groups «Основне», «Умови» and «Опис і вимоги» (VAC-01, STORY-VAC-01-1, D117): one create call for both actions, checked by the shared Zod schema. */
 export function VacancyCreateForm({
   verticals,
   initialVerticalId,
@@ -51,6 +58,8 @@ export function VacancyCreateForm({
   const fieldError = useVacancyErrorText();
   const guard = useRef<LeaveGuardHandle>(null);
   const mode = useRef<VacancyFormMode>('DRAFT');
+  const content = useRef<FormContentHandle | null>(null);
+  const [contentDirty, setContentDirty] = useState(false);
   const form = useForm<VacancyFormValues>({
     resolver: useVacancyResolver(mode),
     mode: 'onTouched',
@@ -82,7 +91,7 @@ export function VacancyCreateForm({
     clearAlert,
     summary,
     announce,
-  } = useCreateVacancy({ form, modeRef: mode, guard });
+  } = useCreateVacancy({ form, modeRef: mode, guard, content });
   const currentVertical = verticals.find(
     (vertical) => vertical.id === verticalId,
   );
@@ -130,7 +139,7 @@ export function VacancyCreateForm({
       title={t('title')}
       subtitle={t('subtitle')}
       back={{ href: listHref, label: t('back') }}
-      dirty={isDirty}
+      dirty={isDirty || contentDirty}
       guardRef={guard}
       onSubmit={(event) => event.preventDefault()}
       onKeyDown={onKeyDown}
@@ -185,6 +194,12 @@ export function VacancyCreateForm({
           pending={pending}
           showProbation={showProbation}
           normalizeSalary={lib?.normalizeSalaryText}
+        />
+        <VacancyFormContentSlot
+          baseline={NO_CONTENT}
+          disabled={pending}
+          onDirtyChange={setContentDirty}
+          handleRef={content}
         />
         <AfterCreateNote assigner={showTeamLead} />
         {alert && feedback && <feedback.FormAlerts kind={alert} />}

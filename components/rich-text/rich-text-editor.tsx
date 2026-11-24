@@ -10,14 +10,11 @@ import {
   useSyncExternalStore,
   type Ref,
 } from 'react';
-import { useTranslations } from 'next-intl';
 import type { FieldControlProps } from '@/components/ui/form-field';
-import { Button } from '@/components/ui/button';
 import { LoadBoundary } from '@/components/ui/load-boundary';
 import type { RichTextDoc } from '@/lib/schemas/rich-text';
 import type { EditorDocumentResult } from '@/lib/rich-text-editor-document';
-import { cn } from '@/lib/utils';
-import { RICH_TEXT_FIELD_HEIGHT } from './rich-text-typography';
+import { RichTextLoadFailed, RichTextSkeleton } from './rich-text-slot';
 
 export type RichTextEditorHandle = { focus: () => void };
 
@@ -45,7 +42,6 @@ export function RichTextEditor({
   onLoadFailedChange,
   ...props
 }: RichTextEditorProps) {
-  const t = useTranslations('richText');
   const loadFailed = useRef(onLoadFailedChange);
   useEffect(() => {
     loadFailed.current = onLoadFailedChange;
@@ -68,14 +64,7 @@ export function RichTextEditor({
     ready.current(false);
     return () => ready.current(false);
   }, []);
-  const skeleton = (
-    <div
-      role="status"
-      className={cn('bg-surface-muted rounded-lg p-4', RICH_TEXT_FIELD_HEIGHT)}
-    >
-      {t('loading')}
-    </div>
-  );
+  const skeleton = <RichTextSkeleton />;
   const { Runtime } = attempt;
   return (
     <LoadBoundary
@@ -85,28 +74,15 @@ export function RichTextEditor({
         loadFailed.current?.(true);
       }}
       fallback={
-        <div
-          role="alert"
-          className={cn(
-            'border-input rounded-lg border p-4',
-            RICH_TEXT_FIELD_HEIGHT,
-          )}
-        >
-          <p>{t('loadFailed')}</p>
-          <Button
-            variant="outline"
-            className="mt-3 h-11 md:h-10"
-            onClick={() => {
-              ready.current(false);
-              setAttempt(({ key }) => ({
-                Runtime: createRuntime(),
-                key: key + 1,
-              }));
-            }}
-          >
-            {t('retry')}
-          </Button>
-        </div>
+        <RichTextLoadFailed
+          onRetry={() => {
+            ready.current(false);
+            setAttempt(({ key }) => ({
+              Runtime: createRuntime(),
+              key: key + 1,
+            }));
+          }}
+        />
       }
     >
       <Suspense fallback={skeleton}>

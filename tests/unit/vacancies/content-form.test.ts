@@ -4,6 +4,7 @@ import {
   baselineContent,
   changeContent,
   clearContent,
+  contentChanges,
   contentDirty,
   emptyContentFields,
   fieldDocument,
@@ -157,5 +158,40 @@ describe('content intent and strict diff [ADR-020]', () => {
       { kind: 'valid', document: unsafe },
     );
     expect(buildContentPatch(baseline, fields).kind).toBe('invalid');
+  });
+});
+
+describe('contentChanges: the documents a create or draft save sends [VAC-01, D117]', () => {
+  const empty = { descriptionDoc: null, requirementsDoc: null };
+  it('an untouched form against an empty baseline sends nothing', () => {
+    expect(contentChanges(empty, emptyContentFields())).toEqual({});
+  });
+  it('sends a typed document, a clear as null, and skips a field typed back to the stored text', () => {
+    let fields = changeContent(
+      baseline,
+      emptyContentFields(),
+      'requirementsDoc',
+      parseEditorDocument(doc('Нові вимоги')),
+    );
+    fields = clearContent(fields, 'descriptionDoc');
+    expect(contentChanges(baseline, fields)).toEqual({
+      descriptionDoc: null,
+      requirementsDoc: doc('Нові вимоги'),
+    });
+    const back = changeContent(
+      baseline,
+      emptyContentFields(),
+      'descriptionDoc',
+      parseEditorDocument(doc('Saved')),
+    );
+    expect(contentChanges(baseline, back)).toEqual({});
+  });
+  it('clearing a field that has nothing stored sends nothing', () => {
+    expect(
+      contentChanges(
+        empty,
+        clearContent(emptyContentFields(), 'descriptionDoc'),
+      ),
+    ).toEqual({});
   });
 });

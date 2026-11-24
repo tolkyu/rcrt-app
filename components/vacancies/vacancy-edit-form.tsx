@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useRef, type KeyboardEvent } from 'react';
+import { useRef, useState, type KeyboardEvent } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import type { ComboboxOption } from '@/components/ui/combobox';
 import { FormPageLayout } from '@/components/ui/form-page-layout';
@@ -23,8 +23,13 @@ import { useVacancyPickers } from '@/components/vacancies/use-vacancy-pickers';
 import { useVacancyResolver } from '@/components/vacancies/use-vacancy-resolver';
 import { VacancyBasicsGroup } from '@/components/vacancies/vacancy-basics-group';
 import { VacancyConditionsGroup } from '@/components/vacancies/vacancy-conditions-group';
+import { VacancyFormContentSlot } from '@/components/vacancies/vacancy-form-content-slot';
 import { VacancyFormError } from '@/components/vacancies/vacancy-form-error';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
+import type {
+  ContentDocs,
+  FormContentHandle,
+} from '@/lib/vacancy-content-form';
 import { vacancyFormValues } from '@/lib/vacancy-edit-form';
 import {
   isTitleLengthReady,
@@ -40,11 +45,13 @@ const NO_VERTICAL_CHANGE = () => undefined;
 /** «Редагування чернетки» (VAC-01, STORY-VAC-01-1): the create form's groups on a saved draft; Save sends only the changed fields, Publish saves them first. */
 export function VacancyEditForm({
   vacancy,
+  initialContent,
   vertical,
   initialPositions,
   canManagePositions,
 }: {
   vacancy: VacancyDetail;
+  initialContent: ContentDocs;
   vertical: {
     id: string;
     name: string;
@@ -58,6 +65,8 @@ export function VacancyEditForm({
   const fieldError = useVacancyErrorText();
   const guard = useRef<LeaveGuardHandle>(null);
   const mode = useRef<VacancyFormMode>('DRAFT');
+  const content = useRef<FormContentHandle | null>(null);
+  const [contentDirty, setContentDirty] = useState(false);
   const verticals = [vertical];
   const showTeamLead = teamLeadFieldShown(verticals, vertical.id);
   const showProbation = probationFieldShown(verticals, vertical.id);
@@ -86,6 +95,8 @@ export function VacancyEditForm({
     modeRef: mode,
     guard,
     vacancy,
+    initialContent,
+    content,
     shown: { teamLead: showTeamLead, probation: showProbation },
   });
   const { baseline, lib, feedback, pending } = edit;
@@ -130,7 +141,7 @@ export function VacancyEditForm({
       title={t('edit.title')}
       subtitle={subtitle}
       back={{ href: listHref, label: t('back') }}
-      dirty={isDirty}
+      dirty={isDirty || contentDirty}
       guardRef={guard}
       onSubmit={(event) => event.preventDefault()}
       onKeyDown={onKeyDown}
@@ -158,7 +169,7 @@ export function VacancyEditForm({
       >
         {edit.stale && edit.staleUi && (
           <edit.staleUi.StaleAlert
-            dirty={isDirty}
+            dirty={isDirty || contentDirty}
             busy={pending}
             onReload={() => void edit.reloadLatest()}
           />
@@ -195,6 +206,12 @@ export function VacancyEditForm({
           pending={pending}
           showProbation={showProbation}
           normalizeSalary={lib?.normalizeSalaryText}
+        />
+        <VacancyFormContentSlot
+          baseline={edit.contentBaseline}
+          disabled={pending}
+          onDirtyChange={setContentDirty}
+          handleRef={content}
         />
         <AfterCreateNote assigner={showTeamLead} />
       </FormRailLayout>

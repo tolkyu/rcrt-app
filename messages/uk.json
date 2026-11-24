@@ -655,6 +655,7 @@
       "URGENT": "Термінова"
     },
     "conditions": "Умови",
+    "content": "Опис і вимоги",
     "seniority": {
       "label": "Рівень"
     },

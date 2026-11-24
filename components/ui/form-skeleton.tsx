@@ -12,7 +12,7 @@ const BUTTON_WIDTHS: readonly string[] = [
   'min-w-[9.86rem]',
 ];
 
-type FieldKind = 'input' | 'textarea' | 'segmented';
+type FieldKind = 'input' | 'textarea' | 'segmented' | 'richText';
 /** Real translated copy sizes wrapped hints without viewport-specific line-count guesses. */
 export interface FormSkeletonTextHint {
   message: MessageKey;
@@ -45,6 +45,7 @@ const CONTROL_CLASS: Record<FieldKind, string> = {
   textarea: 'h-[calc(3lh+1.5rem+2px)] w-full rounded-lg text-base md:text-sm',
   // Radio group chrome: 1 px border + 4 px padding around a 44 / 40 px segment.
   segmented: 'h-[3.375rem] w-full rounded-xl md:h-[3.125rem]',
+  richText: 'h-74 w-full rounded-lg md:h-94',
 };
 
 /** Static class names: Tailwind cannot generate a class from an interpolated column count. */
@@ -139,6 +140,8 @@ function FieldSkeleton({
     >
       <LabelSkeleton />
       <Skeleton data-slot="control-skeleton" className={CONTROL_CLASS[kind]} />
+      {/* The rich-text field's «Очистити» row (`VacancyContentField`). */}
+      {kind === 'richText' && <div className="mt-2 h-11 md:h-8" />}
       <LinesSkeleton hint={hint} className="mt-1.5" />
     </div>
   );

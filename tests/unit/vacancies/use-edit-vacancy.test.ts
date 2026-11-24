@@ -18,7 +18,12 @@ import {
   useEditVacancy,
 } from '@/components/vacancies/use-edit-vacancy';
 import { useVacancyResolver } from '@/components/vacancies/use-vacancy-resolver';
+import type { RichTextDoc } from '@/lib/schemas/rich-text';
 import type { VacancyDetail } from '@/lib/schemas/vacancy';
+import type {
+  ContentDocs,
+  FormContentHandle,
+} from '@/lib/vacancy-content-form';
 import { vacancyFormValues } from '@/lib/vacancy-edit-form';
 import type { VacancyFormMode, VacancyFormValues } from '@/lib/vacancy-form';
 import messages from '@/messages/uk.json';
@@ -90,6 +95,18 @@ const json = (status: number, body: unknown) =>
   });
 const problem = (status: number, code: string) =>
   json(status, { code, errors: [] });
+const doc = (text: string): RichTextDoc => ({
+  type: 'doc',
+  content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
+});
+const STORED: ContentDocs = {
+  descriptionDoc: doc('Опис'),
+  requirementsDoc: null,
+};
+/** What the content GET answers; kept out of the ordered queue because the reload reads it in parallel with the draft. */
+let storedContent: ContentDocs = STORED;
+/** Stands in for the lazy «Опис»/«Вимоги» fields. */
+const content: { current: FormContentHandle | null } = { current: null };
 
 interface Probe {
   form: UseFormReturn<VacancyFormValues>;
@@ -110,6 +127,8 @@ function Harness({ onRender }: { onRender: (probe: Probe) => void }) {
     modeRef: mode,
     guard: guard as RefObject<null>,
     vacancy: draft(),
+    initialContent: STORED,
+    content,
     shown: { teamLead: false, probation: false },
   });
   onRender({ form, edit, dirty: form.formState.isDirty });
@@ -173,7 +192,22 @@ const lastToast = (kind: 'error' | 'warning' | 'success') =>
 
 beforeEach(() => {
   fetchSpy = vi.fn<typeof fetch>();
-  vi.stubGlobal('fetch', fetchSpy);
+  storedContent = STORED;
+  content.current = null;
+  vi.stubGlobal('fetch', (url: RequestInfo | URL, init?: RequestInit) =>
+    String(url).endsWith('/content')
+      ? Promise.resolve(
+          json(200, {
+            id: ID,
+            version: 1,
+            updatedAt: '2026-11-16T08:00:00.000Z',
+            status: 'DRAFT',
+            canEditContent: false,
+            ...storedContent,
+          }),
+        )
+      : fetchSpy(url, init),
+  );
   queryClient = new QueryClient();
 });
 afterEach(() => {
@@ -378,5 +412,90 @@ describe('useEditVacancy: what the form does after each answer [S3.3 review]', (
       await reload;
     });
     expect(current().edit.pending).toBe(false);
+  });
+});
+
+describe('useEditVacancy: «Опис» and «Вимоги» in the draft form [VAC-01, D117]', () => {
+  it('sends only the changed documents with the other fields in one PATCH', async () => {
+    content.current = { collect: () => ({ requirementsDoc: doc('Вимоги') }) };
+    await mount();
+    await type('location', 'Харків');
+    answers(json(200, draft({ location: 'Харків', version: 4 })));
+    await press('DRAFT');
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    expect(calls()).toEqual([
+      {
+        url: DETAIL_URL,
+        method: 'PATCH',
+        body: {
+          location: 'Харків',
+          requirementsDoc: doc('Вимоги'),
+          expectedVersion: 3,
+        },
+      },
+    ]);
+  });
+
+  it('a content-only change is a save of its own, and a cleared field is sent as null', async () => {
+    content.current = { collect: () => ({ descriptionDoc: null }) };
+    await mount();
+    answers(json(200, draft({ version: 4 })));
+    await press('DRAFT');
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    expect(calls()).toEqual([
+      {
+        url: DETAIL_URL,
+        method: 'PATCH',
+        body: { descriptionDoc: null, expectedVersion: 3 },
+      },
+    ]);
+  });
+
+  it('an invalid document blocks the send and the next press works again', async () => {
+    const collect = vi.fn<FormContentHandle['collect']>(() => null);
+    content.current = { collect };
+    await mount();
+    await type('location', 'Харків');
+    await press('DRAFT');
+    expect(collect).toHaveBeenCalledOnce();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(current().edit.pending).toBe(false);
+
+    collect.mockReturnValue({});
+    answers(json(200, draft({ location: 'Харків', version: 4 })));
+    await press('DRAFT');
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    expect(calls()).toHaveLength(1);
+  });
+
+  it('a refused publish after a good save makes the sent documents the new baseline', async () => {
+    content.current = { collect: () => ({ requirementsDoc: doc('Вимоги') }) };
+    await mount();
+    answers(
+      json(200, draft({ version: 4 })),
+      problem(409, 'POSITION_INACTIVE'),
+    );
+    await press('PUBLISH');
+    await waitFor(() => expect(current().edit.baseline.version).toBe(4));
+    expect(current().edit.contentBaseline).toEqual({
+      descriptionDoc: doc('Опис'),
+      requirementsDoc: doc('Вимоги'),
+    });
+  });
+
+  it('«Завантажити актуальну» also takes the stored documents', async () => {
+    await mount();
+    await type('location', 'Харків');
+    answers(problem(409, 'STALE_STATE'), json(200, draft({ version: 5 })));
+    await press('DRAFT');
+    await waitFor(() => expect(current().edit.stale).toBe(true));
+
+    storedContent = { descriptionDoc: null, requirementsDoc: doc('Нові') };
+    answers(json(200, draft({ version: 6 })));
+    await act(async () => {
+      await current().edit.reloadLatest();
+    });
+    expect(current().edit.contentBaseline).toEqual(storedContent);
+    expect(current().edit.baseline.version).toBe(6);
   });
 });

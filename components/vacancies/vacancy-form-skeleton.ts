@@ -92,5 +92,8 @@ export const vacancyFormSkeleton = ({
   ],
   ...(withTeamLead ? [{ kind: 'input' as const, hint: TEAM_LEAD_HINT }] : []),
   ...vacancyConditionsSkeleton(withProbation),
+  'group',
+  'richText',
+  'richText',
   vacancyAfterCreateSkeleton(withTeamLead),
 ];

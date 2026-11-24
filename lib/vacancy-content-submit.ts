@@ -8,11 +8,9 @@ import {
   type VacancyContent,
 } from './schemas/vacancy-content';
 import {
-  CONTENT_FIELDS,
+  contentChanges,
   contentDirty,
-  fieldDocument,
   invalidContentFields,
-  sameContent,
   type ContentFeedback,
   type ContentFields,
 } from './vacancy-content-form';
@@ -28,11 +26,10 @@ export function buildContentPatch(
   const invalid = invalidContentFields(fields);
   if (invalid.length) return { kind: 'invalid', fields: invalid };
   if (!contentDirty(baseline, fields)) return { kind: 'empty' };
-  const body: UpdateVacancyContentInput = { expectedVersion: baseline.version };
-  for (const field of CONTENT_FIELDS) {
-    const document = fieldDocument(baseline, field, fields[field]);
-    if (!sameContent(document, baseline[field])) body[field] = document;
-  }
+  const body: UpdateVacancyContentInput = {
+    expectedVersion: baseline.version,
+    ...contentChanges(baseline, fields),
+  };
   const parsed = updateVacancyContentSchema.safeParse(body);
   return parsed.success
     ? { kind: 'patch', body: parsed.data }

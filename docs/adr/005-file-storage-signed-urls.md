@@ -29,6 +29,7 @@
 | `polygraph`  | Polygraph result                                                           | 15 MB | pdf                          |
 | `offer`      | Generated offer letters (server upload)                                    | 5 MB  | pdf                          |
 | `attachment` | Other card attachments ⚠ OPEN (types/limit not in PRD; default = CV rules) | 10 MB | pdf, msword, docx, png, jpeg |
+| `photo`      | Candidate photo, current only (D57, D141; ADR-021)                         | 2 MB  | jpeg, png, webp              |
 
 ### Storage access policies (DG-03)
 
@@ -47,7 +48,7 @@
    - PDF: starts with `%PDF-`.
    - DOCX: `PK\x03\x04`, then a ranged read of the zip **central directory**: must contain `[Content_Types].xml` and `word/document.xml`; **reject if `vbaProject.bin` is present** (macro document renamed to .docx); reject entry counts/uncompressed sizes beyond sane limits (zip bomb).
    - DOC: `D0 CF 11 E0`.
-   - Attachments PNG `89 50 4E 47 0D 0A 1A 0A`, JPEG `FF D8 FF`.
+   - Attachments PNG `89 50 4E 47 0D 0A 1A 0A`, JPEG `FF D8 FF`; photo also WebP (`RIFF` … `WEBP` at offset 8).
      → OK: `status='READY'`, size + etag + sha256 recorded, link to owner row (`candidate_file` new version / `polygraph.result_file_id`), `entity_event` `*.file_uploaded`; fail: delete object, `status='REJECTED'`, 400 `FILE_CONTENT_MISMATCH`.
 4. `scan_status` column (`NOT_SCANNED` in v1) reserved for Phase 7 antivirus.
 
