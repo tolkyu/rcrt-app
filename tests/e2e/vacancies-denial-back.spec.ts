@@ -3,7 +3,7 @@ import { expect, type Page } from '@playwright/test';
 import messages from '../../messages/uk.json' with { type: 'json' };
 import { DEMO_VERTICALS, demoId } from '../../server/db/seed';
 import { sessionFile, signIn } from '../support/e2e-session';
-import { openHydrated } from '../support/hydration';
+import { openHydrated, waitForHydration } from '../support/hydration';
 import {
   withIsolatedActor,
   type IsolatedActor,
@@ -227,6 +227,10 @@ test.describe('a confirmed read denial reloads the page once [VAC-08, VIS-02, AD
 
     await page.goBack();
     await expect(page).toHaveURL(/\/vacancies$/);
+    await expect(
+      page.getByRole('heading', { level: 1, name: tv.title, exact: true }),
+    ).toBeVisible();
+    await waitForHydration(page);
     await expectNoVacancyData(page, vacancy);
     await page.goForward();
     await expect(page).toHaveURL(cardUrl(vacancy));
